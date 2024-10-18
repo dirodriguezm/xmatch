@@ -1,0 +1,4 @@
+[submodule "healpix"]
+	path = healpix
+	url = https://github.com/dirodriguezm/healpix
+	branch = dev
