@@ -1,7 +1,15 @@
 package main
 
-import httpservice "xmatch/service/internal/http_service"
+import (
+	"xmatch/service/internal/di"
+	httpservice "xmatch/service/internal/http_service"
+
+	"github.com/golobby/container/v3"
+)
 
 func main() {
-	httpservice.InitServer()
+	di.ContainerBuilder()
+	var httpServer httpservice.HttpServer
+	container.MustResolve(container.Global, &httpServer)
+	httpServer.InitServer()
 }

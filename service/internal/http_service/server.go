@@ -5,11 +5,20 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"xmatch/service/internal/core"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupServer() *gin.Engine {
+type HttpServer struct {
+	conesearchService *core.ConesearchService
+}
+
+func NewHttpServer(conesearchService *core.ConesearchService) HttpServer {
+	return HttpServer{conesearchService: conesearchService}
+}
+
+func (server HttpServer) SetupServer() *gin.Engine {
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
@@ -19,8 +28,8 @@ func SetupServer() *gin.Engine {
 	return r
 }
 
-func InitServer() {
-	r := SetupServer()
+func (server HttpServer) InitServer() {
+	r := server.SetupServer()
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
 

@@ -3,11 +3,42 @@ package core
 import (
 	"math"
 	"xmatch/service/internal/repository"
+	"xmatch/service/pkg/assertions"
 
 	"github.com/dirodriguezm/healpix"
 )
 
-func Conesearch(ra, dec, radius float64, catalog string, nneighbor int) ([]string, error) {
+type Repository interface {
+	FindObjectIds(pixelList []int64) ([]string, error)
+}
+
+type ConesearchService struct {
+	Scheme     healpix.OrderingScheme
+	Nside      int
+	Resolution int
+	Catalog    string
+	repository Repository
+}
+
+func NewConesearchService(options ...ConesearchOption) (*ConesearchService, error) {
+	service := &ConesearchService{}
+	for _, opt := range options {
+		err := opt(service)
+		if err != nil {
+			return nil, err
+		}
+	}
+	assertions.NotNil(service.repository)
+	assertions.NotZero(service.Nside)
+	assertions.NotZero(service.Catalog)
+	assertions.NotZero(service.Scheme)
+	if service.Resolution == 0 {
+		service.Resolution = 4
+	}
+	return service, nil
+}
+
+func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) ([]string, error) {
 	scheme := healpix.Nest
 	nside := 14
 	discResolution := 4
@@ -19,7 +50,7 @@ func Conesearch(ra, dec, radius float64, catalog string, nneighbor int) ([]strin
 	point := healpix.RADec(float64(ra), float64(dec))
 	pixelRange := mapper.QueryDiscInclusive(point, radius, discResolution)
 	pixelList := pixelRangeToList(pixelRange)
-	oids, err := getObjectIds(pixelList)
+	oids, err := getObjectIds(pixelList, &repository.SqliteRepository{})
 	// TODO: perform nearest neihbor search to filter oids
 	return oids, err
 }
@@ -38,8 +69,7 @@ func pixelRangeToList(pixelRange []healpix.PixelRange) []int64 {
 	return result
 }
 
-func getObjectIds(pixelList []int64) ([]string, error) {
-	rep := repository.NewSqliteRepository()
+func getObjectIds(pixelList []int64, rep Repository) ([]string, error) {
 	oids, err := rep.FindObjectIds(pixelList)
 	if err != nil {
 		return nil, err
