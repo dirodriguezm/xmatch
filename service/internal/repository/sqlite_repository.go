@@ -1,12 +1,8 @@
 package repository
 
-type sqliteRepository struct {
+type SqliteRepository struct {
 }
 
-func (repository *sqliteRepository) FindObjectIds(pixelList []int64) ([]string, error) {
+func (repository *SqliteRepository) FindObjectIds(pixelList []int64) ([]string, error) {
 	return nil, nil
-}
-
-func NewSqliteRepository() Repository {
-	return &sqliteRepository{}
 }
