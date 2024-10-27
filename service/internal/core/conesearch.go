@@ -2,14 +2,20 @@ package core
 
 import (
 	"math"
-	"xmatch/service/internal/repository"
 	"xmatch/service/pkg/assertions"
 
 	"github.com/dirodriguezm/healpix"
 )
 
+type MastercatObject struct {
+	id      string
+	ra      float64
+	dec     float64
+	catalog string
+}
+
 type Repository interface {
-	FindObjectIds(pixelList []int64) ([]string, error)
+	FindObjects(pixelList []int64) ([]MastercatObject, error)
 }
 
 type ConesearchService struct {
@@ -38,21 +44,31 @@ func NewConesearchService(options ...ConesearchOption) (*ConesearchService, erro
 	return service, nil
 }
 
-func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) ([]string, error) {
-	scheme := healpix.Nest
-	nside := 14
-	discResolution := 4
-	mapper, err := healpix.NewHEALPixMapper(nside, scheme)
+func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) ([]MastercatObject, error) {
+	if err := ValidateRa(ra); err != nil {
+		return nil, err
+	}
+	if err := ValidateDec(dec); err != nil {
+		return nil, err
+	}
+	if err := ValidateRadius(radius); err != nil {
+		return nil, err
+	}
+	if err := ValidateNneighbor(nneighbor); err != nil {
+		return nil, err
+	}
+
+	mapper, err := healpix.NewHEALPixMapper(c.Nside, c.Scheme)
 	if err != nil {
 		return nil, err
 	}
 	radius = arcsecToRadians(radius)
 	point := healpix.RADec(float64(ra), float64(dec))
-	pixelRange := mapper.QueryDiscInclusive(point, radius, discResolution)
+	pixelRange := mapper.QueryDiscInclusive(point, radius, c.Resolution)
 	pixelList := pixelRangeToList(pixelRange)
-	oids, err := getObjectIds(pixelList, &repository.SqliteRepository{})
-	// TODO: perform nearest neihbor search to filter oids
-	return oids, err
+	objs, err := c.getObjects(pixelList)
+	objs = c.nearestNeighborSearch(objs, ra, dec, radius, nneighbor)
+	return objs, err
 }
 
 func arcsecToRadians(arcsec float64) float64 {
@@ -69,10 +85,10 @@ func pixelRangeToList(pixelRange []healpix.PixelRange) []int64 {
 	return result
 }
 
-func getObjectIds(pixelList []int64, rep Repository) ([]string, error) {
-	oids, err := rep.FindObjectIds(pixelList)
+func (c *ConesearchService) getObjects(pixelList []int64) ([]MastercatObject, error) {
+	objects, err := c.repository.FindObjects(pixelList)
 	if err != nil {
 		return nil, err
 	}
-	return oids, nil
+	return objects, nil
 }

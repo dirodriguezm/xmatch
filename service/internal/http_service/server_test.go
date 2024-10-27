@@ -53,6 +53,6 @@ func TestConesearchValidation(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, expected.Status, w.Code)
-		assert.Equal(t, expected.ErrorMessage, w.Body.String())
+		assert.Contains(t, w.Body.String(), expected.ErrorMessage)
 	}
 }

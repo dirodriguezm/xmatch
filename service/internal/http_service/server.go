@@ -74,8 +74,8 @@ func validateRadius(rad string) (float64, string) {
 		}
 		return -999, fmt.Sprintf(msg, rad)
 	}
-	if radius <= 0 {
-		return -999, "Radius can't be lower than 0\n"
+	if err := core.ValidateRadius(radius); err != nil {
+		return -999, fmt.Sprintf("Invalid radius: %s", err.Error())
 	}
 	return radius, ""
 }
@@ -89,11 +89,8 @@ func validateRa(ra string) (float64, string) {
 		}
 		return -999, fmt.Sprintf(msg, ra)
 	}
-	if parsedRa < 0 {
-		return -999, "RA can't be lower than 0\n"
-	}
-	if parsedRa > 360 {
-		return -999, "RA can't be greater than 360\n"
+	if err := core.ValidateRa(parsedRa); err != nil {
+		return -999, fmt.Sprintf("Invalid ra: %s", err.Error())
 	}
 	return parsedRa, ""
 }
@@ -107,11 +104,8 @@ func validateDec(dec string) (float64, string) {
 		}
 		return -999, fmt.Sprintf(msg, dec)
 	}
-	if parsedDec < -90 {
-		return -999, "Dec can't be lower than -90\n"
-	}
-	if parsedDec > 90 {
-		return -999, "Dec can't be greater than 90\n"
+	if err := core.ValidateDec(parsedDec); err != nil {
+		return -999, fmt.Sprintf("Invalid dec: %s", err.Error())
 	}
 	return parsedDec, ""
 }
@@ -140,8 +134,8 @@ func validateNneighbor(nneighbor string) (int, string) {
 		}
 		return -999, fmt.Sprintf("Could not parse nneighbor %v\n", nneighbor)
 	}
-	if parsedNneighbor <= 0 {
-		return -999, fmt.Sprintf("Nneighbor must be a positive integer\n")
+	if err := core.ValidateNneighbor(parsedNneighbor); err != nil {
+		return -999, fmt.Sprintf("Invalid nneighbor: %s", err.Error())
 	}
 	return parsedNneighbor, ""
 }
