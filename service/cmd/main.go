@@ -4,19 +4,20 @@ import (
 	"xmatch/service/internal/core"
 	httpservice "xmatch/service/internal/http_service"
 	"xmatch/service/internal/repository"
+	"xmatch/service/pkg/container"
 
 	"github.com/dirodriguezm/healpix"
-	"github.com/golobby/container/v3"
 )
 
-func main() {
-	err := container.Singleton(func() core.Repository {
+func AppContainer() container.Container {
+	ctr := container.NewContainer()
+	err := ctr.Register("sqliteRepository", func() core.Repository {
 		return &repository.SqliteRepository{}
 	})
 	if err != nil {
 		panic("could not register repository")
 	}
-	err = container.Singleton(func(r core.Repository) (*core.ConesearchService, error) {
+	err = ctr.Register("conesearchService", func(r core.Repository) (*core.ConesearchService, error) {
 		return core.NewConesearchService(
 			core.WithNside(18),
 			core.WithScheme(healpix.Nest),
@@ -24,5 +25,23 @@ func main() {
 			core.WithRepository(r),
 		)
 	})
-	httpservice.InitServer()
+	if err != nil {
+		panic("could not register conesearch service")
+	}
+	err = ctr.Register("httpServer", func(service core.ConesearchService) (httpservice.HttpServer, error) {
+		return httpservice.NewHttpServer(&service), nil
+	})
+	if err != nil {
+		panic("could not register http server")
+	}
+	return ctr
+}
+
+func main() {
+	appContainer := AppContainer()
+	var server httpservice.HttpServer
+	err := appContainer.ResolveWithBinds("httpServer", &server, []string{"conesearchService", "sqliteRepository"})
+	if err != nil {
+		panic(err)
+	}
 }

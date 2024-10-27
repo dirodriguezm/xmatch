@@ -133,6 +133,8 @@ func (c Container) arguments(factory any, names []string) ([]reflect.Value, erro
 
 	for i := 0; i < argumentsCount; i++ {
 		abstraction := factoryType.In(i)
+		fmt.Printf("Abstraction %v \t Name %s\n", abstraction, names[i])
+		fmt.Printf("Container: %+v\n", c)
 		if bind, exist := c[abstraction][names[i]]; exist {
 			instance, err := bind.make(c, names)
 			if err != nil {

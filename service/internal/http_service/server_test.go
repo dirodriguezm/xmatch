@@ -4,12 +4,25 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"xmatch/service/internal/core"
+	"xmatch/service/internal/repository"
 
+	"github.com/dirodriguezm/healpix"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+var server HttpServer
+var service core.ConesearchService
+var router *gin.Engine
+
 func TestPingRoute(t *testing.T) {
-	router := SetupServer()
+	repository := &repository.SqliteRepository{}
+	service, err := core.NewConesearchService(core.WithNside(18), core.WithCatalog("vlass"), core.WithScheme(healpix.Nest), core.WithRepository(repository))
+	require.NoError(t, err)
+	server = NewHttpServer(service)
+	router = server.SetupServer()
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/ping", nil)
@@ -117,7 +130,6 @@ func TestConesearchValidation(t *testing.T) {
 		"/conesearch?ra=1&dec=1&radius=1&catalog=wise&nneighbor=-1": {400, "Nneighbor must be a positive integer\n"},
 	}
 
-	router := SetupServer()
 	for testPath, expected := range testCases {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", testPath, nil)
