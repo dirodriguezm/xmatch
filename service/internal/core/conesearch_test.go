@@ -1,8 +1,10 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"xmatch/service/internal/repository"
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/stretchr/testify/assert"
@@ -12,11 +14,11 @@ import (
 
 type MockRepository struct {
 	mock.Mock
-	Objects []MastercatObject
+	Objects []repository.Mastercat
 	Error   error
 }
 
-func (m *MockRepository) FindObjects(pixelList []int64) ([]MastercatObject, error) {
+func (m *MockRepository) FindObjects(ctx context.Context, pixelList []int64) ([]repository.Mastercat, error) {
 	m.Called(pixelList)
 	if m.Error != nil {
 		return nil, m.Error
@@ -25,9 +27,9 @@ func (m *MockRepository) FindObjects(pixelList []int64) ([]MastercatObject, erro
 }
 
 func TestConesearch(t *testing.T) {
-	objects := []MastercatObject{
-		{id: "A", ra: 1, dec: 1, catalog: "vlass"},
-		{id: "B", ra: 10, dec: 10, catalog: "vlass"},
+	objects := []repository.Mastercat{
+		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
+		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
 	repo := &MockRepository{
 		Objects: objects,
@@ -42,7 +44,7 @@ func TestConesearch(t *testing.T) {
 	repo.AssertExpectations(t)
 
 	require.Len(t, result, 1)
-	require.Equal(t, result[0].id, "A")
+	require.Equal(t, result[0].ID, "A")
 }
 
 func TestConesearchWithRepositoryError(t *testing.T) {
@@ -62,9 +64,9 @@ func TestConesearchWithRepositoryError(t *testing.T) {
 }
 
 func FuzzConesearch(f *testing.F) {
-	objects := []MastercatObject{
-		{id: "A", ra: 1, dec: 1, catalog: "vlass"},
-		{id: "B", ra: 10, dec: 10, catalog: "vlass"},
+	objects := []repository.Mastercat{
+		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
+		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
 	repo := &MockRepository{
 		Objects: objects,

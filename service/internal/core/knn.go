@@ -3,13 +3,14 @@ package core
 import (
 	"fmt"
 	"math"
+	"xmatch/service/internal/repository"
 
 	"github.com/kyroy/kdtree"
 	"github.com/kyroy/kdtree/points"
 )
 
 type KNNObject struct {
-	Obj MastercatObject
+	Obj repository.Mastercat
 }
 
 func (knn KNNObject) Dimensions() int {
@@ -17,11 +18,11 @@ func (knn KNNObject) Dimensions() int {
 }
 
 func (knn KNNObject) Dimension(i int) float64 {
-	dimensions := []float64{knn.Obj.ra, knn.Obj.dec}
+	dimensions := []float64{knn.Obj.Ra, knn.Obj.Dec}
 	return dimensions[i]
 }
 
-func (c *ConesearchService) nearestNeighborSearch(objects []MastercatObject, ra, dec, radius float64, maxNeighbors int) []MastercatObject {
+func (c *ConesearchService) nearestNeighborSearch(objects []repository.Mastercat, ra, dec, radius float64, maxNeighbors int) []repository.Mastercat {
 	pts := []kdtree.Point{}
 	for _, obj := range objects {
 		pts = append(pts, KNNObject{Obj: obj})
@@ -31,7 +32,7 @@ func (c *ConesearchService) nearestNeighborSearch(objects []MastercatObject, ra,
 	nearObjs := tree.KNN(&points.Point2D{X: ra, Y: dec}, maxNeighbors)
 
 	// now we need to check that distance between nearest objects and center is actually lower than radius
-	result := []MastercatObject{}
+	result := []repository.Mastercat{}
 	for _, obj := range nearObjs {
 		if euclideanDistance(obj, &points.Point2D{X: ra, Y: dec}) > radius {
 			continue

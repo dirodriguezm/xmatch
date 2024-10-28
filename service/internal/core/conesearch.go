@@ -1,21 +1,16 @@
 package core
 
 import (
+	"context"
 	"math"
+	"xmatch/service/internal/repository"
 	"xmatch/service/pkg/assertions"
 
 	"github.com/dirodriguezm/healpix"
 )
 
-type MastercatObject struct {
-	id      string
-	ra      float64
-	dec     float64
-	catalog string
-}
-
 type Repository interface {
-	FindObjects(pixelList []int64) ([]MastercatObject, error)
+	FindObjects(ctx context.Context, pixelList []int64) ([]repository.Mastercat, error)
 }
 
 type ConesearchService struct {
@@ -44,7 +39,7 @@ func NewConesearchService(options ...ConesearchOption) (*ConesearchService, erro
 	return service, nil
 }
 
-func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) ([]MastercatObject, error) {
+func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) ([]repository.Mastercat, error) {
 	if err := ValidateRa(ra); err != nil {
 		return nil, err
 	}
@@ -85,8 +80,9 @@ func pixelRangeToList(pixelRange []healpix.PixelRange) []int64 {
 	return result
 }
 
-func (c *ConesearchService) getObjects(pixelList []int64) ([]MastercatObject, error) {
-	objects, err := c.repository.FindObjects(pixelList)
+func (c *ConesearchService) getObjects(pixelList []int64) ([]repository.Mastercat, error) {
+	ctx := context.Background()
+	objects, err := c.repository.FindObjects(ctx, pixelList)
 	if err != nil {
 		return nil, err
 	}
