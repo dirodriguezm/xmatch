@@ -26,6 +26,10 @@ func (m *MockRepository) FindObjects(ctx context.Context, pixelList []int64) ([]
 	return m.Objects, nil
 }
 
+func (m *MockRepository) InsertObject(ctx context.Context, object repository.InsertObjectParams) (repository.Mastercat, error) {
+	return repository.Mastercat{}, nil
+}
+
 func TestConesearch(t *testing.T) {
 	objects := []repository.Mastercat{
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},

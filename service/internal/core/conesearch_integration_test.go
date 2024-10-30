@@ -2,31 +2,98 @@ package core_test
 
 import (
 	"context"
-	"database/sql"
+	"fmt"
+	"log/slog"
 	"os"
 	"testing"
-	dbdb "xmatch/service/internal/db"
+	"xmatch/service/internal/core"
 	"xmatch/service/internal/di"
+	"xmatch/service/internal/repository"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golobby/container/v3"
+	"github.com/stretchr/testify/require"
 )
 
+func findRootModulePath(maxDepth int) (string, error) {
+	currDir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	dirs, err := os.ReadDir(".")
+	if err != nil {
+		return "", err
+	}
+
+	for _, dir := range dirs {
+		if dir.Name() == "go.mod" {
+			return currDir, nil
+		}
+	}
+
+	os.Chdir("..")
+	return findRootModulePath(maxDepth - 1)
+}
+
 func TestMain(m *testing.M) {
+	os.Setenv("LOG_LEVEL", "debug")
+
+	rootPath, err := findRootModulePath(5)
+	if err != nil {
+		panic(err)
+	}
+
 	// remove test database, ignore errors
-	os.Remove("../../test.db")
+	dbFile := fmt.Sprintf("%s/test.db", rootPath)
+	err = os.Remove(dbFile)
+	if err != nil {
+		panic(err)
+	}
 	// create test database
-	os.Setenv("DB_CONN", "file:../../test.db")
+	os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
 
 	// build DI container
 	di.ContainerBuilder()
 
-	// get db connection from the container
-	var db *sql.DB
-	container.Resolve(&db)
-
 	// create tables
-	ctx := context.Background()
-	if _, err := db.ExecContext(ctx, dbdb.SCHEMA); err != nil {
+	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
+	if err != nil {
 		panic(err)
 	}
+	err = mig.Up()
+	if err != nil {
+		slog.Error("Error during migrations", "error", err)
+	}
+	m.Run()
+}
+
+func TestConesearch(t *testing.T) {
+	var service *core.ConesearchService
+	err := container.Resolve(&service)
+	if err != nil {
+		t.Error(err)
+	}
+
+	objects := []repository.InsertObjectParams{
+		// ra and dec don't matter here
+		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
+		{ID: "C", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
+	}
+	var repo core.Repository
+	err = container.Resolve(&repo)
+	if err != nil {
+		t.Error(err)
+	}
+	for _, obj := range objects {
+		repo.InsertObject(context.Background(), obj)
+	}
+
+	result, err := service.Conesearch(0, 0, 1, 10) // TODO: Revisar con Lore algunos casos de prueba
+	if err != nil {
+		t.Error(err)
+	}
+	require.Len(t, result, 1)
 }

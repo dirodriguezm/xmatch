@@ -106,3 +106,39 @@ func (q *Queries) GetObjectsFromCatalog(ctx context.Context, arg GetObjectsFromC
 	}
 	return items, nil
 }
+
+const insertObject = `-- name: InsertObject :one
+INSERT INTO mastercat (
+	id, ipix, ra, dec, cat
+) VALUES (
+	?, ?, ?, ?, ?
+)
+RETURNING id, ipix, ra, dec, cat
+`
+
+type InsertObjectParams struct {
+	ID   string
+	Ipix int64
+	Ra   float64
+	Dec  float64
+	Cat  string
+}
+
+func (q *Queries) InsertObject(ctx context.Context, arg InsertObjectParams) (Mastercat, error) {
+	row := q.db.QueryRowContext(ctx, insertObject,
+		arg.ID,
+		arg.Ipix,
+		arg.Ra,
+		arg.Dec,
+		arg.Cat,
+	)
+	var i Mastercat
+	err := row.Scan(
+		&i.ID,
+		&i.Ipix,
+		&i.Ra,
+		&i.Dec,
+		&i.Cat,
+	)
+	return i, err
+}
