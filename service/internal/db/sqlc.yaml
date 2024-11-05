@@ -6,4 +6,4 @@ sql:
     gen:
       go:
         package: "repository"
-        out: "../repository/"
+        out: "../../pkg/repository/"
