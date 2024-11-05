@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 	"math"
-	"xmatch/service/internal/repository"
+	"xmatch/service/pkg/repository"
 
 	"github.com/kyroy/kdtree"
 	"github.com/kyroy/kdtree/points"

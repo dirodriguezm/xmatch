@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"xmatch/service/internal/repository"
+	"xmatch/service/pkg/repository"
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/stretchr/testify/assert"

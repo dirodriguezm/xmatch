@@ -8,7 +8,7 @@ import (
 	"testing"
 	"xmatch/service/internal/core"
 	"xmatch/service/internal/di"
-	"xmatch/service/internal/repository"
+	"xmatch/service/pkg/repository"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"

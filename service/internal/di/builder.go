@@ -6,7 +6,7 @@ import (
 	"os"
 	"xmatch/service/internal/core"
 	httpservice "xmatch/service/internal/http_service"
-	"xmatch/service/internal/repository"
+	"xmatch/service/pkg/repository"
 
 	_ "github.com/mattn/go-sqlite3"
 

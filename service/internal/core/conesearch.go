@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"math"
-	"xmatch/service/internal/repository"
 	"xmatch/service/pkg/assertions"
+	"xmatch/service/pkg/repository"
 
 	"github.com/dirodriguezm/healpix"
 )
