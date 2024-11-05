@@ -90,7 +90,6 @@ func pixelRangeToList(pixelRanges []healpix.PixelRange) []int64 {
 func (c *ConesearchService) getObjects(pixelList []int64) ([]repository.Mastercat, error) {
 	ctx := context.Background()
 	objects, err := c.repository.FindObjects(ctx, pixelList)
-	slog.Debug("RESULT FROM DB", "got", objects)
 	if err != nil {
 		return nil, err
 	}
