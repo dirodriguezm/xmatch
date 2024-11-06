@@ -1,4 +1,4 @@
-module xmatch/service
+module github.com/dirodriguezm/xmatch/service
 
 go 1.23.0
 
