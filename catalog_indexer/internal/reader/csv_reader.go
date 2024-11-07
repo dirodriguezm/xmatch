@@ -1,15 +1,18 @@
-package core
+package reader
 
 import (
 	"encoding/csv"
 	"io"
 	"log/slog"
+
+	"github.com/dirodriguezm/xmatch/catalog_indexer/internal/indexer"
+	"github.com/dirodriguezm/xmatch/catalog_indexer/internal/source"
 )
 
 type CsvReader struct {
 	Header    []string
 	csvReader *csv.Reader
-	src       Source
+	src       source.Source
 	BatchSize int
 }
 
@@ -30,7 +33,7 @@ func WithBatchSize(size int) CsvReaderOption {
 	}
 }
 
-func NewCsvReader(src Source, opts ...CsvReaderOption) (*CsvReader, error) {
+func NewCsvReader(src source.Source, opts ...CsvReaderOption) (*CsvReader, error) {
 	reader := CsvReader{
 		csvReader: csv.NewReader(src.Reader),
 		src:       src,
@@ -41,8 +44,8 @@ func NewCsvReader(src Source, opts ...CsvReaderOption) (*CsvReader, error) {
 	return &reader, nil
 }
 
-func (r *CsvReader) Read() ([]Row, error) {
-	rows := make([]Row, 0, 0)
+func (r *CsvReader) Read() ([]indexer.Row, error) {
+	rows := make([]indexer.Row, 0, 0)
 	if r.Header == nil {
 		header, err := r.csvReader.Read()
 		if err != nil {
@@ -57,7 +60,7 @@ func (r *CsvReader) Read() ([]Row, error) {
 		return nil, err
 	}
 	for _, record := range records {
-		row := make(Row)
+		row := make(indexer.Row)
 		for i, h := range r.Header {
 			row[h] = record[i]
 		}
@@ -66,8 +69,8 @@ func (r *CsvReader) Read() ([]Row, error) {
 	return rows, nil
 }
 
-func (r *CsvReader) ReadBatch() ([]Row, error) {
-	rows := make([]Row, 0, 0)
+func (r *CsvReader) ReadBatch() ([]indexer.Row, error) {
+	rows := make([]indexer.Row, 0, 0)
 	if r.Header == nil {
 		header, err := r.csvReader.Read()
 		if err != nil {
@@ -84,11 +87,27 @@ func (r *CsvReader) ReadBatch() ([]Row, error) {
 			}
 			return nil, err
 		}
-		row := make(Row)
+		row := make(indexer.Row)
 		for i, h := range r.Header {
 			row[h] = record[i]
 		}
 		rows = append(rows, row)
 	}
 	return rows, nil
+}
+
+func (r *CsvReader) ObjectIdCol() string {
+	return r.src.OidCol
+}
+
+func (r *CsvReader) RaCol() string {
+	return r.src.RaCol
+}
+
+func (r *CsvReader) DecCol() string {
+	return r.src.DecCol
+}
+
+func (r *CsvReader) Catalog() string {
+	return r.src.CatalogName
 }

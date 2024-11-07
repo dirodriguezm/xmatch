@@ -1,10 +1,12 @@
-package core
+package reader
 
 import (
 	"io"
 	"strings"
 	"testing"
 
+	"github.com/dirodriguezm/xmatch/catalog_indexer/internal/indexer"
+	"github.com/dirodriguezm/xmatch/catalog_indexer/internal/source"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +18,7 @@ o3,3,3
 `
 	reader := strings.NewReader(csv)
 
-	source := Source{
+	source := source.Source{
 		Reader:      reader,
 		RaCol:       "ra",
 		DecCol:      "dec",
@@ -50,7 +52,7 @@ o3,3,3
 
 	reader := strings.NewReader(csv)
 
-	source := Source{
+	source := source.Source{
 		Reader:      reader,
 		RaCol:       "ra",
 		DecCol:      "dec",
@@ -85,7 +87,7 @@ o4,4,4
 `
 	reader := strings.NewReader(csv)
 
-	source := Source{
+	source := source.Source{
 		Reader:      reader,
 		RaCol:       "ra",
 		DecCol:      "dec",
@@ -98,7 +100,7 @@ o4,4,4
 		t.Fatal(err)
 	}
 
-	var rows []Row
+	var rows []indexer.Row
 
 	for {
 		batch, err := csvReader.ReadBatch()
@@ -132,7 +134,7 @@ o3,3,3
 `
 	reader := strings.NewReader(csv)
 
-	source := Source{
+	source := source.Source{
 		Reader:      reader,
 		RaCol:       "ra",
 		DecCol:      "dec",
@@ -145,7 +147,7 @@ o3,3,3
 		t.Fatal(err)
 	}
 
-	var rows []Row
+	var rows []indexer.Row
 
 	eof := false
 	for !eof {
