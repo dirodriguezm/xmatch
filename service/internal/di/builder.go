@@ -2,11 +2,11 @@ package di
 
 import (
 	"database/sql"
+	"github.com/dirodriguezm/xmatch/service/internal/core/conesearch"
+	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	"github.com/dirodriguezm/xmatch/service/pkg/repository"
 	"log/slog"
 	"os"
-	"xmatch/service/internal/core"
-	httpservice "xmatch/service/internal/http_service"
-	"xmatch/service/pkg/repository"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -41,20 +41,20 @@ func ContainerBuilder() {
 		return db
 	})
 
-	container.MustSingleton(container.Global, func(db *sql.DB) core.Repository {
+	container.MustSingleton(container.Global, func(db *sql.DB) conesearch.Repository {
 		return repository.New(db)
 	})
 
-	container.MustSingleton(container.Global, func(r core.Repository) (*core.ConesearchService, error) {
-		return core.NewConesearchService(
-			core.WithNside(18),
-			core.WithScheme(healpix.Nest),
-			core.WithCatalog("vlass"),
-			core.WithRepository(r),
+	container.MustSingleton(container.Global, func(r conesearch.Repository) (*conesearch.ConesearchService, error) {
+		return conesearch.NewConesearchService(
+			conesearch.WithNside(18),
+			conesearch.WithScheme(healpix.Nest),
+			conesearch.WithCatalog("vlass"),
+			conesearch.WithRepository(r),
 		)
 	})
 
-	container.MustSingleton(container.Global, func(service *core.ConesearchService) httpservice.HttpServer {
+	container.MustSingleton(container.Global, func(service *conesearch.ConesearchService) httpservice.HttpServer {
 		return httpservice.NewHttpServer(service)
 	})
 }

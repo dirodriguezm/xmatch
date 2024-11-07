@@ -16,4 +16,3 @@ INSERT INTO mastercat (
 	?, ?, ?, ?, ?
 )
 RETURNING *;
-

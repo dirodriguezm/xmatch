@@ -1,8 +1,8 @@
 package main
 
 import (
-	"xmatch/service/internal/di"
-	httpservice "xmatch/service/internal/http_service"
+	"github.com/dirodriguezm/xmatch/service/internal/di"
+	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 
 	"github.com/golobby/container/v3"
 )

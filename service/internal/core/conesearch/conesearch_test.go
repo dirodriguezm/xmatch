@@ -1,10 +1,10 @@
-package core
+package conesearch
 
 import (
 	"context"
 	"errors"
+	"github.com/dirodriguezm/xmatch/service/pkg/repository"
 	"testing"
-	"xmatch/service/pkg/repository"
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/stretchr/testify/assert"

@@ -1,11 +1,13 @@
-package core
+package conesearch
 
 import (
 	"context"
 	"log/slog"
 	"math"
-	"xmatch/service/pkg/assertions"
-	"xmatch/service/pkg/repository"
+
+	"github.com/dirodriguezm/xmatch/service/internal/core/knn"
+	"github.com/dirodriguezm/xmatch/service/pkg/assertions"
+	"github.com/dirodriguezm/xmatch/service/pkg/repository"
 
 	"github.com/dirodriguezm/healpix"
 )
@@ -69,7 +71,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) (
 	if err != nil {
 		return nil, err
 	}
-	objs = c.nearestNeighborSearch(objs, ra, dec, radius, nneighbor)
+	objs = knn.NearestNeighborSearch(objs, ra, dec, radius, nneighbor)
 	return objs, err
 }
 

@@ -1,14 +1,14 @@
-package core_test
+package conesearch_test
 
 import (
 	"context"
 	"fmt"
+	"github.com/dirodriguezm/xmatch/service/internal/core/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/di"
+	"github.com/dirodriguezm/xmatch/service/pkg/repository"
 	"log/slog"
 	"os"
 	"testing"
-	"xmatch/service/internal/core"
-	"xmatch/service/internal/di"
-	"xmatch/service/pkg/repository"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -71,7 +71,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestConesearch(t *testing.T) {
-	var service *core.ConesearchService
+	var service *conesearch.ConesearchService
 	err := container.Resolve(&service)
 	if err != nil {
 		t.Error(err)
@@ -82,7 +82,7 @@ func TestConesearch(t *testing.T) {
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "C", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	var repo core.Repository
+	var repo conesearch.Repository
 	err = container.Resolve(&repo)
 	if err != nil {
 		t.Error(err)

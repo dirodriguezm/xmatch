@@ -1,11 +1,11 @@
 package httpservice_test
 
 import (
+	"github.com/dirodriguezm/xmatch/service/internal/di"
+	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"xmatch/service/internal/di"
-	httpservice "xmatch/service/internal/http_service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golobby/container/v3"
