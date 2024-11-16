@@ -1,11 +1,13 @@
-package core
+package conesearch
 
 import (
 	"context"
 	"log/slog"
 	"math"
-	"xmatch/service/pkg/assertions"
-	"xmatch/service/pkg/repository"
+
+	"github.com/dirodriguezm/xmatch/service/internal/assertions"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/knn"
 
 	"github.com/dirodriguezm/healpix"
 )
@@ -13,6 +15,7 @@ import (
 type Repository interface {
 	FindObjects(ctx context.Context, pixelList []int64) ([]repository.Mastercat, error)
 	InsertObject(ctx context.Context, object repository.InsertObjectParams) (repository.Mastercat, error)
+	GetAllObjects(ctx context.Context) ([]repository.Mastercat, error)
 }
 
 type ConesearchService struct {
@@ -69,7 +72,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) (
 	if err != nil {
 		return nil, err
 	}
-	objs = c.nearestNeighborSearch(objs, ra, dec, radius, nneighbor)
+	objs = knn.NearestNeighborSearch(objs, ra, dec, radius, nneighbor)
 	return objs, err
 }
 
@@ -90,7 +93,6 @@ func pixelRangeToList(pixelRanges []healpix.PixelRange) []int64 {
 func (c *ConesearchService) getObjects(pixelList []int64) ([]repository.Mastercat, error) {
 	ctx := context.Background()
 	objects, err := c.repository.FindObjects(ctx, pixelList)
-	slog.Debug("RESULT FROM DB", "got", objects)
 	if err != nil {
 		return nil, err
 	}

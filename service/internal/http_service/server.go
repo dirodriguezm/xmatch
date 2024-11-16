@@ -2,19 +2,19 @@ package httpservice
 
 import (
 	"fmt"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"net/http"
 	"strconv"
 	"strings"
-	"xmatch/service/internal/core"
 
 	"github.com/gin-gonic/gin"
 )
 
 type HttpServer struct {
-	conesearchService *core.ConesearchService
+	conesearchService *conesearch.ConesearchService
 }
 
-func NewHttpServer(conesearchService *core.ConesearchService) HttpServer {
+func NewHttpServer(conesearchService *conesearch.ConesearchService) HttpServer {
 	return HttpServer{conesearchService: conesearchService}
 }
 
@@ -23,7 +23,7 @@ func (server HttpServer) SetupServer() *gin.Engine {
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})
-	r.GET("/conesearch", conesearch)
+	r.GET("/conesearch", conesearchHandler)
 	r.SetTrustedProxies([]string{"localhost"})
 	return r
 }
@@ -33,7 +33,7 @@ func (server HttpServer) InitServer() {
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
 
-func conesearch(c *gin.Context) {
+func conesearchHandler(c *gin.Context) {
 	ra := c.Query("ra")
 	dec := c.Query("dec")
 	radius := c.Query("radius")
@@ -74,7 +74,7 @@ func validateRadius(rad string) (float64, string) {
 		}
 		return -999, fmt.Sprintf(msg, rad)
 	}
-	if err := core.ValidateRadius(radius); err != nil {
+	if err := conesearch.ValidateRadius(radius); err != nil {
 		return -999, fmt.Sprintf("Invalid radius: %s", err.Error())
 	}
 	return radius, ""
@@ -89,7 +89,7 @@ func validateRa(ra string) (float64, string) {
 		}
 		return -999, fmt.Sprintf(msg, ra)
 	}
-	if err := core.ValidateRa(parsedRa); err != nil {
+	if err := conesearch.ValidateRa(parsedRa); err != nil {
 		return -999, fmt.Sprintf("Invalid ra: %s", err.Error())
 	}
 	return parsedRa, ""
@@ -104,7 +104,7 @@ func validateDec(dec string) (float64, string) {
 		}
 		return -999, fmt.Sprintf(msg, dec)
 	}
-	if err := core.ValidateDec(parsedDec); err != nil {
+	if err := conesearch.ValidateDec(parsedDec); err != nil {
 		return -999, fmt.Sprintf("Invalid dec: %s", err.Error())
 	}
 	return parsedDec, ""
@@ -134,7 +134,7 @@ func validateNneighbor(nneighbor string) (int, string) {
 		}
 		return -999, fmt.Sprintf("Could not parse nneighbor %v\n", nneighbor)
 	}
-	if err := core.ValidateNneighbor(parsedNneighbor); err != nil {
+	if err := conesearch.ValidateNneighbor(parsedNneighbor); err != nil {
 		return -999, fmt.Sprintf("Invalid nneighbor: %s", err.Error())
 	}
 	return parsedNneighbor, ""

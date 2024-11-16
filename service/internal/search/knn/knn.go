@@ -1,9 +1,10 @@
-package core
+package knn
 
 import (
 	"fmt"
 	"math"
-	"xmatch/service/pkg/repository"
+
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 
 	"github.com/kyroy/kdtree"
 	"github.com/kyroy/kdtree/points"
@@ -22,7 +23,7 @@ func (knn KNNObject) Dimension(i int) float64 {
 	return dimensions[i]
 }
 
-func (c *ConesearchService) nearestNeighborSearch(objects []repository.Mastercat, ra, dec, radius float64, maxNeighbors int) []repository.Mastercat {
+func NearestNeighborSearch(objects []repository.Mastercat, ra, dec, radius float64, maxNeighbors int) []repository.Mastercat {
 	pts := []kdtree.Point{}
 	for _, obj := range objects {
 		pts = append(pts, KNNObject{Obj: obj})
