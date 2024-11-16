@@ -3,9 +3,9 @@ package conesearch_test
 import (
 	"context"
 	"fmt"
-	"github.com/dirodriguezm/xmatch/service/internal/core/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
-	"github.com/dirodriguezm/xmatch/service/pkg/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"log/slog"
 	"os"
 	"testing"
@@ -48,12 +48,13 @@ func TestMain(m *testing.M) {
 
 	// remove test database, ignore errors
 	dbFile := fmt.Sprintf("%s/test.db", rootPath)
-	err = os.Remove(dbFile)
+	os.Remove(dbFile)
+
+	// create test database
+	err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
 	if err != nil {
 		panic(err)
 	}
-	// create test database
-	os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
 
 	// build DI container
 	di.ContainerBuilder()

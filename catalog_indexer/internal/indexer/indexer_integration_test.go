@@ -1,1 +1,0 @@
-package indexer_test

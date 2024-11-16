@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"math"
 
-	"github.com/dirodriguezm/xmatch/service/internal/core/knn"
-	"github.com/dirodriguezm/xmatch/service/pkg/assertions"
-	"github.com/dirodriguezm/xmatch/service/pkg/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/assertions"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/knn"
 
 	"github.com/dirodriguezm/healpix"
 )
@@ -15,6 +15,7 @@ import (
 type Repository interface {
 	FindObjects(ctx context.Context, pixelList []int64) ([]repository.Mastercat, error)
 	InsertObject(ctx context.Context, object repository.InsertObjectParams) (repository.Mastercat, error)
+	GetAllObjects(ctx context.Context) ([]repository.Mastercat, error)
 }
 
 type ConesearchService struct {

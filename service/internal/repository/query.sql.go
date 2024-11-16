@@ -55,6 +55,40 @@ func (q *Queries) FindObjects(ctx context.Context, ipix []int64) ([]Mastercat, e
 	return items, nil
 }
 
+const getAllObjects = `-- name: GetAllObjects :many
+SELECT id, ipix, ra, dec, cat
+FROM mastercat
+`
+
+func (q *Queries) GetAllObjects(ctx context.Context) ([]Mastercat, error) {
+	rows, err := q.db.QueryContext(ctx, getAllObjects)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Mastercat
+	for rows.Next() {
+		var i Mastercat
+		if err := rows.Scan(
+			&i.ID,
+			&i.Ipix,
+			&i.Ra,
+			&i.Dec,
+			&i.Cat,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getObjectsFromCatalog = `-- name: GetObjectsFromCatalog :many
 SELECT id, ipix, ra, dec, cat 
 FROM mastercat 

@@ -16,3 +16,7 @@ INSERT INTO mastercat (
 	?, ?, ?, ?, ?
 )
 RETURNING *;
+
+-- name: GetAllObjects :many
+SELECT *
+FROM mastercat;

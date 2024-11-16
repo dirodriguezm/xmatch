@@ -5,8 +5,8 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/dirodriguezm/xmatch/catalog_indexer/internal/indexer"
-	"github.com/dirodriguezm/xmatch/catalog_indexer/internal/source"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 )
 
 type CsvReader struct {
@@ -14,34 +14,43 @@ type CsvReader struct {
 	csvReader *csv.Reader
 	src       source.Source
 	BatchSize int
+	outbox    chan indexer.ReaderResult
 }
 
-type CsvReaderOption func(r *CsvReader)
-
-func WithHeader(header []string) CsvReaderOption {
-	return func(r *CsvReader) {
-		r.Header = header
-	}
-}
-
-func WithBatchSize(size int) CsvReaderOption {
-	return func(r *CsvReader) {
-		if size <= 0 {
-			size = 1
-		}
-		r.BatchSize = size
-	}
-}
-
-func NewCsvReader(src source.Source, opts ...CsvReaderOption) (*CsvReader, error) {
+func NewCsvReader(src source.Source, channel chan indexer.ReaderResult, opts ...CsvReaderOption) (*CsvReader, error) {
 	reader := CsvReader{
 		csvReader: csv.NewReader(src.Reader),
 		src:       src,
+		outbox:    channel,
 	}
 	for _, opt := range opts {
 		opt(&reader)
 	}
 	return &reader, nil
+}
+
+func (r *CsvReader) Start() {
+	go func() {
+		defer close(r.outbox)
+		eof := false
+		for !eof {
+			rows, err := r.ReadBatch()
+			if err != nil && err != io.EOF {
+				readResult := indexer.ReaderResult{
+					Rows:  nil,
+					Error: err,
+				}
+				r.outbox <- readResult
+				return
+			}
+			eof = err == io.EOF
+			readResult := indexer.ReaderResult{
+				Rows:  rows,
+				Error: nil,
+			}
+			r.outbox <- readResult
+		}
+	}()
 }
 
 func (r *CsvReader) Read() ([]indexer.Row, error) {

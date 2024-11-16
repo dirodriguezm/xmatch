@@ -2,7 +2,7 @@ package httpservice
 
 import (
 	"fmt"
-	"github.com/dirodriguezm/xmatch/service/internal/core/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"net/http"
 	"strconv"
 	"strings"

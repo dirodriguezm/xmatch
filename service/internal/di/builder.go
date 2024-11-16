@@ -2,9 +2,9 @@ package di
 
 import (
 	"database/sql"
-	"github.com/dirodriguezm/xmatch/service/internal/core/conesearch"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
-	"github.com/dirodriguezm/xmatch/service/pkg/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"log/slog"
 	"os"
 

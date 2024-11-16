@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/dirodriguezm/xmatch/service/pkg/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 
 	"github.com/kyroy/kdtree"
 	"github.com/kyroy/kdtree/points"
