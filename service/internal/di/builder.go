@@ -1,12 +1,18 @@
 package di
 
 import (
+	"context"
 	"database/sql"
+	"log/slog"
+	"os"
+
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
-	"log/slog"
-	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -14,8 +20,9 @@ import (
 	"github.com/golobby/container/v3"
 )
 
-func ContainerBuilder() {
-	container.MustSingleton(container.Global, func() *slog.LevelVar {
+func BuildServiceContainer() container.Container {
+	ctr := container.New()
+	ctr.Singleton(func() *slog.LevelVar {
 		levels := map[string]slog.Level{
 			"debug": slog.LevelDebug,
 			"info":  slog.LevelInfo,
@@ -29,8 +36,7 @@ func ContainerBuilder() {
 		programLevel.Set(levels[os.Getenv("LOG_LEVEL")])
 		return programLevel
 	})
-
-	container.MustSingleton(container.Global, func() *sql.DB {
+	ctr.Singleton(func() *sql.DB {
 		conn := os.Getenv("DB_CONN")
 		db, err := sql.Open("sqlite3", conn)
 		if err != nil {
@@ -40,12 +46,10 @@ func ContainerBuilder() {
 		slog.Debug("Created database", "conn", conn)
 		return db
 	})
-
-	container.MustSingleton(container.Global, func(db *sql.DB) conesearch.Repository {
+	ctr.Singleton(func(db *sql.DB) conesearch.Repository {
 		return repository.New(db)
 	})
-
-	container.MustSingleton(container.Global, func(r conesearch.Repository) (*conesearch.ConesearchService, error) {
+	ctr.Singleton(func(r conesearch.Repository) (*conesearch.ConesearchService, error) {
 		return conesearch.NewConesearchService(
 			conesearch.WithNside(18),
 			conesearch.WithScheme(healpix.Nest),
@@ -53,8 +57,79 @@ func ContainerBuilder() {
 			conesearch.WithRepository(r),
 		)
 	})
-
-	container.MustSingleton(container.Global, func(service *conesearch.ConesearchService) httpservice.HttpServer {
+	ctr.Singleton(func(service *conesearch.ConesearchService) httpservice.HttpServer {
 		return httpservice.NewHttpServer(service)
 	})
+	return ctr
+}
+
+func BuildIndexerContainer() container.Container {
+	ctr := container.New()
+	ctr.Singleton(func() *slog.LevelVar {
+		levels := map[string]slog.Level{
+			"debug": slog.LevelDebug,
+			"info":  slog.LevelInfo,
+			"error": slog.LevelError,
+			"warn":  slog.LevelWarn,
+			"":      slog.LevelInfo,
+		}
+		var programLevel = new(slog.LevelVar)
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: programLevel}))
+		slog.SetDefault(logger)
+		programLevel.Set(levels[os.Getenv("LOG_LEVEL")])
+		return programLevel
+	})
+	ctr.Singleton(func() *sql.DB {
+		conn := os.Getenv("DB_CONN")
+		db, err := sql.Open("sqlite3", conn)
+		if err != nil {
+			slog.Error("Could not create sqlite3 connection", "conn", conn)
+			panic(err)
+		}
+		slog.Debug("Created database", "conn", conn)
+		return db
+	})
+	ctr.Singleton(func(db *sql.DB) conesearch.Repository {
+		return repository.New(db)
+	})
+
+	// ugly code to register the catalog indexer dependencies
+
+	// TODO: register Source dinamically
+	ctr.Singleton(func() *source.Source {
+		url := os.Getenv("SOURCE_URL")
+		src, err := source.NewSource("csv", url, "vlass", "ra", "dec", "oid")
+		if err != nil {
+			slog.Error("Could not register Source")
+			panic(err)
+		}
+		return src
+	})
+
+	// Register reader
+	readerResults := make(chan indexer.ReaderResult)
+	ctr.Singleton(func(src *source.Source) indexer.Reader {
+		r, err := reader.NewCsvReader(*src, readerResults)
+		if err != nil {
+			panic(err)
+		}
+		return r
+	})
+
+	// Register indexer
+	indexerResults := make(chan indexer.IndexerResult)
+	ctr.Singleton(func(rdr *indexer.Reader) *indexer.Indexer {
+		// TODO: support dynamic values
+		idx, err := indexer.New(*rdr, 18, healpix.Nest, readerResults, indexerResults)
+		if err != nil {
+			panic(err)
+		}
+		return idx
+	})
+
+	// Register writer
+	ctr.Singleton(func(idx *indexer.Indexer, repo *conesearch.Repository) indexer.Writer {
+		return writer.NewSqliteWriter(*repo, indexerResults, context.TODO())
+	})
+	return ctr
 }

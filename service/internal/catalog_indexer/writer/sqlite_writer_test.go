@@ -15,7 +15,7 @@ func TestStart(t *testing.T) {
 	}
 	repo := &conesearch.MockRepository{Objects: objects, Error: nil}
 	repo.On("InsertObject", masterCat2InsertParams(objects[0])).Return(objects[0], nil)
-	writer := New(repo, make(chan indexer.IndexerResult), context.Background())
+	writer := NewSqliteWriter(repo, make(chan indexer.IndexerResult), context.Background())
 
 	writer.Start()
 	writer.inbox <- indexer.IndexerResult{Objects: objects}

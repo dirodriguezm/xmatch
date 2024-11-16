@@ -8,16 +8,15 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golobby/container/v3"
 	"github.com/stretchr/testify/assert"
 )
 
 var router *gin.Engine
 
 func TestMain(m *testing.M) {
-	di.ContainerBuilder()
+	ctr := di.BuildServiceContainer()
 	var server httpservice.HttpServer
-	container.MustResolve(container.Global, &server)
+	ctr.Resolve(&server)
 	router = server.SetupServer()
 	m.Run()
 }

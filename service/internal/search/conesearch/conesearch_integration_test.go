@@ -3,19 +3,22 @@ package conesearch_test
 import (
 	"context"
 	"fmt"
-	"github.com/dirodriguezm/xmatch/service/internal/di"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"log/slog"
 	"os"
 	"testing"
 
+	"github.com/dirodriguezm/xmatch/service/internal/di"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"github.com/golobby/container/v3"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/golobby/container/v3"
 	"github.com/stretchr/testify/require"
 )
+
+var ctr container.Container
 
 func findRootModulePath(maxDepth int) (string, error) {
 	currDir, err := os.Getwd()
@@ -57,7 +60,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// build DI container
-	di.ContainerBuilder()
+	ctr = di.BuildServiceContainer()
 
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
@@ -73,7 +76,7 @@ func TestMain(m *testing.M) {
 
 func TestConesearch(t *testing.T) {
 	var service *conesearch.ConesearchService
-	err := container.Resolve(&service)
+	err := ctr.Resolve(&service)
 	if err != nil {
 		t.Error(err)
 	}
@@ -84,7 +87,7 @@ func TestConesearch(t *testing.T) {
 		{ID: "C", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
 	var repo conesearch.Repository
-	err = container.Resolve(&repo)
+	err = ctr.Resolve(&repo)
 	if err != nil {
 		t.Error(err)
 	}
