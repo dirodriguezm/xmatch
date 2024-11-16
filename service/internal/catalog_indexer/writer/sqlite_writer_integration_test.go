@@ -19,6 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var ctr container.Container
+
 func TestMain(m *testing.M) {
 	os.Setenv("LOG_LEVEL", "debug")
 
@@ -37,8 +39,13 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
+	// Mock file for registering Source in the container
+	mockFile := fmt.Sprintf("%s/mockFile.csv", rootPath)
+	os.Create(mockFile)
+	os.Setenv("SOURCE_URL", mockFile)
+
 	// build DI container
-	di.ContainerBuilder()
+	ctr = di.BuildIndexerContainer()
 
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
@@ -50,15 +57,16 @@ func TestMain(m *testing.M) {
 		slog.Error("Error during migrations", "error", err)
 	}
 	m.Run()
+	os.Remove(mockFile)
 }
 
 func TestActor(t *testing.T) {
 	ch := make(chan indexer.IndexerResult)
 	var repo conesearch.Repository
-	err := container.Resolve(&repo)
+	err := ctr.Resolve(&repo)
 	require.NoError(t, err)
 	ctx := context.Background()
-	w := writer.New(repo, ch, ctx)
+	w := writer.NewSqliteWriter(repo, ch, ctx)
 
 	w.Start()
 	ch <- indexer.IndexerResult{Objects: []repository.Mastercat{

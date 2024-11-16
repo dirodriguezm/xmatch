@@ -16,7 +16,7 @@ type SqliteWriter struct {
 	Done       chan bool
 }
 
-func New(repository conesearch.Repository, ch chan indexer.IndexerResult, ctx context.Context) *SqliteWriter {
+func NewSqliteWriter(repository conesearch.Repository, ch chan indexer.IndexerResult, ctx context.Context) *SqliteWriter {
 	return &SqliteWriter{
 		inbox:      ch,
 		repository: repository,
