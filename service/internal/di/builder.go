@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	"github.com/dirodriguezm/xmatch/service/internal/config"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -65,6 +67,15 @@ func BuildServiceContainer() container.Container {
 
 func BuildIndexerContainer() container.Container {
 	ctr := container.New()
+	// read config
+	ctr.Singleton(func() *config.Config {
+		cfg, err := config.Load()
+		if err != nil {
+			panic(err)
+		}
+		return cfg
+	})
+
 	ctr.Singleton(func() *slog.LevelVar {
 		levels := map[string]slog.Level{
 			"debug": slog.LevelDebug,
@@ -93,12 +104,15 @@ func BuildIndexerContainer() container.Container {
 		return repository.New(db)
 	})
 
-	// ugly code to register the catalog indexer dependencies
-
-	// TODO: register Source dinamically
-	ctr.Singleton(func() *source.Source {
-		url := os.Getenv("SOURCE_URL")
-		src, err := source.NewSource("csv", url, "vlass", "ra", "dec", "oid")
+	ctr.Singleton(func(cfg *config.Config) *source.Source {
+		src, err := source.NewSource(
+			cfg.CatalogIndexer.Source.Type,
+			cfg.CatalogIndexer.Source.Url,
+			cfg.CatalogIndexer.Source.CatalogName,
+			cfg.CatalogIndexer.Source.RaCol,
+			cfg.CatalogIndexer.Source.DecCol,
+			cfg.CatalogIndexer.Source.OidCol,
+		)
 		if err != nil {
 			slog.Error("Could not register Source")
 			panic(err)
@@ -118,9 +132,12 @@ func BuildIndexerContainer() container.Container {
 
 	// Register indexer
 	indexerResults := make(chan indexer.IndexerResult)
-	ctr.Singleton(func(rdr *indexer.Reader) *indexer.Indexer {
-		// TODO: support dynamic values
-		idx, err := indexer.New(*rdr, 18, healpix.Nest, readerResults, indexerResults)
+	ctr.Singleton(func(rdr *indexer.Reader, cfg *config.Config) *indexer.Indexer {
+		orderingScheme := healpix.Ring
+		if strings.ToLower(cfg.CatalogIndexer.Indexer.OrderingScheme) == "nested" {
+			orderingScheme = healpix.Nest
+		}
+		idx, err := indexer.New(*rdr, cfg.CatalogIndexer.Source.Nside, orderingScheme, readerResults, indexerResults)
 		if err != nil {
 			panic(err)
 		}
@@ -128,7 +145,7 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register writer
-	ctr.Singleton(func(idx *indexer.Indexer, repo *conesearch.Repository) indexer.Writer {
+	ctr.Singleton(func(repo *conesearch.Repository) indexer.Writer {
 		return writer.NewSqliteWriter(*repo, indexerResults, context.TODO())
 	})
 	return ctr
