@@ -1,9 +1,11 @@
 package source
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 type Source struct {
@@ -12,6 +14,7 @@ type Source struct {
 	RaCol       string
 	DecCol      string
 	OidCol      string
+	Nside       int
 }
 
 func NewSource(stype string, url string, catalogName string, raCol string, decCol string, oidCol string) (*Source, error) {
@@ -42,6 +45,11 @@ func validateSourceType(stype string) bool {
 }
 
 func sourceReader(url string) (io.Reader, error) {
-	// TODO: parse url here
-	return os.Open(url)
+	if strings.HasPrefix(url, "file:") {
+		return os.Open(url)
+	}
+	if strings.HasPrefix(url, "buffer:") {
+		return &bytes.Buffer{}, nil
+	}
+	return nil, fmt.Errorf("Could not parse URL: %s", url)
 }

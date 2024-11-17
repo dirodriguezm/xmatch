@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
@@ -24,25 +25,43 @@ var ctr container.Container
 func TestMain(m *testing.M) {
 	os.Setenv("LOG_LEVEL", "debug")
 
-	rootPath, err := findRootModulePath(5)
+	depth := 5
+	rootPath, err := findRootModulePath(depth)
 	if err != nil {
+		slog.Error("could not fin root module path", "depth", depth)
 		panic(err)
 	}
 
-	// remove test database, ignore errors
-	dbFile := fmt.Sprintf("%s/test.db", rootPath)
+	// remove test database if exist
+	dbFile := filepath.Join(rootPath, "test.db")
 	os.Remove(dbFile)
 
-	// create test database
+	// set db connection environment variable
 	err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
 	if err != nil {
+		slog.Error("could not set environment variable")
 		panic(err)
 	}
 
-	// Mock file for registering Source in the container
-	mockFile := fmt.Sprintf("%s/mockFile.csv", rootPath)
-	os.Create(mockFile)
-	os.Setenv("SOURCE_URL", mockFile)
+	// create a config file
+	tmpDir, err := os.MkdirTemp("", "sqlite_writer_integration_test_*")
+	if err != nil {
+		slog.Error("could not make temp dir")
+		panic(err)
+	}
+	configPath := filepath.Join(tmpDir, "config.yaml")
+	config := `
+catalog_indexer:
+  source:
+    url: "buffer:"
+    type: "csv"
+`
+	err = os.WriteFile(configPath, []byte(config), 0644)
+	if err != nil {
+		slog.Error("could not write config file")
+		panic(err)
+	}
+	os.Setenv("CONFIG_PATH", configPath)
 
 	// build DI container
 	ctr = di.BuildIndexerContainer()
@@ -50,14 +69,18 @@ func TestMain(m *testing.M) {
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
 	if err != nil {
+		slog.Error("Could not create Migrate instance")
 		panic(err)
 	}
 	err = mig.Up()
 	if err != nil {
 		slog.Error("Error during migrations", "error", err)
+		panic(err)
 	}
 	m.Run()
-	os.Remove(mockFile)
+	os.Remove(configPath)
+	os.Remove(dbFile)
+	os.Remove(tmpDir)
 }
 
 func TestActor(t *testing.T) {
