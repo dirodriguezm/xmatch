@@ -40,6 +40,7 @@ type ReaderConfig struct {
 
 type IndexerConfig struct {
 	OrderingScheme string `yaml:"ordering_scheme"`
+	Nside          int    `yaml:"nside"`
 }
 
 type WriterConfig struct{}
