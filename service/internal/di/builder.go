@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"log/slog"
 	"os"
-	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
@@ -105,14 +104,7 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	ctr.Singleton(func(cfg *config.Config) *source.Source {
-		src, err := source.NewSource(
-			cfg.CatalogIndexer.Source.Type,
-			cfg.CatalogIndexer.Source.Url,
-			cfg.CatalogIndexer.Source.CatalogName,
-			cfg.CatalogIndexer.Source.RaCol,
-			cfg.CatalogIndexer.Source.DecCol,
-			cfg.CatalogIndexer.Source.OidCol,
-		)
+		src, err := source.NewSource(cfg.CatalogIndexer.Source)
 		if err != nil {
 			slog.Error("Could not register Source")
 			panic(err)
@@ -122,9 +114,10 @@ func BuildIndexerContainer() container.Container {
 
 	// Register reader
 	readerResults := make(chan indexer.ReaderResult)
-	ctr.Singleton(func(src *source.Source) indexer.Reader {
-		r, err := reader.NewCsvReader(*src, readerResults)
+	ctr.Singleton(func(src *source.Source, cfg *config.Config) indexer.Reader {
+		r, err := reader.ReaderFactory(src, readerResults, cfg.CatalogIndexer.Reader)
 		if err != nil {
+			slog.Error("Could not register reader")
 			panic(err)
 		}
 		return r
@@ -133,11 +126,7 @@ func BuildIndexerContainer() container.Container {
 	// Register indexer
 	indexerResults := make(chan indexer.IndexerResult)
 	ctr.Singleton(func(rdr *indexer.Reader, cfg *config.Config) *indexer.Indexer {
-		orderingScheme := healpix.Ring
-		if strings.ToLower(cfg.CatalogIndexer.Indexer.OrderingScheme) == "nested" {
-			orderingScheme = healpix.Nest
-		}
-		idx, err := indexer.New(*rdr, cfg.CatalogIndexer.Source.Nside, orderingScheme, readerResults, indexerResults)
+		idx, err := indexer.New(*rdr, readerResults, indexerResults, cfg.CatalogIndexer.Indexer)
 		if err != nil {
 			panic(err)
 		}

@@ -1,8 +1,11 @@
 package indexer
 
 import (
+	"strings"
+
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/assertions"
+	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
@@ -40,8 +43,12 @@ type Indexer struct {
 	outbox       chan IndexerResult
 }
 
-func New(reader Reader, nside int, scheme healpix.OrderingScheme, inbox chan ReaderResult, outbox chan IndexerResult) (*Indexer, error) {
-	mapper, err := healpix.NewHEALPixMapper(nside, scheme)
+func New(reader Reader, inbox chan ReaderResult, outbox chan IndexerResult, cfg *config.IndexerConfig) (*Indexer, error) {
+	orderingScheme := healpix.Ring
+	if strings.ToLower(cfg.OrderingScheme) == "nested" {
+		orderingScheme = healpix.Nest
+	}
+	mapper, err := healpix.NewHEALPixMapper(cfg.Nside, orderingScheme)
 	if err != nil {
 		return nil, err
 	}

@@ -26,7 +26,7 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(source, make(chan indexer.ReaderResult))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(source, make(chan indexer.ReaderResult), WithHeader([]string{"oid", "ra", "dec"}))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithHeader([]string{"oid", "ra", "dec"}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ o4,4,4
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(source, make(chan indexer.ReaderResult), WithBatchSize(2))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(source, make(chan indexer.ReaderResult), WithBatchSize(2))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(source, make(chan indexer.ReaderResult), WithBatchSize(2))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}

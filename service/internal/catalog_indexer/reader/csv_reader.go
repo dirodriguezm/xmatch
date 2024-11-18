@@ -12,12 +12,12 @@ import (
 type CsvReader struct {
 	Header    []string
 	csvReader *csv.Reader
-	src       source.Source
+	src       *source.Source
 	BatchSize int
 	outbox    chan indexer.ReaderResult
 }
 
-func NewCsvReader(src source.Source, channel chan indexer.ReaderResult, opts ...CsvReaderOption) (*CsvReader, error) {
+func NewCsvReader(src *source.Source, channel chan indexer.ReaderResult, opts ...CsvReaderOption) (*CsvReader, error) {
 	reader := CsvReader{
 		csvReader: csv.NewReader(src.Reader),
 		src:       src,

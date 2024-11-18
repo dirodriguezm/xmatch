@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/dirodriguezm/xmatch/service/internal/config"
 )
 
 type Source struct {
@@ -17,20 +19,20 @@ type Source struct {
 	Nside       int
 }
 
-func NewSource(stype string, url string, catalogName string, raCol string, decCol string, oidCol string) (*Source, error) {
-	if !validateSourceType(stype) {
-		return nil, fmt.Errorf("Can't create source with type %s.", stype)
+func NewSource(cfg *config.SourceConfig) (*Source, error) {
+	if !validateSourceType(cfg.Type) {
+		return nil, fmt.Errorf("Can't create source with type %s.", cfg.Type)
 	}
-	reader, err := sourceReader(url)
+	reader, err := sourceReader(cfg.Url)
 	if err != nil {
 		return nil, err
 	}
 	return &Source{
 		Reader:      reader,
-		CatalogName: catalogName,
-		RaCol:       raCol,
-		DecCol:      decCol,
-		OidCol:      oidCol,
+		CatalogName: cfg.CatalogName,
+		RaCol:       cfg.RaCol,
+		DecCol:      cfg.DecCol,
+		OidCol:      cfg.OidCol,
 	}, nil
 }
 

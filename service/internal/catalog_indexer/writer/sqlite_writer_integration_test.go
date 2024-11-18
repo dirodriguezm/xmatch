@@ -55,6 +55,9 @@ catalog_indexer:
   source:
     url: "buffer:"
     type: "csv"
+  reader:
+    batch_size: 500
+    type: "csv"
 `
 	err = os.WriteFile(configPath, []byte(config), 0644)
 	if err != nil {

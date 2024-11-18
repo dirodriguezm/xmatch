@@ -3,7 +3,7 @@ package indexer
 import (
 	"testing"
 
-	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +16,7 @@ func TestRow2Mastercat(t *testing.T) {
 		"catalog": "catalog",
 	}
 	var result repository.Mastercat
-	ix, err := New(&ReaderMock{}, 18, healpix.Nest, nil, nil)
+	ix, err := New(&ReaderMock{}, nil, nil, &config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
 	require.NoError(t, err)
 	result, err = ix.Row2Mastercat(row)
 	require.NoError(t, err)
@@ -44,7 +44,7 @@ func TestIndexActor(t *testing.T) {
 			"catalog": "catalog",
 		},
 	}
-	indexer, err := New(&ReaderMock{}, 18, healpix.Nest, inbox, outbox)
+	indexer, err := New(&ReaderMock{}, inbox, outbox, &config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
 	require.NoError(t, err)
 
 	indexer.Start()
