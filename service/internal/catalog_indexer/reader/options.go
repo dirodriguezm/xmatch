@@ -8,6 +8,12 @@ func WithHeader(header []string) CsvReaderOption {
 	}
 }
 
+func WithFirstLineHeader(firstLineHeader bool) CsvReaderOption {
+	return func(r *CsvReader) {
+		r.FirstLineHeader = firstLineHeader
+	}
+}
+
 func WithBatchSize(size int) CsvReaderOption {
 	return func(r *CsvReader) {
 		if size <= 0 {

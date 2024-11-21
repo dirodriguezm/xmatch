@@ -11,7 +11,7 @@ import (
 )
 
 type Source struct {
-	Reader      io.Reader
+	Reader      []io.Reader
 	CatalogName string
 	RaCol       string
 	DecCol      string
@@ -46,12 +46,38 @@ func validateSourceType(stype string) bool {
 	return false
 }
 
-func sourceReader(url string) (io.Reader, error) {
+func sourceReader(url string) ([]io.Reader, error) {
 	if strings.HasPrefix(url, "file:") {
-		return os.Open(url)
+		reader, err := os.Open(strings.Split(url, "file:")[1])
+		if err != nil {
+			return nil, err
+		}
+		return []io.Reader{reader}, nil
 	}
 	if strings.HasPrefix(url, "buffer:") {
-		return &bytes.Buffer{}, nil
+		return []io.Reader{&bytes.Buffer{}}, nil
+	}
+	if strings.HasPrefix(url, "files:") {
+		entries, err := os.ReadDir(strings.Split(url, "files:")[1])
+		if err != nil {
+			return nil, err
+		}
+		readers := []io.Reader{}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				rdrs, err := sourceReader("files:" + entry.Name())
+				if err != nil {
+					return nil, err
+				}
+				readers = append(readers, rdrs...)
+			}
+			file, err := os.Open(entry.Name())
+			if err != nil {
+				return nil, err
+			}
+			readers = append(readers, file)
+		}
+		return readers, nil
 	}
 	return nil, fmt.Errorf("Could not parse URL: %s", url)
 }
