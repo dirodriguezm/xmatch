@@ -19,7 +19,7 @@ o3,3,3
 	reader := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      reader,
+		Reader:      []io.Reader{reader},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
@@ -53,7 +53,7 @@ o3,3,3
 	reader := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      reader,
+		Reader:      []io.Reader{reader},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
@@ -88,14 +88,14 @@ o4,4,4
 	reader := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      reader,
+		Reader:      []io.Reader{reader},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2), WithFirstLineHeader(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,14 +135,14 @@ o3,3,3
 	reader := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      reader,
+		Reader:      []io.Reader{reader},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2), WithFirstLineHeader(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,6 +172,54 @@ o3,3,3
 	require.Equal(t, expectedOids, receivedOids)
 }
 
+func TestReadMultipleReaders(t *testing.T) {
+	csv := `oid,ra,dec
+o1,1,1
+o2,2,2
+o3,3,3
+`
+	reader := strings.NewReader(csv)
+	reader2 := strings.NewReader(csv)
+
+	source := source.Source{
+		Reader:      []io.Reader{reader, reader2},
+		RaCol:       "ra",
+		DecCol:      "dec",
+		OidCol:      "oid",
+		CatalogName: "vlass",
+	}
+
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2), WithFirstLineHeader(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	require.Equal(t, 2, len(csvReader.csvReaders))
+
+	var rows []indexer.Row
+
+	eof := false
+	for !eof {
+		batch, err := csvReader.ReadBatch()
+		if err != nil && err != io.EOF {
+			t.Fatal(err)
+		}
+		if err == io.EOF {
+			eof = true
+		}
+		for _, row := range batch {
+			rows = append(rows, row)
+		}
+	}
+
+	require.Equal(t, 6, len(rows))
+	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
+	receivedOids := make([]string, 6, 6)
+	for i, row := range rows {
+		receivedOids[i] = row["oid"].(string)
+	}
+	require.Equal(t, expectedOids, receivedOids)
+}
+
 func TestActor(t *testing.T) {
 	csv := `oid,ra,dec
 o1,1,1
@@ -181,7 +229,7 @@ o3,3,3
 	reader := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      reader,
+		Reader:      []io.Reader{reader},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",

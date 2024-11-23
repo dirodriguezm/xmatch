@@ -13,7 +13,13 @@ func ReaderFactory(src *source.Source, outbox chan indexer.ReaderResult, cfg *co
 	readerType := strings.ToLower(cfg.Type)
 	switch readerType {
 	case "csv":
-		return NewCsvReader(src, outbox, WithBatchSize(cfg.BatchSize), WithHeader(cfg.Header))
+		return NewCsvReader(
+			src,
+			outbox,
+			WithBatchSize(cfg.BatchSize),
+			WithHeader(cfg.Header),
+			WithFirstLineHeader(cfg.FirstLineHeader),
+		)
 	default:
 		return nil, fmt.Errorf("Reader type not allowed")
 	}
