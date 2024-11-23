@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/config"
@@ -58,21 +60,25 @@ func sourceReader(url string) ([]io.Reader, error) {
 		return []io.Reader{&bytes.Buffer{}}, nil
 	}
 	if strings.HasPrefix(url, "files:") {
-		entries, err := os.ReadDir(strings.Split(url, "files:")[1])
+		parsedUrl := strings.Split(url, "files:")[1]
+		entries, err := os.ReadDir(parsedUrl)
 		if err != nil {
 			return nil, err
 		}
 		readers := []io.Reader{}
 		for _, entry := range entries {
 			if entry.IsDir() {
-				rdrs, err := sourceReader("files:" + entry.Name())
+				rdrs, err := sourceReader("files:" + filepath.Join(parsedUrl, entry.Name()))
 				if err != nil {
+					slog.Error("Could not create reader", "entry", entry.Name())
 					return nil, err
 				}
 				readers = append(readers, rdrs...)
+				continue
 			}
-			file, err := os.Open(entry.Name())
+			file, err := os.Open(filepath.Join(parsedUrl, entry.Name()))
 			if err != nil {
+				slog.Error("Could not create reader", "entry", entry.Name())
 				return nil, err
 			}
 			readers = append(readers, file)

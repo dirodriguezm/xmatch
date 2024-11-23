@@ -102,7 +102,7 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]indexer.Ro
 	if r.Header == nil {
 		header, err := currentReader.Read()
 		if err != nil {
-			slog.Error("Could not read header from csv.", "reader", r.csvReaders)
+			slog.Error("Could not read header from csv.", "reader", r.csvReaders, "error", err)
 			return nil, err
 		}
 		r.Header = header
