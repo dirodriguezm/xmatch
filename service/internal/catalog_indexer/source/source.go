@@ -22,6 +22,7 @@ type Source struct {
 }
 
 func NewSource(cfg *config.SourceConfig) (*Source, error) {
+	slog.Debug("Creating new Source", "config", cfg)
 	if !validateSourceType(cfg.Type) {
 		return nil, fmt.Errorf("Can't create source with type %s.", cfg.Type)
 	}
@@ -35,6 +36,7 @@ func NewSource(cfg *config.SourceConfig) (*Source, error) {
 		RaCol:       cfg.RaCol,
 		DecCol:      cfg.DecCol,
 		OidCol:      cfg.OidCol,
+		Nside:       cfg.Nside,
 	}, nil
 }
 

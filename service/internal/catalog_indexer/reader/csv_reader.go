@@ -37,8 +37,12 @@ func NewCsvReader(src *source.Source, channel chan indexer.ReaderResult, opts ..
 }
 
 func (r *CsvReader) Start() {
+	slog.Debug("Starting CsvReader", "catalog", r.src.CatalogName, "nside", r.src.Nside, "numreaders", len(r.src.Reader))
 	go func() {
-		defer close(r.outbox)
+		defer func() {
+			close(r.outbox)
+			slog.Debug("Closing CsvReader")
+		}()
 		eof := false
 		for !eof {
 			rows, err := r.ReadBatch()
@@ -55,6 +59,7 @@ func (r *CsvReader) Start() {
 				Rows:  rows,
 				Error: nil,
 			}
+			slog.Debug("Reader sending message", "result", readResult)
 			r.outbox <- readResult
 		}
 	}()
@@ -127,6 +132,7 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]indexer.Ro
 func (r *CsvReader) ReadBatch() ([]indexer.Row, error) {
 	rows := make([]indexer.Row, 0, 0)
 	currentReader := r.csvReaders[r.currentReader]
+	slog.Debug("CsvReader reading batch")
 	currentRows, err := r.ReadBatchSingleFile(currentReader)
 	if err != nil {
 		if err == io.EOF && r.currentReader < len(r.csvReaders)-1 {
@@ -146,20 +152,4 @@ func (r *CsvReader) ReadBatch() ([]indexer.Row, error) {
 	}
 	rows = append(rows, currentRows...)
 	return rows, nil
-}
-
-func (r *CsvReader) ObjectIdCol() string {
-	return r.src.OidCol
-}
-
-func (r *CsvReader) RaCol() string {
-	return r.src.RaCol
-}
-
-func (r *CsvReader) DecCol() string {
-	return r.src.DecCol
-}
-
-func (r *CsvReader) Catalog() string {
-	return r.src.CatalogName
 }

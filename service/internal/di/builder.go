@@ -89,20 +89,30 @@ func BuildIndexerContainer() container.Container {
 		programLevel.Set(levels[os.Getenv("LOG_LEVEL")])
 		return programLevel
 	})
-	ctr.Singleton(func() *sql.DB {
-		conn := os.Getenv("DB_CONN")
+
+	// Register DB
+	ctr.Singleton(func(cfg *config.Config) *sql.DB {
+		conn := cfg.CatalogIndexer.Database.Url
 		db, err := sql.Open("sqlite3", conn)
 		if err != nil {
 			slog.Error("Could not create sqlite3 connection", "conn", conn)
 			panic(err)
 		}
+		_, err = db.Exec("select 'test conn'")
+		if err != nil {
+			slog.Error("Could not connect to database", "conn", conn)
+			panic(err)
+		}
 		slog.Debug("Created database", "conn", conn)
 		return db
 	})
+
+	// Register Repository
 	ctr.Singleton(func(db *sql.DB) conesearch.Repository {
 		return repository.New(db)
 	})
 
+	// Register Source
 	ctr.Singleton(func(cfg *config.Config) *source.Source {
 		src, err := source.NewSource(cfg.CatalogIndexer.Source)
 		if err != nil {
@@ -125,8 +135,8 @@ func BuildIndexerContainer() container.Container {
 
 	// Register indexer
 	indexerResults := make(chan indexer.IndexerResult)
-	ctr.Singleton(func(rdr *indexer.Reader, cfg *config.Config) *indexer.Indexer {
-		idx, err := indexer.New(*rdr, readerResults, indexerResults, cfg.CatalogIndexer.Indexer)
+	ctr.Singleton(func(src *source.Source, cfg *config.Config) *indexer.Indexer {
+		idx, err := indexer.New(src, readerResults, indexerResults, cfg.CatalogIndexer.Indexer)
 		if err != nil {
 			panic(err)
 		}
@@ -134,8 +144,8 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register writer
-	ctr.Singleton(func(repo *conesearch.Repository) indexer.Writer {
-		return writer.NewSqliteWriter(*repo, indexerResults, context.TODO())
+	ctr.Singleton(func(repo conesearch.Repository) indexer.Writer {
+		return writer.NewSqliteWriter(repo, indexerResults, make(chan bool), context.TODO())
 	})
 	return ctr
 }
