@@ -1,0 +1,17 @@
+catalog_indexer:
+  database:
+    url: "file:dev.db"
+  source:
+    url: "file:test.csv"
+    type: "csv"
+    catalog_name: "test"
+    ra_col: "ra"
+    dec_col: "dec"
+    oid_col: "oid"
+    nside: 18
+  reader:
+    batch_size: 1
+    type: "csv"
+  indexer:
+    ordering_scheme: "nested"
+  writer:

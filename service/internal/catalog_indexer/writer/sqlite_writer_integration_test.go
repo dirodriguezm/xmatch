@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 	depth := 5
 	rootPath, err := findRootModulePath(depth)
 	if err != nil {
-		slog.Error("could not fin root module path", "depth", depth)
+		slog.Error("could not find root module path", "depth", depth)
 		panic(err)
 	}
 
@@ -58,7 +58,12 @@ catalog_indexer:
   reader:
     batch_size: 500
     type: "csv"
+  database:
+    url: "file:%s"
+  indexer:
+    ordering_scheme: "nested"
 `
+	config = fmt.Sprintf(config, dbFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)
 	if err != nil {
 		slog.Error("could not write config file")
@@ -92,7 +97,8 @@ func TestActor(t *testing.T) {
 	err := ctr.Resolve(&repo)
 	require.NoError(t, err)
 	ctx := context.Background()
-	w := writer.NewSqliteWriter(repo, ch, ctx)
+	done := make(chan bool)
+	w := writer.NewSqliteWriter(repo, ch, done, ctx)
 
 	w.Start()
 	ch <- indexer.IndexerResult{Objects: []repository.Mastercat{
@@ -100,7 +106,7 @@ func TestActor(t *testing.T) {
 		{ID: "oid2", Ipix: 2, Ra: 2, Dec: 2, Cat: "vlass"},
 	}}
 	close(ch)
-	<-w.Done
+	<-done
 
 	// check the database
 	objects, err := repo.GetAllObjects(ctx)

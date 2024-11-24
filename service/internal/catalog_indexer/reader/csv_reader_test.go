@@ -228,7 +228,7 @@ o3,3,3
 `
 	reader := strings.NewReader(csv)
 
-	source := source.Source{
+	src := source.Source{
 		Reader:      []io.Reader{reader},
 		RaCol:       "ra",
 		DecCol:      "dec",
@@ -236,7 +236,7 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2))
+	csvReader, err := NewCsvReader(&src, make(chan indexer.ReaderResult), WithBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
