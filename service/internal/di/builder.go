@@ -23,6 +23,16 @@ import (
 
 func BuildServiceContainer() container.Container {
 	ctr := container.New()
+
+	// read config
+	ctr.Singleton(func() *config.Config {
+		cfg, err := config.Load()
+		if err != nil {
+			panic(err)
+		}
+		return cfg
+	})
+
 	ctr.Singleton(func() *slog.LevelVar {
 		levels := map[string]slog.Level{
 			"debug": slog.LevelDebug,
@@ -37,29 +47,52 @@ func BuildServiceContainer() container.Container {
 		programLevel.Set(levels[os.Getenv("LOG_LEVEL")])
 		return programLevel
 	})
-	ctr.Singleton(func() *sql.DB {
-		conn := os.Getenv("DB_CONN")
+
+	// Register DB
+	ctr.Singleton(func(cfg *config.Config) *sql.DB {
+		conn := cfg.Service.Database.Url
 		db, err := sql.Open("sqlite3", conn)
 		if err != nil {
 			slog.Error("Could not create sqlite3 connection", "conn", conn)
 			panic(err)
 		}
+		_, err = db.Exec("select 'test conn'")
+		if err != nil {
+			slog.Error("Could not connect to database", "conn", conn)
+			panic(err)
+		}
 		slog.Debug("Created database", "conn", conn)
 		return db
 	})
+
 	ctr.Singleton(func(db *sql.DB) conesearch.Repository {
 		return repository.New(db)
 	})
-	ctr.Singleton(func(r conesearch.Repository) (*conesearch.ConesearchService, error) {
-		return conesearch.NewConesearchService(
+
+	ctr.Singleton(func(r conesearch.Repository) *conesearch.ConesearchService {
+		con, err := conesearch.NewConesearchService(
 			conesearch.WithNside(18),
 			conesearch.WithScheme(healpix.Nest),
 			conesearch.WithCatalog("vlass"),
 			conesearch.WithRepository(r),
 		)
+		if err != nil {
+			slog.Error("Could not register ConesearchService")
+			panic(err)
+		}
+		return con
 	})
-	ctr.Singleton(func(service *conesearch.ConesearchService) httpservice.HttpServer {
-		return httpservice.NewHttpServer(service)
+
+	ctr.Singleton(func(service *conesearch.ConesearchService) *httpservice.HttpServer {
+		server, err := httpservice.NewHttpServer(service)
+		if err != nil {
+			slog.Error("Could not register HttpServer")
+			panic(err)
+		}
+		if server == nil {
+			panic("Server nil while registering HttpServer")
+		}
+		return server
 	})
 	return ctr
 }

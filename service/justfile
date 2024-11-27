@@ -1,0 +1,25 @@
+default:
+	just --list
+
+migrate db:
+	migrate -database sqlite3://{{db}}.db -path internal/db/migrations up
+
+build:
+	go build -o build/main cmd/main.go
+
+test:
+	go test ./...
+
+run application $LOG_LEVEL="debug": build
+	./build/main {{application}}
+
+clean-build:
+	rm -r build
+
+clean-all:
+	go clean
+	go clean -testcache
+	rm -r build
+
+clean-db db:
+	rm {{db}}.db

@@ -3,7 +3,9 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -57,7 +59,16 @@ type DatabaseConfig struct {
 func Load() (*Config, error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		locations := []string{"./config.yml", "./config.yaml"}
+		rootPath, err := utils.FindRootModulePath(5)
+		if err != nil {
+			return nil, err
+		}
+		locations := []string{
+			"./config.yml",
+			"./config.yaml",
+			filepath.Join(rootPath, "config.yml"),
+			filepath.Join(rootPath, "config.yaml"),
+		}
 		for _, loc := range locations {
 			if _, err := os.Stat(loc); err == nil {
 				configPath = loc

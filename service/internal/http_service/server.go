@@ -2,10 +2,12 @@ package httpservice
 
 import (
 	"fmt"
-	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,32 +16,36 @@ type HttpServer struct {
 	conesearchService *conesearch.ConesearchService
 }
 
-func NewHttpServer(conesearchService *conesearch.ConesearchService) HttpServer {
-	return HttpServer{conesearchService: conesearchService}
+func NewHttpServer(conesearchService *conesearch.ConesearchService) (*HttpServer, error) {
+	if conesearchService == nil {
+		return nil, fmt.Errorf("ConesearchService was nil while creating HttpServer")
+	}
+	return &HttpServer{conesearchService: conesearchService}, nil
 }
 
-func (server HttpServer) SetupServer() *gin.Engine {
+func (server *HttpServer) SetupServer() *gin.Engine {
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})
-	r.GET("/conesearch", conesearchHandler)
+	r.GET("/conesearch", server.conesearchHandler)
 	r.SetTrustedProxies([]string{"localhost"})
 	return r
 }
 
-func (server HttpServer) InitServer() {
+func (server *HttpServer) InitServer() {
 	r := server.SetupServer()
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
 
-func conesearchHandler(c *gin.Context) {
+func (server *HttpServer) conesearchHandler(c *gin.Context) {
 	ra := c.Query("ra")
 	dec := c.Query("dec")
 	radius := c.Query("radius")
 	catalog := c.DefaultQuery("catalog", "all")
 	nneighbor := c.DefaultQuery("nneighbor", "1")
 	parsedRa, errMsg := validateRa(ra)
+	// TODO: move validation to service
 	if parsedRa == -999 {
 		c.String(http.StatusBadRequest, errMsg)
 		return
@@ -62,7 +68,16 @@ func conesearchHandler(c *gin.Context) {
 	parsedNneighbor, errMsg := validateNneighbor(nneighbor)
 	if parsedNneighbor == -999 {
 		c.String(http.StatusBadRequest, errMsg)
+		return
 	}
+
+	result, err := server.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor)
+	if err != nil {
+		slog.Error("Could not execute conesearch", "error", err)
+		c.String(http.StatusInternalServerError, "Could not execute conesearch")
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 func validateRadius(rad string) (float64, string) {

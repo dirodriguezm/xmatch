@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"github.com/golobby/container/v3"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -20,44 +22,44 @@ import (
 
 var ctr container.Container
 
-func findRootModulePath(maxDepth int) (string, error) {
-	currDir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	dirs, err := os.ReadDir(".")
-	if err != nil {
-		return "", err
-	}
-
-	for _, dir := range dirs {
-		if dir.Name() == "go.mod" {
-			return currDir, nil
-		}
-	}
-
-	os.Chdir("..")
-	return findRootModulePath(maxDepth - 1)
-}
-
 func TestMain(m *testing.M) {
 	os.Setenv("LOG_LEVEL", "debug")
 
-	rootPath, err := findRootModulePath(5)
+	rootPath, err := utils.FindRootModulePath(5)
 	if err != nil {
 		panic(err)
 	}
 
 	// remove test database, ignore errors
-	dbFile := fmt.Sprintf("%s/test.db", rootPath)
+	dbFile := filepath.Join(rootPath, "test.db")
 	os.Remove(dbFile)
 
-	// create test database
+	// set db connection environment variable
 	err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
 	if err != nil {
+		slog.Error("could not set environment variable")
 		panic(err)
 	}
+
+	// create a config file
+	tmpDir, err := os.MkdirTemp("", "server_test_*")
+	if err != nil {
+		slog.Error("could not make temp dir")
+		panic(err)
+	}
+	configPath := filepath.Join(tmpDir, "config.yaml")
+	config := `
+service:
+  database:
+    url: "file:%s"
+`
+	config = fmt.Sprintf(config, dbFile)
+	err = os.WriteFile(configPath, []byte(config), 0644)
+	if err != nil {
+		slog.Error("could not write config file")
+		panic(err)
+	}
+	os.Setenv("CONFIG_PATH", configPath)
 
 	// build DI container
 	ctr = di.BuildServiceContainer()
@@ -65,13 +67,22 @@ func TestMain(m *testing.M) {
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
 	if err != nil {
+		slog.Error("Could not create Migrate instance")
 		panic(err)
 	}
 	err = mig.Up()
 	if err != nil {
 		slog.Error("Error during migrations", "error", err)
+		panic(err)
 	}
+
+	// run tests
 	m.Run()
+
+	// cleanup
+	os.Remove(configPath)
+	os.Remove(dbFile)
+	os.Remove(tmpDir)
 }
 
 func TestConesearch(t *testing.T) {

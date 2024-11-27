@@ -13,6 +13,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -26,7 +27,7 @@ func TestMain(m *testing.M) {
 	os.Setenv("LOG_LEVEL", "debug")
 
 	depth := 5
-	rootPath, err := findRootModulePath(depth)
+	rootPath, err := utils.FindRootModulePath(depth)
 	if err != nil {
 		slog.Error("could not find root module path", "depth", depth)
 		panic(err)
@@ -112,25 +113,4 @@ func TestActor(t *testing.T) {
 	objects, err := repo.GetAllObjects(ctx)
 	require.NoError(t, err)
 	require.Len(t, objects, 2)
-}
-
-func findRootModulePath(maxDepth int) (string, error) {
-	currDir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	dirs, err := os.ReadDir(".")
-	if err != nil {
-		return "", err
-	}
-
-	for _, dir := range dirs {
-		if dir.Name() == "go.mod" {
-			return currDir, nil
-		}
-	}
-
-	os.Chdir("..")
-	return findRootModulePath(maxDepth - 1)
 }

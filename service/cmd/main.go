@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
@@ -10,7 +12,7 @@ import (
 
 func startHttpServer() {
 	ctr := di.BuildServiceContainer()
-	var httpServer httpservice.HttpServer
+	var httpServer *httpservice.HttpServer
 	ctr.Resolve(&httpServer)
 	httpServer.InitServer()
 }
@@ -38,5 +40,15 @@ func startCatalogIndexer() {
 }
 
 func main() {
-	startCatalogIndexer()
+	flag.Parse()
+	command := flag.Arg(0)
+	fmt.Println(flag.Args())
+	switch command {
+	case "server":
+		startHttpServer()
+	case "indexer":
+		startCatalogIndexer()
+	default:
+		fmt.Print("Unknown command\n")
+	}
 }
