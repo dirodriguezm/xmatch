@@ -68,9 +68,9 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) (
 		return nil, err
 	}
 
-	radius = arcsecToRadians(radius)
+	radius_radians := arcsecToRadians(radius)
 	point := healpix.RADec(float64(ra), float64(dec))
-	pixelRanges := c.mapper.QueryDiscInclusive(point, radius, c.Resolution)
+	pixelRanges := c.mapper.QueryDiscInclusive(point, radius_radians, c.Resolution)
 	pixelList := pixelRangeToList(pixelRanges)
 	objs, err := c.getObjects(pixelList)
 	if err != nil {

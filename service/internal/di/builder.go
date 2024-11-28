@@ -71,6 +71,7 @@ func BuildServiceContainer() container.Container {
 
 	ctr.Singleton(func(r conesearch.Repository) *conesearch.ConesearchService {
 		con, err := conesearch.NewConesearchService(
+			// TODO: make nside configurable by catalog
 			conesearch.WithNside(18),
 			conesearch.WithScheme(healpix.Nest),
 			conesearch.WithCatalog("vlass"),
