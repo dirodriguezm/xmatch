@@ -1,3 +1,5 @@
 *.tar.gz
 venv/
 *.db
+build/
+test.csv

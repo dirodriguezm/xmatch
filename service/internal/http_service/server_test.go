@@ -1,11 +1,20 @@
 package httpservice_test
 
 import (
-	"github.com/dirodriguezm/xmatch/service/internal/di"
-	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/dirodriguezm/xmatch/service/internal/di"
+	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	"github.com/dirodriguezm/xmatch/service/internal/utils"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -14,11 +23,72 @@ import (
 var router *gin.Engine
 
 func TestMain(m *testing.M) {
+	os.Setenv("LOG_LEVEL", "debug")
+
+	depth := 5
+	rootPath, err := utils.FindRootModulePath(depth)
+	if err != nil {
+		slog.Error("could not find root module path", "depth", depth)
+		panic(err)
+	}
+
+	// remove test database if exist
+	dbFile := filepath.Join(rootPath, "test.db")
+	os.Remove(dbFile)
+
+	// set db connection environment variable
+	err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
+	if err != nil {
+		slog.Error("could not set environment variable")
+		panic(err)
+	}
+
+	// create a config file
+	tmpDir, err := os.MkdirTemp("", "server_test_*")
+	if err != nil {
+		slog.Error("could not make temp dir")
+		panic(err)
+	}
+	configPath := filepath.Join(tmpDir, "config.yaml")
+	config := `
+service:
+  database:
+    url: "file:%s"
+`
+	config = fmt.Sprintf(config, dbFile)
+	err = os.WriteFile(configPath, []byte(config), 0644)
+	if err != nil {
+		slog.Error("could not write config file")
+		panic(err)
+	}
+	os.Setenv("CONFIG_PATH", configPath)
+
 	ctr := di.BuildServiceContainer()
-	var server httpservice.HttpServer
+
+	// create tables
+	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
+	if err != nil {
+		slog.Error("Could not create Migrate instance")
+		panic(err)
+	}
+	err = mig.Up()
+	if err != nil {
+		slog.Error("Error during migrations", "error", err)
+		panic(err)
+	}
+
+	// initialize server
+	var server *httpservice.HttpServer
 	ctr.Resolve(&server)
 	router = server.SetupServer()
+
+	// run tests
 	m.Run()
+
+	// cleanup
+	os.Remove(configPath)
+	os.Remove(dbFile)
+	os.Remove(tmpDir)
 }
 
 func TestPingRoute(t *testing.T) {

@@ -48,7 +48,7 @@ func New(src *source.Source, inbox chan ReaderResult, outbox chan IndexerResult,
 	if strings.ToLower(cfg.OrderingScheme) == "nested" {
 		orderingScheme = healpix.Nest
 	}
-	mapper, err := healpix.NewHEALPixMapper(cfg.Nside, orderingScheme)
+	mapper, err := healpix.NewHEALPixMapper(src.Nside, orderingScheme)
 	if err != nil {
 		return nil, err
 	}

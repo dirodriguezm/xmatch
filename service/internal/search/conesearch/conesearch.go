@@ -24,6 +24,7 @@ type ConesearchService struct {
 	Resolution int
 	Catalog    string
 	repository Repository
+	mapper     *healpix.HEALPixMapper
 }
 
 func NewConesearchService(options ...ConesearchOption) (*ConesearchService, error) {
@@ -41,6 +42,13 @@ func NewConesearchService(options ...ConesearchOption) (*ConesearchService, erro
 	if service.Resolution == 0 {
 		service.Resolution = 4
 	}
+
+	mapper, err := healpix.NewHEALPixMapper(service.Nside, service.Scheme)
+	if err != nil {
+		return nil, err
+	}
+	service.mapper = mapper
+
 	slog.Debug("Created new ConesearchService", "repository", service.repository, "nside", service.Nside,
 		"scheme", service.Scheme, "catalog", service.Catalog, "resolution", service.Resolution)
 	return service, nil
@@ -60,13 +68,9 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) (
 		return nil, err
 	}
 
-	mapper, err := healpix.NewHEALPixMapper(c.Nside, c.Scheme)
-	if err != nil {
-		return nil, err
-	}
 	radius = arcsecToRadians(radius)
 	point := healpix.RADec(float64(ra), float64(dec))
-	pixelRanges := mapper.QueryDiscInclusive(point, radius, c.Resolution)
+	pixelRanges := c.mapper.QueryDiscInclusive(point, radius, c.Resolution)
 	pixelList := pixelRangeToList(pixelRanges)
 	objs, err := c.getObjects(pixelList)
 	if err != nil {
@@ -91,6 +95,7 @@ func pixelRangeToList(pixelRanges []healpix.PixelRange) []int64 {
 }
 
 func (c *ConesearchService) getObjects(pixelList []int64) ([]repository.Mastercat, error) {
+	// TODO: include catalog name in search
 	ctx := context.Background()
 	objects, err := c.repository.FindObjects(ctx, pixelList)
 	if err != nil {
