@@ -18,3 +18,4 @@ catalog_indexer:
 service:
   database:
     url: "file:dev.db"
+  nside: 18

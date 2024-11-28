@@ -69,10 +69,10 @@ func BuildServiceContainer() container.Container {
 		return repository.New(db)
 	})
 
-	ctr.Singleton(func(r conesearch.Repository) *conesearch.ConesearchService {
+	ctr.Singleton(func(r conesearch.Repository, cfg *config.Config) *conesearch.ConesearchService {
 		con, err := conesearch.NewConesearchService(
 			// TODO: make nside configurable by catalog
-			conesearch.WithNside(18),
+			conesearch.WithNside(cfg.Service.Nside),
 			conesearch.WithScheme(healpix.Nest),
 			conesearch.WithCatalog("vlass"),
 			conesearch.WithRepository(r),
