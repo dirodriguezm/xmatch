@@ -41,7 +41,7 @@ func (w *SqliteWriter) Start() {
 }
 
 func (w *SqliteWriter) receive(msg indexer.IndexerResult) {
-	slog.Debug("Writer received message", "message", msg)
+	slog.Debug("Writer received message")
 	if msg.Error != nil {
 		slog.Error("SqliteWriter received error")
 		panic(msg.Error)
@@ -49,8 +49,8 @@ func (w *SqliteWriter) receive(msg indexer.IndexerResult) {
 	for _, object := range msg.Objects {
 		_, err := w.repository.InsertObject(w.ctx, masterCat2InsertParams(object))
 		if err != nil {
-			slog.Error("SqliteWriter could not write object to database")
-			panic(err)
+			slog.Error("SqliteWriter could not write object to database", "object", object)
+			// panic(err)
 		}
 	}
 }

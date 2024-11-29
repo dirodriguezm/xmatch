@@ -73,10 +73,12 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) (
 	pixelRanges := c.mapper.QueryDiscInclusive(point, radius_radians, c.Resolution)
 	pixelList := pixelRangeToList(pixelRanges)
 	objs, err := c.getObjects(pixelList)
+	slog.Debug("Got objects", "objects", objs, "ra", ra, "dec", dec, "radius", radius, "nneighbor", nneighbor, "pixels", pixelList)
 	if err != nil {
 		return nil, err
 	}
 	objs = knn.NearestNeighborSearch(objs, ra, dec, radius, nneighbor)
+	slog.Debug("Objects after radius search", "objects", objs)
 	return objs, err
 }
 

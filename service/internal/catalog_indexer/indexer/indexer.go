@@ -67,7 +67,6 @@ func (ix *Indexer) Start() {
 			close(ix.outbox)
 			slog.Debug("Closing Indexer")
 		}()
-		slog.Debug("Indexer before receive")
 		for msg := range ix.inbox {
 			ix.receive(msg)
 		}
@@ -75,7 +74,7 @@ func (ix *Indexer) Start() {
 }
 
 func (ix *Indexer) receive(msg ReaderResult) {
-	slog.Debug("Indexer Received Message", "message", msg)
+	slog.Debug("Indexer Received Message")
 	if msg.Error != nil {
 		ix.outbox <- IndexerResult{
 			Objects: nil,

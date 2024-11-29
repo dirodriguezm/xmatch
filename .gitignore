@@ -3,3 +3,4 @@ venv/
 *.db
 build/
 test.csv
+data/

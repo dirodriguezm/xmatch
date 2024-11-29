@@ -59,7 +59,7 @@ func (r *CsvReader) Start() {
 				Rows:  rows,
 				Error: nil,
 			}
-			slog.Debug("Reader sending message", "result", readResult)
+			slog.Debug("Reader sending message")
 			r.outbox <- readResult
 		}
 	}()
