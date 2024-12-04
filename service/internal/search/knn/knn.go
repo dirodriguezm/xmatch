@@ -10,15 +10,15 @@ import (
 	"github.com/kyroy/kdtree/points"
 )
 
-type KNNObject struct {
+type knnObject struct {
 	Obj repository.Mastercat
 }
 
-func (knn KNNObject) Dimensions() int {
+func (knn knnObject) Dimensions() int {
 	return 2
 }
 
-func (knn KNNObject) Dimension(i int) float64 {
+func (knn knnObject) Dimension(i int) float64 {
 	dimensions := []float64{knn.Obj.Ra, knn.Obj.Dec}
 	return dimensions[i]
 }
@@ -26,7 +26,7 @@ func (knn KNNObject) Dimension(i int) float64 {
 func NearestNeighborSearch(objects []repository.Mastercat, ra, dec, radius float64, maxNeighbors int) []repository.Mastercat {
 	pts := []kdtree.Point{}
 	for _, obj := range objects {
-		pts = append(pts, KNNObject{Obj: obj})
+		pts = append(pts, knnObject{Obj: obj})
 	}
 	tree := kdtree.New(pts)
 
@@ -35,10 +35,11 @@ func NearestNeighborSearch(objects []repository.Mastercat, ra, dec, radius float
 	// now we need to check that distance between nearest objects and center is actually lower than radius
 	result := []repository.Mastercat{}
 	for _, obj := range nearObjs {
-		if euclideanDistance(obj, &points.Point2D{X: ra, Y: dec}) > radius {
+		dist := euclideanDistance(obj, &points.Point2D{X: ra, Y: dec})
+		if dist > radius/3600 {
 			continue
 		}
-		result = append(result, obj.(KNNObject).Obj)
+		result = append(result, obj.(knnObject).Obj)
 	}
 	return result
 }
