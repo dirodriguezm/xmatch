@@ -1,6 +1,7 @@
 package httpservice_test
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -63,8 +65,6 @@ service:
 	}
 	os.Setenv("CONFIG_PATH", configPath)
 
-	ctr := di.BuildServiceContainer()
-
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
 	if err != nil {
@@ -76,6 +76,10 @@ service:
 		slog.Error("Error during migrations", "error", err)
 		panic(err)
 	}
+
+	test_helpers.RegisterCatalogsInDB(context.Background(), dbFile)
+
+	ctr := di.BuildServiceContainer()
 
 	// initialize server
 	var server *httpservice.HttpServer

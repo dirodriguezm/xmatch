@@ -1,9 +1,11 @@
 package conesearch
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,26 +21,6 @@ func TestWithScheme(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, service.Scheme, healpix.Nest)
-}
-
-func TestWithNside(t *testing.T) {
-	service := &ConesearchService{}
-
-	err := WithNside(4)(service)
-	require.NoError(t, err)
-
-	require.Equal(t, service.Nside, 4)
-}
-
-func TestWithNsideInvalid(t *testing.T) {
-	service := &ConesearchService{}
-	nsides := []int{0, -1, 30}
-
-	for _, nside := range nsides {
-		err := WithNside(nside)(service)
-		require.Error(t, err)
-		require.Zero(t, service.Nside)
-	}
 }
 
 func TestWithResolution(t *testing.T) {
@@ -71,21 +53,21 @@ func TestWithResolutionInvalid(t *testing.T) {
 	require.Zero(t, ringService.Resolution)
 }
 
-func TestWithCatalog(t *testing.T) {
+func TestWithCatalogs(t *testing.T) {
 	service := &ConesearchService{}
 
-	err := WithCatalog("vlass")(service)
+	err := WithCatalogs([]repository.Catalog{{Name: "vlass", Nside: 18}})(service)
 	require.NoError(t, err)
-	require.Equal(t, "vlass", service.Catalog)
-	err = WithCatalog("VLASS")(service)
+	require.True(t, slices.Contains(service.Catalogs, repository.Catalog{Name: "vlass", Nside: 18}))
+	err = WithCatalogs([]repository.Catalog{{Name: "VLASS", Nside: 18}})(service)
 	require.NoError(t, err)
-	require.Equal(t, "vlass", service.Catalog)
+	require.True(t, slices.Contains(service.Catalogs, repository.Catalog{Name: "VLASS", Nside: 18}))
 }
 
-func TestWithCatalogInvalid(t *testing.T) {
+func TestWithCatalogsInvalid(t *testing.T) {
 	service := &ConesearchService{}
 
-	err := WithCatalog("invalid")(service)
+	err := WithCatalogs([]repository.Catalog{{Name: "invalid"}})(service)
 	require.Error(t, err)
-	require.Zero(t, service.Catalog)
+	require.Zero(t, service.Catalogs)
 }

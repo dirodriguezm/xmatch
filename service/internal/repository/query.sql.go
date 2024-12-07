@@ -89,6 +89,34 @@ func (q *Queries) GetAllObjects(ctx context.Context) ([]Mastercat, error) {
 	return items, nil
 }
 
+const getCatalogs = `-- name: GetCatalogs :many
+SELECT name, nside
+FROM catalogs
+`
+
+func (q *Queries) GetCatalogs(ctx context.Context) ([]Catalog, error) {
+	rows, err := q.db.QueryContext(ctx, getCatalogs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Catalog
+	for rows.Next() {
+		var i Catalog
+		if err := rows.Scan(&i.Name, &i.Nside); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getObjectsFromCatalog = `-- name: GetObjectsFromCatalog :many
 SELECT id, ipix, ra, dec, cat 
 FROM mastercat 
@@ -139,6 +167,27 @@ func (q *Queries) GetObjectsFromCatalog(ctx context.Context, arg GetObjectsFromC
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertCatalog = `-- name: InsertCatalog :one
+INSERT INTO catalogs (
+	name, nside
+) VALUES (
+	?, ?
+)
+RETURNING name, nside
+`
+
+type InsertCatalogParams struct {
+	Name  string
+	Nside int64
+}
+
+func (q *Queries) InsertCatalog(ctx context.Context, arg InsertCatalogParams) (Catalog, error) {
+	row := q.db.QueryRowContext(ctx, insertCatalog, arg.Name, arg.Nside)
+	var i Catalog
+	err := row.Scan(&i.Name, &i.Nside)
+	return i, err
 }
 
 const insertObject = `-- name: InsertObject :one

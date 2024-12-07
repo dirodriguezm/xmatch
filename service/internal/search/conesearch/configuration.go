@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type ConesearchOption func(service *ConesearchService) error
@@ -14,16 +16,6 @@ type ConesearchOption func(service *ConesearchService) error
 func WithScheme(scheme healpix.OrderingScheme) ConesearchOption {
 	return func(service *ConesearchService) error {
 		service.Scheme = scheme
-		return nil
-	}
-}
-
-func WithNside(nside int) ConesearchOption {
-	return func(service *ConesearchService) error {
-		if nside < 1 || nside > 29 {
-			return errors.New("nside must be between 1 and 29")
-		}
-		service.Nside = nside
 		return nil
 	}
 }
@@ -41,18 +33,18 @@ func WithResolution(res int) ConesearchOption {
 	}
 }
 
-func WithCatalog(catalog string) ConesearchOption {
+func WithCatalogs(catalogs []repository.Catalog) ConesearchOption {
 	return func(service *ConesearchService) error {
-		allowed := []string{"vlass"}
-		catalog = strings.ToLower(catalog)
-		for _, cat := range allowed {
-			if catalog == cat {
-				service.Catalog = catalog
-				return nil
+		allowed := []string{"vlass", "wise", "ztf"}
+		for i := range catalogs {
+			catName := strings.ToLower(catalogs[i].Name)
+			if !slices.Contains(allowed, catName) {
+				msg := fmt.Sprintf("specified catalog not available, please use one of %s", allowed)
+				return errors.New(msg)
 			}
 		}
-		msg := fmt.Sprintf("specified catalog not available, please use one of %s", allowed)
-		return errors.New(msg)
+		service.Catalogs = catalogs
+		return nil
 	}
 }
 

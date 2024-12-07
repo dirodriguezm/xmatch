@@ -9,8 +9,9 @@ import (
 
 type MockRepository struct {
 	mock.Mock
-	Objects []repository.Mastercat
-	Error   error
+	Objects  []repository.Mastercat
+	Catalogs []repository.Catalog
+	Error    error
 }
 
 func (m *MockRepository) FindObjects(ctx context.Context, pixelList []int64) ([]repository.Mastercat, error) {
@@ -35,4 +36,20 @@ func (m *MockRepository) GetAllObjects(ctx context.Context) ([]repository.Master
 		return nil, m.Error
 	}
 	return m.Objects, nil
+}
+
+func (m *MockRepository) GetCatalogs(ctx context.Context) ([]repository.Catalog, error) {
+	m.Called()
+	if m.Error != nil {
+		return nil, m.Error
+	}
+	return m.Catalogs, nil
+}
+
+func (m *MockRepository) InsertCatalog(ctx context.Context, params repository.InsertCatalogParams) (repository.Catalog, error) {
+	m.Called(params)
+	if m.Error != nil {
+		return repository.Catalog{}, m.Error
+	}
+	return repository.Catalog{}, nil
 }

@@ -20,3 +20,15 @@ RETURNING *;
 -- name: GetAllObjects :many
 SELECT *
 FROM mastercat;
+
+-- name: GetCatalogs :many
+SELECT *
+FROM catalogs;
+
+-- name: InsertCatalog :one
+INSERT INTO catalogs (
+	name, nside
+) VALUES (
+	?, ?
+)
+RETURNING *;
