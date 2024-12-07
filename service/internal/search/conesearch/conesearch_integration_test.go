@@ -11,6 +11,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"github.com/golobby/container/v3"
 
@@ -34,12 +35,12 @@ func TestMain(m *testing.M) {
 	dbFile := filepath.Join(rootPath, "test.db")
 	os.Remove(dbFile)
 
-	// set db connection environment variable
-	err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
-	if err != nil {
-		slog.Error("could not set environment variable")
-		panic(err)
-	}
+	// // set db connection environment variable
+	// err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
+	// if err != nil {
+	// 	slog.Error("could not set environment variable")
+	// 	panic(err)
+	// }
 
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "server_test_*")
@@ -61,9 +62,6 @@ service:
 	}
 	os.Setenv("CONFIG_PATH", configPath)
 
-	// build DI container
-	ctr = di.BuildServiceContainer()
-
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
 	if err != nil {
@@ -75,6 +73,11 @@ service:
 		slog.Error("Error during migrations", "error", err)
 		panic(err)
 	}
+
+	test_helpers.RegisterCatalogsInDB(context.Background(), dbFile)
+
+	// build DI container
+	ctr = di.BuildServiceContainer()
 
 	// run tests
 	m.Run()
@@ -93,7 +96,6 @@ func TestConesearch(t *testing.T) {
 	}
 
 	objects := []repository.InsertObjectParams{
-		// ra and dec don't matter here
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "C", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
@@ -106,9 +108,9 @@ func TestConesearch(t *testing.T) {
 		repo.InsertObject(context.Background(), obj)
 	}
 
-	result, err := service.Conesearch(0, 0, 1, 10) // TODO: Revisar con Lore algunos casos de prueba
+	result, err := service.Conesearch(0, 0, 1, 10)
 	if err != nil {
 		t.Error(err)
 	}
-	require.Len(t, result, 1)
+	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result))
 }

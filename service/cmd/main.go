@@ -21,6 +21,11 @@ func startCatalogIndexer() {
 	slog.Debug("Starting catalog indexer")
 	ctr := di.BuildIndexerContainer()
 
+	// update catalogs table
+	var catalogRegister *indexer.CatalogRegister
+	ctr.Resolve(&catalogRegister)
+	catalogRegister.RegisterCatalog()
+
 	// initialize writer
 	var writer indexer.Writer
 	ctr.Resolve(&writer)

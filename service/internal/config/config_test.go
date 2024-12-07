@@ -93,6 +93,7 @@ func TestLoad(t *testing.T) {
 
 				return func() {
 					os.Setenv("CONFIG_PATH", "")
+					os.Remove(configPath)
 				}
 			},
 		},
@@ -104,11 +105,9 @@ func TestLoad(t *testing.T) {
 				configPath := filepath.Join(tempDir, "config.yaml")
 				os.Unsetenv("CONFIG_PATH")
 				os.WriteFile(configPath, []byte(""), 0644)
-				err := os.Symlink(configPath, "config.yml")
-				require.NoError(t, err)
 
 				return func() {
-					os.Remove("config.yml")
+					os.Remove(configPath)
 				}
 			},
 		},
@@ -117,7 +116,10 @@ func TestLoad(t *testing.T) {
 			wantErr: true,
 			setupEnv: func(t *testing.T) (cleanup func()) {
 				os.Unsetenv("CONFIG_PATH")
-				return func() {}
+				os.Setenv("CONFIG_PATH", t.TempDir())
+				return func() {
+					os.Unsetenv("CONFIG_PATH")
+				}
 			},
 		},
 	}
@@ -129,7 +131,7 @@ func TestLoad(t *testing.T) {
 
 			cfg, err := Load()
 			if test.wantErr {
-				require.Error(t, err)
+				require.Error(t, err, "expected test case %s to have error", test.name)
 				return
 			}
 			require.NoError(t, err)

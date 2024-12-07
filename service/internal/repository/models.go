@@ -4,6 +4,11 @@
 
 package repository
 
+type Catalog struct {
+	Name  string
+	Nside int64
+}
+
 type Mastercat struct {
 	ID   string
 	Ipix int64

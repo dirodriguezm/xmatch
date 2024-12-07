@@ -13,22 +13,32 @@ import (
 )
 
 type Repository interface {
-	FindObjects(ctx context.Context, pixelList []int64) ([]repository.Mastercat, error)
-	InsertObject(ctx context.Context, object repository.InsertObjectParams) (repository.Mastercat, error)
-	GetAllObjects(ctx context.Context) ([]repository.Mastercat, error)
+	FindObjects(context.Context, []int64) ([]repository.Mastercat, error)
+	InsertObject(context.Context, repository.InsertObjectParams) (repository.Mastercat, error)
+	GetAllObjects(context.Context) ([]repository.Mastercat, error)
+	GetCatalogs(context.Context) ([]repository.Catalog, error)
+	InsertCatalog(context.Context, repository.InsertCatalogParams) (repository.Catalog, error)
 }
 
 type ConesearchService struct {
 	Scheme     healpix.OrderingScheme
-	Nside      int
 	Resolution int
-	Catalog    string
+	Catalogs   []repository.Catalog
 	repository Repository
-	mapper     *healpix.HEALPixMapper
+	mappers    map[int64]*healpix.HEALPixMapper
+	ctx        context.Context
 }
 
 func NewConesearchService(options ...ConesearchOption) (*ConesearchService, error) {
-	service := &ConesearchService{}
+	ctx := context.Background()
+	service := &ConesearchService{
+		Scheme:     healpix.Nest,
+		Resolution: 4,
+		Catalogs:   []repository.Catalog{},
+		repository: nil,
+		mappers:    map[int64]*healpix.HEALPixMapper{},
+		ctx:        ctx,
+	}
 	for _, opt := range options {
 		err := opt(service)
 		if err != nil {
@@ -36,22 +46,32 @@ func NewConesearchService(options ...ConesearchOption) (*ConesearchService, erro
 		}
 	}
 	assertions.NotNil(service.repository)
-	assertions.NotZero(service.Nside)
-	assertions.NotZero(service.Catalog)
+	assertions.NotZero(service.Catalogs)
 	assertions.NotZero(service.Scheme)
-	if service.Resolution == 0 {
-		service.Resolution = 4
-	}
 
-	mapper, err := healpix.NewHEALPixMapper(service.Nside, service.Scheme)
+	var err error
+	service.mappers, err = createServiceMappers(service.Catalogs, service.Scheme)
 	if err != nil {
 		return nil, err
 	}
-	service.mapper = mapper
 
-	slog.Debug("Created new ConesearchService", "repository", service.repository, "nside", service.Nside,
-		"scheme", service.Scheme, "catalog", service.Catalog, "resolution", service.Resolution)
+	slog.Debug("Created new ConesearchService", "scheme", service.Scheme, "catalogs", service.Catalogs, "resolution", service.Resolution)
 	return service, nil
+}
+
+func createServiceMappers(catalogs []repository.Catalog, scheme healpix.OrderingScheme) (map[int64]*healpix.HEALPixMapper, error) {
+	mappers := make(map[int64]*healpix.HEALPixMapper)
+	for i := range catalogs {
+		if _, ok := mappers[catalogs[i].Nside]; ok {
+			continue
+		}
+		mapper, err := healpix.NewHEALPixMapper(int(catalogs[i].Nside), scheme)
+		if err != nil {
+			return nil, err
+		}
+		mappers[catalogs[i].Nside] = mapper
+	}
+	return mappers, nil
 }
 
 func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) ([]repository.Mastercat, error) {
@@ -70,16 +90,18 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) (
 
 	radius_radians := arcsecToRadians(radius)
 	point := healpix.RADec(float64(ra), float64(dec))
-	pixelRanges := c.mapper.QueryDiscInclusive(point, radius_radians, c.Resolution)
-	pixelList := pixelRangeToList(pixelRanges)
-	objs, err := c.getObjects(pixelList)
-	slog.Debug("Got objects", "objects", objs, "ra", ra, "dec", dec, "radius", radius, "nneighbor", nneighbor, "pixels", pixelList)
-	if err != nil {
-		return nil, err
+	objects := make([]repository.Mastercat, 0)
+	for _, v := range c.mappers {
+		pixelRanges := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
+		pixelList := pixelRangeToList(pixelRanges)
+		objs, err := c.getObjects(pixelList)
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, objs...)
 	}
-	objs = knn.NearestNeighborSearch(objs, ra, dec, radius, nneighbor)
-	slog.Debug("Objects after radius search", "objects", objs)
-	return objs, err
+	objects = knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)
+	return objects, nil
 }
 
 func arcsecToRadians(arcsec float64) float64 {
@@ -98,8 +120,7 @@ func pixelRangeToList(pixelRanges []healpix.PixelRange) []int64 {
 
 func (c *ConesearchService) getObjects(pixelList []int64) ([]repository.Mastercat, error) {
 	// TODO: include catalog name in search
-	ctx := context.Background()
-	objects, err := c.repository.FindObjects(ctx, pixelList)
+	objects, err := c.repository.FindObjects(c.ctx, pixelList)
 	if err != nil {
 		return nil, err
 	}
