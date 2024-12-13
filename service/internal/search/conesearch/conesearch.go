@@ -75,19 +75,6 @@ func createServiceMappers(catalogs []repository.Catalog, scheme healpix.Ordering
 }
 
 func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) ([]repository.Mastercat, error) {
-	if err := ValidateRa(ra); err != nil {
-		return nil, err
-	}
-	if err := ValidateDec(dec); err != nil {
-		return nil, err
-	}
-	if err := ValidateRadius(radius); err != nil {
-		return nil, err
-	}
-	if err := ValidateNneighbor(nneighbor); err != nil {
-		return nil, err
-	}
-
 	radius_radians := arcsecToRadians(radius)
 	point := healpix.RADec(float64(ra), float64(dec))
 	objects := make([]repository.Mastercat, 0)

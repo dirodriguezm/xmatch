@@ -19,7 +19,7 @@ func TestRaValidation(t *testing.T) {
 	}
 
 	for strRa, parsedRa := range testCases {
-		result, _ := validateRa(strRa)
+		result, _ := parseRa(strRa)
 		require.Equal(t, result, parsedRa)
 	}
 }
@@ -36,7 +36,7 @@ func TestDecValidation(t *testing.T) {
 	}
 
 	for strDec, expectedDec := range testCases {
-		result, _ := validateDec(strDec)
+		result, _ := parseDec(strDec)
 		require.Equal(t, result, expectedDec)
 	}
 }
@@ -52,7 +52,7 @@ func TestRadiusValidation(t *testing.T) {
 	}
 
 	for strRadius, parsedRadius := range testCases {
-		result, _ := validateRadius(strRadius)
+		result, _ := parseRadius(strRadius)
 		require.Equal(t, result, parsedRadius)
 	}
 }
@@ -70,7 +70,7 @@ func TestCatalogValidation(t *testing.T) {
 		"something else": "",
 	}
 	for testCase, expectedResult := range testCases {
-		result, _ := validateCatalog(testCase)
+		result, _ := parseCatalog(testCase)
 		require.Equal(t, expectedResult, result)
 	}
 }
@@ -84,7 +84,7 @@ func TestNneighborValidation(t *testing.T) {
 		"1":   1,
 	}
 	for testCase, expectedResult := range testCases {
-		result, _ := validateNneighbor(testCase)
+		result, _ := parseNneighbor(testCase)
 		require.Equal(t, expectedResult, result)
 	}
 }

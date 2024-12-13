@@ -111,13 +111,13 @@ func TestConesearchValidation(t *testing.T) {
 		ErrorMessage string
 	}
 	testCases := map[string]Expected{
-		"/conesearch":                                               {400, "RA can't be empty\n"},
-		"/conesearch?ra=1":                                          {400, "Dec can't be empty\n"},
-		"/conesearch?ra=1&dec=1":                                    {400, "Radius can't be empty\n"},
+		"/conesearch":                                               {400, "Could not parse field RA"},
+		"/conesearch?ra=1":                                          {400, "Could not parse field Dec"},
+		"/conesearch?ra=1&dec=1":                                    {400, "Could not parse field radius"},
 		"/conesearch?ra=1&dec=1&radius=1":                           {200, ""},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=a":                 {400, "Catalog must be one of [all wise vlass lsdr10]\n"},
+		"/conesearch?ra=1&dec=1&radius=1&catalog=a":                 {400, "Could not parse field catalog with value a"},
 		"/conesearch?ra=1&dec=1&radius=1&catalog=wise":              {200, ""},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=wise&nneighbor=-1": {400, "Nneighbor must be a positive integer\n"},
+		"/conesearch?ra=1&dec=1&radius=1&catalog=wise&nneighbor=-1": {400, "Could not parse field nneighbor with value -1"},
 	}
 
 	for testPath, expected := range testCases {

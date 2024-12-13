@@ -2,8 +2,10 @@ package conesearch
 
 import (
 	"errors"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"testing"
+
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/mocks"
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/stretchr/testify/assert"
@@ -16,13 +18,10 @@ func TestConesearch(t *testing.T) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &MockRepository{
-		Objects:  objects,
-		Catalogs: []repository.Catalog{{Name: "vlass", Nside: 18}},
-		Error:    nil,
-	}
-	repo.On("FindObjects", mock.Anything).Return(objects, nil)
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(repo.Catalogs))
+	repo := &mocks.Repository{}
+	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
+	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	result, err := service.Conesearch(1, 1, 1, 1)
@@ -34,13 +33,10 @@ func TestConesearch(t *testing.T) {
 }
 
 func TestConesearch_WithRepositoryError(t *testing.T) {
-	repo := &MockRepository{
-		Objects:  nil,
-		Catalogs: []repository.Catalog{{Name: "vlass", Nside: 18}},
-		Error:    errors.New("Test error"),
-	}
-	repo.On("FindObjects", mock.Anything).Return(nil, errors.New("Test error"))
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(repo.Catalogs))
+	repo := &mocks.Repository{}
+	repo.On("FindObjects", mock.Anything, mock.Anything).Return(nil, errors.New("Test error"))
+	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	_, err = service.Conesearch(1, 1, 1, 1)
@@ -51,8 +47,33 @@ func TestConesearch_WithRepositoryError(t *testing.T) {
 }
 
 func TestConesearch_WithMultipleMappers(t *testing.T) {
-	// TODO: IMPLEMENT
-	t.Fatal("Not Implemented")
+	vlassObjects := []repository.Mastercat{
+		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
+		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
+	}
+	ztfObjects := []repository.Mastercat{
+		{ID: "ZTFA", Ra: 1, Dec: 1, Cat: "ztf"},
+	}
+	repo := &mocks.Repository{}
+	repo.On("FindObjects", mock.Anything, mock.Anything).Return(vlassObjects, nil).Once()
+	repo.On("FindObjects", mock.Anything, mock.Anything).Return(ztfObjects, nil).Once()
+	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}, {Name: "ztf", Nside: 12}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	require.NoError(t, err)
+
+	result, err := service.Conesearch(1, 1, 1, 2)
+	repo.AssertExpectations(t)
+
+	// both objects in the result should be in the same coordinates, but different catalog
+	require.Len(t, result, 2)
+	ids := make([]string, 2)
+	cats := make([]string, 2)
+	for i := range result {
+		ids[i] = result[i].ID
+		cats[i] = result[i].Cat
+	}
+	require.Subset(t, ids, []string{"A", "ZTFA"})
+	require.Subset(t, cats, []string{"vlass", "ztf"})
 }
 
 func FuzzConesearch(f *testing.F) {
@@ -60,13 +81,10 @@ func FuzzConesearch(f *testing.F) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &MockRepository{
-		Objects:  objects,
-		Catalogs: []repository.Catalog{{Name: "vlass", Nside: 18}},
-		Error:    nil,
-	}
-	repo.On("FindObjects", mock.Anything).Return(objects, nil)
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(repo.Catalogs))
+	repo := &mocks.Repository{}
+	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
+	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
 	require.NoError(f, err)
 
 	f.Add(float64(1), float64(1), float64(1), int(1))
