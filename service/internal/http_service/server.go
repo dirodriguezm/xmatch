@@ -1,11 +1,10 @@
 package httpservice
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 
@@ -44,113 +43,44 @@ func (server *HttpServer) conesearchHandler(c *gin.Context) {
 	radius := c.Query("radius")
 	catalog := c.DefaultQuery("catalog", "all")
 	nneighbor := c.DefaultQuery("nneighbor", "1")
-	parsedRa, errMsg := validateRa(ra)
-	// TODO: move validation to service
-	if parsedRa == -999 {
-		c.String(http.StatusBadRequest, errMsg)
-		return
+
+	parsedRa, err := parseRa(ra)
+	if err != nil {
+		c.Error(err)
 	}
-	parsedDec, errMsg := validateDec(dec)
+	parsedDec, err := parseDec(dec)
 	if parsedDec == -999 {
-		c.String(http.StatusBadRequest, errMsg)
-		return
+		c.Error(err)
 	}
-	parsedRadius, errMsg := validateRadius(radius)
-	if parsedRadius == -999 {
-		c.String(http.StatusBadRequest, errMsg)
-		return
+	parsedRadius, err := parseRadius(radius)
+	if err != nil {
+		c.Error(err)
 	}
-	catalog, errMsg = validateCatalog(catalog)
-	if catalog == "" {
-		c.String(http.StatusBadRequest, errMsg)
-		return
+	catalog, err = parseCatalog(catalog)
+	if err != nil {
+		c.Error(err)
 	}
-	parsedNneighbor, errMsg := validateNneighbor(nneighbor)
-	if parsedNneighbor == -999 {
-		c.String(http.StatusBadRequest, errMsg)
+	parsedNneighbor, err := parseNneighbor(nneighbor)
+	if err != nil {
+		c.Error(err)
+	}
+
+	for _, err := range c.Errors {
+		if errors.As(err, &ParseError{}) {
+			c.JSON(http.StatusBadRequest, err)
+		}
+	}
+	if len(c.Errors) > 0 {
 		return
 	}
 
 	result, err := server.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor)
 	if err != nil {
+		// TODO: diferentiate between SQL errors and other types of error
 		slog.Error("Could not execute conesearch", "error", err)
-		c.String(http.StatusInternalServerError, "Could not execute conesearch")
+		c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
 		return
 	}
+
 	c.JSON(http.StatusOK, result)
-}
-
-func validateRadius(rad string) (float64, string) {
-	radius, err := strconv.ParseFloat(rad, 64)
-	if err != nil {
-		msg := "Could not parse radius `%s`\n"
-		if rad == "" {
-			msg = "Radius can't be empty%s\n"
-		}
-		return -999, fmt.Sprintf(msg, rad)
-	}
-	if err := conesearch.ValidateRadius(radius); err != nil {
-		return -999, fmt.Sprintf("Invalid radius: %s", err.Error())
-	}
-	return radius, ""
-}
-
-func validateRa(ra string) (float64, string) {
-	parsedRa, err := strconv.ParseFloat(ra, 64)
-	if err != nil {
-		msg := "Could not parse RA `%s`\n"
-		if ra == "" {
-			msg = "RA can't be empty%s\n"
-		}
-		return -999, fmt.Sprintf(msg, ra)
-	}
-	if err := conesearch.ValidateRa(parsedRa); err != nil {
-		return -999, fmt.Sprintf("Invalid ra: %s", err.Error())
-	}
-	return parsedRa, ""
-}
-
-func validateDec(dec string) (float64, string) {
-	parsedDec, err := strconv.ParseFloat(dec, 64)
-	if err != nil {
-		msg := "Could not parse Dec `%s`\n"
-		if dec == "" {
-			msg = "Dec can't be empty%s\n"
-		}
-		return -999, fmt.Sprintf(msg, dec)
-	}
-	if err := conesearch.ValidateDec(parsedDec); err != nil {
-		return -999, fmt.Sprintf("Invalid dec: %s", err.Error())
-	}
-	return parsedDec, ""
-}
-
-func validateCatalog(catalog string) (string, string) {
-	allowed := []string{"all", "wise", "vlass", "lsdr10"}
-	isAllowed := false
-	catalog = strings.ToLower(catalog)
-	for _, cat := range allowed {
-		if catalog == cat {
-			isAllowed = true
-			break
-		}
-	}
-	if !isAllowed {
-		return "", fmt.Sprintf("Catalog must be one of %s\n", allowed)
-	}
-	return catalog, ""
-}
-
-func validateNneighbor(nneighbor string) (int, string) {
-	parsedNneighbor, err := strconv.Atoi(nneighbor)
-	if err != nil {
-		if nneighbor == "" {
-			return -999, "Nneighbor can't be empty\n"
-		}
-		return -999, fmt.Sprintf("Could not parse nneighbor %v\n", nneighbor)
-	}
-	if err := conesearch.ValidateNneighbor(parsedNneighbor); err != nil {
-		return -999, fmt.Sprintf("Invalid nneighbor: %s", err.Error())
-	}
-	return parsedNneighbor, ""
 }
