@@ -108,7 +108,7 @@ func TestConesearch(t *testing.T) {
 		repo.InsertObject(context.Background(), obj)
 	}
 
-	result, err := service.Conesearch(0, 0, 1, 10)
+	result, err := service.Conesearch(0, 0, 1, 10, "all")
 	if err != nil {
 		t.Error(err)
 	}

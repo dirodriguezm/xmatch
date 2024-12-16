@@ -3,7 +3,6 @@ package httpservice
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -46,39 +45,33 @@ func (server *HttpServer) conesearchHandler(c *gin.Context) {
 
 	parsedRa, err := parseRa(ra)
 	if err != nil {
-		c.Error(err)
+		c.JSON(http.StatusBadRequest, err)
+		return
 	}
 	parsedDec, err := parseDec(dec)
-	if parsedDec == -999 {
-		c.Error(err)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
 	}
 	parsedRadius, err := parseRadius(radius)
 	if err != nil {
-		c.Error(err)
-	}
-	catalog, err = parseCatalog(catalog)
-	if err != nil {
-		c.Error(err)
+		c.JSON(http.StatusBadRequest, err)
+		return
 	}
 	parsedNneighbor, err := parseNneighbor(nneighbor)
 	if err != nil {
-		c.Error(err)
-	}
-
-	for _, err := range c.Errors {
-		if errors.As(err, &ParseError{}) {
-			c.JSON(http.StatusBadRequest, err)
-		}
-	}
-	if len(c.Errors) > 0 {
+		c.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	result, err := server.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor)
+	result, err := server.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
 	if err != nil {
-		// TODO: diferentiate between SQL errors and other types of error
-		slog.Error("Could not execute conesearch", "error", err)
-		c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
+		if errors.As(err, &conesearch.ValidationError{}) {
+			c.JSON(http.StatusBadRequest, err)
+		} else {
+			c.Error(err)
+			c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
+		}
 		return
 	}
 

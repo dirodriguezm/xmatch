@@ -2,8 +2,10 @@ package httpservice_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,7 +21,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var router *gin.Engine
@@ -101,23 +103,43 @@ func TestPingRoute(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/ping", nil)
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "pong", w.Body.String())
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, "pong", w.Body.String())
 }
 
 func TestConesearchValidation(t *testing.T) {
 	type Expected struct {
-		Status       int
-		ErrorMessage string
+		Status int
+		Error  map[string]string
 	}
 	testCases := map[string]Expected{
-		"/conesearch":                                               {400, "Could not parse field RA"},
-		"/conesearch?ra=1":                                          {400, "Could not parse field Dec"},
-		"/conesearch?ra=1&dec=1":                                    {400, "Could not parse field radius"},
-		"/conesearch?ra=1&dec=1&radius=1":                           {200, ""},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=a":                 {400, "Could not parse field catalog with value a"},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=wise":              {200, ""},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=wise&nneighbor=-1": {400, "Could not parse field nneighbor with value -1"},
+		"/conesearch": {400, map[string]string{
+			"Field":    "RA",
+			"Reason":   "Could not parse float.",
+			"ErrValue": "",
+		}},
+		"/conesearch?ra=1": {400, map[string]string{
+			"Field":    "Dec",
+			"Reason":   "Could not parse float.",
+			"ErrValue": "",
+		}},
+		"/conesearch?ra=1&dec=1": {400, map[string]string{
+			"Field":    "radius",
+			"Reason":   "Could not parse float.",
+			"ErrValue": "",
+		}},
+		"/conesearch?ra=1&dec=1&radius=1": {200, nil},
+		"/conesearch?ra=1&dec=1&radius=1&catalog=a": {400, map[string]string{
+			"Field":    "catalog",
+			"Reason":   "Catalog not available",
+			"ErrValue": "a",
+		}},
+		"/conesearch?ra=1&dec=1&radius=1&catalog=wise": {200, nil},
+		"/conesearch?ra=1&dec=1&radius=1&catalog=wise&nneighbor=-1": {400, map[string]string{
+			"Field":    "nneighbor",
+			"ErrValue": "-1",
+			"Reason":   "Nneighbor must be a positive integer",
+		}},
 	}
 
 	for testPath, expected := range testCases {
@@ -125,7 +147,17 @@ func TestConesearchValidation(t *testing.T) {
 		req, _ := http.NewRequest("GET", testPath, nil)
 		router.ServeHTTP(w, req)
 
-		assert.Equal(t, expected.Status, w.Code)
-		assert.Contains(t, w.Body.String(), expected.ErrorMessage)
+		require.Equal(t, expected.Status, w.Code)
+		if w.Code == 200 {
+			continue
+		}
+
+		var result map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		require.Truef(t, maps.EqualFunc(expected.Error, result, func(a string, b interface{}) bool {
+			return a == b.(string)
+		}), "On %s: values are not equal\n Expected: %v\nReceived: %v", testPath, expected.Error, result)
 	}
 }
