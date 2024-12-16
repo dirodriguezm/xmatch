@@ -24,7 +24,7 @@ func TestConesearch(t *testing.T) {
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
-	result, err := service.Conesearch(1, 1, 1, 1)
+	result, err := service.Conesearch(1, 1, 1, 1, "all")
 	require.NoError(t, err)
 	repo.AssertExpectations(t)
 
@@ -39,7 +39,7 @@ func TestConesearch_WithRepositoryError(t *testing.T) {
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
-	_, err = service.Conesearch(1, 1, 1, 1)
+	_, err = service.Conesearch(1, 1, 1, 1, "all")
 	repo.AssertExpectations(t)
 	if assert.Error(t, err) {
 		require.Equal(t, errors.New("Test error"), err)
@@ -61,7 +61,7 @@ func TestConesearch_WithMultipleMappers(t *testing.T) {
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
-	result, err := service.Conesearch(1, 1, 1, 2)
+	result, err := service.Conesearch(1, 1, 1, 2, "all")
 	repo.AssertExpectations(t)
 
 	// both objects in the result should be in the same coordinates, but different catalog
@@ -89,7 +89,7 @@ func FuzzConesearch(f *testing.F) {
 
 	f.Add(float64(1), float64(1), float64(1), int(1))
 	f.Fuzz(func(t *testing.T, ra float64, dec float64, radius float64, nneighbor int) {
-		_, err := service.Conesearch(ra, dec, radius, nneighbor)
+		_, err := service.Conesearch(ra, dec, radius, nneighbor, "all")
 		if err == nil {
 			repo.AssertExpectations(t)
 		}

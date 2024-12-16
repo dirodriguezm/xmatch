@@ -1,39 +1,104 @@
 package conesearch
 
 import (
-	"errors"
+	"fmt"
+	"slices"
+	"strconv"
+	"strings"
 )
+
+type ValidationError struct {
+	Reason   string
+	ErrValue string
+	Field    string
+}
+
+func (e ValidationError) Error() string {
+	err := "Invalid field %s with value %s. %w"
+	err = fmt.Sprintf(err, e.Field, e.ErrValue, e.Reason)
+	return err
+}
+
+func NewValidationError(e string, errValue string, field string) error {
+	return ValidationError{
+		Reason:   e,
+		ErrValue: errValue,
+		Field:    field,
+	}
+}
 
 func ValidateRadius(rad float64) error {
 	if rad <= 0 {
-		return errors.New("Radius can't be lower than 0\n")
+		err := "Radius can't be lower than 0"
+		return NewValidationError(err, strconv.FormatFloat(rad, 'f', 3, 64), "radius")
 	}
 	return nil
 }
 
 func ValidateRa(ra float64) error {
+	err := ValidationError{
+		ErrValue: strconv.FormatFloat(ra, 'f', 3, 64),
+		Field:    "RA",
+	}
 	if ra < 0 {
-		return errors.New("RA can't be lower than 0\n")
+		err.Reason = "RA can't be lower than 0"
+		return err
 	}
 	if ra > 360 {
-		return errors.New("RA can't be greater than 360\n")
+		err.Reason = "RA can't be greater than 360"
+		return err
 	}
 	return nil
 }
 
 func ValidateDec(dec float64) error {
+	err := ValidationError{
+		ErrValue: strconv.FormatFloat(dec, 'f', 3, 64),
+		Field:    "Dec",
+	}
 	if dec < -90 {
-		return errors.New("Dec can't be lower than -90\n")
+		err.Reason = "Dec can't be lower than -90"
+		return err
 	}
 	if dec > 90 {
-		return errors.New("Dec can't be greater than 90\n")
+		err.Reason = "Dec can't be greater than 90"
+		return err
 	}
 	return nil
 }
 
 func ValidateNneighbor(nneighbor int) error {
 	if nneighbor <= 0 {
-		return errors.New("Nneighbor must be a positive integer\n")
+		return NewValidationError("Nneighbor must be a positive integer", strconv.FormatInt(int64(nneighbor), 10), "nneighbor")
+	}
+	return nil
+}
+
+func ValidateCatalog(catalog string) error {
+	available := []string{"vlass", "ztf", "wise", "all"}
+	cat := strings.ToLower(catalog)
+	if !slices.Contains(available, cat) {
+		err := NewValidationError("Catalog not available", catalog, "catalog")
+		return err
+	}
+	return nil
+}
+
+func ValidateArguments(ra, dec, radius float64, nneighbor int, catalog string) error {
+	if err := ValidateRa(ra); err != nil {
+		return err
+	}
+	if err := ValidateDec(dec); err != nil {
+		return err
+	}
+	if err := ValidateRadius(radius); err != nil {
+		return err
+	}
+	if err := ValidateNneighbor(nneighbor); err != nil {
+		return err
+	}
+	if err := ValidateCatalog(catalog); err != nil {
+		return err
 	}
 	return nil
 }

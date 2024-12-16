@@ -74,7 +74,11 @@ func createServiceMappers(catalogs []repository.Catalog, scheme healpix.Ordering
 	return mappers, nil
 }
 
-func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) ([]repository.Mastercat, error) {
+func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, catalog string) ([]repository.Mastercat, error) {
+	if err := ValidateArguments(ra, dec, radius, nneighbor, catalog); err != nil {
+		return nil, err
+	}
+
 	radius_radians := arcsecToRadians(radius)
 	point := healpix.RADec(float64(ra), float64(dec))
 	objects := make([]repository.Mastercat, 0)
@@ -87,6 +91,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int) (
 		}
 		objects = append(objects, objs...)
 	}
+
 	objects = knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)
 	return objects, nil
 }
