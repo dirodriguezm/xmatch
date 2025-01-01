@@ -9,9 +9,16 @@ require (
 )
 
 require (
+	github.com/apache/arrow/go/arrow v0.0.0-20200730104253-651201b0f516 // indirect
+	github.com/apache/thrift v0.16.0 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
+	github.com/klauspost/compress v1.15.11 // indirect
+	github.com/pierrec/lz4/v4 v4.1.16 // indirect
+	github.com/xitongsys/parquet-go v1.6.2 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
+	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 )
 
 replace github.com/dirodriguezm/healpix => ../healpix
@@ -45,6 +52,7 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/xitongsys/parquet-go-source v0.0.0-20241021075129-b732d2ac9c9b
 	golang.org/x/arch v0.11.0 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f

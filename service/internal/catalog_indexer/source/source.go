@@ -12,8 +12,14 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 )
 
+type SourceReader struct {
+	io.Reader
+
+	Url string
+}
+
 type Source struct {
-	Reader      []io.Reader
+	Reader      []SourceReader
 	CatalogName string
 	RaCol       string
 	DecCol      string
@@ -26,12 +32,12 @@ func NewSource(cfg *config.SourceConfig) (*Source, error) {
 	if !validateSourceType(cfg.Type) {
 		return nil, fmt.Errorf("Can't create source with type %s.", cfg.Type)
 	}
-	reader, err := sourceReader(cfg.Url)
+	readers, err := sourceReader(cfg.Url)
 	if err != nil {
 		return nil, err
 	}
 	return &Source{
-		Reader:      reader,
+		Reader:      readers,
 		CatalogName: cfg.CatalogName,
 		RaCol:       cfg.RaCol,
 		DecCol:      cfg.DecCol,
@@ -41,7 +47,7 @@ func NewSource(cfg *config.SourceConfig) (*Source, error) {
 }
 
 func validateSourceType(stype string) bool {
-	allowedTypes := []string{"csv"}
+	allowedTypes := []string{"csv", "parquet"}
 	for _, t := range allowedTypes {
 		if t == stype {
 			return true
@@ -50,24 +56,27 @@ func validateSourceType(stype string) bool {
 	return false
 }
 
-func sourceReader(url string) ([]io.Reader, error) {
+func sourceReader(url string) ([]SourceReader, error) {
 	if strings.HasPrefix(url, "file:") {
-		reader, err := os.Open(strings.Split(url, "file:")[1])
+		parsedUrl := strings.Split(url, "file:")[1]
+		reader, err := os.Open(parsedUrl)
 		if err != nil {
 			return nil, err
 		}
-		return []io.Reader{reader}, nil
+		return []SourceReader{{Reader: reader, Url: parsedUrl}}, nil
 	}
+
 	if strings.HasPrefix(url, "buffer:") {
-		return []io.Reader{&bytes.Buffer{}}, nil
+		return []SourceReader{{Reader: &bytes.Buffer{}, Url: url}}, nil
 	}
+
 	if strings.HasPrefix(url, "files:") {
 		parsedUrl := strings.Split(url, "files:")[1]
 		entries, err := os.ReadDir(parsedUrl)
 		if err != nil {
 			return nil, err
 		}
-		readers := []io.Reader{}
+		readers := []SourceReader{}
 		for _, entry := range entries {
 			if entry.IsDir() {
 				rdrs, err := sourceReader("files:" + filepath.Join(parsedUrl, entry.Name()))
@@ -78,14 +87,16 @@ func sourceReader(url string) ([]io.Reader, error) {
 				readers = append(readers, rdrs...)
 				continue
 			}
-			file, err := os.Open(filepath.Join(parsedUrl, entry.Name()))
+			fileUrl := filepath.Join(parsedUrl, entry.Name())
+			file, err := os.Open(fileUrl)
 			if err != nil {
 				slog.Error("Could not create reader", "entry", entry.Name())
 				return nil, err
 			}
-			readers = append(readers, file)
+			readers = append(readers, SourceReader{Reader: file, Url: fileUrl})
 		}
 		return readers, nil
 	}
+
 	return nil, fmt.Errorf("Could not parse URL: %s", url)
 }

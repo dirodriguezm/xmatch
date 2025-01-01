@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
+	reader_factory "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/factory"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
@@ -83,7 +83,7 @@ func BuildIndexerContainer() container.Container {
 	// Register reader
 	readerResults := make(chan indexer.ReaderResult)
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) indexer.Reader {
-		r, err := reader.ReaderFactory(src, readerResults, cfg.CatalogIndexer.Reader)
+		r, err := reader_factory.ReaderFactory(src, readerResults, cfg.CatalogIndexer.Reader)
 		if err != nil {
 			slog.Error("Could not register reader")
 			panic(err)

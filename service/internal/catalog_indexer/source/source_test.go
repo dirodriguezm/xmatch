@@ -30,3 +30,12 @@ func TestSourceReader_NestedFiles(t *testing.T) {
 
 	require.Len(t, source.Reader, 2)
 }
+
+func TestSourceReader_ParquetFiles(t *testing.T) {
+	dir := t.TempDir()
+	url := fmt.Sprintf("files:%s", dir)
+	metadata := []string{"name=Col, type=INT64"}
+	source := ASource(t).WithUrl(url).WithParquetFiles(metadata, [][][]string{{{"1"}}, {{"2"}}}).Build()
+
+	require.Len(t, source.Reader, 2)
+}

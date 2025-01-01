@@ -1,4 +1,4 @@
-package reader
+package csv_reader
 
 import (
 	"io"
@@ -19,7 +19,7 @@ o3,3,3
 	reader := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []io.Reader{reader},
+		Reader:      []source.SourceReader{{Reader: reader}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
@@ -53,7 +53,7 @@ o3,3,3
 	reader := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []io.Reader{reader},
+		Reader:      []source.SourceReader{{Reader: reader}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
@@ -88,14 +88,14 @@ o4,4,4
 	reader := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []io.Reader{reader},
+		Reader:      []source.SourceReader{{Reader: reader}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2), WithFirstLineHeader(true))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithCsvBatchSize(2), WithFirstLineHeader(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,14 +135,14 @@ o3,3,3
 	reader := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []io.Reader{reader},
+		Reader:      []source.SourceReader{{Reader: reader}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2), WithFirstLineHeader(true))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithCsvBatchSize(2), WithFirstLineHeader(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,14 +182,14 @@ o3,3,3
 	reader2 := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []io.Reader{reader, reader2},
+		Reader:      []source.SourceReader{{Reader: reader}, {Reader: reader2}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithBatchSize(2), WithFirstLineHeader(true))
+	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithCsvBatchSize(2), WithFirstLineHeader(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,21 +229,21 @@ o3,3,3
 	reader := strings.NewReader(csv)
 
 	src := source.Source{
-		Reader:      []io.Reader{reader},
+		Reader:      []source.SourceReader{{Reader: reader}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&src, make(chan indexer.ReaderResult), WithBatchSize(2))
+	csvReader, err := NewCsvReader(&src, make(chan indexer.ReaderResult), WithCsvBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
 	csvReader.Start()
 
 	var rows []indexer.Row
-	for msg := range csvReader.outbox {
+	for msg := range csvReader.Outbox {
 		for _, row := range msg.Rows {
 			rows = append(rows, row)
 		}

@@ -1,4 +1,4 @@
-package reader
+package csv_reader
 
 import (
 	"encoding/csv"
@@ -6,17 +6,16 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 )
 
 type CsvReader struct {
+	*reader.BaseReader
 	Header          []string
 	FirstLineHeader bool
 	csvReaders      []*csv.Reader
 	currentReader   int
-	src             *source.Source
-	BatchSize       int
-	outbox          chan indexer.ReaderResult
 }
 
 func NewCsvReader(src *source.Source, channel chan indexer.ReaderResult, opts ...CsvReaderOption) (*CsvReader, error) {
@@ -24,45 +23,19 @@ func NewCsvReader(src *source.Source, channel chan indexer.ReaderResult, opts ..
 	for _, reader := range src.Reader {
 		readers = append(readers, csv.NewReader(reader))
 	}
-	reader := CsvReader{
+	r := &CsvReader{
 		csvReaders:    readers,
 		currentReader: 0,
-		src:           src,
-		outbox:        channel,
+		BaseReader: &reader.BaseReader{
+			Src:    src,
+			Outbox: channel,
+		},
 	}
 	for _, opt := range opts {
-		opt(&reader)
+		opt(r)
 	}
-	return &reader, nil
-}
-
-func (r *CsvReader) Start() {
-	slog.Debug("Starting CsvReader", "catalog", r.src.CatalogName, "nside", r.src.Nside, "numreaders", len(r.src.Reader))
-	go func() {
-		defer func() {
-			close(r.outbox)
-			slog.Debug("Closing CsvReader")
-		}()
-		eof := false
-		for !eof {
-			rows, err := r.ReadBatch()
-			if err != nil && err != io.EOF {
-				readResult := indexer.ReaderResult{
-					Rows:  nil,
-					Error: err,
-				}
-				r.outbox <- readResult
-				return
-			}
-			eof = err == io.EOF
-			readResult := indexer.ReaderResult{
-				Rows:  rows,
-				Error: nil,
-			}
-			slog.Debug("Reader sending message")
-			r.outbox <- readResult
-		}
-	}()
+	r.Reader = r
+	return r, nil
 }
 
 func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader) ([]indexer.Row, error) {
