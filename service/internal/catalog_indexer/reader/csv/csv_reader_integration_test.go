@@ -1,4 +1,4 @@
-package reader
+package csv_reader
 
 import (
 	"fmt"
@@ -46,7 +46,7 @@ o2,2,2
 	}
 }
 
-func TestReadMultipleFiles(t *testing.T) {
+func TestReadMultipleFiles_Csv(t *testing.T) {
 	// arrange
 	fixture := setUpTestFixture(t)
 
@@ -61,9 +61,15 @@ func TestReadMultipleFiles(t *testing.T) {
 
 	// collect results
 	allRows := make([]indexer.Row, 0)
+	var err error
 	for msg := range fixture.reader.OutputChannel {
+		if msg.Error != nil {
+			err = msg.Error
+			break
+		}
 		allRows = append(allRows, msg.Rows...)
 	}
+	require.NoError(t, err)
 
 	// assert
 	require.Len(t, allRows, 10)
@@ -75,7 +81,7 @@ func TestReadMultipleFiles(t *testing.T) {
 	}
 }
 
-func TestReadNestedFiles(t *testing.T) {
+func TestReadNestedFiles_Csv(t *testing.T) {
 	// arrange
 	fixture := setUpTestFixture(t)
 

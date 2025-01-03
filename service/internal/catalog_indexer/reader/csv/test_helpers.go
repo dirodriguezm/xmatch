@@ -1,4 +1,4 @@
-package reader
+package csv_reader
 
 import (
 	"testing"
@@ -28,6 +28,16 @@ func AReader(t *testing.T) *ReaderBuilder {
 	}
 }
 
+func (builder *ReaderBuilder) WithType(t string) *ReaderBuilder {
+	builder.t.Helper()
+
+	builder.ReaderConfig = &config.ReaderConfig{
+		Type:      t,
+		BatchSize: 1,
+	}
+	return builder
+}
+
 func (builder *ReaderBuilder) WithBatchSize(size int) *ReaderBuilder {
 	builder.t.Helper()
 
@@ -49,10 +59,25 @@ func (builder *ReaderBuilder) WithSource(src *source.Source) *ReaderBuilder {
 	return builder
 }
 
+func (builder *ReaderBuilder) WithParquetMetadata(md []string) *ReaderBuilder {
+	builder.t.Helper()
+
+	if md != nil && len(md) > 0 {
+		builder.ReaderConfig.Metadata = md
+	}
+	return builder
+}
+
 func (builder *ReaderBuilder) Build() indexer.Reader {
 	builder.t.Helper()
 
-	r, err := ReaderFactory(builder.Source, builder.OutputChannel, builder.ReaderConfig)
+	r, err := NewCsvReader(
+		builder.Source,
+		builder.OutputChannel,
+		WithCsvBatchSize(builder.ReaderConfig.BatchSize),
+		WithHeader(builder.ReaderConfig.Header),
+		WithFirstLineHeader(builder.ReaderConfig.FirstLineHeader),
+	)
 	require.NoError(builder.t, err)
 	return r
 }

@@ -9,6 +9,8 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/stretchr/testify/require"
+	"github.com/xitongsys/parquet-go-source/local"
+	"github.com/xitongsys/parquet-go/writer"
 )
 
 type SourceBuilder struct {
@@ -23,12 +25,27 @@ func ASource(t *testing.T) *SourceBuilder {
 		t: t,
 		SourceConfig: &config.SourceConfig{
 			Type:        "csv",
-			CatalogName: "tesc",
+			CatalogName: "test",
 			RaCol:       "ra",
 			DecCol:      "dec",
 			OidCol:      "oid",
+			Nside:       18,
 		},
 	}
+}
+
+func (builder *SourceBuilder) WithType(t string) *SourceBuilder {
+	builder.t.Helper()
+
+	builder.SourceConfig = &config.SourceConfig{
+		Type:        t,
+		CatalogName: "test",
+		RaCol:       "ra",
+		DecCol:      "dec",
+		OidCol:      "oid",
+		Nside:       18,
+	}
+	return builder
 }
 
 func (builder *SourceBuilder) Build() *Source {
@@ -78,6 +95,45 @@ func (builder *SourceBuilder) WithNestedCsvFiles(args ...[]string) *SourceBuilde
 			require.NoError(builder.t, err)
 		}
 	}
+	return builder
+}
+
+func (builder *SourceBuilder) WithParquetFiles(metadata []string, data [][][]string) *SourceBuilder {
+	builder.t.Helper()
+
+	dir := strings.Split(builder.SourceConfig.Url, "files:")[1]
+	for i, fileData := range data {
+		fname := fmt.Sprintf("file%d.parquet", i)
+		fw, err := local.NewLocalFileWriter(filepath.Join(dir, fname))
+		require.NoError(builder.t, err)
+
+		pw, err := writer.NewCSVWriter(metadata, fw, 1)
+		require.NoError(builder.t, err)
+
+		for rowNum := range fileData {
+			row := make([]*string, len(fileData[rowNum]))
+			for j := range row {
+				row[j] = &fileData[rowNum][j]
+			}
+			err = pw.WriteString(row)
+			require.NoError(builder.t, err)
+		}
+
+		err = pw.WriteStop()
+		require.NoError(builder.t, err)
+
+		err = fw.Close()
+		require.NoError(builder.t, err)
+
+		// verify file
+		require.FileExistsf(builder.t, filepath.Join(dir, fname), "Parquet file does not exist %s", filepath.Join(dir, fname))
+		file, err := os.Open(filepath.Join(dir, fname))
+		require.NoError(builder.t, err)
+		b := make([]byte, 100)
+		file.Read(b)
+		require.NotEmpty(builder.t, b)
+	}
+
 	return builder
 }
 
