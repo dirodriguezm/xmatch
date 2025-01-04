@@ -85,7 +85,7 @@ func BuildIndexerContainer() container.Container {
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) indexer.Reader {
 		r, err := reader_factory.ReaderFactory(src, readerResults, cfg.CatalogIndexer.Reader)
 		if err != nil {
-			slog.Error("Could not register reader")
+			slog.Error("Could not register reader", "error", err, "source", src, "config", cfg.CatalogIndexer.Reader)
 			panic(err)
 		}
 		return r
