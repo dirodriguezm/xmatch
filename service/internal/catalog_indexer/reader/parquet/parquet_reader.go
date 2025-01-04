@@ -5,7 +5,6 @@ import (
 	"io"
 	"log/slog"
 	"reflect"
-	"regexp"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
@@ -18,7 +17,7 @@ import (
 	psource "github.com/xitongsys/parquet-go/source"
 )
 
-type ParquetReader struct {
+type ParquetReader[T any] struct {
 	*reader.BaseReader
 	parquetReaders []*preader.ParquetReader
 	src            *source.Source
@@ -26,88 +25,65 @@ type ParquetReader struct {
 	outbox         chan indexer.ReaderResult
 
 	fileReaders []psource.ParquetFile
-	recordType  reflect.Type
-	metadata    []string
 }
 
-func createDynamicStruct(fields map[string]reflect.StructField) reflect.Type {
-	structFields := make([]reflect.StructField, 0, len(fields))
-	for _, field := range fields {
-		structFields = append(structFields, field)
-	}
-	return reflect.StructOf(structFields)
-}
-
-func NewParquetReader(
+func NewParquetReader[T any](
 	src *source.Source,
 	channel chan indexer.ReaderResult,
-	opts ...ParquetReaderOption,
-) (*ParquetReader, error) {
+	opts ...ParquetReaderOption[T],
+) (*ParquetReader[T], error) {
 	readers := []*preader.ParquetReader{}
 	fileReaders := []psource.ParquetFile{}
 
 	for _, srcReader := range src.Reader {
 		fr, err := local.NewLocalFileReader(srcReader.Url)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Could not create NewLocalFileReader\n%w", err)
 		}
 		fileReaders = append(fileReaders, fr)
-		pr, err := preader.NewParquetReader(fr, nil, 4)
+		schema := new(T)
+		pr, err := preader.NewParquetReader(fr, schema, 4)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
 		}
 		readers = append(readers, pr)
 	}
 
-	defaultMetadata := []string{
-		fmt.Sprintf("name=%s, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY", src.OidCol),
-		fmt.Sprintf("name=%s, type=DOUBLE", src.RaCol),
-		fmt.Sprintf("name=%s, type=DOUBLE", src.DecCol),
-	}
-
-	newReader := &ParquetReader{
+	newReader := &ParquetReader[T]{
 		BaseReader: &reader.BaseReader{
 			Src:    src,
 			Outbox: channel,
 		},
-		parquetReaders: readers,
 		src:            src,
 		currentReader:  0,
 		outbox:         channel,
 		fileReaders:    fileReaders,
-		metadata:       defaultMetadata,
+		parquetReaders: readers,
 	}
 
 	for _, opt := range opts {
 		opt(newReader)
 	}
 
-	fields := createStructFields(newReader.metadata)
-	newReader.recordType = createDynamicStruct(fields)
-
 	newReader.Reader = newReader
-
 	return newReader, nil
 }
 
-func (r *ParquetReader) ReadSingleFile(currentReader *preader.ParquetReader) ([]indexer.Row, error) {
+func (r *ParquetReader[T]) ReadSingleFile(currentReader *preader.ParquetReader) ([]indexer.Row, error) {
 	defer currentReader.ReadStop()
 
 	nrows := currentReader.GetNumRows()
-	records := reflect.MakeSlice(reflect.SliceOf(r.recordType), int(nrows), int(nrows))
-	recordsPtr := reflect.New(records.Type())
-	recordsPtr.Elem().Set(records)
+	records := make([]T, nrows)
 
-	for range nrows {
-		if err := currentReader.Read(recordsPtr.Interface()); err != nil {
-			return nil, reader.NewReadError(r.currentReader, err, r.src, "Failed to read parquet")
-		}
+	if err := currentReader.Read(&records); err != nil {
+		return nil, reader.NewReadError(r.currentReader, err, r.src, "Failed to read parquet")
 	}
+
 	parsedRecords := convertToMapSlice(records, r.src.OidCol, r.src.RaCol, r.src.DecCol)
 	return parsedRecords, nil
 }
 
-func (r *ParquetReader) Read() ([]indexer.Row, error) {
+func (r *ParquetReader[T]) Read() ([]indexer.Row, error) {
 	defer func() {
 		for i := range r.fileReaders {
 			r.fileReaders[i].Close()
@@ -125,13 +101,10 @@ func (r *ParquetReader) Read() ([]indexer.Row, error) {
 	return rows, nil
 }
 
-func (r *ParquetReader) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]indexer.Row, error) {
-	records := reflect.MakeSlice(reflect.SliceOf(r.recordType), r.BatchSize, r.BatchSize)
-	recordsPtr := reflect.New(records.Type())
-	recordsPtr.Elem().Set(records)
-	recordsInterface := recordsPtr.Interface()
+func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]indexer.Row, error) {
+	records := make([]T, r.BatchSize)
 
-	if err := currentReader.Read(recordsInterface); err != nil {
+	if err := currentReader.Read(&records); err != nil {
 		return nil, reader.NewReadError(r.currentReader, err, r.src, "Failed to read parquet in batch")
 	}
 
@@ -146,7 +119,7 @@ func (r *ParquetReader) ReadBatchSingleFile(currentReader *preader.ParquetReader
 	return parsedRecords, nil
 }
 
-func (r *ParquetReader) ReadBatch() ([]indexer.Row, error) {
+func (r *ParquetReader[T]) ReadBatch() ([]indexer.Row, error) {
 	currentReader := r.parquetReaders[r.currentReader]
 	slog.Debug("ParquetReader reading batch")
 	currentRows, err := r.ReadBatchSingleFile(currentReader)
@@ -169,12 +142,20 @@ func (r *ParquetReader) ReadBatch() ([]indexer.Row, error) {
 	return currentRows, nil
 }
 
-func convertToMapSlice(data reflect.Value, oidCol, raCol, decCol string) []indexer.Row {
-	mapSlice := make([]indexer.Row, data.Len())
-	for i := 0; i < data.Len(); i++ {
+func convertToMapSlice[T any](data []T, oidCol, raCol, decCol string) []indexer.Row {
+	mapSlice := make([]indexer.Row, len(data))
+	caser := cases.Title(language.English, cases.Compact)
+	for i := 0; i < len(data); i++ {
 		mapSlice[i] = make(indexer.Row)
-		elem := data.Index(i)
-		caser := cases.Title(language.English, cases.Compact)
+		elem := reflect.ValueOf(data[i])
+		if elem.Kind() == reflect.Ptr {
+			elem = elem.Elem()
+		}
+		// Check if it's a struct
+		if elem.Kind() != reflect.Struct {
+			panic(fmt.Errorf("expected struct, got %v", elem.Kind()))
+		}
+
 		mapSlice[i][oidCol] = elem.FieldByName(caser.String(oidCol)).Interface()
 		mapSlice[i][raCol] = elem.FieldByName(caser.String(raCol)).Interface()
 		mapSlice[i][decCol] = elem.FieldByName(caser.String(decCol)).Interface()
@@ -225,54 +206,4 @@ func isZeroValue(v interface{}) bool {
 		// For struct types, compare with their zero value
 		return reflect.DeepEqual(v, reflect.Zero(reflect.TypeOf(v)).Interface())
 	}
-}
-
-func getTypeFromMetadata(typeStr string) reflect.Type {
-	switch typeStr {
-	case "DOUBLE":
-		return reflect.TypeOf(float64(0))
-	case "BYTE_ARRAY":
-		return reflect.TypeOf("")
-	case "INT32":
-		return reflect.TypeOf(int32(0))
-	case "INT64":
-		return reflect.TypeOf(int64(0))
-	case "BOOLEAN":
-		return reflect.TypeOf(bool(false))
-	default:
-		return reflect.TypeOf("") // default to string
-	}
-}
-
-func parseMetadata(metadata string) (string, reflect.Type) {
-	// Extract type from metadata string
-	typeMatch := regexp.MustCompile(`type=(\w+)`).FindStringSubmatch(metadata)
-	if len(typeMatch) < 2 {
-		return metadata, reflect.TypeOf("")
-	}
-
-	return metadata, getTypeFromMetadata(typeMatch[1])
-}
-
-func createStructFields(metadata []string) map[string]reflect.StructField {
-	fields := make(map[string]reflect.StructField)
-
-	for _, md := range metadata {
-		// Extract name from metadata
-		nameMatch := regexp.MustCompile(`name=(\w+)`).FindStringSubmatch(md)
-		if len(nameMatch) < 2 {
-			continue
-		}
-
-		fieldName := cases.Title(language.English, cases.Compact).String(nameMatch[1])
-		metadata, fieldType := parseMetadata(md)
-
-		fields[fieldName] = reflect.StructField{
-			Name: fieldName,
-			Type: fieldType,
-			Tag:  reflect.StructTag(fmt.Sprintf(`parquet:%s`, metadata)),
-		}
-	}
-
-	return fields
 }

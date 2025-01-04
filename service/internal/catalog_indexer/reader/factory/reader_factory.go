@@ -27,13 +27,34 @@ func ReaderFactory(
 			csv_reader.WithFirstLineHeader(cfg.FirstLineHeader),
 		)
 	case "parquet":
-		return parquet_reader.NewParquetReader(
-			src,
-			outbox,
-			parquet_reader.WithParquetBatchSize(cfg.BatchSize),
-			parquet_reader.WithParquetMetadata(cfg.Metadata),
-		)
+		return parquetFactory(src, outbox, cfg)
 	default:
 		return nil, fmt.Errorf("Reader type not allowed")
 	}
+}
+
+func parquetFactory(src *source.Source, outbox chan indexer.ReaderResult, cfg *config.ReaderConfig) (indexer.Reader, error) {
+	catalog := strings.ToLower(src.CatalogName)
+	if catalog == "allwise" {
+		return parquet_reader.NewParquetReader(
+			src,
+			outbox,
+			parquet_reader.WithParquetBatchSize[parquet_reader.AllWiseSchema](cfg.BatchSize),
+		)
+	}
+	if catalog == "vlass" {
+		return parquet_reader.NewParquetReader(
+			src,
+			outbox,
+			parquet_reader.WithParquetBatchSize[parquet_reader.VlassSchema](cfg.BatchSize),
+		)
+	}
+	if catalog == "ztf" {
+		return parquet_reader.NewParquetReader(
+			src,
+			outbox,
+			parquet_reader.WithParquetBatchSize[parquet_reader.ZtfSchema](cfg.BatchSize),
+		)
+	}
+	return nil, fmt.Errorf("Schema not found for catalog")
 }

@@ -2,7 +2,6 @@ package indexer
 
 import (
 	"log/slog"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -116,11 +115,15 @@ func (ix *Indexer) Row2Mastercat(row Row) (repository.Mastercat, error) {
 	if err != nil {
 		return repository.Mastercat{}, err
 	}
+	oid, err := ix.convertOid(row[ix.source.OidCol])
+	if err != nil {
+		return repository.Mastercat{}, err
+	}
 	cat := ix.catalogName(row[ix.source.CatalogName])
 	point := healpix.RADec(ra, dec)
 	ipix := ix.mapper.PixelAt(point)
 	mastercat := repository.Mastercat{
-		ID:   row[ix.source.OidCol].(string),
+		ID:   oid,
 		Ra:   ra,
 		Dec:  dec,
 		Cat:  cat,
@@ -130,23 +133,41 @@ func (ix *Indexer) Row2Mastercat(row Row) (repository.Mastercat, error) {
 }
 
 func (ix *Indexer) convertRa(ra any) (float64, error) {
-	switch reflect.TypeOf(ra).Kind() {
-	case reflect.String:
-		return strconv.ParseFloat(ra.(string), 64)
+	switch v := ra.(type) {
+	case string:
+		return strconv.ParseFloat(v, 64)
+	case *float64:
+		return *v, nil
+	case float64:
+		return v, nil
 	default:
-		return ra.(float64), nil
+		return v.(float64), nil
 	}
-
 }
 func (ix *Indexer) convertDec(dec any) (float64, error) {
-	switch reflect.TypeOf(dec).Kind() {
-	case reflect.String:
-		return strconv.ParseFloat(dec.(string), 64)
+	switch v := dec.(type) {
+	case string:
+		return strconv.ParseFloat(v, 64)
+	case *float64:
+		return *v, nil
+	case float64:
+		return v, nil
 	default:
-		return dec.(float64), nil
+		return v.(float64), nil
 	}
-
 }
+
+func (ix *Indexer) convertOid(oid any) (string, error) {
+	switch v := oid.(type) {
+	case string:
+		return oid.(string), nil
+	case *string:
+		return *v, nil
+	default:
+		return v.(string), nil
+	}
+}
+
 func (ix *Indexer) catalogName(name any) string {
 	if name == nil {
 		return ix.source.CatalogName
