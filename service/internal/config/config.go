@@ -39,9 +39,6 @@ type ReaderConfig struct {
 	// CSV config
 	Header          []string `yaml:"header"`
 	FirstLineHeader bool     `yaml:"first_line_header"`
-
-	// Parquet config
-	Metadata []string `yaml:"metadata"`
 }
 
 type IndexerConfig struct {

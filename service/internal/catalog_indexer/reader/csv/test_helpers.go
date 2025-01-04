@@ -59,15 +59,6 @@ func (builder *ReaderBuilder) WithSource(src *source.Source) *ReaderBuilder {
 	return builder
 }
 
-func (builder *ReaderBuilder) WithParquetMetadata(md []string) *ReaderBuilder {
-	builder.t.Helper()
-
-	if md != nil && len(md) > 0 {
-		builder.ReaderConfig.Metadata = md
-	}
-	return builder
-}
-
 func (builder *ReaderBuilder) Build() indexer.Reader {
 	builder.t.Helper()
 

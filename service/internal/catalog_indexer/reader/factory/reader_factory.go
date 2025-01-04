@@ -11,6 +11,9 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 )
 
+type AllWiseSchema struct{}
+type VlassSchema struct{}
+
 func ReaderFactory(
 	src *source.Source,
 	outbox chan indexer.ReaderResult,
@@ -27,13 +30,26 @@ func ReaderFactory(
 			csv_reader.WithFirstLineHeader(cfg.FirstLineHeader),
 		)
 	case "parquet":
-		return parquet_reader.NewParquetReader(
-			src,
-			outbox,
-			parquet_reader.WithParquetBatchSize(cfg.BatchSize),
-			parquet_reader.WithParquetMetadata(cfg.Metadata),
-		)
+		return parquetFactory(src, outbox, cfg)
 	default:
 		return nil, fmt.Errorf("Reader type not allowed")
 	}
+}
+
+func parquetFactory(src *source.Source, outbox chan indexer.ReaderResult, cfg *config.ReaderConfig) (indexer.Reader, error) {
+	if src.CatalogName == "allwise" {
+		return parquet_reader.NewParquetReader(
+			src,
+			outbox,
+			parquet_reader.WithParquetBatchSize[AllWiseSchema](cfg.BatchSize),
+		)
+	}
+	if src.CatalogName == "vlass" {
+		return parquet_reader.NewParquetReader(
+			src,
+			outbox,
+			parquet_reader.WithParquetBatchSize[VlassSchema](cfg.BatchSize),
+		)
+	}
+	return nil, fmt.Errorf("Schema not found for catalog")
 }

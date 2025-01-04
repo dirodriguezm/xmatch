@@ -1,20 +1,12 @@
 package parquet_reader
 
-type ParquetReaderOption func(r *ParquetReader)
+type ParquetReaderOption[T any] func(r *ParquetReader[T])
 
-func WithParquetBatchSize(size int) ParquetReaderOption {
-	return func(r *ParquetReader) {
+func WithParquetBatchSize[T any](size int) ParquetReaderOption[T] {
+	return func(r *ParquetReader[T]) {
 		if size <= 0 {
 			size = 1
 		}
 		r.BatchSize = size
-	}
-}
-
-func WithParquetMetadata(md []string) ParquetReaderOption {
-	return func(r *ParquetReader) {
-		if md != nil && len(md) > 0 {
-			r.metadata = md
-		}
 	}
 }

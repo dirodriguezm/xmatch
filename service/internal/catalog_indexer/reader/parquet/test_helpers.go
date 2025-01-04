@@ -9,15 +9,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type ReaderBuilder struct {
+type ReaderBuilder[T any] struct {
 	ReaderConfig  *config.ReaderConfig
 	t             *testing.T
 	Source        *source.Source
 	OutputChannel chan indexer.ReaderResult
 }
 
-func AReader(t *testing.T) *ReaderBuilder {
-	return &ReaderBuilder{
+func AReader[T any](t *testing.T) *ReaderBuilder[T] {
+	return &ReaderBuilder[T]{
 		t: t,
 		ReaderConfig: &config.ReaderConfig{
 			Type:            "csv",
@@ -28,7 +28,7 @@ func AReader(t *testing.T) *ReaderBuilder {
 	}
 }
 
-func (builder *ReaderBuilder) WithType(t string) *ReaderBuilder {
+func (builder *ReaderBuilder[T]) WithType(t string) *ReaderBuilder[T] {
 	builder.t.Helper()
 
 	builder.ReaderConfig = &config.ReaderConfig{
@@ -38,44 +38,34 @@ func (builder *ReaderBuilder) WithType(t string) *ReaderBuilder {
 	return builder
 }
 
-func (builder *ReaderBuilder) WithBatchSize(size int) *ReaderBuilder {
+func (builder *ReaderBuilder[T]) WithBatchSize(size int) *ReaderBuilder[T] {
 	builder.t.Helper()
 
 	builder.ReaderConfig.BatchSize = size
 	return builder
 }
 
-func (builder *ReaderBuilder) WithOutputChannel(ch chan indexer.ReaderResult) *ReaderBuilder {
+func (builder *ReaderBuilder[T]) WithOutputChannel(ch chan indexer.ReaderResult) *ReaderBuilder[T] {
 	builder.t.Helper()
 
 	builder.OutputChannel = ch
 	return builder
 }
 
-func (builder *ReaderBuilder) WithSource(src *source.Source) *ReaderBuilder {
+func (builder *ReaderBuilder[T]) WithSource(src *source.Source) *ReaderBuilder[T] {
 	builder.t.Helper()
 
 	builder.Source = src
 	return builder
 }
 
-func (builder *ReaderBuilder) WithParquetMetadata(md []string) *ReaderBuilder {
-	builder.t.Helper()
-
-	if md != nil && len(md) > 0 {
-		builder.ReaderConfig.Metadata = md
-	}
-	return builder
-}
-
-func (builder *ReaderBuilder) Build() indexer.Reader {
+func (builder *ReaderBuilder[T]) Build() indexer.Reader {
 	builder.t.Helper()
 
 	r, err := NewParquetReader(
 		builder.Source,
 		builder.OutputChannel,
-		WithParquetBatchSize(builder.ReaderConfig.BatchSize),
-		WithParquetMetadata(builder.ReaderConfig.Metadata),
+		WithParquetBatchSize[T](builder.ReaderConfig.BatchSize),
 	)
 	require.NoError(builder.t, err)
 	return r
