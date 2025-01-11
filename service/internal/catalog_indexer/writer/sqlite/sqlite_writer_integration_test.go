@@ -1,4 +1,4 @@
-package writer_test
+package sqlite_writer_test
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"github.com/golang-migrate/migrate/v4"
@@ -93,18 +93,19 @@ catalog_indexer:
 }
 
 func TestActor(t *testing.T) {
-	ch := make(chan indexer.IndexerResult)
+	ch := make(chan indexer.WriterInput)
 	var repo conesearch.Repository
 	err := ctr.Resolve(&repo)
 	require.NoError(t, err)
 	ctx := context.Background()
 	done := make(chan bool)
-	w := writer.NewSqliteWriter(repo, ch, done, ctx)
+	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
+	w := sqlite_writer.NewSqliteWriter(repo, ch, done, ctx, src)
 
 	w.Start()
-	ch <- indexer.IndexerResult{Objects: []repository.Mastercat{
-		{ID: "oid1", Ipix: 1, Ra: 1, Dec: 1, Cat: "vlass"},
-		{ID: "oid2", Ipix: 2, Ra: 2, Dec: 2, Cat: "vlass"},
+	ch <- indexer.WriterInput{Rows: []indexer.Row{
+		{"oid": "oid1", "ipix": 1, "ra": 1, "dec": 1, "cat": "vlass"},
+		{"oid": "oid2", "ipix": 2, "ra": 2, "dec": 2, "cat": "vlass"},
 	}}
 	close(ch)
 	<-done

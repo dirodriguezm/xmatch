@@ -9,7 +9,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	reader_factory "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/factory"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -92,9 +92,9 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register indexer
-	indexerResults := make(chan indexer.IndexerResult)
+	writerInput := make(chan indexer.WriterInput)
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) *indexer.Indexer {
-		idx, err := indexer.New(src, readerResults, indexerResults, cfg.CatalogIndexer.Indexer)
+		idx, err := indexer.New(src, readerResults, writerInput, cfg.CatalogIndexer.Indexer)
 		if err != nil {
 			panic(err)
 		}
@@ -102,8 +102,8 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register writer
-	ctr.Singleton(func(repo conesearch.Repository) indexer.Writer {
-		return writer.NewSqliteWriter(repo, indexerResults, make(chan bool), context.TODO())
+	ctr.Singleton(func(repo conesearch.Repository, src *source.Source) indexer.Writer {
+		return sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan bool), context.TODO(), src)
 	})
 	return ctr
 }
