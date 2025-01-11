@@ -28,9 +28,9 @@ func TestStart(t *testing.T) {
 	writer := NewSqliteWriter(repo, make(chan indexer.WriterInput), make(chan bool), context.Background(), src)
 
 	writer.Start()
-	writer.BaseWriter.Inbox <- indexer.WriterInput{Rows: objects}
-	close(writer.BaseWriter.Inbox)
-	<-writer.BaseWriter.Done
+	writer.BaseWriter.InboxChannel <- indexer.WriterInput{Rows: objects}
+	close(writer.BaseWriter.InboxChannel)
+	<-writer.BaseWriter.DoneChannel
 
 	repo.AssertExpectations(t)
 }

@@ -15,6 +15,7 @@ catalog_indexer:
   indexer:
     ordering_scheme: "nested"
   writer:
+    type: sqlite
 service:
   database:
     url: "file:dev.db"

@@ -36,6 +36,7 @@ type Reader interface {
 type Writer interface {
 	Start()
 	Done()
+	Stop()
 	Receive(WriterInput)
 }
 
@@ -104,7 +105,7 @@ func (ix *Indexer) receive(msg ReaderResult) {
 			ix.source.RaCol:  ra,
 			ix.source.DecCol: dec,
 			ix.source.OidCol: row[ix.source.OidCol],
-			"cat":            row[ix.source.CatalogName],
+			"cat":            ix.source.CatalogName,
 			"ipix":           ipix,
 		}
 	}

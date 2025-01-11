@@ -63,6 +63,8 @@ catalog_indexer:
     url: "file:%s"
   indexer:
     ordering_scheme: "nested"
+  indexer_writer:
+    type: "sqlite"
 `
 	config = fmt.Sprintf(config, dbFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)

@@ -23,8 +23,8 @@ func NewSqliteWriter(repository conesearch.Repository, ch chan indexer.WriterInp
 	slog.Debug("Creating new SqliteWriter")
 	w := &SqliteWriter{
 		BaseWriter: &writer.BaseWriter{
-			Done:  done,
-			Inbox: ch,
+			DoneChannel:  done,
+			InboxChannel: ch,
 		},
 		repository: repository,
 		ctx:        ctx,
@@ -33,20 +33,6 @@ func NewSqliteWriter(repository conesearch.Repository, ch chan indexer.WriterInp
 	w.Writer = w
 	return w
 }
-
-// func (w *SqliteWriter) Start() {
-// 	slog.Debug("Starting Writer")
-// 	go func() {
-// 		defer func() {
-// 			slog.Debug("Writer Done")
-// 			w.done <- true
-// 			close(w.done)
-// 		}()
-// 		for msg := range w.inbox {
-// 			w.Receive(msg)
-// 		}
-// 	}()
-// }
 
 func (w *SqliteWriter) Receive(msg indexer.WriterInput) {
 	slog.Debug("Writer received message")
@@ -71,8 +57,8 @@ func (w *SqliteWriter) Receive(msg indexer.WriterInput) {
 	}
 }
 
-func (w *SqliteWriter) Done() {
-	<-w.BaseWriter.Done
+func (w *SqliteWriter) Stop() {
+	w.DoneChannel <- true
 }
 
 func row2insertParams(obj indexer.Row, src *source.Source) (repository.InsertObjectParams, error) {

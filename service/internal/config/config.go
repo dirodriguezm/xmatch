@@ -15,11 +15,13 @@ type Config struct {
 }
 
 type CatalogIndexerConfig struct {
-	Database *DatabaseConfig `yaml:"database"`
-	Source   *SourceConfig   `yaml:"source"`
-	Reader   *ReaderConfig   `yaml:"reader"`
-	Indexer  *IndexerConfig  `yaml:"indexer"`
-	Writer   *WriterConfig   `yaml:"writer"`
+	Database        *DatabaseConfig `yaml:"database"`
+	Source          *SourceConfig   `yaml:"source"`
+	Reader          *ReaderConfig   `yaml:"reader"`
+	Indexer         *IndexerConfig  `yaml:"indexer"`
+	PartitionWriter *WriterConfig   `yaml:"partition_writer"`
+	ReducerWriter   *WriterConfig   `yaml:"reducer_writer"`
+	IndexerWriter   *WriterConfig   `yaml:"indexer_writer"`
 }
 
 type SourceConfig struct {
@@ -46,7 +48,12 @@ type IndexerConfig struct {
 	Nside          int    `yaml:"nside"`
 }
 
-type WriterConfig struct{}
+type WriterConfig struct {
+	Type string `yaml:"type"`
+
+	// parquet config
+	OutputFile string `yaml:"output_file"`
+}
 
 type ServiceConfig struct {
 	Database *DatabaseConfig `yaml:"database"`

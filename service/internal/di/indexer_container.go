@@ -9,6 +9,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	reader_factory "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/factory"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
 	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -101,9 +102,54 @@ func BuildIndexerContainer() container.Container {
 		return idx
 	})
 
-	// Register writer
-	ctr.Singleton(func(repo conesearch.Repository, src *source.Source) indexer.Writer {
-		return sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan bool), context.TODO(), src)
+	// Register indexer writer
+	ctr.Singleton(func(cfg *config.Config, repo conesearch.Repository, src *source.Source) indexer.Writer {
+		if cfg.CatalogIndexer.IndexerWriter == nil {
+			panic("Indexer writer not configured")
+		}
+		switch cfg.CatalogIndexer.IndexerWriter.Type {
+		case "parquet":
+			w, err := parquet_writer.NewParquetWriter[parquet_writer.IndexerSchema](writerInput, make(chan bool), cfg.CatalogIndexer.IndexerWriter)
+			if err != nil {
+				panic(err)
+			}
+			return w
+		case "sqlite":
+			w := sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan bool), context.TODO(), src)
+			return w
+		default:
+			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.IndexerWriter.Type)
+			panic("Writer type not allowed")
+		}
 	})
+
+	// Register partition writer if is configured
+	// ctr.Singleton(func(cfg *config.Config) indexer.Writer {
+	// 	if cfg.CatalogIndexer.PartitionWriter == nil {
+	// 		return nil
+	// 	}
+	// 	type PartitionSchema struct {
+	// 		ID  string  `parquet:"name=id, type=BYTE_ARRAY"`
+	// 		Ra  float64 `parquet:"name=ra, type=DOUBLE"`
+	// 		Dec float64 `parquet:"name=dec, type=DOUBLE"`
+	// 	}
+	// 	// TODO: Configure partition reader and writer
+	// 	return nil
+	// })
+
+	// Register reducer writer if is configured
+	// ctr.Singleton(func(cfg *config.Config) indexer.Writer {
+	// 	if cfg.CatalogIndexer.ReducerWriter == nil {
+	// 		return nil
+	// 	}
+	// 	type ReducerSchema struct {
+	// 		ID  string  `parquet:"name=id, type=BYTE_ARRAY"`
+	// 		Ra  float64 `parquet:"name=ra, type=DOUBLE"`
+	// 		Dec float64 `parquet:"name=dec, type=DOUBLE"`
+	// 	}
+	// 	// TODO: Configure pre partition reader and writer
+	// 	return nil
+	// })
+
 	return ctr
 }
