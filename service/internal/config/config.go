@@ -57,7 +57,6 @@ type WriterConfig struct {
 
 type ServiceConfig struct {
 	Database *DatabaseConfig `yaml:"database"`
-	Nside    int             `yaml:"nside"`
 }
 
 type DatabaseConfig struct {
