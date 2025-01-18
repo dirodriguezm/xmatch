@@ -1,21 +1,39 @@
+# Configuration file for the catalog indexer
 catalog_indexer:
   database:
+    # a path to the SQLite database file
     url: "file:dev.db"
   source:
-    url: "file:test.csv"
+    # a path to the input file or files
+    url: "file:example.csv"
+    # the type of the input file
     type: "csv"
-    catalog_name: "test"
+    # the name of the catalog
+    catalog_name: "vlass|ztf|allwise"
+    # name of the RA column in the input files
     ra_col: "ra"
+    # name of the DEC column in the input files
     dec_col: "dec"
-    oid_col: "oid"
+    # name of the object ID column in the input files
+    oid_col: "id"
+    # Nside of the HEALPix grid
     nside: 18
   reader:
-    batch_size: 1
+    # size of the batch to read from the input file
+    batch_size: 500
+    # type of the reader
     type: "csv"
   indexer:
+    # ordering scheme for the HEALPix grid
     ordering_scheme: "nested"
-  writer:
+  indexer_writer:
+    # type of the output file
+    type: parquet
+    # path to the output file
+    output_file: "vlass.parquet"
+# Configuration file for the web service
 service:
+  # Database configuration for the service
   database:
+    # a path to the SQLite database file
     url: "file:dev.db"
-  nside: 18

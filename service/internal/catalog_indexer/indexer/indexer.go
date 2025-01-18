@@ -8,7 +8,6 @@ import (
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Row map[string]any
@@ -19,8 +18,13 @@ type ReaderResult struct {
 }
 
 type IndexerResult struct {
-	Objects []repository.Mastercat
+	Objects []Row
 	Error   error
+}
+
+type WriterInput struct {
+	Error error
+	Rows  []Row
 }
 
 type Reader interface {
@@ -32,16 +36,18 @@ type Reader interface {
 type Writer interface {
 	Start()
 	Done()
+	Stop()
+	Receive(WriterInput)
 }
 
 type Indexer struct {
 	source *source.Source
 	mapper *healpix.HEALPixMapper
 	inbox  chan ReaderResult
-	outbox chan IndexerResult
+	outbox chan WriterInput
 }
 
-func New(src *source.Source, inbox chan ReaderResult, outbox chan IndexerResult, cfg *config.IndexerConfig) (*Indexer, error) {
+func New(src *source.Source, inbox chan ReaderResult, outbox chan WriterInput, cfg *config.IndexerConfig) (*Indexer, error) {
 	slog.Debug("Creating new Indexer")
 	orderingScheme := healpix.Ring
 	if strings.ToLower(cfg.OrderingScheme) == "nested" {
@@ -75,61 +81,46 @@ func (ix *Indexer) Start() {
 func (ix *Indexer) receive(msg ReaderResult) {
 	slog.Debug("Indexer Received Message")
 	if msg.Error != nil {
-		ix.outbox <- IndexerResult{
-			Objects: nil,
-			Error:   msg.Error,
+		ix.outbox <- WriterInput{
+			Rows:  nil,
+			Error: msg.Error,
 		}
 		return
 	}
-	outputBatch := make([]repository.Mastercat, 0)
-	for _, row := range msg.Rows {
-		mastercat, err := ix.Row2Mastercat(row)
+	outputBatch := make([]Row, len(msg.Rows))
+	for i, row := range msg.Rows {
+		ra, err := ix.convertRa(row[ix.source.RaCol])
 		if err != nil {
-			ix.outbox <- IndexerResult{
-				Objects: nil,
-				Error:   msg.Error,
-			}
-			return
+			sendError(ix.outbox, err)
 		}
-		outputBatch = append(outputBatch, repository.Mastercat{
-			ID:   mastercat.ID,
-			Ipix: mastercat.Ipix,
-			Ra:   mastercat.Ra,
-			Dec:  mastercat.Dec,
-			Cat:  mastercat.Cat,
-		})
+		dec, err := ix.convertDec(row[ix.source.DecCol])
+		if err != nil {
+			sendError(ix.outbox, err)
+		}
+
+		point := healpix.RADec(ra, dec)
+		ipix := ix.mapper.PixelAt(point)
+
+		outputBatch[i] = Row{
+			ix.source.RaCol:  ra,
+			ix.source.DecCol: dec,
+			ix.source.OidCol: row[ix.source.OidCol],
+			"cat":            ix.source.CatalogName,
+			"ipix":           ipix,
+		}
 	}
 	slog.Debug("Indexer sending message")
-	ix.outbox <- IndexerResult{
-		Objects: outputBatch,
-		Error:   nil,
+	ix.outbox <- WriterInput{
+		Rows:  outputBatch,
+		Error: nil,
 	}
 }
 
-func (ix *Indexer) Row2Mastercat(row Row) (repository.Mastercat, error) {
-	ra, err := ix.convertRa(row[ix.source.RaCol])
-	if err != nil {
-		return repository.Mastercat{}, err
+func sendError(outbox chan WriterInput, err error) {
+	outbox <- WriterInput{
+		Rows:  nil,
+		Error: err,
 	}
-	dec, err := ix.convertDec(row[ix.source.DecCol])
-	if err != nil {
-		return repository.Mastercat{}, err
-	}
-	oid, err := ix.convertOid(row[ix.source.OidCol])
-	if err != nil {
-		return repository.Mastercat{}, err
-	}
-	cat := ix.catalogName(row[ix.source.CatalogName])
-	point := healpix.RADec(ra, dec)
-	ipix := ix.mapper.PixelAt(point)
-	mastercat := repository.Mastercat{
-		ID:   oid,
-		Ra:   ra,
-		Dec:  dec,
-		Cat:  cat,
-		Ipix: ipix,
-	}
-	return mastercat, nil
 }
 
 func (ix *Indexer) convertRa(ra any) (float64, error) {
@@ -155,22 +146,4 @@ func (ix *Indexer) convertDec(dec any) (float64, error) {
 	default:
 		return v.(float64), nil
 	}
-}
-
-func (ix *Indexer) convertOid(oid any) (string, error) {
-	switch v := oid.(type) {
-	case string:
-		return oid.(string), nil
-	case *string:
-		return *v, nil
-	default:
-		return v.(string), nil
-	}
-}
-
-func (ix *Indexer) catalogName(name any) string {
-	if name == nil {
-		return ix.source.CatalogName
-	}
-	return name.(string)
 }
