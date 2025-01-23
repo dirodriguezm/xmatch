@@ -11,6 +11,7 @@ import (
 	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/golobby/container/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/xitongsys/parquet-go-source/local"
@@ -69,23 +70,23 @@ func TestActor(t *testing.T) {
 	require.NoError(t, err)
 
 	w.Start()
-	w.(*parquet_writer.ParquetWriter[parquet_writer.IndexerSchema]).InboxChannel <- indexer.WriterInput{Rows: []indexer.Row{
+	w.(*parquet_writer.ParquetWriter[repository.ParquetMastercat]).InboxChannel <- indexer.WriterInput{Rows: []indexer.Row{
 		{"id": "oid1", "ipix": 1, "ra": 1, "dec": 1, "cat": "vlass"},
 		{"id": "oid2", "ipix": 2, "ra": 2, "dec": 2, "cat": "vlass"},
 	}}
-	close(w.(*parquet_writer.ParquetWriter[parquet_writer.IndexerSchema]).InboxChannel)
+	close(w.(*parquet_writer.ParquetWriter[repository.ParquetMastercat]).InboxChannel)
 	w.Done()
 
 	// check the parquet file
 	var cfg *config.Config
 	err = ctr.Resolve(&cfg)
 	require.NoError(t, err)
-	result := read_helper[parquet_writer.IndexerSchema](t, cfg.CatalogIndexer.IndexerWriter.OutputFile)
+	result := read_helper[repository.ParquetMastercat](t, cfg.CatalogIndexer.IndexerWriter.OutputFile)
 
 	require.Equal(t, 2, len(result))
 	for i, row := range result {
-		require.Equal(t, fmt.Sprintf("oid%d", i+1), row.Id)
-		require.Equal(t, i+1, row.Ipix)
+		require.Equal(t, fmt.Sprintf("oid%d", i+1), row.ID)
+		require.Equal(t, int64(i+1), row.Ipix)
 		require.Equal(t, float64(i+1), row.Ra)
 		require.Equal(t, float64(i+1), row.Dec)
 		require.Equal(t, "vlass", row.Cat)
