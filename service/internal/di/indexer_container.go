@@ -109,7 +109,7 @@ func BuildIndexerContainer() container.Container {
 		}
 		switch cfg.CatalogIndexer.IndexerWriter.Type {
 		case "parquet":
-			w, err := parquet_writer.NewParquetWriter[parquet_writer.IndexerSchema](writerInput, make(chan bool), cfg.CatalogIndexer.IndexerWriter)
+			w, err := parquet_writer.NewParquetWriter[repository.ParquetMastercat](writerInput, make(chan bool), cfg.CatalogIndexer.IndexerWriter)
 			if err != nil {
 				panic(err)
 			}

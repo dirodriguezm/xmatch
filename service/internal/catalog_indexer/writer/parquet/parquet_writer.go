@@ -82,6 +82,9 @@ func convertMapToStruct[T any](data indexer.Row) T {
 
 	// Helper function to convert snake_case to PascalCase
 	toPascalCase := func(s string) string {
+		if s == "id" {
+			return "ID"
+		}
 		parts := strings.Split(s, "_")
 		for i, part := range parts {
 			if len(part) > 0 {
