@@ -9,6 +9,7 @@ import (
 	parquet_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 func ReaderFactory(
@@ -39,21 +40,7 @@ func parquetFactory(src *source.Source, outbox chan indexer.ReaderResult, cfg *c
 		return parquet_reader.NewParquetReader(
 			src,
 			outbox,
-			parquet_reader.WithParquetBatchSize[parquet_reader.AllWiseSchema](cfg.BatchSize),
-		)
-	}
-	if catalog == "vlass" {
-		return parquet_reader.NewParquetReader(
-			src,
-			outbox,
-			parquet_reader.WithParquetBatchSize[parquet_reader.VlassSchema](cfg.BatchSize),
-		)
-	}
-	if catalog == "ztf" {
-		return parquet_reader.NewParquetReader(
-			src,
-			outbox,
-			parquet_reader.WithParquetBatchSize[parquet_reader.ZtfSchema](cfg.BatchSize),
+			parquet_reader.WithParquetBatchSize[repository.AllwiseInputSchema](cfg.BatchSize),
 		)
 	}
 	return nil, fmt.Errorf("Schema not found for catalog")

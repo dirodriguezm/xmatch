@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,6 +17,13 @@ var metadata = []string{
 	"name=ra, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY",
 	"name=dec, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY",
 	"name=mag, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY",
+}
+
+var metadata2 = []string{
+	"name=oid, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY",
+	"name=ra, type=DOUBLE",
+	"name=dec, type=DOUBLE",
+	"name=mag, type=DOUBLE",
 }
 
 type TestData struct {
@@ -33,8 +40,8 @@ type TestData2 struct {
 
 type TestFixture struct {
 	source       *source.SourceBuilder
-	reader       *ReaderBuilder[TestData]
-	expectedRows []TestData
+	reader       *ReaderBuilder[TestData2]
+	expectedRows []TestData2
 }
 
 func setUpTestFixture_Parquet(t *testing.T) *TestFixture {
@@ -56,11 +63,11 @@ func setUpTestFixture_Parquet(t *testing.T) *TestFixture {
 			ASource(t).
 			WithType("parquet").
 			WithUrl(url).
-			WithParquetFiles(metadata, testData),
-		reader: AReader[TestData](t).WithType("parquet"),
-		expectedRows: []TestData{
-			{"o1", "1", "1"},
-			{"o2", "2", "2"},
+			WithParquetFiles(metadata2, testData),
+		reader: AReader[TestData2](t).WithType("parquet"),
+		expectedRows: []TestData2{
+			{"o1", 1, 1},
+			{"o2", 2, 2},
 		},
 	}
 }
@@ -79,7 +86,7 @@ func TestReadMultipleFiles_Parquet(t *testing.T) {
 	r.Start()
 
 	// collect results
-	allRows := make([]indexer.Row, 0)
+	allRows := make([]repository.InputSchema, 0)
 	var err error
 	for msg := range fixture.reader.OutputChannel {
 		if msg.Error != nil {
@@ -97,8 +104,8 @@ func TestReadMultipleFiles_Parquet(t *testing.T) {
 	require.Len(t, allRows, 10)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, row["oid"])
-		require.Equal(t, expectedData.Ra, row["ra"])
-		require.Equal(t, expectedData.Dec, row["dec"])
+		require.Equal(t, expectedData.Oid, row.ToMastercat().ID)
+		require.Equal(t, expectedData.Ra, row.ToMastercat().Ra)
+		require.Equal(t, expectedData.Dec, row.ToMastercat().Dec)
 	}
 }

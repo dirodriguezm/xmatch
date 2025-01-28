@@ -9,8 +9,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 
 	"github.com/xitongsys/parquet-go-source/local"
 	preader "github.com/xitongsys/parquet-go/reader"
@@ -69,7 +68,7 @@ func NewParquetReader[T any](
 	return newReader, nil
 }
 
-func (r *ParquetReader[T]) ReadSingleFile(currentReader *preader.ParquetReader) ([]indexer.Row, error) {
+func (r *ParquetReader[T]) ReadSingleFile(currentReader *preader.ParquetReader) ([]repository.InputSchema, error) {
 	defer currentReader.ReadStop()
 
 	nrows := currentReader.GetNumRows()
@@ -79,18 +78,19 @@ func (r *ParquetReader[T]) ReadSingleFile(currentReader *preader.ParquetReader) 
 		return nil, reader.NewReadError(r.currentReader, err, r.src, "Failed to read parquet")
 	}
 
-	parsedRecords := convertToMapSlice(records, r.src.OidCol, r.src.RaCol, r.src.DecCol)
+	parsedRecords := convertToInputSchema(records, r.src.CatalogName)
+
 	return parsedRecords, nil
 }
 
-func (r *ParquetReader[T]) Read() ([]indexer.Row, error) {
+func (r *ParquetReader[T]) Read() ([]repository.InputSchema, error) {
 	defer func() {
 		for i := range r.fileReaders {
 			r.fileReaders[i].Close()
 		}
 	}()
 
-	rows := make([]indexer.Row, 0, 0)
+	rows := make([]repository.InputSchema, 0, 0)
 	for _, currentReader := range r.parquetReaders {
 		currentRows, err := r.ReadSingleFile(currentReader)
 		if err != nil {
@@ -101,14 +101,14 @@ func (r *ParquetReader[T]) Read() ([]indexer.Row, error) {
 	return rows, nil
 }
 
-func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]indexer.Row, error) {
+func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]repository.InputSchema, error) {
 	records := make([]T, r.BatchSize)
 
 	if err := currentReader.Read(&records); err != nil {
 		return nil, reader.NewReadError(r.currentReader, err, r.src, "Failed to read parquet in batch")
 	}
 
-	parsedRecords := convertToMapSlice(records, r.src.OidCol, r.src.RaCol, r.src.DecCol)
+	parsedRecords := convertToInputSchema(records, r.src.CatalogName)
 
 	if isZeroValueSlice(parsedRecords) {
 		// finished reading
@@ -119,7 +119,7 @@ func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetRea
 	return parsedRecords, nil
 }
 
-func (r *ParquetReader[T]) ReadBatch() ([]indexer.Row, error) {
+func (r *ParquetReader[T]) ReadBatch() ([]repository.InputSchema, error) {
 	currentReader := r.parquetReaders[r.currentReader]
 	slog.Debug("ParquetReader reading batch")
 	currentRows, err := r.ReadBatchSingleFile(currentReader)
@@ -142,43 +142,71 @@ func (r *ParquetReader[T]) ReadBatch() ([]indexer.Row, error) {
 	return currentRows, nil
 }
 
-func convertToMapSlice[T any](data []T, oidCol, raCol, decCol string) []indexer.Row {
-	mapSlice := make([]indexer.Row, len(data))
-	caser := cases.Title(language.English, cases.Compact)
-	for i := 0; i < len(data); i++ {
-		mapSlice[i] = make(indexer.Row)
-		elem := reflect.ValueOf(data[i])
+func convertToInputSchema[T any](records []T, catalogName string) []repository.InputSchema {
+	inputSchemas := make([]repository.InputSchema, len(records))
+	for i := 0; i < len(records); i++ {
+		elem := reflect.ValueOf(records[i])
 		if elem.Kind() == reflect.Ptr {
 			elem = elem.Elem()
 		}
+
 		// Check if it's a struct
 		if elem.Kind() != reflect.Struct {
 			panic(fmt.Errorf("expected struct, got %v", elem.Kind()))
 		}
 
-		mapSlice[i][oidCol] = elem.FieldByName(caser.String(oidCol)).Interface()
-		mapSlice[i][raCol] = elem.FieldByName(caser.String(raCol)).Interface()
-		mapSlice[i][decCol] = elem.FieldByName(caser.String(decCol)).Interface()
+		switch catalogName {
+		case "allwise":
+			inputSchemas[i] = &repository.AllwiseInputSchema{}
+			inputSchemas[i].SetField("Designation", elem.FieldByName("Designation").Interface())
+			inputSchemas[i].SetField("Ra", elem.FieldByName("Ra").Interface())
+			inputSchemas[i].SetField("Dec", elem.FieldByName("Dec").Interface())
+			inputSchemas[i].SetField("W1mpro", elem.FieldByName("W1mpro").Interface())
+			inputSchemas[i].SetField("W1sigmpro", elem.FieldByName("W1sigmpro").Interface())
+			inputSchemas[i].SetField("W2mpro", elem.FieldByName("W2mpro").Interface())
+			inputSchemas[i].SetField("W2sigmpro", elem.FieldByName("W2sigmpro").Interface())
+			inputSchemas[i].SetField("W3mpro", elem.FieldByName("W3mpro").Interface())
+			inputSchemas[i].SetField("W3sigmpro", elem.FieldByName("W3sigmpro").Interface())
+			inputSchemas[i].SetField("W4mpro", elem.FieldByName("W4mpro").Interface())
+			inputSchemas[i].SetField("W4sigmpro", elem.FieldByName("W4sigmpro").Interface())
+			inputSchemas[i].SetField("J_m_2mass", elem.FieldByName("J_m_2mass").Interface())
+			inputSchemas[i].SetField("H_m_2mass", elem.FieldByName("H_m_2mass").Interface())
+			inputSchemas[i].SetField("K_m_2mass", elem.FieldByName("K_m_2mass").Interface())
+			inputSchemas[i].SetField("J_msig_2mass", elem.FieldByName("J_msig_2mass").Interface())
+			inputSchemas[i].SetField("H_msig_2mass", elem.FieldByName("H_msig_2mass").Interface())
+			inputSchemas[i].SetField("K_msig_2mass", elem.FieldByName("K_msig_2mass").Interface())
+		default:
+			inputSchemas[i] = &TestInputSchema{}
+			inputSchemas[i].SetField("Oid", elem.FieldByName("Oid").Interface())
+			inputSchemas[i].SetField("Ra", elem.FieldByName("Ra").Interface())
+			inputSchemas[i].SetField("Dec", elem.FieldByName("Dec").Interface())
+		}
+
 	}
-	return mapSlice
+	return inputSchemas
 }
 
-func isZeroValueSlice(s []indexer.Row) bool {
+func isZeroValueSlice(s []repository.InputSchema) bool {
 	for i := 0; i < len(s); i++ {
-		if !isZeroValueMap(s[i]) {
+		if !isZeroValueInputSchema(s[i]) {
 			return false
 		}
 	}
 	return true
 }
 
-func isZeroValueMap(m map[string]interface{}) bool {
-	for _, v := range m {
-		if !isZeroValue(v) {
-			return false
-		}
+func isZeroValueInputSchema(schema repository.InputSchema) bool {
+	elem := reflect.ValueOf(schema)
+	if elem.Kind() == reflect.Ptr {
+		elem = elem.Elem()
 	}
-	return true
+
+	// Check if it's a struct
+	if elem.Kind() != reflect.Struct {
+		panic(fmt.Errorf("expected struct, got %v", elem.Kind()))
+	}
+
+	return isZeroValue(elem.Interface())
 }
 
 // Helper function to check if an interface{} value is zero

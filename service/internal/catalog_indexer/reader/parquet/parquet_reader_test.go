@@ -7,6 +7,7 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/parquet"
@@ -14,14 +15,14 @@ import (
 )
 
 type ObjectWrite struct {
-	Id  string  `parquet:"name=id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Oid string  `parquet:"name=oid, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	Ra  float64 `parquet:"name=ra, type=DOUBLE"`
 	Dec float64 `parquet:"name=dec, type=DOUBLE"`
 	Mag float64 `parquet:"name=mag, type=DOUBLE"`
 }
 
 type Object struct {
-	Id  string  `parquet:"name=id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Oid string  `parquet:"name=oid, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	Ra  float64 `parquet:"name=ra, type=DOUBLE"`
 	Dec float64 `parquet:"name=dec, type=DOUBLE"`
 }
@@ -45,7 +46,7 @@ func Write(t *testing.T, nrows int) string {
 	pw.CompressionType = parquet.CompressionCodec_SNAPPY
 	for i := 0; i < nrows; i++ {
 		obj := ObjectWrite{
-			Id:  fmt.Sprintf("o%d", i),
+			Oid: fmt.Sprintf("o%d", i),
 			Ra:  float64(i),
 			Dec: float64(i),
 			Mag: float64(i * 2),
@@ -67,10 +68,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	filePath := Write(t, 10)
 	source := source.Source{
 		Reader:      []source.SourceReader{{Url: filePath}},
-		RaCol:       "ra",
-		DecCol:      "dec",
-		OidCol:      "id",
-		CatalogName: "allwise",
+		CatalogName: "test",
 	}
 
 	parquetReader, err := NewParquetReader[Object](&source, make(chan indexer.ReaderResult))
@@ -86,7 +84,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	expectedOids := []string{"o0", "o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8", "o9"}
 	receivedOids := make([]string, 10, 10)
 	for i, row := range rows {
-		receivedOids[i] = row["id"].(string)
+		receivedOids[i] = row.ToMastercat().ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -98,10 +96,10 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "id",
-		CatalogName: "allwise",
+		CatalogName: "test",
 	}
 
-	parquetReader, err := NewParquetReader[Object](&source, make(chan indexer.ReaderResult), WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(&source, make(chan indexer.ReaderResult), WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +108,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []indexer.Row
+	var rows []repository.InputSchema
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -119,7 +117,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			receivedOids = append(receivedOids, row["id"].(string))
+			receivedOids = append(receivedOids, row.ToMastercat().ID)
 		}
 	}
 	require.Equal(t, 6, batches) // reader reads one extra batch with zero value
@@ -133,10 +131,10 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "id",
-		CatalogName: "allwise",
+		CatalogName: "test",
 	}
 
-	parquetReader, err := NewParquetReader[Object](&source, make(chan indexer.ReaderResult), WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(&source, make(chan indexer.ReaderResult), WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +143,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []indexer.Row
+	var rows []repository.InputSchema
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -154,7 +152,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			receivedOids = append(receivedOids, row["id"].(string))
+			receivedOids = append(receivedOids, row.ToMastercat().ID)
 		}
 	}
 	require.Equal(t, 5, batches) // reader reads one extra batch with zero value
@@ -168,10 +166,10 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "id",
-		CatalogName: "allwise",
+		CatalogName: "test",
 	}
 
-	parquetReader, err := NewParquetReader[Object](&source, make(chan indexer.ReaderResult), WithParquetBatchSize[Object](5))
+	parquetReader, err := NewParquetReader(&source, make(chan indexer.ReaderResult), WithParquetBatchSize[Object](5))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +178,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []indexer.Row
+	var rows []repository.InputSchema
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -189,7 +187,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			receivedOids = append(receivedOids, row["id"].(string))
+			receivedOids = append(receivedOids, row.ToMastercat().ID)
 		}
 	}
 	require.Equal(t, 2, batches)

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -65,6 +66,7 @@ type DatabaseConfig struct {
 
 func Load() (*Config, error) {
 	configPath := os.Getenv("CONFIG_PATH")
+	slog.Info("Loading configuration", "path", configPath)
 	if configPath == "" {
 		rootPath, err := utils.FindRootModulePath(5)
 		if err != nil {

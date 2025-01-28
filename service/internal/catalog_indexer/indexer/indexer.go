@@ -2,23 +2,23 @@ package indexer
 
 import (
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Row map[string]any
 
 type ReaderResult struct {
-	Rows  []Row
+	Rows  []repository.InputSchema
 	Error error
 }
 
 type IndexerResult struct {
-	Objects []Row
+	Objects []repository.Mastercat
 	Error   error
 }
 
@@ -29,8 +29,8 @@ type WriterInput struct {
 
 type Reader interface {
 	Start()
-	Read() ([]Row, error)
-	ReadBatch() ([]Row, error)
+	Read() ([]repository.InputSchema, error)
+	ReadBatch() ([]repository.InputSchema, error)
 }
 
 type Writer interface {
@@ -89,22 +89,14 @@ func (ix *Indexer) receive(msg ReaderResult) {
 	}
 	outputBatch := make([]Row, len(msg.Rows))
 	for i, row := range msg.Rows {
-		ra, err := ix.convertRa(row[ix.source.RaCol])
-		if err != nil {
-			sendError(ix.outbox, err)
-		}
-		dec, err := ix.convertDec(row[ix.source.DecCol])
-		if err != nil {
-			sendError(ix.outbox, err)
-		}
-
-		point := healpix.RADec(ra, dec)
+		mastercat := row.ToMastercat()
+		point := healpix.RADec(mastercat.Ra, mastercat.Dec)
 		ipix := ix.mapper.PixelAt(point)
 
 		outputBatch[i] = Row{
-			ix.source.RaCol:  ra,
-			ix.source.DecCol: dec,
-			ix.source.OidCol: row[ix.source.OidCol],
+			ix.source.RaCol:  mastercat.Ra,
+			ix.source.DecCol: mastercat.Dec,
+			ix.source.OidCol: mastercat.ID,
 			"cat":            ix.source.CatalogName,
 			"ipix":           ipix,
 		}
@@ -120,30 +112,5 @@ func sendError(outbox chan WriterInput, err error) {
 	outbox <- WriterInput{
 		Rows:  nil,
 		Error: err,
-	}
-}
-
-func (ix *Indexer) convertRa(ra any) (float64, error) {
-	switch v := ra.(type) {
-	case string:
-		return strconv.ParseFloat(v, 64)
-	case *float64:
-		return *v, nil
-	case float64:
-		return v, nil
-	default:
-		return v.(float64), nil
-	}
-}
-func (ix *Indexer) convertDec(dec any) (float64, error) {
-	switch v := dec.(type) {
-	case string:
-		return strconv.ParseFloat(v, 64)
-	case *float64:
-		return *v, nil
-	case float64:
-		return v, nil
-	default:
-		return v.(float64), nil
 	}
 }
