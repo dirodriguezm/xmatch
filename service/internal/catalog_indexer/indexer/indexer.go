@@ -2,52 +2,57 @@ package indexer
 
 import (
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Row map[string]any
 
 type ReaderResult struct {
-	Rows  []Row
+	Rows  []repository.InputSchema
 	Error error
 }
 
 type IndexerResult struct {
-	Objects []Row
+	Objects []repository.Mastercat
 	Error   error
 }
 
-type WriterInput struct {
+type WriterInput[T any] struct {
 	Error error
-	Rows  []Row
+	Rows  []T
 }
 
 type Reader interface {
 	Start()
-	Read() ([]Row, error)
-	ReadBatch() ([]Row, error)
+	Read() ([]repository.InputSchema, error)
+	ReadBatch() ([]repository.InputSchema, error)
 }
 
-type Writer interface {
+type Writer[T any] interface {
 	Start()
 	Done()
 	Stop()
-	Receive(WriterInput)
+	Receive(WriterInput[T])
 }
 
 type Indexer struct {
 	source *source.Source
 	mapper *healpix.HEALPixMapper
 	inbox  chan ReaderResult
-	outbox chan WriterInput
+	outbox chan WriterInput[repository.ParquetMastercat]
 }
 
-func New(src *source.Source, inbox chan ReaderResult, outbox chan WriterInput, cfg *config.IndexerConfig) (*Indexer, error) {
+func New(
+	src *source.Source,
+	inbox chan ReaderResult,
+	outbox chan WriterInput[repository.ParquetMastercat],
+	cfg *config.IndexerConfig,
+) (*Indexer, error) {
 	slog.Debug("Creating new Indexer")
 	orderingScheme := healpix.Ring
 	if strings.ToLower(cfg.OrderingScheme) == "nested" {
@@ -81,69 +86,36 @@ func (ix *Indexer) Start() {
 func (ix *Indexer) receive(msg ReaderResult) {
 	slog.Debug("Indexer Received Message")
 	if msg.Error != nil {
-		ix.outbox <- WriterInput{
+		ix.outbox <- WriterInput[repository.ParquetMastercat]{
 			Rows:  nil,
 			Error: msg.Error,
 		}
 		return
 	}
-	outputBatch := make([]Row, len(msg.Rows))
+	outputBatch := make([]repository.ParquetMastercat, len(msg.Rows))
 	for i, row := range msg.Rows {
-		ra, err := ix.convertRa(row[ix.source.RaCol])
-		if err != nil {
-			sendError(ix.outbox, err)
-		}
-		dec, err := ix.convertDec(row[ix.source.DecCol])
-		if err != nil {
-			sendError(ix.outbox, err)
-		}
-
-		point := healpix.RADec(ra, dec)
+		mastercat := row.ToMastercat()
+		point := healpix.RADec(*mastercat.Ra, *mastercat.Dec)
 		ipix := ix.mapper.PixelAt(point)
 
-		outputBatch[i] = Row{
-			ix.source.RaCol:  ra,
-			ix.source.DecCol: dec,
-			ix.source.OidCol: row[ix.source.OidCol],
-			"cat":            ix.source.CatalogName,
-			"ipix":           ipix,
+		outputBatch[i] = repository.ParquetMastercat{
+			Ra:   mastercat.Ra,
+			Dec:  mastercat.Dec,
+			ID:   mastercat.ID,
+			Cat:  &ix.source.CatalogName,
+			Ipix: &ipix,
 		}
 	}
 	slog.Debug("Indexer sending message")
-	ix.outbox <- WriterInput{
+	ix.outbox <- WriterInput[repository.ParquetMastercat]{
 		Rows:  outputBatch,
 		Error: nil,
 	}
 }
 
-func sendError(outbox chan WriterInput, err error) {
-	outbox <- WriterInput{
+func sendError(outbox chan WriterInput[repository.Mastercat], err error) {
+	outbox <- WriterInput[repository.Mastercat]{
 		Rows:  nil,
 		Error: err,
-	}
-}
-
-func (ix *Indexer) convertRa(ra any) (float64, error) {
-	switch v := ra.(type) {
-	case string:
-		return strconv.ParseFloat(v, 64)
-	case *float64:
-		return *v, nil
-	case float64:
-		return v, nil
-	default:
-		return v.(float64), nil
-	}
-}
-func (ix *Indexer) convertDec(dec any) (float64, error) {
-	switch v := dec.(type) {
-	case string:
-		return strconv.ParseFloat(v, 64)
-	case *float64:
-		return *v, nil
-	case float64:
-		return v, nil
-	default:
-		return v.(float64), nil
 	}
 }

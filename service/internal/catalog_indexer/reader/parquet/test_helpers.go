@@ -6,8 +6,40 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
+
+type TestInputSchema struct {
+	Oid string
+	Ra  float64
+	Dec float64
+}
+
+func (t *TestInputSchema) ToMastercat() repository.ParquetMastercat {
+	catalog := "test"
+	return repository.ParquetMastercat{
+		ID:  &t.Oid,
+		Ra:  &t.Ra,
+		Dec: &t.Dec,
+		Cat: &catalog,
+	}
+}
+
+func (t *TestInputSchema) SetField(name string, val interface{}) {
+	switch name {
+	case "Ra":
+		if v, ok := val.(float64); ok {
+			t.Ra = v
+		}
+	case "Dec":
+		if v, ok := val.(float64); ok {
+			t.Dec = v
+		}
+	case "Oid":
+		t.Oid = val.(string)
+	}
+}
 
 type ReaderBuilder[T any] struct {
 	ReaderConfig  *config.ReaderConfig

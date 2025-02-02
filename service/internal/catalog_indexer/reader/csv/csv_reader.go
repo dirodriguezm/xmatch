@@ -8,6 +8,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type CsvReader struct {
@@ -38,8 +39,8 @@ func NewCsvReader(src *source.Source, channel chan indexer.ReaderResult, opts ..
 	return r, nil
 }
 
-func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader) ([]indexer.Row, error) {
-	rows := make([]indexer.Row, 0, 0)
+func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader) ([]repository.InputSchema, error) {
+	rows := make([]repository.InputSchema, 0, r.BatchSize)
 	if r.Header == nil {
 		header, err := currentReader.Read()
 		if err != nil {
@@ -54,17 +55,17 @@ func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader) ([]indexer.Row, er
 		return nil, err
 	}
 	for _, record := range records {
-		row := make(indexer.Row)
+		row := r.createInputSchema(r.Src.CatalogName)
 		for i, h := range r.Header {
-			row[h] = record[i]
+			row.SetField(h, record[i])
 		}
 		rows = append(rows, row)
 	}
 	return rows, nil
 }
 
-func (r *CsvReader) Read() ([]indexer.Row, error) {
-	rows := make([]indexer.Row, 0, 0)
+func (r *CsvReader) Read() ([]repository.InputSchema, error) {
+	rows := make([]repository.InputSchema, 0, 0)
 	for _, currentReader := range r.csvReaders {
 		currentRows, err := r.ReadSingleFile(currentReader)
 		if err != nil {
@@ -75,8 +76,8 @@ func (r *CsvReader) Read() ([]indexer.Row, error) {
 	return rows, nil
 }
 
-func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]indexer.Row, error) {
-	rows := make([]indexer.Row, 0, 0)
+func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]repository.InputSchema, error) {
+	rows := make([]repository.InputSchema, 0, r.BatchSize)
 	if r.Header == nil {
 		header, err := currentReader.Read()
 		if err != nil {
@@ -93,17 +94,17 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]indexer.Ro
 			}
 			return nil, err
 		}
-		row := make(indexer.Row)
-		for i, h := range r.Header {
-			row[h] = record[i]
+		row := r.createInputSchema(r.Src.CatalogName)
+		for j, h := range r.Header {
+			row.SetField(h, record[j])
 		}
 		rows = append(rows, row)
 	}
 	return rows, nil
 }
 
-func (r *CsvReader) ReadBatch() ([]indexer.Row, error) {
-	rows := make([]indexer.Row, 0, 0)
+func (r *CsvReader) ReadBatch() ([]repository.InputSchema, error) {
+	rows := make([]repository.InputSchema, 0, 0)
 	currentReader := r.csvReaders[r.currentReader]
 	slog.Debug("CsvReader reading batch")
 	currentRows, err := r.ReadBatchSingleFile(currentReader)
@@ -125,4 +126,12 @@ func (r *CsvReader) ReadBatch() ([]indexer.Row, error) {
 	}
 	rows = append(rows, currentRows...)
 	return rows, nil
+}
+func (r *CsvReader) createInputSchema(catalogName string) repository.InputSchema {
+	switch catalogName {
+	case "allwise":
+		return &repository.AllwiseInputSchema{}
+	default:
+		return &TestSchema{}
+	}
 }

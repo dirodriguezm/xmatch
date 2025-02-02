@@ -93,7 +93,7 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register indexer
-	writerInput := make(chan indexer.WriterInput)
+	writerInput := make(chan indexer.WriterInput[repository.ParquetMastercat])
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) *indexer.Indexer {
 		idx, err := indexer.New(src, readerResults, writerInput, cfg.CatalogIndexer.Indexer)
 		if err != nil {
@@ -103,13 +103,17 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register indexer writer
-	ctr.Singleton(func(cfg *config.Config, repo conesearch.Repository, src *source.Source) indexer.Writer {
+	ctr.Singleton(func(
+		cfg *config.Config,
+		repo conesearch.Repository,
+		src *source.Source,
+	) indexer.Writer[repository.ParquetMastercat] {
 		if cfg.CatalogIndexer.IndexerWriter == nil {
 			panic("Indexer writer not configured")
 		}
 		switch cfg.CatalogIndexer.IndexerWriter.Type {
 		case "parquet":
-			w, err := parquet_writer.NewParquetWriter[repository.ParquetMastercat](writerInput, make(chan bool), cfg.CatalogIndexer.IndexerWriter)
+			w, err := parquet_writer.NewParquetWriter(writerInput, make(chan bool), cfg.CatalogIndexer.IndexerWriter)
 			if err != nil {
 				panic(err)
 			}

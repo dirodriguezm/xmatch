@@ -1,11 +1,13 @@
 package csv_reader
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,4 +73,49 @@ func (builder *ReaderBuilder) Build() indexer.Reader {
 	)
 	require.NoError(builder.t, err)
 	return r
+}
+
+type TestSchema struct {
+	Ra  float64
+	Dec float64
+	Oid string
+}
+
+func (t *TestSchema) ToMastercat() repository.ParquetMastercat {
+	cat := "vlass"
+	return repository.ParquetMastercat{
+		ID:  &t.Oid,
+		Ra:  &t.Ra,
+		Dec: &t.Dec,
+		Cat: &cat,
+	}
+}
+
+func (t *TestSchema) SetField(name string, val interface{}) {
+	switch name {
+	case "ra":
+		if v, ok := val.(float64); ok {
+			t.Ra = v
+		}
+		if v, ok := val.(string); ok {
+			ra, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				panic(err)
+			}
+			t.Ra = ra
+		}
+	case "dec":
+		if v, ok := val.(float64); ok {
+			t.Dec = v
+		}
+		if v, ok := val.(string); ok {
+			dec, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				panic(err)
+			}
+			t.Dec = dec
+		}
+	case "oid":
+		t.Oid = val.(string)
+	}
 }

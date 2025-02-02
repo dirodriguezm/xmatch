@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
 type TestData struct {
 	Oid string
-	Ra  string
-	Dec string
+	Ra  float64
+	Dec float64
 }
 
 type TestFixture struct {
@@ -40,8 +40,8 @@ o2,2,2
 		source: source.ASource(t).WithUrl(url).WithCsvFiles(testData),
 		reader: AReader(t),
 		expectedRows: []TestData{
-			{"o1", "1", "1"},
-			{"o2", "2", "2"},
+			{"o1", 1, 1},
+			{"o2", 2, 2},
 		},
 	}
 }
@@ -60,7 +60,7 @@ func TestReadMultipleFiles_Csv(t *testing.T) {
 	reader.Start()
 
 	// collect results
-	allRows := make([]indexer.Row, 0)
+	allRows := make([]repository.InputSchema, 0)
 	var err error
 	for msg := range fixture.reader.OutputChannel {
 		if msg.Error != nil {
@@ -75,9 +75,9 @@ func TestReadMultipleFiles_Csv(t *testing.T) {
 	require.Len(t, allRows, 10)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, row["oid"])
-		require.Equal(t, expectedData.Ra, row["ra"])
-		require.Equal(t, expectedData.Dec, row["dec"])
+		require.Equal(t, expectedData.Oid, *row.ToMastercat().ID)
+		require.Equal(t, expectedData.Ra, *row.ToMastercat().Ra)
+		require.Equal(t, expectedData.Dec, *row.ToMastercat().Dec)
 	}
 }
 
@@ -106,7 +106,7 @@ o2,2,2
 	reader.Start()
 
 	// collect results
-	allRows := make([]indexer.Row, 0)
+	allRows := make([]repository.InputSchema, 0)
 	for msg := range fixture.reader.OutputChannel {
 		for _, row := range msg.Rows {
 			allRows = append(allRows, row)
@@ -117,8 +117,8 @@ o2,2,2
 	require.Len(t, allRows, 20)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, row["oid"])
-		require.Equal(t, expectedData.Ra, row["ra"])
-		require.Equal(t, expectedData.Dec, row["dec"])
+		require.Equal(t, expectedData.Oid, *row.ToMastercat().ID)
+		require.Equal(t, expectedData.Ra, *row.ToMastercat().Ra)
+		require.Equal(t, expectedData.Dec, *row.ToMastercat().Dec)
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +40,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3, 3)
 	for i, row := range rows {
-		receivedOids[i] = row["oid"].(string)
+		receivedOids[i] = *row.ToMastercat().ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -73,7 +74,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3, 3)
 	for i, row := range rows {
-		receivedOids[i] = row["oid"].(string)
+		receivedOids[i] = *row.ToMastercat().ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -95,12 +96,17 @@ o4,4,4
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithCsvBatchSize(2), WithFirstLineHeader(true))
+	csvReader, err := NewCsvReader(
+		&source,
+		make(chan indexer.ReaderResult),
+		WithCsvBatchSize(2),
+		WithFirstLineHeader(true),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var rows []indexer.Row
+	var rows []repository.InputSchema
 
 	for {
 		batch, err := csvReader.ReadBatch()
@@ -121,7 +127,7 @@ o4,4,4
 	expectedOids := []string{"o1", "o2", "o3", "o4"}
 	receivedOids := make([]string, 4, 4)
 	for i, row := range rows {
-		receivedOids[i] = row["oid"].(string)
+		receivedOids[i] = *row.ToMastercat().ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -142,12 +148,17 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithCsvBatchSize(2), WithFirstLineHeader(true))
+	csvReader, err := NewCsvReader(
+		&source,
+		make(chan indexer.ReaderResult),
+		WithCsvBatchSize(2),
+		WithFirstLineHeader(true),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var rows []indexer.Row
+	var rows []repository.InputSchema
 
 	eof := false
 	for !eof {
@@ -167,7 +178,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3, 3)
 	for i, row := range rows {
-		receivedOids[i] = row["oid"].(string)
+		receivedOids[i] = *row.ToMastercat().ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -189,13 +200,17 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithCsvBatchSize(2), WithFirstLineHeader(true))
+	csvReader, err := NewCsvReader(
+		&source,
+		make(chan indexer.ReaderResult),
+		WithCsvBatchSize(2),
+		WithFirstLineHeader(true))
 	if err != nil {
 		t.Fatal(err)
 	}
 	require.Equal(t, 2, len(csvReader.csvReaders))
 
-	var rows []indexer.Row
+	var rows []repository.InputSchema
 
 	eof := false
 	for !eof {
@@ -215,7 +230,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6, 6)
 	for i, row := range rows {
-		receivedOids[i] = row["oid"].(string)
+		receivedOids[i] = *row.ToMastercat().ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -236,13 +251,17 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&src, make(chan indexer.ReaderResult), WithCsvBatchSize(2))
+	csvReader, err := NewCsvReader(
+		&src,
+		make(chan indexer.ReaderResult),
+		WithCsvBatchSize(2),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	csvReader.Start()
 
-	var rows []indexer.Row
+	var rows []repository.InputSchema
 	for msg := range csvReader.Outbox {
 		for _, row := range msg.Rows {
 			rows = append(rows, row)
@@ -252,7 +271,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3, 3)
 	for i, row := range rows {
-		receivedOids[i] = row["oid"].(string)
+		receivedOids[i] = *row.ToMastercat().ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }

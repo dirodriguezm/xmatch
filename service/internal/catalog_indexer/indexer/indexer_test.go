@@ -5,26 +5,37 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
+type TestSchema struct {
+	Ra  float64
+	Dec float64
+	ID  string
+	Cat string
+}
+
+// implement the interface
+func (t *TestSchema) ToMastercat() repository.ParquetMastercat {
+	return repository.ParquetMastercat{
+		ID:  &t.ID,
+		Ra:  &t.Ra,
+		Dec: &t.Dec,
+		Cat: &t.Cat,
+	}
+}
+
+// implement the interface
+func (t *TestSchema) SetField(name string, val interface{}) {}
+
 func TestIndexActor(t *testing.T) {
 	inbox := make(chan ReaderResult)
-	outbox := make(chan WriterInput)
-	rows := []Row{
-		{
-			"ra":      1.0,
-			"dec":     1.0,
-			"id":      "o1",
-			"catalog": "catalog",
-		},
-		{
-			"ra":      2.0,
-			"dec":     2.0,
-			"id":      "o2",
-			"catalog": "catalog",
-		},
-	}
+	outbox := make(chan WriterInput[repository.ParquetMastercat])
+	rows := make([]repository.InputSchema, 2)
+	rows[0] = &TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
+	rows[1] = &TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
+
 	src, err := source.NewSource(&config.SourceConfig{
 		Url:         "buffer:",
 		Type:        "csv",
@@ -40,7 +51,7 @@ func TestIndexActor(t *testing.T) {
 	indexer.Start()
 	inbox <- ReaderResult{Rows: rows, Error: nil}
 	close(inbox)
-	results := make([]Row, 2)
+	results := make([]repository.ParquetMastercat, 2)
 	for msg := range outbox {
 		for i, obj := range msg.Rows {
 			results[i] = obj
