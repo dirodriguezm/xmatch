@@ -8,6 +8,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 func startHttpServer() {
@@ -27,7 +28,7 @@ func startCatalogIndexer() {
 	catalogRegister.RegisterCatalog()
 
 	// initialize writer
-	var writer indexer.Writer
+	var writer indexer.Writer[repository.ParquetMastercat]
 	ctr.Resolve(&writer)
 	writer.Start()
 

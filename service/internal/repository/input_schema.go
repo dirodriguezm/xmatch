@@ -3,7 +3,7 @@ package repository
 import "strings"
 
 type InputSchema interface {
-	ToMastercat() Mastercat
+	ToMastercat() ParquetMastercat
 	SetField(string, any)
 }
 
@@ -45,13 +45,15 @@ type AllwiseMetadata struct {
 	K_msig_2mass float64 `parquet:"name=k_msig_2mass, type=DOUBLE"`
 }
 
-func (a *AllwiseInputSchema) ToMastercat() Mastercat {
-	return Mastercat{
-		ID:   *a.Designation,
-		Ipix: 0,
-		Ra:   *a.Ra,
-		Dec:  *a.Dec,
-		Cat:  "allwise",
+func (a *AllwiseInputSchema) ToMastercat() ParquetMastercat {
+	ipix := int64(0)
+	catalog := "allwise"
+	return ParquetMastercat{
+		ID:   a.Designation,
+		Ipix: &ipix,
+		Ra:   a.Ra,
+		Dec:  a.Dec,
+		Cat:  &catalog,
 	}
 }
 

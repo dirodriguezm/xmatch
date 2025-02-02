@@ -15,20 +15,33 @@ import (
 )
 
 func TestStart(t *testing.T) {
-	objects := []indexer.Row{
-		{"oid": "oid1", "ipix": 1, "ra": 1, "dec": 1, "cat": "vlass"},
+	id := "1"
+	ra := 1.0
+	dec := 1.0
+	ipix := int64(1)
+	cat := "test"
+	mastercat := repository.ParquetMastercat{
+		ID:   &id,
+		Ipix: &ipix,
+		Ra:   &ra,
+		Dec:  &dec,
+		Cat:  &cat,
 	}
-	mastercat := repository.Mastercat{ID: "oid1", Ipix: 1, Ra: 1, Dec: 1, Cat: "vlass"}
 	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
 
-	params, err := row2insertParams(objects[0], src)
+	params, err := row2insertParams(mastercat)
 	require.NoError(t, err)
 	repo := &mocks.Repository{}
-	repo.On("InsertObject", mock.Anything, params).Return(mastercat, nil)
-	writer := NewSqliteWriter(repo, make(chan indexer.WriterInput), make(chan bool), context.Background(), src)
+	repo.On("InsertObject", mock.Anything, params).Return(
+		repository.Mastercat{ID: id, Ra: ra, Dec: dec, Ipix: ipix, Cat: cat},
+		nil,
+	)
+	writer := NewSqliteWriter(repo, make(chan indexer.WriterInput[repository.ParquetMastercat]), make(chan bool), context.Background(), src)
 
 	writer.Start()
-	writer.BaseWriter.InboxChannel <- indexer.WriterInput{Rows: objects}
+	writer.BaseWriter.InboxChannel <- indexer.WriterInput[repository.ParquetMastercat]{
+		Rows: []repository.ParquetMastercat{mastercat},
+	}
 	close(writer.BaseWriter.InboxChannel)
 	<-writer.BaseWriter.DoneChannel
 

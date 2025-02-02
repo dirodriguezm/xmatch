@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"reflect"
-	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
@@ -14,14 +12,14 @@ import (
 )
 
 type ParquetWriter[T any] struct {
-	*writer.BaseWriter
+	*writer.BaseWriter[T]
 	parquetWriter *pwriter.ParquetWriter
 	pfile         *os.File
 	OutputFile    string
 }
 
 func NewParquetWriter[T any](
-	inbox chan indexer.WriterInput,
+	inbox chan indexer.WriterInput[T],
 	done chan bool,
 	cfg *config.WriterConfig,
 ) (*ParquetWriter[T], error) {
@@ -41,7 +39,7 @@ func NewParquetWriter[T any](
 	w := &ParquetWriter[T]{
 		parquetWriter: parquetWriter,
 		pfile:         file,
-		BaseWriter: &writer.BaseWriter{
+		BaseWriter: &writer.BaseWriter[T]{
 			InboxChannel: inbox,
 			DoneChannel:  done,
 		},
@@ -50,7 +48,7 @@ func NewParquetWriter[T any](
 	return w, nil
 }
 
-func (w *ParquetWriter[T]) Receive(msg indexer.WriterInput) {
+func (w *ParquetWriter[T]) Receive(msg indexer.WriterInput[T]) {
 	slog.Debug("ParquetWriter received message")
 	if msg.Error != nil {
 		slog.Error("ParquetWriter received error message")
@@ -58,54 +56,21 @@ func (w *ParquetWriter[T]) Receive(msg indexer.WriterInput) {
 	}
 
 	for i := 0; i < len(msg.Rows); i++ {
-		object := convertMapToStruct[T](msg.Rows[i])
-		if err := w.parquetWriter.Write(object); err != nil {
-			panic(fmt.Errorf("ParquetWriter could not write object %v\n%w", object, err))
+		obj := msg.Rows[i]
+		if err := w.parquetWriter.Write(obj); err != nil {
+			panic(fmt.Errorf("ParquetWriter could not write object %v\n%w", obj, err))
 		}
 	}
+	slog.Debug("ParquetWriter wrote messages", "messages", len(msg.Rows))
 }
 
 func (w *ParquetWriter[T]) Stop() {
 	if err := w.parquetWriter.WriteStop(); err != nil {
-		panic(fmt.Errorf("ParquetWriter could not stop %w", err))
+		panic(fmt.Errorf("ParquetWriter could not stop. Error: %w", err))
 	}
 	if err := w.pfile.Close(); err != nil {
 		panic(fmt.Errorf("ParquetWriter could not close parquet file %w", err))
 	}
 	w.DoneChannel <- true
 	close(w.DoneChannel)
-}
-
-func convertMapToStruct[T any](data indexer.Row) T {
-	var result T
-	resultValue := reflect.ValueOf(&result).Elem()
-
-	// Helper function to convert snake_case to PascalCase
-	toPascalCase := func(s string) string {
-		if s == "id" {
-			return "ID"
-		}
-		parts := strings.Split(s, "_")
-		for i, part := range parts {
-			if len(part) > 0 {
-				parts[i] = strings.ToUpper(part[:1]) + strings.ToLower(part[1:])
-			}
-		}
-		return strings.Join(parts, "")
-	}
-
-	// Convert each map key to a potential struct field name and set the value
-	for key, value := range data {
-		fieldName := toPascalCase(key)
-
-		// Try to find and set the field
-		if field := resultValue.FieldByName(fieldName); field.IsValid() && field.CanSet() {
-			converted := reflect.ValueOf(value)
-			if converted.Type().ConvertibleTo(field.Type()) {
-				field.Set(converted.Convert(field.Type()))
-			}
-		}
-	}
-
-	return result
 }

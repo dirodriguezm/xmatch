@@ -81,13 +81,13 @@ type TestSchema struct {
 	Oid string
 }
 
-func (t *TestSchema) ToMastercat() repository.Mastercat {
-	return repository.Mastercat{
-		ID:   t.Oid,
-		Ipix: 0,
-		Ra:   t.Ra,
-		Dec:  t.Dec,
-		Cat:  "vlass",
+func (t *TestSchema) ToMastercat() repository.ParquetMastercat {
+	cat := "vlass"
+	return repository.ParquetMastercat{
+		ID:  &t.Oid,
+		Ra:  &t.Ra,
+		Dec: &t.Dec,
+		Cat: &cat,
 	}
 }
 

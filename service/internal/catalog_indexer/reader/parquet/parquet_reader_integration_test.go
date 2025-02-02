@@ -104,8 +104,8 @@ func TestReadMultipleFiles_Parquet(t *testing.T) {
 	require.Len(t, allRows, 10)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, row.ToMastercat().ID)
-		require.Equal(t, expectedData.Ra, row.ToMastercat().Ra)
-		require.Equal(t, expectedData.Dec, row.ToMastercat().Dec)
+		require.Equal(t, expectedData.Oid, *row.ToMastercat().ID)
+		require.Equal(t, expectedData.Ra, *row.ToMastercat().Ra)
+		require.Equal(t, expectedData.Dec, *row.ToMastercat().Dec)
 	}
 }

@@ -84,7 +84,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	expectedOids := []string{"o0", "o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8", "o9"}
 	receivedOids := make([]string, 10, 10)
 	for i, row := range rows {
-		receivedOids[i] = row.ToMastercat().ID
+		receivedOids[i] = *row.ToMastercat().ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -117,7 +117,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			receivedOids = append(receivedOids, row.ToMastercat().ID)
+			receivedOids = append(receivedOids, *row.ToMastercat().ID)
 		}
 	}
 	require.Equal(t, 6, batches) // reader reads one extra batch with zero value
@@ -152,7 +152,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			receivedOids = append(receivedOids, row.ToMastercat().ID)
+			receivedOids = append(receivedOids, *row.ToMastercat().ID)
 		}
 	}
 	require.Equal(t, 5, batches) // reader reads one extra batch with zero value
@@ -187,7 +187,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			receivedOids = append(receivedOids, row.ToMastercat().ID)
+			receivedOids = append(receivedOids, *row.ToMastercat().ID)
 		}
 	}
 	require.Equal(t, 2, batches)

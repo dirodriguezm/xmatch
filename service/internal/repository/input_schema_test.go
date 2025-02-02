@@ -11,18 +11,20 @@ func TestAllwiseInputSchemaToMastercat(t *testing.T) {
 	designation := "designation"
 	ra := 0.0
 	dec := 0.0
+	catalog := "allwise"
+	ipix := int64(0)
 	a := &AllwiseInputSchema{
 		Designation: &designation,
 		Ra:          &ra,
 		Dec:         &dec,
 	}
 	require.Implements(t, (*InputSchema)(nil), a)
-	expected := Mastercat{
-		ID:   "designation",
-		Ipix: 0,
-		Ra:   0.0,
-		Dec:  0.0,
-		Cat:  "allwise",
+	expected := ParquetMastercat{
+		ID:   &designation,
+		Ra:   &ra,
+		Dec:  &dec,
+		Cat:  &catalog,
+		Ipix: &ipix,
 	}
 	actual := a.ToMastercat()
 	require.Equal(t, expected, actual)

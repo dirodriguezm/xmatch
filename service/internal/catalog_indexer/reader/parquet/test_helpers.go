@@ -16,13 +16,13 @@ type TestInputSchema struct {
 	Dec float64
 }
 
-func (t *TestInputSchema) ToMastercat() repository.Mastercat {
-	return repository.Mastercat{
-		ID:   t.Oid,
-		Ipix: 0,
-		Ra:   t.Ra,
-		Dec:  t.Dec,
-		Cat:  "test",
+func (t *TestInputSchema) ToMastercat() repository.ParquetMastercat {
+	catalog := "test"
+	return repository.ParquetMastercat{
+		ID:  &t.Oid,
+		Ra:  &t.Ra,
+		Dec: &t.Dec,
+		Cat: &catalog,
 	}
 }
 

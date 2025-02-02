@@ -17,13 +17,12 @@ type TestSchema struct {
 }
 
 // implement the interface
-func (t *TestSchema) ToMastercat() repository.Mastercat {
-	return repository.Mastercat{
-		ID:   t.ID,
-		Ipix: 0,
-		Ra:   t.Ra,
-		Dec:  t.Dec,
-		Cat:  t.Cat,
+func (t *TestSchema) ToMastercat() repository.ParquetMastercat {
+	return repository.ParquetMastercat{
+		ID:  &t.ID,
+		Ra:  &t.Ra,
+		Dec: &t.Dec,
+		Cat: &t.Cat,
 	}
 }
 
@@ -32,7 +31,7 @@ func (t *TestSchema) SetField(name string, val interface{}) {}
 
 func TestIndexActor(t *testing.T) {
 	inbox := make(chan ReaderResult)
-	outbox := make(chan WriterInput)
+	outbox := make(chan WriterInput[repository.ParquetMastercat])
 	rows := make([]repository.InputSchema, 2)
 	rows[0] = &TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
 	rows[1] = &TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
@@ -52,7 +51,7 @@ func TestIndexActor(t *testing.T) {
 	indexer.Start()
 	inbox <- ReaderResult{Rows: rows, Error: nil}
 	close(inbox)
-	results := make([]Row, 2)
+	results := make([]repository.ParquetMastercat, 2)
 	for msg := range outbox {
 		for i, obj := range msg.Rows {
 			results[i] = obj
