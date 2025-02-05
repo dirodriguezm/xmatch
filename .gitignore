@@ -1,6 +1,6 @@
 *.tar.gz
 venv/
-*.db
+*.db*
 build/
 test.csv
 data/
