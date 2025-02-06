@@ -12,14 +12,16 @@ type BaseReader struct {
 	Reader    indexer.Reader
 	Src       *source.Source
 	BatchSize int
-	Outbox    chan indexer.ReaderResult
+	Outbox    []chan indexer.ReaderResult
 }
 
 func (r BaseReader) Start() {
 	slog.Debug("Starting Reader", "catalog", r.Src.CatalogName, "nside", r.Src.Nside, "numreaders", len(r.Src.Reader))
 	go func() {
 		defer func() {
-			close(r.Outbox)
+			for i := range r.Outbox {
+				close(r.Outbox[i])
+			}
 			slog.Debug("Closing Reader")
 		}()
 		eof := false
@@ -30,7 +32,9 @@ func (r BaseReader) Start() {
 					Rows:  nil,
 					Error: err,
 				}
-				r.Outbox <- readResult
+				for i := range r.Outbox {
+					r.Outbox[i] <- readResult
+				}
 				return
 			}
 			eof = err == io.EOF
@@ -39,7 +43,9 @@ func (r BaseReader) Start() {
 				Error: nil,
 			}
 			slog.Debug("Reader sending message")
-			r.Outbox <- readResult
+			for i := range r.Outbox {
+				r.Outbox[i] <- readResult
+			}
 		}
 	}()
 }

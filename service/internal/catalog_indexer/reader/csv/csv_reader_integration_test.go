@@ -62,14 +62,16 @@ func TestReadMultipleFiles_Csv(t *testing.T) {
 	// collect results
 	allRows := make([]repository.InputSchema, 0)
 	var err error
-	for msg := range fixture.reader.OutputChannel {
-		if msg.Error != nil {
-			err = msg.Error
-			break
+	for i := range fixture.reader.OutputChannel {
+		for msg := range fixture.reader.OutputChannel[i] {
+			if msg.Error != nil {
+				err = msg.Error
+				break
+			}
+			allRows = append(allRows, msg.Rows...)
 		}
-		allRows = append(allRows, msg.Rows...)
+		require.NoError(t, err)
 	}
-	require.NoError(t, err)
 
 	// assert
 	require.Len(t, allRows, 10)
@@ -107,9 +109,12 @@ o2,2,2
 
 	// collect results
 	allRows := make([]repository.InputSchema, 0)
-	for msg := range fixture.reader.OutputChannel {
-		for _, row := range msg.Rows {
-			allRows = append(allRows, row)
+	for i := range fixture.reader.OutputChannel {
+		for msg := range fixture.reader.OutputChannel[i] {
+			require.NoError(t, msg.Error)
+			for _, row := range msg.Rows {
+				allRows = append(allRows, row)
+			}
 		}
 	}
 

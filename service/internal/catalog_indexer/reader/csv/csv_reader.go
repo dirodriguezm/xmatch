@@ -19,7 +19,7 @@ type CsvReader struct {
 	currentReader   int
 }
 
-func NewCsvReader(src *source.Source, channel chan indexer.ReaderResult, opts ...CsvReaderOption) (*CsvReader, error) {
+func NewCsvReader(src *source.Source, channel []chan indexer.ReaderResult, opts ...CsvReaderOption) (*CsvReader, error) {
 	readers := []*csv.Reader{}
 	for _, reader := range src.Reader {
 		readers = append(readers, csv.NewReader(reader))

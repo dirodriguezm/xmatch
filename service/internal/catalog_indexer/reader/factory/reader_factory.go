@@ -14,7 +14,7 @@ import (
 
 func ReaderFactory(
 	src *source.Source,
-	outbox chan indexer.ReaderResult,
+	outbox []chan indexer.ReaderResult,
 	cfg *config.ReaderConfig,
 ) (indexer.Reader, error) {
 	readerType := strings.ToLower(cfg.Type)
@@ -34,7 +34,7 @@ func ReaderFactory(
 	}
 }
 
-func parquetFactory(src *source.Source, outbox chan indexer.ReaderResult, cfg *config.ReaderConfig) (indexer.Reader, error) {
+func parquetFactory(src *source.Source, outbox []chan indexer.ReaderResult, cfg *config.ReaderConfig) (indexer.Reader, error) {
 	catalog := strings.ToLower(src.CatalogName)
 	if catalog == "allwise" {
 		return parquet_reader.NewParquetReader(

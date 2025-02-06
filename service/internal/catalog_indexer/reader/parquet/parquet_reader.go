@@ -21,14 +21,14 @@ type ParquetReader[T any] struct {
 	parquetReaders []*preader.ParquetReader
 	src            *source.Source
 	currentReader  int
-	outbox         chan indexer.ReaderResult
+	outbox         []chan indexer.ReaderResult
 
 	fileReaders []psource.ParquetFile
 }
 
 func NewParquetReader[T any](
 	src *source.Source,
-	channel chan indexer.ReaderResult,
+	channel []chan indexer.ReaderResult,
 	opts ...ParquetReaderOption[T],
 ) (*ParquetReader[T], error) {
 	readers := []*preader.ParquetReader{}

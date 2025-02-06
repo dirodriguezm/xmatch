@@ -82,9 +82,15 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register reader
-	readerResults := make(chan indexer.ReaderResult)
+	readerResults := make(map[string]chan indexer.ReaderResult)
+	readerResults["indexer"] = make(chan indexer.ReaderResult)
+	readerResults["metadata"] = make(chan indexer.ReaderResult)
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) indexer.Reader {
-		r, err := reader_factory.ReaderFactory(src, readerResults, cfg.CatalogIndexer.Reader)
+		r, err := reader_factory.ReaderFactory(
+			src,
+			[]chan indexer.ReaderResult{readerResults["indexer"], readerResults["metadata"]},
+			cfg.CatalogIndexer.Reader,
+		)
 		if err != nil {
 			slog.Error("Could not register reader", "error", err, "source", src, "config", cfg.CatalogIndexer.Reader)
 			panic(err)
@@ -95,7 +101,7 @@ func BuildIndexerContainer() container.Container {
 	// Register indexer
 	writerInput := make(chan indexer.WriterInput[repository.ParquetMastercat])
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) *indexer.Indexer {
-		idx, err := indexer.New(src, readerResults, writerInput, cfg.CatalogIndexer.Indexer)
+		idx, err := indexer.New(src, readerResults["indexer"], writerInput, cfg.CatalogIndexer.Indexer)
 		if err != nil {
 			panic(err)
 		}

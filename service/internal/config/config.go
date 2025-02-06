@@ -33,6 +33,7 @@ type SourceConfig struct {
 	DecCol      string `yaml:"dec_col"`
 	OidCol      string `yaml:"oid_col"`
 	Nside       int    `yaml:"nside"`
+	Metadata    bool   `yaml:"metadata"`
 }
 
 type ReaderConfig struct {

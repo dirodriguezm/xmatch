@@ -2,7 +2,9 @@ package csv_reader
 
 import (
 	"io"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
@@ -27,7 +29,9 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult))
+	outputs := make([]chan indexer.ReaderResult, 1)
+	outputs[0] = make(chan indexer.ReaderResult)
+	csvReader, err := NewCsvReader(&source, outputs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,8 +64,10 @@ o3,3,3
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
+	outputs := make([]chan indexer.ReaderResult, 1)
+	outputs[0] = make(chan indexer.ReaderResult)
 
-	csvReader, err := NewCsvReader(&source, make(chan indexer.ReaderResult), WithHeader([]string{"oid", "ra", "dec"}))
+	csvReader, err := NewCsvReader(&source, outputs, WithHeader([]string{"oid", "ra", "dec"}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,6 +83,28 @@ o3,3,3
 		receivedOids[i] = *row.ToMastercat().ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
+}
+
+func TestReadWithHeader_Error(t *testing.T) {
+	csv := ""
+
+	reader := strings.NewReader(csv)
+
+	source := source.Source{
+		Reader:      []source.SourceReader{{Reader: reader}},
+		RaCol:       "ra",
+		DecCol:      "dec",
+		OidCol:      "oid",
+		CatalogName: "vlass",
+	}
+	outputs := []chan indexer.ReaderResult{make(chan indexer.ReaderResult)}
+
+	csvReader, err := NewCsvReader(&source, outputs)
+	require.NoError(t, err)
+
+	rows, err := csvReader.Read()
+	require.Error(t, err)
+	require.Nil(t, rows)
 }
 
 func TestReadBatch(t *testing.T) {
@@ -96,9 +124,11 @@ o4,4,4
 		CatalogName: "vlass",
 	}
 
+	outputs := make([]chan indexer.ReaderResult, 1)
+	outputs[0] = make(chan indexer.ReaderResult)
 	csvReader, err := NewCsvReader(
 		&source,
-		make(chan indexer.ReaderResult),
+		outputs,
 		WithCsvBatchSize(2),
 		WithFirstLineHeader(true),
 	)
@@ -148,9 +178,11 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
+	outputs := make([]chan indexer.ReaderResult, 1)
+	outputs[0] = make(chan indexer.ReaderResult)
 	csvReader, err := NewCsvReader(
 		&source,
-		make(chan indexer.ReaderResult),
+		outputs,
 		WithCsvBatchSize(2),
 		WithFirstLineHeader(true),
 	)
@@ -200,9 +232,11 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
+	outputs := make([]chan indexer.ReaderResult, 1)
+	outputs[0] = make(chan indexer.ReaderResult)
 	csvReader, err := NewCsvReader(
 		&source,
-		make(chan indexer.ReaderResult),
+		outputs,
 		WithCsvBatchSize(2),
 		WithFirstLineHeader(true))
 	if err != nil {
@@ -251,9 +285,12 @@ o3,3,3
 		CatalogName: "vlass",
 	}
 
+	outputs := make([]chan indexer.ReaderResult, 1)
+	outputs[0] = make(chan indexer.ReaderResult)
+
 	csvReader, err := NewCsvReader(
 		&src,
-		make(chan indexer.ReaderResult),
+		outputs,
 		WithCsvBatchSize(2),
 	)
 	if err != nil {
@@ -262,9 +299,11 @@ o3,3,3
 	csvReader.Start()
 
 	var rows []repository.InputSchema
-	for msg := range csvReader.Outbox {
-		for _, row := range msg.Rows {
-			rows = append(rows, row)
+	for i := range csvReader.Outbox {
+		for msg := range csvReader.Outbox[i] {
+			for _, row := range msg.Rows {
+				rows = append(rows, row)
+			}
 		}
 	}
 	require.Equal(t, 3, len(rows))
@@ -273,5 +312,70 @@ o3,3,3
 	for i, row := range rows {
 		receivedOids[i] = *row.ToMastercat().ID
 	}
+	require.Equal(t, expectedOids, receivedOids)
+}
+
+func TestActor_WithMultipleOutputs(t *testing.T) {
+	csv := `oid,ra,dec
+o1,1,1
+o2,2,2
+o3,3,3
+`
+	reader := strings.NewReader(csv)
+
+	src := source.Source{
+		Reader:      []source.SourceReader{{Reader: reader}},
+		RaCol:       "ra",
+		DecCol:      "dec",
+		OidCol:      "oid",
+		CatalogName: "vlass",
+	}
+
+	outputs := make([]chan indexer.ReaderResult, 2)
+	outputs[0] = make(chan indexer.ReaderResult)
+	outputs[1] = make(chan indexer.ReaderResult)
+
+	csvReader, err := NewCsvReader(
+		&src,
+		outputs,
+		WithCsvBatchSize(2),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	csvReader.Start()
+
+	// read from all outbox concurrently
+	// we need a lock to ensure safe access to the rows slice when appending
+	// and a done channel to signal when all go routines are done
+	var rows []repository.InputSchema
+	mu := sync.Mutex{}
+	done := make(chan struct{})
+	for i := range csvReader.Outbox {
+		go func() {
+			for msg := range csvReader.Outbox[i] {
+				for _, row := range msg.Rows {
+					mu.Lock()
+					rows = append(rows, row)
+					mu.Unlock()
+				}
+			}
+			done <- struct{}{}
+		}()
+	}
+	<-done
+
+	require.Equal(t, 6, len(rows))
+	expectedOids := []string{"o1", "o2", "o3"}
+	expectedOids = append(expectedOids, expectedOids...)
+	receivedOids := make([]string, 6, 6)
+	for i, row := range rows {
+		receivedOids[i] = *row.ToMastercat().ID
+	}
+
+	// sort to be able to compare
+	sort.Strings(receivedOids)
+	sort.Strings(expectedOids)
+	// compare
 	require.Equal(t, expectedOids, receivedOids)
 }
