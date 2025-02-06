@@ -86,11 +86,11 @@ func BuildIndexerContainer() container.Container {
 	readerResults["indexer"] = make(chan indexer.ReaderResult)
 	readerResults["metadata"] = make(chan indexer.ReaderResult)
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) indexer.Reader {
-		r, err := reader_factory.ReaderFactory(
-			src,
-			[]chan indexer.ReaderResult{readerResults["indexer"], readerResults["metadata"]},
-			cfg.CatalogIndexer.Reader,
-		)
+		outputChannels := []chan indexer.ReaderResult{readerResults["indexer"]}
+		if cfg.CatalogIndexer.Source.Metadata {
+			outputChannels = append(outputChannels, readerResults["metadata"])
+		}
+		r, err := reader_factory.ReaderFactory(src, outputChannels, cfg.CatalogIndexer.Reader)
 		if err != nil {
 			slog.Error("Could not register reader", "error", err, "source", src, "config", cfg.CatalogIndexer.Reader)
 			panic(err)
