@@ -45,10 +45,12 @@ type ReaderBuilder[T any] struct {
 	ReaderConfig  *config.ReaderConfig
 	t             *testing.T
 	Source        *source.Source
-	OutputChannel chan indexer.ReaderResult
+	OutputChannel []chan indexer.ReaderResult
 }
 
 func AReader[T any](t *testing.T) *ReaderBuilder[T] {
+	outputs := make([]chan indexer.ReaderResult, 1)
+	outputs[0] = make(chan indexer.ReaderResult)
 	return &ReaderBuilder[T]{
 		t: t,
 		ReaderConfig: &config.ReaderConfig{
@@ -56,7 +58,7 @@ func AReader[T any](t *testing.T) *ReaderBuilder[T] {
 			FirstLineHeader: true,
 			BatchSize:       1,
 		},
-		OutputChannel: make(chan indexer.ReaderResult),
+		OutputChannel: outputs,
 	}
 }
 
@@ -77,7 +79,7 @@ func (builder *ReaderBuilder[T]) WithBatchSize(size int) *ReaderBuilder[T] {
 	return builder
 }
 
-func (builder *ReaderBuilder[T]) WithOutputChannel(ch chan indexer.ReaderResult) *ReaderBuilder[T] {
+func (builder *ReaderBuilder[T]) WithOutputChannels(ch []chan indexer.ReaderResult) *ReaderBuilder[T] {
 	builder.t.Helper()
 
 	builder.OutputChannel = ch

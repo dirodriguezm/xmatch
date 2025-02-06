@@ -71,7 +71,11 @@ func TestReadParquet_read_all_file(t *testing.T) {
 		CatalogName: "test",
 	}
 
-	parquetReader, err := NewParquetReader[Object](&source, make(chan indexer.ReaderResult))
+	outputs := make([]chan indexer.ReaderResult, 1)
+	for i := range outputs {
+		outputs[i] = make(chan indexer.ReaderResult)
+	}
+	parquetReader, err := NewParquetReader[Object](&source, outputs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +103,11 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 		CatalogName: "test",
 	}
 
-	parquetReader, err := NewParquetReader(&source, make(chan indexer.ReaderResult), WithParquetBatchSize[Object](2))
+	outputs := make([]chan indexer.ReaderResult, 1)
+	for i := range outputs {
+		outputs[i] = make(chan indexer.ReaderResult)
+	}
+	parquetReader, err := NewParquetReader(&source, outputs, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +142,11 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 		CatalogName: "test",
 	}
 
-	parquetReader, err := NewParquetReader(&source, make(chan indexer.ReaderResult), WithParquetBatchSize[Object](2))
+	outputs := make([]chan indexer.ReaderResult, 1)
+	for i := range outputs {
+		outputs[i] = make(chan indexer.ReaderResult)
+	}
+	parquetReader, err := NewParquetReader(&source, outputs, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +181,11 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 		CatalogName: "test",
 	}
 
-	parquetReader, err := NewParquetReader(&source, make(chan indexer.ReaderResult), WithParquetBatchSize[Object](5))
+	outputs := make([]chan indexer.ReaderResult, 1)
+	for i := range outputs {
+		outputs[i] = make(chan indexer.ReaderResult)
+	}
+	parquetReader, err := NewParquetReader(&source, outputs, WithParquetBatchSize[Object](5))
 	if err != nil {
 		t.Fatal(err)
 	}

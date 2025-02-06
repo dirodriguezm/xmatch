@@ -18,6 +18,8 @@ catalog_indexer:
     oid_col: "id"
     # Nside of the HEALPix grid
     nside: 18
+    # Wether to index metadata
+    metadata: true
   reader:
     # size of the batch to read from the input file
     batch_size: 500
