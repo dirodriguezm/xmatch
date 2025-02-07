@@ -2,6 +2,7 @@ package sqlite_writer
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 
@@ -17,6 +18,8 @@ type SqliteWriter[T any] struct {
 	repository conesearch.Repository
 	ctx        context.Context
 	src        *source.Source
+
+	db *sql.DB
 }
 
 func NewSqliteWriter[T any](
@@ -25,6 +28,7 @@ func NewSqliteWriter[T any](
 	done chan bool,
 	ctx context.Context,
 	src *source.Source,
+	db *sql.DB,
 ) *SqliteWriter[T] {
 	slog.Debug("Creating new SqliteWriter")
 	w := &SqliteWriter[T]{
@@ -35,6 +39,7 @@ func NewSqliteWriter[T any](
 		repository: repository,
 		ctx:        ctx,
 		src:        src,
+		db:         db,
 	}
 	w.Writer = w
 	return w
@@ -46,20 +51,21 @@ func (w *SqliteWriter[T]) Receive(msg indexer.WriterInput[T]) {
 		slog.Error("SqliteWriter received error")
 		panic(msg.Error)
 	}
-	for _, object := range msg.Rows {
+	params := make([]any, len(msg.Rows))
+	for i, object := range msg.Rows {
 		// convert the received row to insert params needed by the repository
-		params, err := row2insertParams(object)
+		p, err := row2insertParams(object)
 		if err != nil {
 			slog.Error("SqliteWriter could not convert received object to insert params", "object", object)
 			panic(err)
 		}
-
-		// insert converted rows
-		err = insertData(w.repository, w.ctx, params)
-		if err != nil {
-			slog.Error("SqliteWriter could not write object to database", "object", object)
-			panic(err)
-		}
+		params[i] = p
+	}
+	// insert converted rows
+	err := insertData(w.repository, w.ctx, w.db, params)
+	if err != nil {
+		slog.Error("SqliteWriter could not write objects to database")
+		panic(err)
 	}
 }
 
@@ -76,15 +82,22 @@ func row2insertParams[T any](obj T) (any, error) {
 	}
 }
 
-func insertData[T any](repo conesearch.Repository, ctx context.Context, row T) error {
-	switch v := any(row).(type) {
-	case repository.InsertObjectParams:
-		_, err := repo.InsertObject(ctx, v)
-		if err != nil {
-			return err
+func insertData[T any](repo conesearch.Repository, ctx context.Context, db *sql.DB, rows []T) error {
+	insertObjectParams := make([]repository.InsertObjectParams, 0, len(rows))
+	// other slices can be added here for other types
+
+	for i := range rows {
+		if p, ok := any(rows[i]).(repository.InsertObjectParams); ok {
+			insertObjectParams = append(insertObjectParams, p)
+		} else { // other conditional for other types
+			return fmt.Errorf("Parameter type not known: %T", rows[i])
 		}
-	default:
-		return fmt.Errorf("Parameter type not known: %T", v)
 	}
+
+	// now check which type of data we have and call the appropriate function
+	if len(insertObjectParams) > 0 {
+		return repo.BulkInsertObject(ctx, db, insertObjectParams)
+	}
+	// other conditionals can be added for different types
 	return nil
 }

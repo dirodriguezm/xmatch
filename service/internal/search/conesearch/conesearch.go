@@ -2,6 +2,7 @@ package conesearch
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"math"
 
@@ -15,6 +16,7 @@ import (
 type Repository interface {
 	FindObjects(context.Context, []int64) ([]repository.Mastercat, error)
 	InsertObject(context.Context, repository.InsertObjectParams) (repository.Mastercat, error)
+	BulkInsertObject(context.Context, *sql.DB, []repository.InsertObjectParams) error
 	GetAllObjects(context.Context) ([]repository.Mastercat, error)
 	GetCatalogs(context.Context) ([]repository.Catalog, error)
 	InsertCatalog(context.Context, repository.InsertCatalogParams) (repository.Catalog, error)

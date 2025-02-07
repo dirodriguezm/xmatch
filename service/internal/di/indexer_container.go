@@ -113,6 +113,7 @@ func BuildIndexerContainer() container.Container {
 		cfg *config.Config,
 		repo conesearch.Repository,
 		src *source.Source,
+		db *sql.DB,
 	) indexer.Writer[repository.ParquetMastercat] {
 		if cfg.CatalogIndexer.IndexerWriter == nil {
 			panic("Indexer writer not configured")
@@ -125,7 +126,7 @@ func BuildIndexerContainer() container.Container {
 			}
 			return w
 		case "sqlite":
-			w := sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan bool), context.TODO(), src)
+			w := sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan bool), context.TODO(), src, db)
 			return w
 		default:
 			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.IndexerWriter.Type)
