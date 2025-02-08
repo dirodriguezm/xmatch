@@ -18,8 +18,6 @@ type SqliteWriter[T any] struct {
 	repository conesearch.Repository
 	ctx        context.Context
 	src        *source.Source
-
-	db *sql.DB
 }
 
 func NewSqliteWriter[T any](
@@ -28,7 +26,6 @@ func NewSqliteWriter[T any](
 	done chan bool,
 	ctx context.Context,
 	src *source.Source,
-	db *sql.DB,
 ) *SqliteWriter[T] {
 	slog.Debug("Creating new SqliteWriter")
 	w := &SqliteWriter[T]{
@@ -39,7 +36,6 @@ func NewSqliteWriter[T any](
 		repository: repository,
 		ctx:        ctx,
 		src:        src,
-		db:         db,
 	}
 	w.Writer = w
 	return w
@@ -62,7 +58,7 @@ func (w *SqliteWriter[T]) Receive(msg indexer.WriterInput[T]) {
 		params[i] = p
 	}
 	// insert converted rows
-	err := insertData(w.repository, w.ctx, w.db, params)
+	err := insertData(w.repository, w.ctx, w.repository.GetDbInstance(), params)
 	if err != nil {
 		slog.Error("SqliteWriter could not write objects to database")
 		panic(err)

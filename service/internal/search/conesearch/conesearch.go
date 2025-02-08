@@ -20,6 +20,7 @@ type Repository interface {
 	GetAllObjects(context.Context) ([]repository.Mastercat, error)
 	GetCatalogs(context.Context) ([]repository.Catalog, error)
 	InsertCatalog(context.Context, repository.InsertCatalogParams) (repository.Catalog, error)
+	GetDbInstance() *sql.DB
 }
 
 type ConesearchService struct {
