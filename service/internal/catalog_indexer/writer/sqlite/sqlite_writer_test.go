@@ -32,10 +32,13 @@ func TestStart(t *testing.T) {
 	params, err := row2insertParams(mastercat)
 	require.NoError(t, err)
 	repo := &mocks.Repository{}
-	repo.On("InsertObject", mock.Anything, params).Return(
-		repository.Mastercat{ID: id, Ra: ra, Dec: dec, Ipix: ipix, Cat: cat},
-		nil,
-	)
+	repo.On("GetDbInstance").Return(nil)
+	repo.On(
+		"BulkInsertObject",
+		mock.Anything,
+		mock.Anything,
+		[]repository.InsertObjectParams{params.(repository.InsertObjectParams)},
+	).Return(nil)
 	writer := NewSqliteWriter(repo, make(chan indexer.WriterInput[repository.ParquetMastercat]), make(chan bool), context.Background(), src)
 
 	writer.Start()

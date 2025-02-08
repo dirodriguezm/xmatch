@@ -126,7 +126,7 @@ func BuildIndexerContainer() container.Container {
 			}
 			return w
 		case "sqlite":
-			w := sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan bool), context.TODO(), src, db)
+			w := sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan bool), context.TODO(), src)
 			return w
 		default:
 			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.IndexerWriter.Type)
