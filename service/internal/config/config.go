@@ -23,6 +23,7 @@ type CatalogIndexerConfig struct {
 	PartitionWriter *WriterConfig   `yaml:"partition_writer"`
 	ReducerWriter   *WriterConfig   `yaml:"reducer_writer"`
 	IndexerWriter   *WriterConfig   `yaml:"indexer_writer"`
+	MetadataWriter  *WriterConfig   `yaml:"metadata_writer"`
 }
 
 type SourceConfig struct {

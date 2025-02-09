@@ -1,8 +1,9 @@
-package indexer
+package mastercat_indexer
 
 import (
 	"testing"
 
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -30,8 +31,8 @@ func (t *TestSchema) ToMastercat() repository.ParquetMastercat {
 func (t *TestSchema) SetField(name string, val interface{}) {}
 
 func TestIndexActor(t *testing.T) {
-	inbox := make(chan ReaderResult)
-	outbox := make(chan WriterInput[repository.ParquetMastercat])
+	inbox := make(chan indexer.ReaderResult)
+	outbox := make(chan indexer.WriterInput[repository.ParquetMastercat])
 	rows := make([]repository.InputSchema, 2)
 	rows[0] = &TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
 	rows[1] = &TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
@@ -45,11 +46,11 @@ func TestIndexActor(t *testing.T) {
 		OidCol:      "id",
 	})
 	require.NoError(t, err)
-	indexer, err := New(src, inbox, outbox, &config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
+	indexerActor, err := New(src, inbox, outbox, &config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
 	require.NoError(t, err)
 
-	indexer.Start()
-	inbox <- ReaderResult{Rows: rows, Error: nil}
+	indexerActor.Start()
+	inbox <- indexer.ReaderResult{Rows: rows, Error: nil}
 	close(inbox)
 	results := make([]repository.ParquetMastercat, 2)
 	for msg := range outbox {

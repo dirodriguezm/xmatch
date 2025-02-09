@@ -73,6 +73,8 @@ func row2insertParams[T any](obj T) (any, error) {
 	switch v := any(obj).(type) {
 	case repository.ParquetMastercat:
 		return v.ToInsertObjectParams(), nil
+	case repository.AllwiseMetadata:
+		return v.ToInsertParams(), nil
 	default:
 		return nil, fmt.Errorf("Parameter type not known: %T", v)
 	}
@@ -80,12 +82,14 @@ func row2insertParams[T any](obj T) (any, error) {
 
 func insertData[T any](repo conesearch.Repository, ctx context.Context, db *sql.DB, rows []T) error {
 	insertObjectParams := make([]repository.InsertObjectParams, 0, len(rows))
-	// other slices can be added here for other types
+	insertMetadataParams := make([]repository.InsertAllwiseParams, 0, len(rows))
 
 	for i := range rows {
 		if p, ok := any(rows[i]).(repository.InsertObjectParams); ok {
 			insertObjectParams = append(insertObjectParams, p)
-		} else { // other conditional for other types
+		} else if p, ok := any(rows[i]).(repository.InsertAllwiseParams); ok {
+			insertMetadataParams = append(insertMetadataParams, p)
+		} else {
 			return fmt.Errorf("Parameter type not known: %T", rows[i])
 		}
 	}
@@ -94,6 +98,8 @@ func insertData[T any](repo conesearch.Repository, ctx context.Context, db *sql.
 	if len(insertObjectParams) > 0 {
 		return repo.BulkInsertObject(ctx, db, insertObjectParams)
 	}
-	// other conditionals can be added for different types
+	if len(insertMetadataParams) > 0 {
+		return repo.BulkInsertAllwise(ctx, db, insertMetadataParams)
+	}
 	return nil
 }

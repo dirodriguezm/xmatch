@@ -4,6 +4,28 @@
 
 package repository
 
+import (
+	"database/sql"
+)
+
+type Allwise struct {
+	ID         string
+	W1mpro     sql.NullFloat64
+	W1sigmpro  sql.NullFloat64
+	W2mpro     sql.NullFloat64
+	W2sigmpro  sql.NullFloat64
+	W3mpro     sql.NullFloat64
+	W3sigmpro  sql.NullFloat64
+	W4mpro     sql.NullFloat64
+	W4sigmpro  sql.NullFloat64
+	JM2mass    sql.NullFloat64
+	JMsig2mass sql.NullFloat64
+	HM2mass    sql.NullFloat64
+	HMsig2mass sql.NullFloat64
+	KM2mass    sql.NullFloat64
+	KMsig2mass sql.NullFloat64
+}
+
 type Catalog struct {
 	Name  string
 	Nside int64

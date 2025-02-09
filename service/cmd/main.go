@@ -8,6 +8,9 @@ import (
 	"runtime/pprof"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	mastercatindexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
+	allwise_metadata "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata/allwise"
+	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -24,6 +27,9 @@ func startCatalogIndexer() {
 	slog.Debug("Starting catalog indexer")
 	ctr := di.BuildIndexerContainer()
 
+	var cfg *config.Config
+	ctr.Resolve(&cfg)
+
 	// update catalogs table
 	var catalogRegister *indexer.CatalogRegister
 	ctr.Resolve(&catalogRegister)
@@ -34,10 +40,25 @@ func startCatalogIndexer() {
 	ctr.Resolve(&writer)
 	writer.Start()
 
+	// initialize metadata writer
+	if cfg.CatalogIndexer.MetadataWriter != nil && cfg.CatalogIndexer.Source.Metadata {
+		// TODO: choose between metadata type
+		var metadataWriter indexer.Writer[repository.AllwiseMetadata]
+		ctr.Resolve(&metadataWriter)
+		metadataWriter.Start()
+	}
+
 	// initialize indexer
-	var catalogIndexer *indexer.Indexer
+	var catalogIndexer *mastercatindexer.IndexerActor
 	ctr.Resolve(&catalogIndexer)
 	catalogIndexer.Start()
+
+	// initialize metadata indexer
+	if cfg.CatalogIndexer.Source.Metadata && cfg.CatalogIndexer.MetadataWriter != nil {
+		var actor *allwise_metadata.IndexerActor
+		ctr.Resolve(&actor)
+		actor.Start()
+	}
 
 	// initialize reader
 	var reader indexer.Reader

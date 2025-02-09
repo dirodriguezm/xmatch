@@ -24,6 +24,54 @@ func (_m *Repository) EXPECT() *Repository_Expecter {
 	return &Repository_Expecter{mock: &_m.Mock}
 }
 
+// BulkInsertAllwise provides a mock function with given fields: _a0, _a1, _a2
+func (_m *Repository) BulkInsertAllwise(_a0 context.Context, _a1 *sql.DB, _a2 []repository.InsertAllwiseParams) error {
+	ret := _m.Called(_a0, _a1, _a2)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BulkInsertAllwise")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *sql.DB, []repository.InsertAllwiseParams) error); ok {
+		r0 = rf(_a0, _a1, _a2)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Repository_BulkInsertAllwise_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BulkInsertAllwise'
+type Repository_BulkInsertAllwise_Call struct {
+	*mock.Call
+}
+
+// BulkInsertAllwise is a helper method to define mock.On call
+//   - _a0 context.Context
+//   - _a1 *sql.DB
+//   - _a2 []repository.InsertAllwiseParams
+func (_e *Repository_Expecter) BulkInsertAllwise(_a0 interface{}, _a1 interface{}, _a2 interface{}) *Repository_BulkInsertAllwise_Call {
+	return &Repository_BulkInsertAllwise_Call{Call: _e.mock.On("BulkInsertAllwise", _a0, _a1, _a2)}
+}
+
+func (_c *Repository_BulkInsertAllwise_Call) Run(run func(_a0 context.Context, _a1 *sql.DB, _a2 []repository.InsertAllwiseParams)) *Repository_BulkInsertAllwise_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*sql.DB), args[2].([]repository.InsertAllwiseParams))
+	})
+	return _c
+}
+
+func (_c *Repository_BulkInsertAllwise_Call) Return(_a0 error) *Repository_BulkInsertAllwise_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Repository_BulkInsertAllwise_Call) RunAndReturn(run func(context.Context, *sql.DB, []repository.InsertAllwiseParams) error) *Repository_BulkInsertAllwise_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // BulkInsertObject provides a mock function with given fields: _a0, _a1, _a2
 func (_m *Repository) BulkInsertObject(_a0 context.Context, _a1 *sql.DB, _a2 []repository.InsertObjectParams) error {
 	ret := _m.Called(_a0, _a1, _a2)
@@ -189,6 +237,65 @@ func (_c *Repository_GetAllObjects_Call) RunAndReturn(run func(context.Context) 
 	return _c
 }
 
+// GetAllwise provides a mock function with given fields: _a0, _a1
+func (_m *Repository) GetAllwise(_a0 context.Context, _a1 string) ([]repository.Allwise, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAllwise")
+	}
+
+	var r0 []repository.Allwise
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]repository.Allwise, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []repository.Allwise); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]repository.Allwise)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Repository_GetAllwise_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllwise'
+type Repository_GetAllwise_Call struct {
+	*mock.Call
+}
+
+// GetAllwise is a helper method to define mock.On call
+//   - _a0 context.Context
+//   - _a1 string
+func (_e *Repository_Expecter) GetAllwise(_a0 interface{}, _a1 interface{}) *Repository_GetAllwise_Call {
+	return &Repository_GetAllwise_Call{Call: _e.mock.On("GetAllwise", _a0, _a1)}
+}
+
+func (_c *Repository_GetAllwise_Call) Run(run func(_a0 context.Context, _a1 string)) *Repository_GetAllwise_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *Repository_GetAllwise_Call) Return(_a0 []repository.Allwise, _a1 error) *Repository_GetAllwise_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Repository_GetAllwise_Call) RunAndReturn(run func(context.Context, string) ([]repository.Allwise, error)) *Repository_GetAllwise_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetCatalogs provides a mock function with given fields: _a0
 func (_m *Repository) GetCatalogs(_a0 context.Context) ([]repository.Catalog, error) {
 	ret := _m.Called(_a0)
@@ -290,6 +397,53 @@ func (_c *Repository_GetDbInstance_Call) Return(_a0 *sql.DB) *Repository_GetDbIn
 }
 
 func (_c *Repository_GetDbInstance_Call) RunAndReturn(run func() *sql.DB) *Repository_GetDbInstance_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// InsertAllwise provides a mock function with given fields: _a0, _a1
+func (_m *Repository) InsertAllwise(_a0 context.Context, _a1 repository.InsertAllwiseParams) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InsertAllwise")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, repository.InsertAllwiseParams) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Repository_InsertAllwise_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertAllwise'
+type Repository_InsertAllwise_Call struct {
+	*mock.Call
+}
+
+// InsertAllwise is a helper method to define mock.On call
+//   - _a0 context.Context
+//   - _a1 repository.InsertAllwiseParams
+func (_e *Repository_Expecter) InsertAllwise(_a0 interface{}, _a1 interface{}) *Repository_InsertAllwise_Call {
+	return &Repository_InsertAllwise_Call{Call: _e.mock.On("InsertAllwise", _a0, _a1)}
+}
+
+func (_c *Repository_InsertAllwise_Call) Run(run func(_a0 context.Context, _a1 repository.InsertAllwiseParams)) *Repository_InsertAllwise_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(repository.InsertAllwiseParams))
+	})
+	return _c
+}
+
+func (_c *Repository_InsertAllwise_Call) Return(_a0 error) *Repository_InsertAllwise_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Repository_InsertAllwise_Call) RunAndReturn(run func(context.Context, repository.InsertAllwiseParams) error) *Repository_InsertAllwise_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -350,24 +350,22 @@ o3,3,3
 	// and a done channel to signal when all go routines are done
 	var rows []repository.InputSchema
 	mu := sync.Mutex{}
-	done := make(chan struct{})
+	wg := sync.WaitGroup{}
 	for i := range csvReader.Outbox {
+		wg.Add(1)
 		go func() {
 			for msg := range csvReader.Outbox[i] {
-				for _, row := range msg.Rows {
-					mu.Lock()
-					rows = append(rows, row)
-					mu.Unlock()
-				}
+				mu.Lock()
+				rows = append(rows, msg.Rows...)
+				mu.Unlock()
 			}
-			done <- struct{}{}
+			wg.Done()
 		}()
 	}
-	<-done
+	wg.Wait()
 
 	require.Equal(t, 6, len(rows))
-	expectedOids := []string{"o1", "o2", "o3"}
-	expectedOids = append(expectedOids, expectedOids...)
+	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6, 6)
 	for i, row := range rows {
 		receivedOids[i] = *row.ToMastercat().ID

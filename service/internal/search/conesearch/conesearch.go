@@ -21,6 +21,9 @@ type Repository interface {
 	GetCatalogs(context.Context) ([]repository.Catalog, error)
 	InsertCatalog(context.Context, repository.InsertCatalogParams) (repository.Catalog, error)
 	GetDbInstance() *sql.DB
+	InsertAllwise(context.Context, repository.InsertAllwiseParams) error
+	GetAllwise(context.Context, string) ([]repository.Allwise, error)
+	BulkInsertAllwise(context.Context, *sql.DB, []repository.InsertAllwiseParams) error
 }
 
 type ConesearchService struct {
