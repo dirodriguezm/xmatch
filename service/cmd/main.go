@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"os"
+	"runtime/pprof"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
@@ -46,15 +48,25 @@ func startCatalogIndexer() {
 }
 
 func main() {
+	slog.Info("Starting xmatch service")
+	profile := flag.CommandLine.Bool("profile", false, "Enable profiling")
 	flag.Parse()
 	command := flag.Arg(0)
-	fmt.Println(flag.Args())
+
+	if *profile {
+		slog.Info("Profiling enabled")
+		cpuFile, _ := os.Create("cpu.prof")
+		defer cpuFile.Close()
+		pprof.StartCPUProfile(cpuFile)
+		defer pprof.StopCPUProfile()
+	}
+
 	switch command {
 	case "server":
 		startHttpServer()
 	case "indexer":
 		startCatalogIndexer()
 	default:
-		fmt.Print("Unknown command\n")
+		fmt.Printf("Unknown command: %s\n", command)
 	}
 }
