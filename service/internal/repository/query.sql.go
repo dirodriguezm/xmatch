@@ -7,6 +7,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 )
 
@@ -75,6 +76,51 @@ func (q *Queries) GetAllObjects(ctx context.Context) ([]Mastercat, error) {
 			&i.Ra,
 			&i.Dec,
 			&i.Cat,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllwise = `-- name: GetAllwise :many
+SELECT id, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, j_m_2mass, j_msig_2mass, h_m_2mass, h_msig_2mass, k_m_2mass, k_msig_2mass
+FROM allwise
+WHERE id = ?
+`
+
+func (q *Queries) GetAllwise(ctx context.Context, id string) ([]Allwise, error) {
+	rows, err := q.db.QueryContext(ctx, getAllwise, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Allwise
+	for rows.Next() {
+		var i Allwise
+		if err := rows.Scan(
+			&i.ID,
+			&i.W1mpro,
+			&i.W1sigmpro,
+			&i.W2mpro,
+			&i.W2sigmpro,
+			&i.W3mpro,
+			&i.W3sigmpro,
+			&i.W4mpro,
+			&i.W4sigmpro,
+			&i.JM2mass,
+			&i.JMsig2mass,
+			&i.HM2mass,
+			&i.HMsig2mass,
+			&i.KM2mass,
+			&i.KMsig2mass,
 		); err != nil {
 			return nil, err
 		}
@@ -167,6 +213,53 @@ func (q *Queries) GetObjectsFromCatalog(ctx context.Context, arg GetObjectsFromC
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertAllwise = `-- name: InsertAllwise :exec
+INSERT INTO allwise (
+	id, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, J_m_2mass, J_msig_2mass, H_m_2mass, H_msig_2mass, K_m_2mass, K_msig_2mass
+) VALUES (
+	?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+)
+`
+
+type InsertAllwiseParams struct {
+	ID         string
+	W1mpro     sql.NullFloat64
+	W1sigmpro  sql.NullFloat64
+	W2mpro     sql.NullFloat64
+	W2sigmpro  sql.NullFloat64
+	W3mpro     sql.NullFloat64
+	W3sigmpro  sql.NullFloat64
+	W4mpro     sql.NullFloat64
+	W4sigmpro  sql.NullFloat64
+	JM2mass    sql.NullFloat64
+	JMsig2mass sql.NullFloat64
+	HM2mass    sql.NullFloat64
+	HMsig2mass sql.NullFloat64
+	KM2mass    sql.NullFloat64
+	KMsig2mass sql.NullFloat64
+}
+
+func (q *Queries) InsertAllwise(ctx context.Context, arg InsertAllwiseParams) error {
+	_, err := q.db.ExecContext(ctx, insertAllwise,
+		arg.ID,
+		arg.W1mpro,
+		arg.W1sigmpro,
+		arg.W2mpro,
+		arg.W2sigmpro,
+		arg.W3mpro,
+		arg.W3sigmpro,
+		arg.W4mpro,
+		arg.W4sigmpro,
+		arg.JM2mass,
+		arg.JMsig2mass,
+		arg.HM2mass,
+		arg.HMsig2mass,
+		arg.KM2mass,
+		arg.KMsig2mass,
+	)
+	return err
 }
 
 const insertCatalog = `-- name: InsertCatalog :one

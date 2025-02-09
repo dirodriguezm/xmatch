@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
+	allwise_metadata "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata/allwise"
 	reader_factory "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/factory"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
@@ -100,20 +102,30 @@ func BuildIndexerContainer() container.Container {
 
 	// Register indexer
 	writerInput := make(chan indexer.WriterInput[repository.ParquetMastercat])
-	ctr.Singleton(func(src *source.Source, cfg *config.Config) *indexer.Indexer {
-		idx, err := indexer.New(src, readerResults["indexer"], writerInput, cfg.CatalogIndexer.Indexer)
+	ctr.Singleton(func(src *source.Source, cfg *config.Config) *mastercat_indexer.IndexerActor {
+		actor, err := mastercat_indexer.New(src, readerResults["indexer"], writerInput, cfg.CatalogIndexer.Indexer)
 		if err != nil {
 			panic(err)
 		}
-		return idx
+		return actor
 	})
 
-	// Register indexer writer
+	// Register metadata indexer
+	// TODO: choose between AllwiseMetadata or other metadata struct
+	writerInputMetadata := make(chan indexer.WriterInput[repository.AllwiseMetadata])
+	ctr.Singleton(func(src *source.Source, cfg *config.Config) *allwise_metadata.IndexerActor {
+		if !cfg.CatalogIndexer.Source.Metadata {
+			return nil
+		}
+		actor := allwise_metadata.New(readerResults["metadata"], writerInputMetadata)
+		return actor
+	})
+
+	// Register mastercat indexer writer
 	ctr.Singleton(func(
 		cfg *config.Config,
 		repo conesearch.Repository,
 		src *source.Source,
-		db *sql.DB,
 	) indexer.Writer[repository.ParquetMastercat] {
 		if cfg.CatalogIndexer.IndexerWriter == nil {
 			panic("Indexer writer not configured")
@@ -130,6 +142,32 @@ func BuildIndexerContainer() container.Container {
 			return w
 		default:
 			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.IndexerWriter.Type)
+			panic("Writer type not allowed")
+		}
+	})
+
+	// Register metadata writer
+	ctr.Singleton(func(
+		cfg *config.Config,
+		repo conesearch.Repository,
+		src *source.Source,
+	) indexer.Writer[repository.AllwiseMetadata] {
+		if cfg.CatalogIndexer.MetadataWriter == nil {
+			slog.Info("Skipping registration for Allwise metadata writer. Metadata writer not configured")
+			return nil
+		}
+		switch cfg.CatalogIndexer.IndexerWriter.Type {
+		case "parquet":
+			w, err := parquet_writer.NewParquetWriter(writerInputMetadata, make(chan bool), cfg.CatalogIndexer.MetadataWriter)
+			if err != nil {
+				panic(err)
+			}
+			return w
+		case "sqlite":
+			w := sqlite_writer.NewSqliteWriter(repo, writerInputMetadata, make(chan bool), context.TODO(), src)
+			return w
+		default:
+			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.MetadataWriter.Type)
 			panic("Writer type not allowed")
 		}
 	})
