@@ -16,13 +16,13 @@ func TestStart(t *testing.T) {
 	actor.Start()
 	rows := make([]repository.InputSchema, 10)
 	for i := 0; i < 10; i++ {
-		designation := "test"
+		source_id := "test"
 		w1mpro := 1.0
 		w1sigmpro := 1.0
 		w2mpro := 2.0
 		w2sigmpro := 2.0
 		rows[i] = &repository.AllwiseInputSchema{
-			Designation: &designation,
+			Source_id: &source_id,
 			W1mpro:      &w1mpro,
 			W1sigmpro:   &w1sigmpro,
 			W2mpro:      &w2mpro,
@@ -39,7 +39,7 @@ func TestStart(t *testing.T) {
 		require.NoError(t, msg.Error)
 		require.Len(t, msg.Rows, 10)
 		for i := 0; i < 10; i++ {
-			require.Equal(t, "test", *msg.Rows[i].Designation)
+			require.Equal(t, "test", *msg.Rows[i].Source_id)
 			require.Equal(t, 1.0, *msg.Rows[i].W1mpro)
 			require.Equal(t, 1.0, *msg.Rows[i].W1sigmpro)
 			require.Equal(t, 2.0, *msg.Rows[i].W2mpro)

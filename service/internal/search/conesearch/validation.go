@@ -75,7 +75,7 @@ func ValidateNneighbor(nneighbor int) error {
 }
 
 func ValidateCatalog(catalog string) error {
-	available := []string{"vlass", "ztf", "wise", "all"}
+	available := []string{"vlass", "ztf", "allwise", "all"}
 	cat := strings.ToLower(catalog)
 	if !slices.Contains(available, cat) {
 		err := NewValidationError("Catalog not available", catalog, "catalog")

@@ -35,8 +35,8 @@ func NearestNeighborSearch(objects []repository.Mastercat, ra, dec, radius float
 	// now we need to check that distance between nearest objects and center is actually lower than radius
 	result := []repository.Mastercat{}
 	for _, obj := range nearObjs {
-		dist := euclideanDistance(obj, &points.Point2D{X: ra, Y: dec})
-		if dist > radius/3600 {
+		dist := haversineDistance(obj, &points.Point2D{X: ra, Y: dec})
+                if dist > radius {
 			continue
 		}
 		result = append(result, obj.(knnObject).Obj)
@@ -51,4 +51,33 @@ func euclideanDistance(p1, p2 kdtree.Point) float64 {
 	}
 	dsquared := math.Pow(p2.Dimension(0)-p1.Dimension(0), 2) + math.Pow(p2.Dimension(1)-p1.Dimension(1), 2)
 	return math.Sqrt(dsquared)
+}
+
+// Return the distance in arcsec, between two points in a sphere, using the Haversine Formula
+func haversineDistance(p1, p2 kdtree.Point) float64 {
+    if p1.Dimensions() != 2 || p2.Dimensions() != 2 {
+        err := fmt.Errorf("Can't calculate distance between points of dimension %v and %v", p1.Dimensions(), p2.Dimensions())
+        panic(err)
+    }
+
+    ra1 := p1.Dimension(0)
+    dec1 := p1.Dimension(1)
+    ra2 := p2.Dimension(0)
+    dec2 := p2.Dimension(1)
+
+    ra1Rad := ra1 * math.Pi / 180.0
+    dec1Rad := dec1 * math.Pi / 180.0
+    ra2Rad := ra2 * math.Pi / 180.0
+    dec2Rad := dec2 * math.Pi / 180.0
+
+    deltaRA := ra2Rad - ra1Rad
+    deltaDec := dec2Rad - dec1Rad
+
+    a := math.Sin(deltaDec/2)*math.Sin(deltaDec/2) +
+         math.Cos(dec1Rad)*math.Cos(dec2Rad)*
+         math.Sin(deltaRA/2)*math.Sin(deltaRA/2)
+
+    c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+    return c * 180.0 / math.Pi * 3600.0
 }
