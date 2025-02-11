@@ -8,7 +8,7 @@ type InputSchema interface {
 }
 
 type AllwiseInputSchema struct {
-	Designation  *string  `parquet:"name=designation, type=BYTE_ARRAY"`
+	Source_id  *string  `parquet:"name=source_id, type=BYTE_ARRAY"`
 	Ra           *float64 `parquet:"name=ra, type=DOUBLE"`
 	Dec          *float64 `parquet:"name=dec, type=DOUBLE"`
 	W1mpro       *float64 `parquet:"name=w1mpro, type=DOUBLE"`
@@ -31,7 +31,7 @@ func (a *AllwiseInputSchema) ToMastercat() ParquetMastercat {
 	ipix := int64(0)
 	catalog := "allwise"
 	return ParquetMastercat{
-		ID:   a.Designation,
+		ID:   a.Source_id,
 		Ipix: &ipix,
 		Ra:   a.Ra,
 		Dec:  a.Dec,
@@ -41,7 +41,7 @@ func (a *AllwiseInputSchema) ToMastercat() ParquetMastercat {
 
 func (a *AllwiseInputSchema) ToMetadata() AllwiseMetadata {
 	return AllwiseMetadata{
-		Designation:  a.Designation,
+		Source_id:  a.Source_id,
 		W1mpro:       a.W1mpro,
 		W1sigmpro:    a.W1sigmpro,
 		W2mpro:       a.W2mpro,
@@ -61,8 +61,8 @@ func (a *AllwiseInputSchema) ToMetadata() AllwiseMetadata {
 
 func (a *AllwiseInputSchema) SetField(name string, val any) {
 	switch n := strings.ToLower(name); n {
-	case "designation":
-		a.Designation = val.(*string)
+	case "source_id":
+		a.Source_id = val.(*string)
 	case "ra":
 		a.Ra = val.(*float64)
 	case "dec":

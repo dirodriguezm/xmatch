@@ -3,7 +3,7 @@ package repository
 import "database/sql"
 
 type AllwiseMetadata struct {
-	Designation  *string  `parquet:"name=designation, type=BYTE_ARRAY"`
+	Source_id  *string  `parquet:"name=source_id, type=BYTE_ARRAY"`
 	W1mpro       *float64 `parquet:"name=w1mpro, type=DOUBLE"`
 	W1sigmpro    *float64 `parquet:"name=w1sigmpro, type=DOUBLE"`
 	W2mpro       *float64 `parquet:"name=w2mpro, type=DOUBLE"`
@@ -22,7 +22,7 @@ type AllwiseMetadata struct {
 
 func (m AllwiseMetadata) ToAllwise() Allwise {
 	return Allwise{
-		ID:         *m.Designation,
+		ID:         *m.Source_id,
 		W1mpro:     sql.NullFloat64{Float64: *m.W1mpro, Valid: m.W1mpro != nil},
 		W1sigmpro:  sql.NullFloat64{Float64: *m.W1sigmpro, Valid: m.W1sigmpro != nil},
 		W2mpro:     sql.NullFloat64{Float64: *m.W2mpro, Valid: m.W2mpro != nil},
@@ -42,7 +42,7 @@ func (m AllwiseMetadata) ToAllwise() Allwise {
 
 func (m AllwiseMetadata) ToInsertParams() InsertAllwiseParams {
 	return InsertAllwiseParams{
-		ID:         *m.Designation,
+		ID:         *m.Source_id,
 		W1mpro:     sql.NullFloat64{Float64: nilOr0(m.W1mpro), Valid: m.W1mpro != nil},
 		W1sigmpro:  sql.NullFloat64{Float64: nilOr0(m.W1sigmpro), Valid: m.W1sigmpro != nil},
 		W2mpro:     sql.NullFloat64{Float64: nilOr0(m.W2mpro), Valid: m.W2mpro != nil},
