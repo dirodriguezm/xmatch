@@ -8,7 +8,7 @@ import (
 )
 
 func TestAllwiseInputSchemaToMastercat(t *testing.T) {
-	designation := "designation"
+	source_id := "source_id"
 	ra := 0.0
 	dec := 0.0
 	catalog := "allwise"
@@ -20,7 +20,7 @@ func TestAllwiseInputSchemaToMastercat(t *testing.T) {
 	}
 	require.Implements(t, (*InputSchema)(nil), a)
 	expected := ParquetMastercat{
-		ID:   &designation,
+		ID:   &source_id,
 		Ra:   &ra,
 		Dec:  &dec,
 		Cat:  &catalog,
@@ -31,7 +31,7 @@ func TestAllwiseInputSchemaToMastercat(t *testing.T) {
 }
 
 func TestAllwiseInputSchema_SetField(t *testing.T) {
-	design := "designation"
+	source := "source_id"
 	ra := float64(0.0)
 	dec := float64(0.0)
 	tests := []struct {
@@ -39,7 +39,7 @@ func TestAllwiseInputSchema_SetField(t *testing.T) {
 		name string
 		val  any
 	}{
-		{"Designation", &design},
+		{"Source_id", &source},
 		{"Ra", &ra},
 		{"Dec", &dec},
 	}

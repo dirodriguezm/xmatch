@@ -52,13 +52,13 @@ func TestStart_Mastercat(t *testing.T) {
 }
 
 func TestStart_Allwise(t *testing.T) {
-	designation := "test"
+	source_id := "test"
 	w1mpro := 1.0
 	w1sigmpro := 1.0
 	w2mpro := 2.0
 	w2sigmpro := 2.0
 	allwise := repository.AllwiseMetadata{
-		Designation: &designation,
+		Source_id: &source_id,
 		W1mpro:      &w1mpro,
 		W1sigmpro:   &w1sigmpro,
 		W2mpro:      &w2mpro,
