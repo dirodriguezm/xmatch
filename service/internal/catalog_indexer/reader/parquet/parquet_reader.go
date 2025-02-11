@@ -158,7 +158,7 @@ func convertToInputSchema[T any](records []T, catalogName string) []repository.I
 		switch catalogName {
 		case "allwise":
 			inputSchemas[i] = &repository.AllwiseInputSchema{}
-			inputSchemas[i].SetField("Designation", elem.FieldByName("Designation").Interface())
+			inputSchemas[i].SetField("Source_id", elem.FieldByName("Source_id").Interface())
 			inputSchemas[i].SetField("Ra", elem.FieldByName("Ra").Interface())
 			inputSchemas[i].SetField("Dec", elem.FieldByName("Dec").Interface())
 			inputSchemas[i].SetField("W1mpro", elem.FieldByName("W1mpro").Interface())
