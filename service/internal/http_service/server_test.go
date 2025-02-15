@@ -2,9 +2,9 @@ package httpservice_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"maps"
 	"net/http"
 	"net/http/httptest"
@@ -12,19 +12,36 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golobby/container/v3"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
 
 var router *gin.Engine
+var ctr container.Container
+
+func beforeTest(t *testing.T) {
+	// clear database
+	var db *sql.DB
+	ctr.Resolve(&db)
+
+	_, err := db.Exec("DELETE FROM mastercat;")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = db.Exec("DELETE FROM allwise;")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestMain(m *testing.M) {
 	os.Setenv("LOG_LEVEL", "debug")
@@ -32,8 +49,7 @@ func TestMain(m *testing.M) {
 	depth := 5
 	rootPath, err := utils.FindRootModulePath(depth)
 	if err != nil {
-		slog.Error("could not find root module path", "depth", depth)
-		panic(err)
+		panic(fmt.Errorf("could not find root module path: %w", err))
 	}
 
 	// remove test database if exist
@@ -43,15 +59,13 @@ func TestMain(m *testing.M) {
 	// set db connection environment variable
 	err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
 	if err != nil {
-		slog.Error("could not set environment variable")
-		panic(err)
+		panic(fmt.Errorf("could not set environment variable: %w", err))
 	}
 
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "server_test_*")
 	if err != nil {
-		slog.Error("could not make temp dir")
-		panic(err)
+		panic(fmt.Errorf("could not make temp dir: %w", err))
 	}
 	configPath := filepath.Join(tmpDir, "config.yaml")
 	config := `
@@ -60,28 +74,24 @@ service:
     url: "file:%s"
 `
 	config = fmt.Sprintf(config, dbFile)
-	err = os.WriteFile(configPath, []byte(config), 0644)
+	err = test_helpers.WriteConfigFile(configPath, config)
 	if err != nil {
-		slog.Error("could not write config file")
 		panic(err)
 	}
-	os.Setenv("CONFIG_PATH", configPath)
 
 	// create tables
-	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
+	err = test_helpers.Migrate(dbFile, rootPath)
 	if err != nil {
-		slog.Error("Could not create Migrate instance")
-		panic(err)
-	}
-	err = mig.Up()
-	if err != nil {
-		slog.Error("Error during migrations", "error", err)
 		panic(err)
 	}
 
-	test_helpers.RegisterCatalogsInDB(context.Background(), dbFile)
+	// register catalogs
+	err = test_helpers.RegisterCatalogsInDB(context.Background(), dbFile)
+	if err != nil {
+		panic(err)
+	}
 
-	ctr := di.BuildServiceContainer()
+	ctr = di.BuildServiceContainer()
 
 	// initialize server
 	var server *httpservice.HttpServer
@@ -134,8 +144,8 @@ func TestConesearchValidation(t *testing.T) {
 			"Reason":   "Catalog not available",
 			"ErrValue": "a",
 		}},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=wise": {200, nil},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=wise&nneighbor=-1": {400, map[string]string{
+		"/conesearch?ra=1&dec=1&radius=1&catalog=allwise": {200, nil},
+		"/conesearch?ra=1&dec=1&radius=1&catalog=allwise&nneighbor=-1": {400, map[string]string{
 			"Field":    "nneighbor",
 			"ErrValue": "-1",
 			"Reason":   "Nneighbor must be a positive integer",
@@ -147,7 +157,7 @@ func TestConesearchValidation(t *testing.T) {
 		req, _ := http.NewRequest("GET", testPath, nil)
 		router.ServeHTTP(w, req)
 
-		require.Equal(t, expected.Status, w.Code)
+		require.Equalf(t, expected.Status, w.Code, "On %s", testPath)
 		if w.Code == 200 {
 			continue
 		}
@@ -159,5 +169,99 @@ func TestConesearchValidation(t *testing.T) {
 		require.Truef(t, maps.EqualFunc(expected.Error, result, func(a string, b interface{}) bool {
 			return a == b.(string)
 		}), "On %s: values are not equal\n Expected: %v\nReceived: %v", testPath, expected.Error, result)
+	}
+}
+
+func TestConesearch(t *testing.T) {
+	beforeTest(t)
+
+	// insert allwise mastercat
+	var db *sql.DB
+	ctr.Resolve(&db)
+	err := test_helpers.InsertAllwiseMastercat(100, db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 10; i++ {
+		w := httptest.NewRecorder()
+		ra := i
+		dec := i
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/conesearch?ra=%d&dec=%d&radius=1&catalog=allwise", ra, dec), nil)
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+
+		var result []repository.Mastercat
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("could not unmarshal response: %v\n%v\nOn ra: %v, dec: %v", err, w.Body.String(), ra, dec)
+		}
+		require.GreaterOrEqualf(t, len(result), 1, "On ra=%d, dec=%d", ra, dec)
+	}
+}
+
+func TestConesearch_NoResult(t *testing.T) {
+	beforeTest(t)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/conesearch?ra=1&dec=1&radius=1&catalog=allwise", nil)
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var result []repository.Mastercat
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	require.Len(t, result, 0)
+}
+
+func TestConesearch_NNeighbor(t *testing.T) {
+	beforeTest(t)
+
+	// insert allwise mastercat
+	var db *sql.DB
+	ctr.Resolve(&db)
+	err := test_helpers.InsertAllwiseMastercat(1, db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repo := repository.New(db)
+	mapper, err := healpix.NewHEALPixMapper(18, healpix.Nest)
+	if err != nil {
+		t.Fatal(fmt.Errorf("could not create healpix mapper: %w", err))
+	}
+	ctx := context.Background()
+
+	point := healpix.RADec(0.0000001, 0)
+	ipix := mapper.PixelAt(point)
+	_, err = repo.InsertObject(ctx, repository.InsertObjectParams{
+		ID:   "allwise-1",
+		Ra:   0.0000001,
+		Dec:  0,
+		Ipix: ipix,
+		Cat:  "allwise",
+	})
+	point = healpix.RADec(0.0000002, 0)
+	ipix = mapper.PixelAt(point)
+	_, err = repo.InsertObject(ctx, repository.InsertObjectParams{
+		ID:   "allwise-2",
+		Ipix: ipix,
+		Ra:   0.0000002,
+		Dec:  0,
+		Cat:  "allwise",
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/conesearch?ra=0&dec=0&radius=1&catalog=allwise&nneighbor=5", nil)
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var result []repository.Mastercat
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	require.Len(t, result, 3)
+	for i := 0; i < 3; i++ {
+		require.Equal(t, fmt.Sprintf("allwise-%d", i), result[i].ID)
 	}
 }

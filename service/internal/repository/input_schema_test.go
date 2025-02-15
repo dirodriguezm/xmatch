@@ -14,9 +14,9 @@ func TestAllwiseInputSchemaToMastercat(t *testing.T) {
 	catalog := "allwise"
 	ipix := int64(0)
 	a := &AllwiseInputSchema{
-		Designation: &designation,
-		Ra:          &ra,
-		Dec:         &dec,
+		Source_id: &source_id,
+		Ra:        &ra,
+		Dec:       &dec,
 	}
 	require.Implements(t, (*InputSchema)(nil), a)
 	expected := ParquetMastercat{
