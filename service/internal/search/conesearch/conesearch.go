@@ -22,7 +22,7 @@ type Repository interface {
 	InsertCatalog(context.Context, repository.InsertCatalogParams) (repository.Catalog, error)
 	GetDbInstance() *sql.DB
 	InsertAllwise(context.Context, repository.InsertAllwiseParams) error
-	GetAllwise(context.Context, string) ([]repository.Allwise, error)
+	GetAllwise(context.Context, string) (repository.Allwise, error)
 	BulkInsertAllwise(context.Context, *sql.DB, []repository.InsertAllwiseParams) error
 }
 

@@ -90,49 +90,33 @@ func (q *Queries) GetAllObjects(ctx context.Context) ([]Mastercat, error) {
 	return items, nil
 }
 
-const getAllwise = `-- name: GetAllwise :many
+const getAllwise = `-- name: GetAllwise :one
 SELECT id, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, j_m_2mass, j_msig_2mass, h_m_2mass, h_msig_2mass, k_m_2mass, k_msig_2mass
 FROM allwise
 WHERE id = ?
 `
 
-func (q *Queries) GetAllwise(ctx context.Context, id string) ([]Allwise, error) {
-	rows, err := q.db.QueryContext(ctx, getAllwise, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Allwise
-	for rows.Next() {
-		var i Allwise
-		if err := rows.Scan(
-			&i.ID,
-			&i.W1mpro,
-			&i.W1sigmpro,
-			&i.W2mpro,
-			&i.W2sigmpro,
-			&i.W3mpro,
-			&i.W3sigmpro,
-			&i.W4mpro,
-			&i.W4sigmpro,
-			&i.JM2mass,
-			&i.JMsig2mass,
-			&i.HM2mass,
-			&i.HMsig2mass,
-			&i.KM2mass,
-			&i.KMsig2mass,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) GetAllwise(ctx context.Context, id string) (Allwise, error) {
+	row := q.db.QueryRowContext(ctx, getAllwise, id)
+	var i Allwise
+	err := row.Scan(
+		&i.ID,
+		&i.W1mpro,
+		&i.W1sigmpro,
+		&i.W2mpro,
+		&i.W2sigmpro,
+		&i.W3mpro,
+		&i.W3sigmpro,
+		&i.W4mpro,
+		&i.W4sigmpro,
+		&i.JM2mass,
+		&i.JMsig2mass,
+		&i.HM2mass,
+		&i.HMsig2mass,
+		&i.KM2mass,
+		&i.KMsig2mass,
+	)
+	return i, err
 }
 
 const getCatalogs = `-- name: GetCatalogs :many

@@ -40,7 +40,7 @@ INSERT INTO allwise (
 	?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 );
 
--- name: GetAllwise :many
+-- name: GetAllwise :one
 SELECT *
 FROM allwise
 WHERE id = ?;

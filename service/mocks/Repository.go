@@ -238,24 +238,22 @@ func (_c *Repository_GetAllObjects_Call) RunAndReturn(run func(context.Context) 
 }
 
 // GetAllwise provides a mock function with given fields: _a0, _a1
-func (_m *Repository) GetAllwise(_a0 context.Context, _a1 string) ([]repository.Allwise, error) {
+func (_m *Repository) GetAllwise(_a0 context.Context, _a1 string) (repository.Allwise, error) {
 	ret := _m.Called(_a0, _a1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAllwise")
 	}
 
-	var r0 []repository.Allwise
+	var r0 repository.Allwise
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) ([]repository.Allwise, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (repository.Allwise, error)); ok {
 		return rf(_a0, _a1)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) []repository.Allwise); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) repository.Allwise); ok {
 		r0 = rf(_a0, _a1)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]repository.Allwise)
-		}
+		r0 = ret.Get(0).(repository.Allwise)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -286,12 +284,12 @@ func (_c *Repository_GetAllwise_Call) Run(run func(_a0 context.Context, _a1 stri
 	return _c
 }
 
-func (_c *Repository_GetAllwise_Call) Return(_a0 []repository.Allwise, _a1 error) *Repository_GetAllwise_Call {
+func (_c *Repository_GetAllwise_Call) Return(_a0 repository.Allwise, _a1 error) *Repository_GetAllwise_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Repository_GetAllwise_Call) RunAndReturn(run func(context.Context, string) ([]repository.Allwise, error)) *Repository_GetAllwise_Call {
+func (_c *Repository_GetAllwise_Call) RunAndReturn(run func(context.Context, string) (repository.Allwise, error)) *Repository_GetAllwise_Call {
 	_c.Call.Return(run)
 	return _c
 }
