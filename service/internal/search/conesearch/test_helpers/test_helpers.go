@@ -93,3 +93,31 @@ func InsertAllwiseMastercat(nobjects int, db *sql.DB) error {
 
 	return nil
 }
+
+func InsertAllwiseMetadata(nobjects int, db *sql.DB) error {
+	repo := repository.New(db)
+	for i := 0; i < nobjects; i++ {
+		metadata := repository.InsertAllwiseParams{
+			ID:         fmt.Sprintf("allwise-%d", i),
+			W1mpro:     sql.NullFloat64{Float64: 1.0, Valid: true},
+			W1sigmpro:  sql.NullFloat64{Float64: 0.1, Valid: true},
+			W2mpro:     sql.NullFloat64{Float64: 2.0, Valid: true},
+			W2sigmpro:  sql.NullFloat64{Float64: 0.2, Valid: true},
+			W3mpro:     sql.NullFloat64{Float64: 3.0, Valid: true},
+			W3sigmpro:  sql.NullFloat64{Float64: 0.3, Valid: true},
+			W4mpro:     sql.NullFloat64{Float64: 4.0, Valid: true},
+			W4sigmpro:  sql.NullFloat64{Float64: 0.4, Valid: true},
+			JM2mass:    sql.NullFloat64{Float64: 5.0, Valid: true},
+			JMsig2mass: sql.NullFloat64{Float64: 0.5, Valid: true},
+			HM2mass:    sql.NullFloat64{Float64: 6.0, Valid: true},
+			HMsig2mass: sql.NullFloat64{Float64: 0.6, Valid: true},
+			KM2mass:    sql.NullFloat64{Float64: 7.0, Valid: true},
+			KMsig2mass: sql.NullFloat64{Float64: 0.7, Valid: true},
+		}
+		err := repo.InsertAllwise(context.Background(), metadata)
+		if err != nil {
+			return fmt.Errorf("could not insert allwise metadata: %w", err)
+		}
+	}
+	return nil
+}

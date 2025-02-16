@@ -3,6 +3,7 @@ package di
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -10,6 +11,7 @@ import (
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -65,6 +67,11 @@ func BuildServiceContainer() container.Container {
 		return repository.New(db)
 	})
 
+	// the metadata.Repository is a subset of conesearch.Repository
+	ctr.Singleton(func(repo conesearch.Repository) metadata.Repository {
+		return repo
+	})
+
 	ctr.Singleton(func(r conesearch.Repository, cfg *config.Config) *conesearch.ConesearchService {
 		ctx := context.TODO()
 		catalogs, err := r.GetCatalogs(ctx)
@@ -85,16 +92,27 @@ func BuildServiceContainer() container.Container {
 		return con
 	})
 
-	ctr.Singleton(func(service *conesearch.ConesearchService) *httpservice.HttpServer {
-		server, err := httpservice.NewHttpServer(service)
+	ctr.Singleton(func(r metadata.Repository) *metadata.MetadataService {
+		service, err := metadata.NewMetadataService(r)
 		if err != nil {
-			slog.Error("Could not register HttpServer")
-			panic(err)
+			panic(fmt.Errorf("Could not create MetadataService: %w", err))
+		}
+		return service
+	})
+
+	ctr.Singleton(func(
+		conesearchService *conesearch.ConesearchService,
+		metadataService *metadata.MetadataService,
+	) *httpservice.HttpServer {
+		server, err := httpservice.NewHttpServer(conesearchService, metadataService)
+		if err != nil {
+			panic(fmt.Errorf("Could not register HttpServer: %w", err))
 		}
 		if server == nil {
 			panic("Server nil while registering HttpServer")
 		}
 		return server
 	})
+
 	return ctr
 }

@@ -1,24 +1,33 @@
 package httpservice
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 
 	"github.com/gin-gonic/gin"
 )
 
 type HttpServer struct {
 	conesearchService *conesearch.ConesearchService
+	metadataService   *metadata.MetadataService
 }
 
-func NewHttpServer(conesearchService *conesearch.ConesearchService) (*HttpServer, error) {
+func NewHttpServer(
+	conesearchService *conesearch.ConesearchService,
+	metadataService *metadata.MetadataService,
+) (*HttpServer, error) {
 	if conesearchService == nil {
 		return nil, fmt.Errorf("ConesearchService was nil while creating HttpServer")
 	}
-	return &HttpServer{conesearchService: conesearchService}, nil
+	if metadataService == nil {
+		return nil, fmt.Errorf("MetadataService was nil while creating HttpServer")
+	}
+	return &HttpServer{conesearchService: conesearchService, metadataService: metadataService}, nil
 }
 
 func (server *HttpServer) SetupServer() *gin.Engine {
@@ -27,6 +36,7 @@ func (server *HttpServer) SetupServer() *gin.Engine {
 		c.String(http.StatusOK, "pong")
 	})
 	r.GET("/conesearch", server.conesearchHandler)
+	r.GET("/metadata", server.metadataHandler)
 	r.SetTrustedProxies([]string{"localhost"})
 	return r
 }
@@ -71,6 +81,32 @@ func (server *HttpServer) conesearchHandler(c *gin.Context) {
 		} else {
 			c.Error(err)
 			c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
+		}
+		return
+	}
+	if len(result) == 0 {
+		c.Writer.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (server *HttpServer) metadataHandler(c *gin.Context) {
+	id := c.Query("id")
+	catalog := c.Query("catalog")
+
+	result, err := server.metadataService.FindByID(c.Request.Context(), id, catalog)
+	if err != nil {
+		if errors.As(err, &metadata.ValidationError{}) {
+			c.JSON(http.StatusBadRequest, err)
+		} else if errors.Is(err, sql.ErrNoRows) {
+			c.Writer.WriteHeader(http.StatusNoContent)
+		} else if errors.As(err, &metadata.ArgumentError{}) {
+			c.JSON(http.StatusInternalServerError, err)
+		} else {
+			c.Error(err)
+			c.JSON(http.StatusInternalServerError, "Could not execute metadata query")
 		}
 		return
 	}
