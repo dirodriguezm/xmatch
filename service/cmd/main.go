@@ -16,6 +16,13 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
+// @title			CrossWave HTTP API
+// @version		1.0
+// @description	API for the CrossWave Xmatch service. This service allows to search for objects in a given region and to retrieve metadata from the catalogs.
+// @host			localhost:8080
+// @BasePath		/v1
+// @contact.name	Diego Rodriguez Mancini
+// @contact.email	diegorodriguezmancini@gmail.com
 func startHttpServer() {
 	ctr := di.BuildServiceContainer()
 	var httpServer *httpservice.HttpServer
