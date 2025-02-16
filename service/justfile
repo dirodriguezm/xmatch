@@ -25,3 +25,6 @@ clean-all:
 
 clean-db db:
 	rm {{db}}.db
+
+docs:
+	swag init --dir ./ --generalInfo ./cmd/main.go --output ./docs

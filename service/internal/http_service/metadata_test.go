@@ -22,7 +22,7 @@ func TestMetadata_FindByID(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		recorder := httptest.NewRecorder()
-		endpoint := fmt.Sprintf("/metadata?id=allwise-%v&catalog=allwise", i)
+		endpoint := fmt.Sprintf("/v1/metadata?id=allwise-%v&catalog=allwise", i)
 		req, _ := http.NewRequest("GET", endpoint, nil)
 		router.ServeHTTP(recorder, req)
 
@@ -39,7 +39,7 @@ func TestMetadata_NoResult(t *testing.T) {
 	beforeTest(t)
 
 	recorder := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/metadata?id=allwise-1&catalog=allwise", nil)
+	req, _ := http.NewRequest("GET", "/v1/metadata?id=allwise-1&catalog=allwise", nil)
 	router.ServeHTTP(recorder, req)
 	require.Equal(t, http.StatusNoContent, recorder.Code)
 }
@@ -48,7 +48,7 @@ func TestMetadata_Validation(t *testing.T) {
 	beforeTest(t)
 
 	recorder := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/metadata?id=allwise-1&catalog=invalid", nil)
+	req, _ := http.NewRequest("GET", "/v1/metadata?id=allwise-1&catalog=invalid", nil)
 	router.ServeHTTP(recorder, req)
 	require.Equal(t, http.StatusBadRequest, recorder.Code)
 }

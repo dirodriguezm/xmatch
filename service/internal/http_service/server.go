@@ -8,7 +8,10 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
+	_ "github.com/dirodriguezm/xmatch/service/docs"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,8 +38,13 @@ func (server *HttpServer) SetupServer() *gin.Engine {
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})
-	r.GET("/conesearch", server.conesearchHandler)
-	r.GET("/metadata", server.metadataHandler)
+
+	v1 := r.Group("/v1")
+	{
+		v1.GET("/conesearch", server.conesearchHandler)
+		v1.GET("/metadata", server.metadataHandler)
+	}
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.SetTrustedProxies([]string{"localhost"})
 	return r
 }
@@ -46,6 +54,23 @@ func (server *HttpServer) InitServer() {
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
 
+// Search for objects in a given region
+//
+//	@Summary		Search for objects in a given region
+//	@Description	Search for objects in a given region using ra, dec and radius
+//	@Tags			conesearch
+//	@Accept			json
+//	@Produce		json
+//	@Param			ra			query		string	true	"Right ascension in degrees"
+//	@Param			dec			query		string	true	"Declination in degrees"
+//	@Param			radius		query		string	true	"Radius in degrees"
+//	@Param			catalog		query		string	false	"Catalog to search in"
+//	@Param			nneighbor	query		string	false	"Number of neighbors to return"
+//	@Success		200			{array}		repository.Mastercat
+//	@Success		204			{string}	string
+//	@Failure		400			{object}	conesearch.ValidationError
+//	@Failure		500			{string}	string
+//	@Router			/conesearch [get]
 func (server *HttpServer) conesearchHandler(c *gin.Context) {
 	ra := c.Query("ra")
 	dec := c.Query("dec")
@@ -92,6 +117,20 @@ func (server *HttpServer) conesearchHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// Find metadata by id
+//
+//	@Summary		Search for metadata by id
+//	@Description	Search for metadata by id
+//	@Tags			metadata
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		query		string	true	"ID to search for"
+//	@Param			catalog	query		string	true	"Catalog to search in"
+//	@Success		200		{object}	repository.AllwiseMetadata
+//	@Success		204		{string}	string
+//	@Failure		400		{object}	metadata.ValidationError
+//	@Failure		500		{string}	string
+//	@Router			/metadata [get]
 func (server *HttpServer) metadataHandler(c *gin.Context) {
 	id := c.Query("id")
 	catalog := c.Query("catalog")

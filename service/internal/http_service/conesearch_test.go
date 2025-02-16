@@ -23,29 +23,29 @@ func TestConesearch_Validation(t *testing.T) {
 		Error  map[string]string
 	}
 	testCases := map[string]Expected{
-		"/conesearch": {400, map[string]string{
+		"/v1/conesearch": {400, map[string]string{
 			"Field":    "RA",
 			"Reason":   "Could not parse float.",
 			"ErrValue": "",
 		}},
-		"/conesearch?ra=1": {400, map[string]string{
+		"/v1/conesearch?ra=1": {400, map[string]string{
 			"Field":    "Dec",
 			"Reason":   "Could not parse float.",
 			"ErrValue": "",
 		}},
-		"/conesearch?ra=1&dec=1": {400, map[string]string{
+		"/v1/conesearch?ra=1&dec=1": {400, map[string]string{
 			"Field":    "radius",
 			"Reason":   "Could not parse float.",
 			"ErrValue": "",
 		}},
-		"/conesearch?ra=1&dec=1&radius=1": {204, nil},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=a": {400, map[string]string{
+		"/v1/conesearch?ra=1&dec=1&radius=1": {204, nil},
+		"/v1/conesearch?ra=1&dec=1&radius=1&catalog=a": {400, map[string]string{
 			"Field":    "catalog",
 			"Reason":   "Catalog not available",
 			"ErrValue": "a",
 		}},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=allwise": {204, nil},
-		"/conesearch?ra=1&dec=1&radius=1&catalog=allwise&nneighbor=-1": {400, map[string]string{
+		"/v1/conesearch?ra=1&dec=1&radius=1&catalog=allwise": {204, nil},
+		"/v1/conesearch?ra=1&dec=1&radius=1&catalog=allwise&nneighbor=-1": {400, map[string]string{
 			"Field":    "nneighbor",
 			"ErrValue": "-1",
 			"Reason":   "Nneighbor must be a positive integer",
@@ -87,7 +87,7 @@ func TestConesearch(t *testing.T) {
 		w := httptest.NewRecorder()
 		ra := i
 		dec := i
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/conesearch?ra=%d&dec=%d&radius=1&catalog=allwise", ra, dec), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/conesearch?ra=%d&dec=%d&radius=1&catalog=allwise", ra, dec), nil)
 		router.ServeHTTP(w, req)
 		require.Equal(t, http.StatusOK, w.Code)
 
@@ -103,7 +103,7 @@ func TestConesearch_NoResult(t *testing.T) {
 	beforeTest(t)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/conesearch?ra=1&dec=1&radius=1&catalog=allwise", nil)
+	req, _ := http.NewRequest("GET", "/v1/conesearch?ra=1&dec=1&radius=1&catalog=allwise", nil)
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusNoContent, w.Code)
 }
@@ -146,7 +146,7 @@ func TestConesearch_NNeighbor(t *testing.T) {
 	})
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/conesearch?ra=0&dec=0&radius=1&catalog=allwise&nneighbor=5", nil)
+	req, _ := http.NewRequest("GET", "/v1/conesearch?ra=0&dec=0&radius=1&catalog=allwise&nneighbor=5", nil)
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)
 

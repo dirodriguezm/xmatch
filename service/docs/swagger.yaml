@@ -1,0 +1,168 @@
+basePath: /v1
+definitions:
+  conesearch.ValidationError:
+    properties:
+      errValue:
+        type: string
+      field:
+        type: string
+      reason:
+        type: string
+    type: object
+  metadata.ValidationError:
+    properties:
+      field:
+        type: string
+      reason:
+        type: string
+      value:
+        type: string
+    type: object
+  repository.AllwiseMetadata:
+    properties:
+      h_m_2mass:
+        type: number
+      h_msig_2mass:
+        type: number
+      j_m_2mass:
+        type: number
+      j_msig_2mass:
+        type: number
+      k_m_2mass:
+        type: number
+      k_msig_2mass:
+        type: number
+      source_id:
+        type: string
+      w1mpro:
+        type: number
+      w1sigmpro:
+        type: number
+      w2mpro:
+        type: number
+      w2sigmpro:
+        type: number
+      w3mpro:
+        type: number
+      w3sigmpro:
+        type: number
+      w4mpro:
+        type: number
+      w4sigmpro:
+        type: number
+    type: object
+  repository.Mastercat:
+    properties:
+      cat:
+        type: string
+      dec:
+        type: number
+      id:
+        type: string
+      ipix:
+        type: integer
+      ra:
+        type: number
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: diegorodriguezmancini@gmail.com
+    name: Diego Rodriguez Mancini
+  description: API for the CrossWave Xmatch service. This service allows to search
+    for objects in a given region and to retrieve metadata from the catalogs.
+  title: CrossWave HTTP API
+  version: "1.0"
+paths:
+  /conesearch:
+    get:
+      consumes:
+      - application/json
+      description: Search for objects in a given region using ra, dec and radius
+      parameters:
+      - description: Right ascension in degrees
+        in: query
+        name: ra
+        required: true
+        type: string
+      - description: Declination in degrees
+        in: query
+        name: dec
+        required: true
+        type: string
+      - description: Radius in degrees
+        in: query
+        name: radius
+        required: true
+        type: string
+      - description: Catalog to search in
+        in: query
+        name: catalog
+        type: string
+      - description: Number of neighbors to return
+        in: query
+        name: nneighbor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Mastercat'
+            type: array
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/conesearch.ValidationError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Search for objects in a given region
+      tags:
+      - conesearch
+  /metadata:
+    get:
+      consumes:
+      - application/json
+      description: Search for metadata by id
+      parameters:
+      - description: ID to search for
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Catalog to search in
+        in: query
+        name: catalog
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/repository.AllwiseMetadata'
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/metadata.ValidationError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Search for metadata by id
+      tags:
+      - metadata
+swagger: "2.0"
