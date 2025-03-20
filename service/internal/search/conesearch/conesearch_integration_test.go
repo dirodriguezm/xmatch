@@ -97,7 +97,7 @@ func TestConesearch(t *testing.T) {
 
 	objects := []repository.InsertObjectParams{
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
-		{ID: "C", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
+		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
 	var repo conesearch.Repository
 	err = ctr.Resolve(&repo)
@@ -113,4 +113,65 @@ func TestConesearch(t *testing.T) {
 		t.Error(err)
 	}
 	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result))
+
+	CleanDB(t, repo)
+}
+
+func TestBulkConesearch(t *testing.T) {
+	// initialize service
+	var service *conesearch.ConesearchService
+	err := ctr.Resolve(&service)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// insert objects
+	objects := []repository.InsertObjectParams{
+		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
+		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
+	}
+	var repo conesearch.Repository
+	err = ctr.Resolve(&repo)
+	if err != nil {
+		t.Error(err)
+	}
+	for _, obj := range objects {
+		repo.InsertObject(context.Background(), obj)
+	}
+
+	// set up test cases
+	type testCase struct {
+		ra        []float64
+		dec       []float64
+		radius    float64
+		nneighbor int
+		expected  []string
+	}
+	testCases := []testCase{
+		{ra: []float64{0}, dec: []float64{0}, radius: 1, nneighbor: 10, expected: []string{"A"}},
+		{ra: []float64{0, 1, 2}, dec: []float64{0, 1, 2}, radius: 1, nneighbor: 10, expected: []string{"A"}},
+		{ra: []float64{10}, dec: []float64{10}, radius: 1, nneighbor: 10, expected: []string{"B"}},
+		{ra: []float64{0, 10}, dec: []float64{0, 10}, radius: 1, nneighbor: 10, expected: []string{"A", "B"}},
+	}
+
+	// test bulk conesearch
+	for _, tc := range testCases {
+		result, err := service.BulkConesearch(tc.ra, tc.dec, tc.radius, tc.nneighbor, "all")
+		if err != nil {
+			t.Error(err)
+		}
+
+		require.Len(t, tc.expected, len(result), "testCase: %v | result: %v", tc, result)
+		for i := range result {
+			id := result[i].ID
+			require.Contains(t, tc.expected, id, "testCase: %v | result: %v", tc, result)
+		}
+	}
+
+	CleanDB(t, repo)
+}
+
+func CleanDB(t *testing.T, repo conesearch.Repository) {
+	err := repo.RemoveAllObjects(context.Background())
+	require.NoError(t, err)
 }

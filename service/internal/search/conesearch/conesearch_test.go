@@ -76,6 +76,44 @@ func TestConesearch_WithMultipleMappers(t *testing.T) {
 	require.Subset(t, cats, []string{"vlass", "ztf"})
 }
 
+func TestBulkConesearch(t *testing.T) {
+	objects := []repository.Mastercat{
+		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
+		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
+	}
+	repo := &mocks.Repository{}
+	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
+	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	require.NoError(t, err)
+
+	type testCase struct {
+		ra        []float64
+		dec       []float64
+		radius    float64
+		nneighbor int
+		expected  []string
+	}
+
+	testCases := []testCase{
+		{ra: []float64{1}, dec: []float64{1}, radius: 1, nneighbor: 100, expected: []string{"A"}},
+		{ra: []float64{10}, dec: []float64{10}, radius: 1, nneighbor: 100, expected: []string{"B"}},
+		{ra: []float64{1, 2, 3}, dec: []float64{1, 2, 3}, radius: 1, nneighbor: 100, expected: []string{"A"}},
+		{ra: []float64{1, 10}, dec: []float64{1, 10}, radius: 1, nneighbor: 100, expected: []string{"A", "B"}},
+	}
+
+	for _, tc := range testCases {
+		result, err := service.BulkConesearch(tc.ra, tc.dec, tc.radius, tc.nneighbor, "all")
+		require.NoError(t, err)
+		repo.AssertExpectations(t)
+
+		require.Lenf(t, result, len(tc.expected), "test case: %v", tc)
+		for i := range result {
+			require.Contains(t, tc.expected, result[i].ID, "test case: %v", tc)
+		}
+	}
+}
+
 func FuzzConesearch(f *testing.F) {
 	objects := []repository.Mastercat{
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},

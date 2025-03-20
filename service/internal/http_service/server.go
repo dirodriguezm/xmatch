@@ -42,6 +42,7 @@ func (server *HttpServer) SetupServer() *gin.Engine {
 	v1 := r.Group("/v1")
 	{
 		v1.GET("/conesearch", server.conesearchHandler)
+		v1.POST("/bulk-conesearch", server.conesearchBulkHandler)
 		v1.GET("/metadata", server.metadataHandler)
 	}
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -100,6 +101,66 @@ func (server *HttpServer) conesearchHandler(c *gin.Context) {
 	}
 
 	result, err := server.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
+	if err != nil {
+		if errors.As(err, &conesearch.ValidationError{}) {
+			c.JSON(http.StatusBadRequest, err)
+		} else {
+			c.Error(err)
+			c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
+		}
+		return
+	}
+	if len(result) == 0 {
+		c.Writer.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+type BulkRequest struct {
+	Ra        []float64 `json:"ra"`
+	Dec       []float64 `json:"dec"`
+	Radius    float64   `json:"radius"`
+	Catalog   string    `json:"catalog"`
+	Nneighbor int       `json:"nneighbor"`
+}
+
+// Search for objects in a given region using multiple coordinates
+//
+//	@Summary		Search for objects in a given region using multiple coordinates
+//	@Description	Search for objects in a given region using list of ra, dec and a single radius
+//	@Tags			conesearch
+//	@Accept			json
+//	@Produce		json
+//
+//	@Param			ra			body		[]float64	true	"Right ascension in degrees"
+//	@Param			dec			body		[]float64	true	"Declination in degrees"
+//	@Param			radius		body		float64		true	"Radius in degrees"
+//	@Param			catalog		body		string		false	"Catalog to search in"
+//	@Param			nneighbor	body		int			false	"Number of neighbors to return"
+//
+//	@Success		200			{array}		repository.Mastercat
+//	@Success		204			{string}	string
+//	@Failure		400			{object}	conesearch.ValidationError
+//	@Failure		500			{string}	string
+//	@Router			/bulk-conesearch [post]
+func (server *HttpServer) conesearchBulkHandler(c *gin.Context) {
+	var bulkRequest BulkRequest
+	if err := c.ShouldBindJSON(&bulkRequest); err != nil {
+		c.Error(err)
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	if bulkRequest.Nneighbor == 0 {
+		bulkRequest.Nneighbor = 1
+	}
+	if bulkRequest.Catalog == "" {
+		bulkRequest.Catalog = "all"
+	}
+
+	result, err := server.conesearchService.BulkConesearch(bulkRequest.Ra, bulkRequest.Dec, bulkRequest.Radius, bulkRequest.Nneighbor, bulkRequest.Catalog)
 	if err != nil {
 		if errors.As(err, &conesearch.ValidationError{}) {
 			c.JSON(http.StatusBadRequest, err)

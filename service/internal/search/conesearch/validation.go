@@ -102,3 +102,27 @@ func ValidateArguments(ra, dec, radius float64, nneighbor int, catalog string) e
 	}
 	return nil
 }
+
+func ValidateBulkArguments(ra, dec []float64, radius float64, nneighbor int, catalog string) error {
+	if len(ra) != len(dec) {
+		return NewValidationError("Ra and Dec must have the same length", fmt.Sprintf("%d", len(ra)), "ra")
+	}
+	for i := 0; i < len(ra); i++ {
+		if err := ValidateRa(ra[i]); err != nil {
+			return err
+		}
+		if err := ValidateDec(dec[i]); err != nil {
+			return err
+		}
+	}
+	if err := ValidateRadius(radius); err != nil {
+		return err
+	}
+	if err := ValidateNneighbor(nneighbor); err != nil {
+		return err
+	}
+	if err := ValidateCatalog(catalog); err != nil {
+		return err
+	}
+	return nil
+}
