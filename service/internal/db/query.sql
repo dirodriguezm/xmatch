@@ -44,3 +44,12 @@ INSERT INTO allwise (
 SELECT *
 FROM allwise
 WHERE id = ?;
+
+-- name: RemoveAllObjects :exec
+DELETE FROM mastercat;
+
+-- name: RemoveAllAllwise :exec
+DELETE FROM allwise;
+
+-- name: RemoveAllCatalogs :exec
+DELETE FROM catalogs;

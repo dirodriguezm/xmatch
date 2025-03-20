@@ -9,6 +9,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/assertions"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/knn"
+	"github.com/dirodriguezm/xmatch/service/internal/utils"
 
 	"github.com/dirodriguezm/healpix"
 )
@@ -24,6 +25,7 @@ type Repository interface {
 	InsertAllwise(context.Context, repository.InsertAllwiseParams) error
 	GetAllwise(context.Context, string) (repository.Allwise, error)
 	BulkInsertAllwise(context.Context, *sql.DB, []repository.InsertAllwiseParams) error
+	RemoveAllObjects(context.Context) error
 }
 
 type ConesearchService struct {
@@ -100,6 +102,42 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 
 	objects = knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)
 	return objects, nil
+}
+
+func (c *ConesearchService) BulkConesearch(ra, dec []float64, radius float64, nneighbor int, catalog string) ([]repository.Mastercat, error) {
+	if err := ValidateBulkArguments(ra, dec, radius, nneighbor, catalog); err != nil {
+		return nil, err
+	}
+
+	radius_radians := arcsecToRadians(radius)
+	objects := make([]repository.Mastercat, 0)
+	filteredObjects := make([]repository.Mastercat, 0)
+	pixelList := make([]int64, 0)
+	ids := utils.Set{}
+
+	for _, v := range c.mappers {
+		for i := 0; i < len(ra); i++ {
+			point := healpix.RADec(ra[i], dec[i])
+			pixelRange := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
+			pixelList = append(pixelList, pixelRangeToList(pixelRange)...)
+			objs, err := c.getObjects(pixelList)
+			if err != nil {
+				return nil, err
+			}
+			objects = append(objects, objs...)
+		}
+	}
+
+	for i := 0; i < len(ra); i++ {
+		neigbors := knn.NearestNeighborSearch(objects, ra[i], dec[i], radius, nneighbor)
+		for j := 0; j < len(neigbors); j++ {
+			if !ids.Contains(neigbors[j].ID) {
+				filteredObjects = append(filteredObjects, neigbors[j])
+				ids.Add(neigbors[j].ID)
+			}
+		}
+	}
+	return filteredObjects, nil
 }
 
 func arcsecToRadians(arcsec float64) float64 {

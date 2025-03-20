@@ -74,6 +74,69 @@ info:
   title: CrossWave HTTP API
   version: "1.0"
 paths:
+  /bulk-conesearch:
+    post:
+      consumes:
+      - application/json
+      description: Search for objects in a given region using list of ra, dec and
+        a single radius
+      parameters:
+      - description: Right ascension in degrees
+        in: body
+        name: ra
+        required: true
+        schema:
+          items:
+            type: number
+          type: array
+      - description: Declination in degrees
+        in: body
+        name: dec
+        required: true
+        schema:
+          items:
+            type: number
+          type: array
+      - description: Radius in degrees
+        in: body
+        name: radius
+        required: true
+        schema:
+          type: number
+      - description: Catalog to search in
+        in: body
+        name: catalog
+        schema:
+          type: string
+      - description: Number of neighbors to return
+        in: body
+        name: nneighbor
+        schema:
+          type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Mastercat'
+            type: array
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/conesearch.ValidationError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Search for objects in a given region using multiple coordinates
+      tags:
+      - conesearch
   /conesearch:
     get:
       consumes:

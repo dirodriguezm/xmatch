@@ -1,6 +1,7 @@
 package httpservice_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -158,4 +159,55 @@ func TestConesearch_NNeighbor(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		require.Equal(t, fmt.Sprintf("allwise-%d", i), result[i].ID)
 	}
+}
+
+func TestBulkConesearch(t *testing.T) {
+	beforeTest(t)
+
+	// insert allwise mastercat
+	var db *sql.DB
+	ctr.Resolve(&db)
+	err := test_helpers.InsertAllwiseMastercat(100, db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 10; i++ {
+		w := httptest.NewRecorder()
+		ra := make([]float64, 10)
+		dec := make([]float64, 10)
+
+		for j := 0; j < 10; j++ {
+			// set ra and dec from 0,0 to 99,90
+			ra[j] = float64(i*10 + j)
+			dec[j] = float64((i*10 + j) % 90)
+		}
+
+		jsonBody := map[string]interface{}{
+			"ra":        ra,
+			"dec":       dec,
+			"radius":    1,
+			"catalog":   "allwise",
+			"nneighbor": 100,
+		}
+
+		bbody, err := json.Marshal(jsonBody)
+		require.NoError(t, err)
+
+		body := bytes.NewReader(bbody)
+
+		// create the request using the body
+		req, err := http.NewRequest("POST", "/v1/bulk-conesearch", body)
+		require.NoError(t, err)
+
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code, "Request: %v | Response: %v", body, w.Body.String())
+
+		var result []repository.Mastercat
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("could not unmarshal response: %v\n%v\nOn ra: %v, dec: %v", err, w.Body.String(), ra, dec)
+		}
+		require.GreaterOrEqualf(t, len(result), 1, "On ra=%d, dec=%d", ra, dec)
+	}
+
 }
