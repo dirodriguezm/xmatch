@@ -11,6 +11,61 @@ import (
 	"strings"
 )
 
+const bulkGetAllwise = `-- name: BulkGetAllwise :many
+SELECT id, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, j_m_2mass, j_msig_2mass, h_m_2mass, h_msig_2mass, k_m_2mass, k_msig_2mass
+FROM allwise
+WHERE id IN (/*SLICE:id*/?)
+`
+
+func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]Allwise, error) {
+	query := bulkGetAllwise
+	var queryParams []interface{}
+	if len(id) > 0 {
+		for _, v := range id {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:id*/?", strings.Repeat(",?", len(id))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:id*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Allwise
+	for rows.Next() {
+		var i Allwise
+		if err := rows.Scan(
+			&i.ID,
+			&i.W1mpro,
+			&i.W1sigmpro,
+			&i.W2mpro,
+			&i.W2sigmpro,
+			&i.W3mpro,
+			&i.W3sigmpro,
+			&i.W4mpro,
+			&i.W4sigmpro,
+			&i.JM2mass,
+			&i.JMsig2mass,
+			&i.HM2mass,
+			&i.HMsig2mass,
+			&i.KM2mass,
+			&i.KMsig2mass,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findObjects = `-- name: FindObjects :many
 SELECT id, ipix, ra, dec, cat
 FROM mastercat 

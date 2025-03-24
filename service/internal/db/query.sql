@@ -45,6 +45,11 @@ SELECT *
 FROM allwise
 WHERE id = ?;
 
+-- name: BulkGetAllwise :many
+SELECT *
+FROM allwise
+WHERE id IN (sqlc.slice(id));
+
 -- name: RemoveAllObjects :exec
 DELETE FROM mastercat;
 

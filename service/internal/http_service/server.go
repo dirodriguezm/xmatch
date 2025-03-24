@@ -40,6 +40,7 @@ func (server *HttpServer) SetupServer() *gin.Engine {
 	if os.Getenv("USE_LOGGER") != "" {
 		r.Use(gin.Logger())
 	}
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})
@@ -49,9 +50,13 @@ func (server *HttpServer) SetupServer() *gin.Engine {
 		v1.GET("/conesearch", server.conesearchHandler)
 		v1.POST("/bulk-conesearch", server.conesearchBulkHandler)
 		v1.GET("/metadata", server.metadataHandler)
+		v1.POST("/bulk-metadata", server.metadataBulkHandler)
 	}
+
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	r.SetTrustedProxies([]string{"localhost"})
+
 	return r
 }
 
@@ -123,7 +128,7 @@ func (server *HttpServer) conesearchHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-type BulkRequest struct {
+type BulkConesearchRequest struct {
 	Ra        []float64 `json:"ra"`
 	Dec       []float64 `json:"dec"`
 	Radius    float64   `json:"radius"`
@@ -151,7 +156,7 @@ type BulkRequest struct {
 //	@Failure		500			{string}	string
 //	@Router			/bulk-conesearch [post]
 func (server *HttpServer) conesearchBulkHandler(c *gin.Context) {
-	var bulkRequest BulkRequest
+	var bulkRequest BulkConesearchRequest
 	if err := c.ShouldBindJSON(&bulkRequest); err != nil {
 		c.Error(err)
 		c.JSON(http.StatusBadRequest, err)
@@ -202,6 +207,37 @@ func (server *HttpServer) metadataHandler(c *gin.Context) {
 	catalog := c.Query("catalog")
 
 	result, err := server.metadataService.FindByID(c.Request.Context(), id, catalog)
+	if err != nil {
+		if errors.As(err, &metadata.ValidationError{}) {
+			c.JSON(http.StatusBadRequest, err)
+		} else if errors.Is(err, sql.ErrNoRows) {
+			c.Writer.WriteHeader(http.StatusNoContent)
+		} else if errors.As(err, &metadata.ArgumentError{}) {
+			c.JSON(http.StatusInternalServerError, err)
+		} else {
+			c.Error(err)
+			c.JSON(http.StatusInternalServerError, "Could not execute metadata query")
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+type BulkMetadataRequest struct {
+	Ids     []string `json:"ids"`
+	Catalog string   `json:"catalog"`
+}
+
+func (server *HttpServer) metadataBulkHandler(c *gin.Context) {
+	var bulkRequest BulkMetadataRequest
+	if err := c.ShouldBindJSON(&bulkRequest); err != nil {
+		c.Error(err)
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	result, err := server.metadataService.BulkFindByID(c.Request.Context(), bulkRequest.Ids, bulkRequest.Catalog)
 	if err != nil {
 		if errors.As(err, &metadata.ValidationError{}) {
 			c.JSON(http.StatusBadRequest, err)

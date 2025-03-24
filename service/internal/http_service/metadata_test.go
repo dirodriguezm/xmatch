@@ -1,6 +1,7 @@
 package httpservice_test
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -51,4 +52,40 @@ func TestMetadata_Validation(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/metadata?id=allwise-1&catalog=invalid", nil)
 	router.ServeHTTP(recorder, req)
 	require.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestMetadata_BulkFindByID(t *testing.T) {
+	beforeTest(t)
+
+	var db *sql.DB
+	ctr.Resolve(&db)
+	test_helpers.InsertAllwiseMetadata(10, db)
+
+	ids := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		ids[i] = fmt.Sprintf("allwise-%v", i)
+	}
+	request := map[string]interface{}{
+		"ids":     ids,
+		"catalog": "allwise",
+	}
+
+	bbody, err := json.Marshal(request)
+	require.NoError(t, err)
+
+	body := bytes.NewReader(bbody)
+
+	req, err := http.NewRequest("POST", "/v1/bulk-metadata", body)
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "Request: %v | Response: %v", body, w.Body.String())
+
+	var result []repository.AllwiseMetadata
+
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatalf("could not unmarshal response: %v\n%v", err, w.Body.String())
+	}
+	require.Len(t, result, 10)
 }
