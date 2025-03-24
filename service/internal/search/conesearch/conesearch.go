@@ -26,6 +26,7 @@ type Repository interface {
 	GetAllwise(context.Context, string) (repository.Allwise, error)
 	BulkInsertAllwise(context.Context, *sql.DB, []repository.InsertAllwiseParams) error
 	RemoveAllObjects(context.Context) error
+	BulkGetAllwise(context.Context, []string) ([]repository.Allwise, error)
 }
 
 type ConesearchService struct {

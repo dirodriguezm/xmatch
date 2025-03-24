@@ -24,6 +24,65 @@ func (_m *Repository) EXPECT() *Repository_Expecter {
 	return &Repository_Expecter{mock: &_m.Mock}
 }
 
+// BulkGetAllwise provides a mock function with given fields: _a0, _a1
+func (_m *Repository) BulkGetAllwise(_a0 context.Context, _a1 []string) ([]repository.Allwise, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BulkGetAllwise")
+	}
+
+	var r0 []repository.Allwise
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []string) ([]repository.Allwise, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []string) []repository.Allwise); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]repository.Allwise)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Repository_BulkGetAllwise_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BulkGetAllwise'
+type Repository_BulkGetAllwise_Call struct {
+	*mock.Call
+}
+
+// BulkGetAllwise is a helper method to define mock.On call
+//   - _a0 context.Context
+//   - _a1 []string
+func (_e *Repository_Expecter) BulkGetAllwise(_a0 interface{}, _a1 interface{}) *Repository_BulkGetAllwise_Call {
+	return &Repository_BulkGetAllwise_Call{Call: _e.mock.On("BulkGetAllwise", _a0, _a1)}
+}
+
+func (_c *Repository_BulkGetAllwise_Call) Run(run func(_a0 context.Context, _a1 []string)) *Repository_BulkGetAllwise_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]string))
+	})
+	return _c
+}
+
+func (_c *Repository_BulkGetAllwise_Call) Return(_a0 []repository.Allwise, _a1 error) *Repository_BulkGetAllwise_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Repository_BulkGetAllwise_Call) RunAndReturn(run func(context.Context, []string) ([]repository.Allwise, error)) *Repository_BulkGetAllwise_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // BulkInsertAllwise provides a mock function with given fields: _a0, _a1, _a2
 func (_m *Repository) BulkInsertAllwise(_a0 context.Context, _a1 *sql.DB, _a2 []repository.InsertAllwiseParams) error {
 	ret := _m.Called(_a0, _a1, _a2)
