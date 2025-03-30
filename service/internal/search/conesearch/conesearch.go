@@ -3,8 +3,10 @@ package conesearch
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"math"
+	"strings"
 	"sync"
 
 	"github.com/dirodriguezm/xmatch/service/internal/assertions"
@@ -28,6 +30,7 @@ type Repository interface {
 	BulkInsertAllwise(context.Context, *sql.DB, []repository.InsertAllwiseParams) error
 	RemoveAllObjects(context.Context) error
 	BulkGetAllwise(context.Context, []string) ([]repository.Allwise, error)
+	GetAllwiseFromPixels(context.Context, []int64) ([]repository.GetAllwiseFromPixelsRow, error)
 }
 
 type ConesearchService struct {
@@ -104,6 +107,39 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 
 	objects = knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)
 	return objects, nil
+}
+
+func (c *ConesearchService) FindMetadataByConesearch(ra, dec, radius float64, nneighbor int, catalog string) (any, error) {
+	if err := ValidateArguments(ra, dec, radius, nneighbor, catalog); err != nil {
+		return nil, err
+	}
+
+	radius_radians := arcsecToRadians(radius)
+	point := healpix.RADec(float64(ra), float64(dec))
+
+	performQuery := func(v *healpix.HEALPixMapper) (any, error) {
+		pixelRanges := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
+		pixelList := pixelRangeToList(pixelRanges)
+		return c.getMetadata(pixelList)
+	}
+
+	switch strings.ToLower(catalog) {
+	case "allwise":
+		objects := make([]repository.GetAllwiseFromPixelsRow, 0)
+		for _, v := range c.mappers {
+			objs, err := performQuery(v)
+			if err != nil {
+				return nil, err
+			}
+			objects = append(objects, objs.([]repository.GetAllwiseFromPixelsRow)...)
+		}
+		final := knn.NearestNeighborSearchForAllwiseMetadata(objects, ra, dec, radius, nneighbor)
+		return final, nil
+	case "all":
+		return nil, fmt.Errorf("using all is not supported for metadata search")
+	default:
+		return nil, fmt.Errorf("catalog %s not found", catalog)
+	}
 }
 
 func (c *ConesearchService) BulkConesearch(
@@ -199,6 +235,14 @@ func pixelRangeToList(pixelRanges []healpix.PixelRange) []int64 {
 func (c *ConesearchService) getObjects(pixelList []int64) ([]repository.Mastercat, error) {
 	// TODO: include catalog name in search
 	objects, err := c.repository.FindObjects(c.ctx, pixelList)
+	if err != nil {
+		return nil, err
+	}
+	return objects, nil
+}
+
+func (c *ConesearchService) getMetadata(pixelList []int64) (any, error) {
+	objects, err := c.repository.GetAllwiseFromPixels(c.ctx, pixelList)
 	if err != nil {
 		return nil, err
 	}

@@ -174,6 +174,84 @@ func (q *Queries) GetAllwise(ctx context.Context, id string) (Allwise, error) {
 	return i, err
 }
 
+const getAllwiseFromPixels = `-- name: GetAllwiseFromPixels :many
+SELECT allwise.id, allwise.w1mpro, allwise.w1sigmpro, allwise.w2mpro, allwise.w2sigmpro, allwise.w3mpro, allwise.w3sigmpro, allwise.w4mpro, allwise.w4sigmpro, allwise.j_m_2mass, allwise.j_msig_2mass, allwise.h_m_2mass, allwise.h_msig_2mass, allwise.k_m_2mass, allwise.k_msig_2mass, mastercat.ra, mastercat.dec
+FROM allwise 
+JOIN mastercat ON mastercat.id = allwise.id
+WHERE mastercat.ipix IN (/*SLICE:ipix*/?)
+`
+
+type GetAllwiseFromPixelsRow struct {
+	ID         string
+	W1mpro     sql.NullFloat64
+	W1sigmpro  sql.NullFloat64
+	W2mpro     sql.NullFloat64
+	W2sigmpro  sql.NullFloat64
+	W3mpro     sql.NullFloat64
+	W3sigmpro  sql.NullFloat64
+	W4mpro     sql.NullFloat64
+	W4sigmpro  sql.NullFloat64
+	JM2mass    sql.NullFloat64
+	JMsig2mass sql.NullFloat64
+	HM2mass    sql.NullFloat64
+	HMsig2mass sql.NullFloat64
+	KM2mass    sql.NullFloat64
+	KMsig2mass sql.NullFloat64
+	Ra         float64
+	Dec        float64
+}
+
+func (q *Queries) GetAllwiseFromPixels(ctx context.Context, ipix []int64) ([]GetAllwiseFromPixelsRow, error) {
+	query := getAllwiseFromPixels
+	var queryParams []interface{}
+	if len(ipix) > 0 {
+		for _, v := range ipix {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ipix*/?", strings.Repeat(",?", len(ipix))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ipix*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllwiseFromPixelsRow
+	for rows.Next() {
+		var i GetAllwiseFromPixelsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.W1mpro,
+			&i.W1sigmpro,
+			&i.W2mpro,
+			&i.W2sigmpro,
+			&i.W3mpro,
+			&i.W3sigmpro,
+			&i.W4mpro,
+			&i.W4sigmpro,
+			&i.JM2mass,
+			&i.JMsig2mass,
+			&i.HM2mass,
+			&i.HMsig2mass,
+			&i.KM2mass,
+			&i.KMsig2mass,
+			&i.Ra,
+			&i.Dec,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCatalogs = `-- name: GetCatalogs :many
 SELECT name, nside
 FROM catalogs

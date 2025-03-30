@@ -353,6 +353,65 @@ func (_c *Repository_GetAllwise_Call) RunAndReturn(run func(context.Context, str
 	return _c
 }
 
+// GetAllwiseFromPixels provides a mock function with given fields: _a0, _a1
+func (_m *Repository) GetAllwiseFromPixels(_a0 context.Context, _a1 []int64) ([]repository.GetAllwiseFromPixelsRow, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAllwiseFromPixels")
+	}
+
+	var r0 []repository.GetAllwiseFromPixelsRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []int64) ([]repository.GetAllwiseFromPixelsRow, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []int64) []repository.GetAllwiseFromPixelsRow); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]repository.GetAllwiseFromPixelsRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []int64) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Repository_GetAllwiseFromPixels_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllwiseFromPixels'
+type Repository_GetAllwiseFromPixels_Call struct {
+	*mock.Call
+}
+
+// GetAllwiseFromPixels is a helper method to define mock.On call
+//   - _a0 context.Context
+//   - _a1 []int64
+func (_e *Repository_Expecter) GetAllwiseFromPixels(_a0 interface{}, _a1 interface{}) *Repository_GetAllwiseFromPixels_Call {
+	return &Repository_GetAllwiseFromPixels_Call{Call: _e.mock.On("GetAllwiseFromPixels", _a0, _a1)}
+}
+
+func (_c *Repository_GetAllwiseFromPixels_Call) Run(run func(_a0 context.Context, _a1 []int64)) *Repository_GetAllwiseFromPixels_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]int64))
+	})
+	return _c
+}
+
+func (_c *Repository_GetAllwiseFromPixels_Call) Return(_a0 []repository.GetAllwiseFromPixelsRow, _a1 error) *Repository_GetAllwiseFromPixels_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Repository_GetAllwiseFromPixels_Call) RunAndReturn(run func(context.Context, []int64) ([]repository.GetAllwiseFromPixelsRow, error)) *Repository_GetAllwiseFromPixels_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetCatalogs provides a mock function with given fields: _a0
 func (_m *Repository) GetCatalogs(_a0 context.Context) ([]repository.Catalog, error) {
 	ret := _m.Called(_a0)
