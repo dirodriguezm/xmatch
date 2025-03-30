@@ -45,3 +45,4 @@ service:
     # a path to the SQLite database file
     url: "file:dev.db"
   bulk_chunk_size: 500
+  max_bulk_concurrency: 4

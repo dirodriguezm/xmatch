@@ -59,8 +59,9 @@ type WriterConfig struct {
 }
 
 type ServiceConfig struct {
-	Database      *DatabaseConfig `yaml:"database"`
-	BulkChunkSize int             `yaml:"bulk_chunk_size"`
+	Database           *DatabaseConfig `yaml:"database"`
+	BulkChunkSize      int             `yaml:"bulk_chunk_size"`
+	MaxBulkConcurrency int             `yaml:"max_bulk_concurrency"`
 }
 
 type DatabaseConfig struct {

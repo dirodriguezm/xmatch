@@ -201,7 +201,7 @@ func TestBulkConesearch(t *testing.T) {
 		require.NoError(t, err)
 
 		router.ServeHTTP(w, req)
-		require.Equal(t, http.StatusOK, w.Code, "Request: %v | Response: %v", body, w.Body.String())
+		require.Equal(t, http.StatusOK, w.Code, "Request: %v | Response: %v", jsonBody, w.Body.String())
 
 		var result []repository.Mastercat
 		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {

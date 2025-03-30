@@ -107,7 +107,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 }
 
 func (c *ConesearchService) BulkConesearch(
-	ra, dec []float64, radius float64, nneighbor int, catalog string, chunkSize int,
+	ra, dec []float64, radius float64, nneighbor int, catalog string, chunkSize int, maxBulkConcurrency int,
 ) ([]repository.Mastercat, error) {
 	if err := ValidateBulkArguments(ra, dec, radius, nneighbor, catalog); err != nil {
 		return nil, err
@@ -118,6 +118,8 @@ func (c *ConesearchService) BulkConesearch(
 	resultsChan := make(chan []repository.Mastercat, numChunks)
 	errChan := make(chan error, numChunks)
 	var wg sync.WaitGroup
+
+	sem := make(chan struct{}, maxBulkConcurrency)
 
 	for _, v := range c.mappers {
 		for i := 0; i < len(ra); i += chunkSize {
@@ -131,7 +133,12 @@ func (c *ConesearchService) BulkConesearch(
 			chunkDec := dec[i:end]
 
 			go func(chunkRa, chunkDec []float64) {
-				defer wg.Done()
+				sem <- struct{}{}
+
+				defer func() {
+					<-sem
+					wg.Done()
+				}()
 
 				for j := 0; j < len(chunkRa); j++ {
 					point := healpix.RADec(chunkRa[j], chunkDec[j])
