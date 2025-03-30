@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 	swaggerFiles "github.com/swaggo/files"
@@ -19,11 +20,13 @@ import (
 type HttpServer struct {
 	conesearchService *conesearch.ConesearchService
 	metadataService   *metadata.MetadataService
+	config            *config.ServiceConfig
 }
 
 func NewHttpServer(
 	conesearchService *conesearch.ConesearchService,
 	metadataService *metadata.MetadataService,
+	config *config.ServiceConfig,
 ) (*HttpServer, error) {
 	if conesearchService == nil {
 		return nil, fmt.Errorf("ConesearchService was nil while creating HttpServer")
@@ -31,7 +34,7 @@ func NewHttpServer(
 	if metadataService == nil {
 		return nil, fmt.Errorf("MetadataService was nil while creating HttpServer")
 	}
-	return &HttpServer{conesearchService: conesearchService, metadataService: metadataService}, nil
+	return &HttpServer{conesearchService: conesearchService, metadataService: metadataService, config: config}, nil
 }
 
 func (server *HttpServer) SetupServer() *gin.Engine {
@@ -170,7 +173,9 @@ func (server *HttpServer) conesearchBulkHandler(c *gin.Context) {
 		bulkRequest.Catalog = "all"
 	}
 
-	result, err := server.conesearchService.BulkConesearch(bulkRequest.Ra, bulkRequest.Dec, bulkRequest.Radius, bulkRequest.Nneighbor, bulkRequest.Catalog)
+	result, err := server.conesearchService.BulkConesearch(
+		bulkRequest.Ra, bulkRequest.Dec, bulkRequest.Radius, bulkRequest.Nneighbor, bulkRequest.Catalog, server.config.BulkChunkSize,
+	)
 	if err != nil {
 		if errors.As(err, &conesearch.ValidationError{}) {
 			c.JSON(http.StatusBadRequest, err)

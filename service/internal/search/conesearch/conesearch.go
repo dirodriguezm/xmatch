@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log/slog"
 	"math"
+	"sync"
 
 	"github.com/dirodriguezm/xmatch/service/internal/assertions"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -105,40 +106,73 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 	return objects, nil
 }
 
-func (c *ConesearchService) BulkConesearch(ra, dec []float64, radius float64, nneighbor int, catalog string) ([]repository.Mastercat, error) {
+func (c *ConesearchService) BulkConesearch(
+	ra, dec []float64, radius float64, nneighbor int, catalog string, chunkSize int,
+) ([]repository.Mastercat, error) {
 	if err := ValidateBulkArguments(ra, dec, radius, nneighbor, catalog); err != nil {
 		return nil, err
 	}
 
 	radius_radians := arcsecToRadians(radius)
-	objects := make([]repository.Mastercat, 0)
-	filteredObjects := make([]repository.Mastercat, 0)
-	pixelList := make([]int64, 0)
-	ids := utils.Set{}
+	numChunks := (len(ra) + chunkSize - 1) / chunkSize
+	resultsChan := make(chan []repository.Mastercat, numChunks)
+	errChan := make(chan error, numChunks)
+	var wg sync.WaitGroup
 
 	for _, v := range c.mappers {
-		for i := 0; i < len(ra); i++ {
-			point := healpix.RADec(ra[i], dec[i])
-			pixelRange := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
-			pixelList = append(pixelList, pixelRangeToList(pixelRange)...)
-			objs, err := c.getObjects(pixelList)
-			if err != nil {
-				return nil, err
+		for i := 0; i < len(ra); i += chunkSize {
+			wg.Add(1)
+
+			end := i + chunkSize
+			if end > len(ra) {
+				end = len(ra)
 			}
-			objects = append(objects, objs...)
+			chunkRa := ra[i:end]
+			chunkDec := dec[i:end]
+
+			go func(chunkRa, chunkDec []float64) {
+				defer wg.Done()
+
+				for j := 0; j < len(chunkRa); j++ {
+					point := healpix.RADec(chunkRa[j], chunkDec[j])
+					pixelRange := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
+					pixelList := pixelRangeToList(pixelRange)
+					objs, err := c.getObjects(pixelList)
+					if err != nil {
+						errChan <- err
+					}
+
+					objs = knn.NearestNeighborSearch(objs, chunkRa[j], chunkDec[j], radius, nneighbor)
+					resultsChan <- objs
+				}
+
+			}(chunkRa, chunkDec)
 		}
 	}
 
-	for i := 0; i < len(ra); i++ {
-		neigbors := knn.NearestNeighborSearch(objects, ra[i], dec[i], radius, nneighbor)
-		for j := 0; j < len(neigbors); j++ {
-			if !ids.Contains(neigbors[j].ID) {
-				filteredObjects = append(filteredObjects, neigbors[j])
-				ids.Add(neigbors[j].ID)
-			}
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+		close(errChan)
+	}()
+
+	allObjects := make([]repository.Mastercat, 0)
+	for result := range resultsChan {
+		allObjects = append(allObjects, result...)
+	}
+	for err := range errChan {
+		return nil, err
+	}
+
+	uniqueObjects := make([]repository.Mastercat, 0)
+	ids := utils.Set{}
+	for i := 0; i < len(allObjects); i++ {
+		if !ids.Contains(allObjects[i].ID) {
+			uniqueObjects = append(uniqueObjects, allObjects[i])
+			ids.Add(allObjects[i].ID)
 		}
 	}
-	return filteredObjects, nil
+	return uniqueObjects, nil
 }
 
 func arcsecToRadians(arcsec float64) float64 {

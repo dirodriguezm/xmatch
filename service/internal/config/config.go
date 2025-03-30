@@ -59,7 +59,8 @@ type WriterConfig struct {
 }
 
 type ServiceConfig struct {
-	Database *DatabaseConfig `yaml:"database"`
+	Database      *DatabaseConfig `yaml:"database"`
+	BulkChunkSize int             `yaml:"bulk_chunk_size"`
 }
 
 type DatabaseConfig struct {
