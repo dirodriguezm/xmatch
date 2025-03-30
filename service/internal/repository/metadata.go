@@ -138,6 +138,83 @@ func (m AllwiseMetadata) ToInsertParams() InsertAllwiseParams {
 	}
 }
 
+func (m GetAllwiseFromPixelsRow) ToAllwiseMetadata() AllwiseMetadata {
+	defaultVal := -9999.0
+	w1mpro := m.W1mpro.Float64
+	if !m.W1mpro.Valid {
+		w1mpro = defaultVal
+	}
+	w1sigmpro := m.W1sigmpro.Float64
+	if !m.W1sigmpro.Valid {
+		w1sigmpro = defaultVal
+	}
+	w2mpro := m.W2mpro.Float64
+	if !m.W2mpro.Valid {
+		w2mpro = defaultVal
+	}
+	w2sigmpro := m.W2sigmpro.Float64
+	if !m.W2sigmpro.Valid {
+		w2sigmpro = defaultVal
+	}
+	w3mpro := m.W3mpro.Float64
+	if !m.W3mpro.Valid {
+		w3mpro = defaultVal
+	}
+	w3sigmpro := m.W3sigmpro.Float64
+	if !m.W3sigmpro.Valid {
+		w3sigmpro = defaultVal
+	}
+	w4mpro := m.W4mpro.Float64
+	if !m.W4mpro.Valid {
+		w4mpro = defaultVal
+	}
+	w4sigmpro := m.W4sigmpro.Float64
+	if !m.W4sigmpro.Valid {
+		w4sigmpro = defaultVal
+	}
+	jM2mass := m.JM2mass.Float64
+	if !m.JM2mass.Valid {
+		jM2mass = defaultVal
+	}
+	jMsig2mass := m.JMsig2mass.Float64
+	if !m.JMsig2mass.Valid {
+		jMsig2mass = defaultVal
+	}
+	hM2mass := m.HM2mass.Float64
+	if !m.HM2mass.Valid {
+		hM2mass = defaultVal
+	}
+	hMsig2mass := m.HMsig2mass.Float64
+	if !m.HMsig2mass.Valid {
+		hMsig2mass = defaultVal
+	}
+	kM2mass := m.KM2mass.Float64
+	if !m.KM2mass.Valid {
+		kM2mass = defaultVal
+	}
+	kMsig2mass := m.KMsig2mass.Float64
+	if !m.KMsig2mass.Valid {
+		kMsig2mass = defaultVal
+	}
+	return AllwiseMetadata{
+		Source_id:    &m.ID,
+		W1mpro:       &w1mpro,
+		W1sigmpro:    &w1sigmpro,
+		W2mpro:       &w2mpro,
+		W2sigmpro:    &w2sigmpro,
+		W3mpro:       &w3mpro,
+		W3sigmpro:    &w3sigmpro,
+		W4mpro:       &w4mpro,
+		W4sigmpro:    &w4sigmpro,
+		J_m_2mass:    &jM2mass,
+		H_m_2mass:    &hM2mass,
+		K_m_2mass:    &kM2mass,
+		J_msig_2mass: &jMsig2mass,
+		H_msig_2mass: &hMsig2mass,
+		K_msig_2mass: &kMsig2mass,
+	}
+}
+
 func nilOr0(f *float64) float64 {
 	if f == nil {
 		return 0

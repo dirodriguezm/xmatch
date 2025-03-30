@@ -58,3 +58,10 @@ DELETE FROM allwise;
 
 -- name: RemoveAllCatalogs :exec
 DELETE FROM catalogs;
+
+-- name: GetAllwiseFromPixels :many
+SELECT allwise.*, mastercat.ra, mastercat.dec
+FROM allwise 
+JOIN mastercat ON mastercat.id = allwise.id
+WHERE mastercat.ipix IN (sqlc.slice(ipix));
+

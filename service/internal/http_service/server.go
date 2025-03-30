@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 	swaggerFiles "github.com/swaggo/files"
@@ -70,27 +71,29 @@ func (server *HttpServer) InitServer() {
 
 // Search for objects in a given region
 //
-//	@Summary		Search for objects in a given region
-//	@Description	Search for objects in a given region using ra, dec and radius
-//	@Tags			conesearch
-//	@Accept			json
-//	@Produce		json
-//	@Param			ra			query		string	true	"Right ascension in degrees"
-//	@Param			dec			query		string	true	"Declination in degrees"
-//	@Param			radius		query		string	true	"Radius in degrees"
-//	@Param			catalog		query		string	false	"Catalog to search in"
-//	@Param			nneighbor	query		string	false	"Number of neighbors to return"
-//	@Success		200			{array}		repository.Mastercat
-//	@Success		204			{string}	string
-//	@Failure		400			{object}	conesearch.ValidationError
-//	@Failure		500			{string}	string
-//	@Router			/conesearch [get]
+//		@Summary		Search for objects in a given region
+//		@Description	Search for objects in a given region using ra, dec and radius
+//		@Tags			conesearch
+//		@Accept			json
+//		@Produce		json
+//		@Param			ra			query		string	true	"Right ascension in degrees"
+//		@Param			dec			query		string	true	"Declination in degrees"
+//		@Param			radius		query		string	true	"Radius in degrees"
+//		@Param			catalog		query		string	false	"Catalog to search in"
+//		@Param			nneighbor	query		string	false	"Number of neighbors to return"
+//	 @Param			getMetadata	query		string	false	"Return metadata results"
+//		@Success		200			{array}		repository.Mastercat
+//		@Success		204			{string}	string
+//		@Failure		400			{object}	conesearch.ValidationError
+//		@Failure		500			{string}	string
+//		@Router			/conesearch [get]
 func (server *HttpServer) conesearchHandler(c *gin.Context) {
 	ra := c.Query("ra")
 	dec := c.Query("dec")
 	radius := c.Query("radius")
 	catalog := c.DefaultQuery("catalog", "all")
 	nneighbor := c.DefaultQuery("nneighbor", "1")
+	getMetadata := c.DefaultQuery("getMetadata", "false")
 
 	parsedRa, err := parseRa(ra)
 	if err != nil {
@@ -113,22 +116,40 @@ func (server *HttpServer) conesearchHandler(c *gin.Context) {
 		return
 	}
 
-	result, err := server.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
-	if err != nil {
-		if errors.As(err, &conesearch.ValidationError{}) {
-			c.JSON(http.StatusBadRequest, err)
+	var result any
+	var serviceErr error
+	if getMetadata == "true" {
+		result, serviceErr = server.conesearchService.FindMetadataByConesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
+	} else {
+		result, serviceErr = server.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
+	}
+
+	if serviceErr != nil {
+		if errors.As(serviceErr, &conesearch.ValidationError{}) {
+			c.JSON(http.StatusBadRequest, serviceErr)
 		} else {
-			c.Error(err)
+			c.Error(serviceErr)
 			c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
 		}
 		return
 	}
-	if len(result) == 0 {
+	if isEmptyResult(result) {
 		c.Writer.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func isEmptyResult(result any) bool {
+	switch result.(type) {
+	case []repository.Mastercat:
+		return len(result.([]repository.Mastercat)) == 0
+	case []repository.AllwiseMetadata:
+		return len(result.([]repository.AllwiseMetadata)) == 0
+	default:
+		return false
+	}
 }
 
 type BulkConesearchRequest struct {

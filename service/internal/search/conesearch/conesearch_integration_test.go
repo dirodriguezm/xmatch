@@ -35,13 +35,6 @@ func TestMain(m *testing.M) {
 	dbFile := filepath.Join(rootPath, "test.db")
 	os.Remove(dbFile)
 
-	// // set db connection environment variable
-	// err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
-	// if err != nil {
-	// 	slog.Error("could not set environment variable")
-	// 	panic(err)
-	// }
-
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "server_test_*")
 	if err != nil {
@@ -113,6 +106,37 @@ func TestConesearch(t *testing.T) {
 		t.Error(err)
 	}
 	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result))
+
+	CleanDB(t, repo)
+}
+
+func TestConesearch_WithMetadata(t *testing.T) {
+	var service *conesearch.ConesearchService
+	err := ctr.Resolve(&service)
+	if err != nil {
+		t.Error(err)
+	}
+
+	objects := []repository.InsertObjectParams{
+		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
+		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
+	}
+	var repo conesearch.Repository
+	err = ctr.Resolve(&repo)
+	if err != nil {
+		t.Error(err)
+	}
+	for _, obj := range objects {
+		ctx := context.Background()
+		repo.InsertObject(ctx, obj)
+		repo.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: obj.ID})
+	}
+
+	result, err := service.FindMetadataByConesearch(0, 0, 1, 10, "allwise")
+	if err != nil {
+		t.Error(err)
+	}
+	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result.([]repository.AllwiseMetadata)))
 
 	CleanDB(t, repo)
 }

@@ -114,6 +114,25 @@ func TestBulkConesearch(t *testing.T) {
 	}
 }
 
+func TestConesearch_WithMetadata(t *testing.T) {
+	objects := []repository.GetAllwiseFromPixelsRow{
+		{ID: "A", Ra: 1, Dec: 1},
+		{ID: "B", Ra: 10, Dec: 10},
+	}
+	repo := &mocks.Repository{}
+	repo.On("GetAllwiseFromPixels", mock.Anything, mock.Anything).Return(objects, nil)
+	catalogs := []repository.Catalog{{Name: "allwise", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	require.NoError(t, err)
+
+	result, err := service.FindMetadataByConesearch(1, 1, 1, 1, "allwise")
+	require.NoError(t, err)
+	repo.AssertExpectations(t)
+
+	require.Len(t, result, 1)
+	require.Equal(t, *result.([]repository.AllwiseMetadata)[0].Source_id, "A")
+}
+
 func FuzzConesearch(f *testing.F) {
 	objects := []repository.Mastercat{
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
