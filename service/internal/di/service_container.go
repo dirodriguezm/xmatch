@@ -103,8 +103,9 @@ func BuildServiceContainer() container.Container {
 	ctr.Singleton(func(
 		conesearchService *conesearch.ConesearchService,
 		metadataService *metadata.MetadataService,
+		config *config.Config,
 	) *httpservice.HttpServer {
-		server, err := httpservice.NewHttpServer(conesearchService, metadataService)
+		server, err := httpservice.NewHttpServer(conesearchService, metadataService, config.Service)
 		if err != nil {
 			panic(fmt.Errorf("Could not register HttpServer: %w", err))
 		}

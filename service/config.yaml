@@ -44,3 +44,4 @@ service:
   database:
     # a path to the SQLite database file
     url: "file:dev.db"
+  bulk_chunk_size: 500

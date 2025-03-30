@@ -103,7 +103,7 @@ func TestBulkConesearch(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result, err := service.BulkConesearch(tc.ra, tc.dec, tc.radius, tc.nneighbor, "all")
+		result, err := service.BulkConesearch(tc.ra, tc.dec, tc.radius, tc.nneighbor, "all", 2)
 		require.NoError(t, err)
 		repo.AssertExpectations(t)
 

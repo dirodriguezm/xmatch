@@ -156,7 +156,7 @@ func TestBulkConesearch(t *testing.T) {
 
 	// test bulk conesearch
 	for _, tc := range testCases {
-		result, err := service.BulkConesearch(tc.ra, tc.dec, tc.radius, tc.nneighbor, "all")
+		result, err := service.BulkConesearch(tc.ra, tc.dec, tc.radius, tc.nneighbor, "all", 1)
 		if err != nil {
 			t.Error(err)
 		}
