@@ -66,6 +66,8 @@ func TestMain(m *testing.M) {
 service:
   database:
     url: "file:%s"
+  bulk_chunk_size: 1
+  max_bulk_concurrency: 1
 `
 	config = fmt.Sprintf(config, dbFile)
 	err = test_helpers.WriteConfigFile(configPath, config)

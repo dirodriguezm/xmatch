@@ -174,7 +174,7 @@ func (server *HttpServer) conesearchBulkHandler(c *gin.Context) {
 	}
 
 	result, err := server.conesearchService.BulkConesearch(
-		bulkRequest.Ra, bulkRequest.Dec, bulkRequest.Radius, bulkRequest.Nneighbor, bulkRequest.Catalog, server.config.BulkChunkSize,
+		bulkRequest.Ra, bulkRequest.Dec, bulkRequest.Radius, bulkRequest.Nneighbor, bulkRequest.Catalog, server.config.BulkChunkSize, server.config.MaxBulkConcurrency,
 	)
 	if err != nil {
 		if errors.As(err, &conesearch.ValidationError{}) {
