@@ -32,7 +32,7 @@ type Writer[T any] interface {
 
 type BaseWriter[T any] struct {
 	Writer       Writer[T]
-	DoneChannel  chan bool
+	DoneChannel  chan struct{}
 	InboxChannel chan WriterInput[T]
 }
 

@@ -40,7 +40,7 @@ type SqliteWriter[T any] struct {
 func NewSqliteWriter[T any](
 	repository conesearch.Repository,
 	ch chan writer.WriterInput[T],
-	done chan bool,
+	done chan struct{},
 	ctx context.Context,
 	src *source.Source,
 ) *SqliteWriter[T] {
@@ -79,7 +79,7 @@ func (w *SqliteWriter[T]) Receive(msg writer.WriterInput[T]) {
 }
 
 func (w *SqliteWriter[T]) Stop() {
-	w.DoneChannel <- true
+	w.DoneChannel <- struct{}{}
 }
 
 func insertData[T any](repo conesearch.Repository, ctx context.Context, db *sql.DB, params []T) error {

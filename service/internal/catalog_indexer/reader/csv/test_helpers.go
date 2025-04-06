@@ -144,3 +144,7 @@ func (t *TestSchema) SetField(name string, val interface{}) {
 		t.Oid = val.(string)
 	}
 }
+
+func (t *TestSchema) GetId() string {
+	return t.Oid
+}

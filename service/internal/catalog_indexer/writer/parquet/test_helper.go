@@ -32,7 +32,7 @@ type ParquetWriterBuilder[T any] struct {
 
 	cfg   *config.WriterConfig
 	input chan writer.WriterInput[T]
-	done  chan bool
+	done  chan struct{}
 }
 
 func AWriter[T any](t *testing.T) *ParquetWriterBuilder[T] {
@@ -42,7 +42,7 @@ func AWriter[T any](t *testing.T) *ParquetWriterBuilder[T] {
 		t:     t,
 		cfg:   &config.WriterConfig{OutputFile: "test.parquet", Schema: config.TestSchema},
 		input: make(chan writer.WriterInput[T]),
-		done:  make(chan bool),
+		done:  make(chan struct{}),
 	}
 }
 

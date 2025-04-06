@@ -89,8 +89,7 @@ func TestActor(t *testing.T) {
 	decs := []float64{1, 2}
 	ipixs := []int64{1, 2}
 	cat := "vlass"
-	w.(*parquet_writer.ParquetWriter[any]).
-		InboxChannel <- writer.WriterInput[any]{
+	w.(*parquet_writer.ParquetWriter[any]).InboxChannel <- writer.WriterInput[any]{
 		Rows: []any{
 			repository.ParquetMastercat{ID: &oids[0], Ipix: &ipixs[0], Ra: &ras[0], Dec: &decs[0], Cat: &cat},
 			repository.ParquetMastercat{ID: &oids[1], Ipix: &ipixs[1], Ra: &ras[1], Dec: &decs[1], Cat: &cat},

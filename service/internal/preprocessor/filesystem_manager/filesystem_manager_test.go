@@ -30,8 +30,8 @@ func TestFileSystemManager_TestCreatePartitionDirectory(t *testing.T) {
 	part := partition.Partition{Levels: []int{0, 0}}
 	handler := partition.PartitionHandler{PartitionLevels: 2, NumPartitions: 16}
 	manager := FileSystemManager{
-		handler: handler,
-		baseDir: dir,
+		Handler: handler,
+		BaseDir: dir,
 	}
 
 	_, err := manager.createPartitionDirectory(part)
@@ -41,7 +41,7 @@ func TestFileSystemManager_TestCreatePartitionDirectory(t *testing.T) {
 	require.DirExists(t, path.Join(dir, "00", "00"))
 
 	dir = t.TempDir()
-	manager.baseDir = dir
+	manager.BaseDir = dir
 	part = partition.Partition{Levels: []int{1, 0}}
 
 	_, err = manager.createPartitionDirectory(part)
@@ -51,7 +51,7 @@ func TestFileSystemManager_TestCreatePartitionDirectory(t *testing.T) {
 	require.DirExists(t, path.Join(dir, "01", "00"))
 
 	dir = t.TempDir()
-	manager.baseDir = dir
+	manager.BaseDir = dir
 	part = partition.Partition{Levels: []int{11, 12}}
 
 	_, err = manager.createPartitionDirectory(part)
@@ -69,8 +69,8 @@ func TestFileSystemManager_TestCreatePartitionDirectory_DirectoryAlreadyExistDoe
 	part := partition.Partition{Levels: []int{0, 0}}
 	handler := partition.PartitionHandler{PartitionLevels: 2, NumPartitions: 16}
 	manager := FileSystemManager{
-		handler: handler,
-		baseDir: dir,
+		Handler: handler,
+		BaseDir: dir,
 	}
 
 	_, err = manager.createPartitionDirectory(part)
