@@ -34,8 +34,8 @@ func (b *FileSystemManagerBuilder) Build() FileSystemManager {
 	}
 
 	return FileSystemManager{
-		handler: handler,
-		baseDir: b.baseDir,
+		Handler: handler,
+		BaseDir: b.baseDir,
 	}
 }
 
