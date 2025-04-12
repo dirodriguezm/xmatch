@@ -5,8 +5,9 @@ import (
 	"strings"
 
 	"github.com/dirodriguezm/healpix"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
@@ -14,14 +15,14 @@ import (
 type IndexerActor struct {
 	source *source.Source
 	mapper *healpix.HEALPixMapper
-	inbox  chan indexer.ReaderResult
-	outbox chan indexer.WriterInput[repository.ParquetMastercat]
+	inbox  chan reader.ReaderResult
+	outbox chan writer.WriterInput[any]
 }
 
 func New(
 	src *source.Source,
-	inbox chan indexer.ReaderResult,
-	outbox chan indexer.WriterInput[repository.ParquetMastercat],
+	inbox chan reader.ReaderResult,
+	outbox chan writer.WriterInput[any],
 	cfg *config.IndexerConfig,
 ) (*IndexerActor, error) {
 	slog.Debug("Creating new Indexer")
@@ -54,38 +55,33 @@ func (actor *IndexerActor) Start() {
 	}()
 }
 
-func (actor *IndexerActor) receive(msg indexer.ReaderResult) {
+func (actor *IndexerActor) receive(msg reader.ReaderResult) {
 	slog.Debug("Indexer Received Message")
 	if msg.Error != nil {
-		actor.outbox <- indexer.WriterInput[repository.ParquetMastercat]{
+		actor.outbox <- writer.WriterInput[any]{
 			Rows:  nil,
 			Error: msg.Error,
 		}
 		return
 	}
-	outputBatch := make([]repository.ParquetMastercat, len(msg.Rows))
-	for i, row := range msg.Rows {
-		mastercat := row.ToMastercat()
-		point := healpix.RADec(*mastercat.Ra, *mastercat.Dec)
-		ipix := actor.mapper.PixelAt(point)
 
-		outputBatch[i] = repository.ParquetMastercat{
-			Ra:   mastercat.Ra,
-			Dec:  mastercat.Dec,
-			ID:   mastercat.ID,
-			Cat:  &actor.source.CatalogName,
-			Ipix: &ipix,
-		}
+	outputBatch := make([]any, len(msg.Rows))
+	for i, row := range msg.Rows {
+		ra, dec := row.GetCoordinates()
+		point := healpix.RADec(ra, dec)
+		ipix := actor.mapper.PixelAt(point)
+		outputBatch[i] = row.ToMastercat(ipix)
 	}
+
 	slog.Debug("Indexer sending message")
-	actor.outbox <- indexer.WriterInput[repository.ParquetMastercat]{
+	actor.outbox <- writer.WriterInput[any]{
 		Rows:  outputBatch,
 		Error: nil,
 	}
 }
 
-func sendError(outbox chan indexer.WriterInput[repository.Mastercat], err error) {
-	outbox <- indexer.WriterInput[repository.Mastercat]{
+func sendError(outbox chan writer.WriterInput[repository.Mastercat], err error) {
+	outbox <- writer.WriterInput[repository.Mastercat]{
 		Rows:  nil,
 		Error: err,
 	}

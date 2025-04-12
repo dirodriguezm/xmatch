@@ -4,7 +4,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/stretchr/testify/require"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/reader"
@@ -18,7 +18,7 @@ func TestReceive(t *testing.T) {
 	w := builder.Build()
 	rows := []TestStruct{{"oid1", 1, 1}, {"oid2", 2, 2}}
 
-	w.Receive(indexer.WriterInput[TestStruct]{Error: nil, Rows: rows})
+	w.Receive(writer.WriterInput[TestStruct]{Error: nil, Rows: rows})
 	err := w.parquetWriter.WriteStop()
 	require.NoError(t, err, "can't stop writer")
 	w.pfile.Close()
@@ -40,7 +40,7 @@ func TestStart(t *testing.T) {
 	builder = builder.WithOutputFile(file)
 	w := builder.Build()
 
-	msg := indexer.WriterInput[TestStruct]{
+	msg := writer.WriterInput[TestStruct]{
 		Error: nil,
 		Rows: []TestStruct{
 			{"oid1", 1, 1},

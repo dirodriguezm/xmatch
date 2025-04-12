@@ -2,14 +2,24 @@ package writer
 
 import (
 	"log/slog"
-
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 )
 
+type WriterInput[T any] struct {
+	Error error
+	Rows  []T
+}
+
+type Writer[T any] interface {
+	Start()
+	Done()
+	Stop()
+	Receive(WriterInput[T])
+}
+
 type BaseWriter[T any] struct {
-	Writer       indexer.Writer[T]
+	Writer       Writer[T]
 	DoneChannel  chan bool
-	InboxChannel chan indexer.WriterInput[T]
+	InboxChannel chan WriterInput[T]
 }
 
 // Start starts the writer goroutine

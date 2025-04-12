@@ -4,15 +4,26 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
+type ReaderResult struct {
+	Rows  []repository.InputSchema
+	Error error
+}
+
+type Reader interface {
+	Start()
+	Read() ([]repository.InputSchema, error)
+	ReadBatch() ([]repository.InputSchema, error)
+}
+
 type BaseReader struct {
-	Reader    indexer.Reader
+	Reader    Reader
 	Src       *source.Source
 	BatchSize int
-	Outbox    []chan indexer.ReaderResult
+	Outbox    []chan ReaderResult
 }
 
 func (r BaseReader) Start() {
@@ -28,7 +39,7 @@ func (r BaseReader) Start() {
 		for !eof {
 			rows, err := r.Reader.ReadBatch()
 			if err != nil && err != io.EOF {
-				readResult := indexer.ReaderResult{
+				readResult := ReaderResult{
 					Rows:  nil,
 					Error: err,
 				}
@@ -38,7 +49,7 @@ func (r BaseReader) Start() {
 				return
 			}
 			eof = err == io.EOF
-			readResult := indexer.ReaderResult{
+			readResult := ReaderResult{
 				Rows:  rows,
 				Error: nil,
 			}

@@ -8,12 +8,13 @@ import (
 	"runtime/pprof"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
-	mastercatindexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
-	allwise_metadata "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata/allwise"
+	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
+	metadata_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 // @title			CrossWave HTTP API
@@ -42,37 +43,36 @@ func startCatalogIndexer() {
 	ctr.Resolve(&catalogRegister)
 	catalogRegister.RegisterCatalog()
 
-	// initialize writer
-	var writer indexer.Writer[repository.ParquetMastercat]
-	ctr.Resolve(&writer)
-	writer.Start()
+	// initialize w
+	var w writer.Writer[any]
+	ctr.NamedResolve(&w, "indexer_writer")
+	w.Start()
 
 	// initialize metadata writer
 	if cfg.CatalogIndexer.MetadataWriter != nil && cfg.CatalogIndexer.Source.Metadata {
-		// TODO: choose between metadata type
-		var metadataWriter indexer.Writer[repository.AllwiseMetadata]
-		ctr.Resolve(&metadataWriter)
+		var metadataWriter writer.Writer[any]
+		ctr.NamedResolve(&metadataWriter, "metadata_writer")
 		metadataWriter.Start()
 	}
 
 	// initialize indexer
-	var catalogIndexer *mastercatindexer.IndexerActor
+	var catalogIndexer *mastercat_indexer.IndexerActor
 	ctr.Resolve(&catalogIndexer)
 	catalogIndexer.Start()
 
 	// initialize metadata indexer
 	if cfg.CatalogIndexer.Source.Metadata && cfg.CatalogIndexer.MetadataWriter != nil {
-		var actor *allwise_metadata.IndexerActor
+		var actor *metadata_indexer.IndexerActor
 		ctr.Resolve(&actor)
 		actor.Start()
 	}
 
 	// initialize reader
-	var reader indexer.Reader
+	var reader reader.Reader
 	ctr.Resolve(&reader)
 	reader.Start()
 
-	writer.Done()
+	w.Done()
 }
 
 func main() {

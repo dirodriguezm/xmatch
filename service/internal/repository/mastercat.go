@@ -8,18 +8,8 @@ type ParquetMastercat struct {
 	Cat  *string  `parquet:"name=cat, type=BYTE_ARRAY"`
 }
 
-func (m ParquetMastercat) ToInsertObjectParams() InsertObjectParams {
+func (m ParquetMastercat) ToInsertParams() any {
 	return InsertObjectParams{
-		ID:   *m.ID,
-		Ipix: *m.Ipix,
-		Ra:   *m.Ra,
-		Dec:  *m.Dec,
-		Cat:  *m.Cat,
-	}
-}
-
-func (m ParquetMastercat) ToMastercat() Mastercat {
-	return Mastercat{
 		ID:   *m.ID,
 		Ipix: *m.Ipix,
 		Ra:   *m.Ra,

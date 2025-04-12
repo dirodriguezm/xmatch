@@ -26,7 +26,7 @@ func TestAllwiseInputSchemaToMastercat(t *testing.T) {
 		Cat:  &catalog,
 		Ipix: &ipix,
 	}
-	actual := a.ToMastercat()
+	actual := a.ToMastercat(0)
 	require.Equal(t, expected, actual)
 }
 

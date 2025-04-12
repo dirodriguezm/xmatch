@@ -3,7 +3,7 @@ package parquet_writer
 import (
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 )
 
@@ -17,7 +17,7 @@ type ParquetWriterBuilder[T any] struct {
 	t *testing.T
 
 	cfg   *config.WriterConfig
-	input chan indexer.WriterInput[T]
+	input chan writer.WriterInput[T]
 	done  chan bool
 }
 
@@ -26,8 +26,8 @@ func AWriter[T any](t *testing.T) *ParquetWriterBuilder[T] {
 
 	return &ParquetWriterBuilder[T]{
 		t:     t,
-		cfg:   &config.WriterConfig{OutputFile: "test.parquet"},
-		input: make(chan indexer.WriterInput[T]),
+		cfg:   &config.WriterConfig{OutputFile: "test.parquet", Schema: config.TestSchema},
+		input: make(chan writer.WriterInput[T]),
 		done:  make(chan bool),
 	}
 }
@@ -39,7 +39,7 @@ func (b *ParquetWriterBuilder[T]) WithOutputFile(file string) *ParquetWriterBuil
 	return b
 }
 
-func (b *ParquetWriterBuilder[T]) WithMessages(messages []indexer.WriterInput[T]) *ParquetWriterBuilder[T] {
+func (b *ParquetWriterBuilder[T]) WithMessages(messages []writer.WriterInput[T]) *ParquetWriterBuilder[T] {
 	b.t.Helper()
 
 	for i := range messages {

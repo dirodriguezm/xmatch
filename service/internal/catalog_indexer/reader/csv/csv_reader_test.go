@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
@@ -19,18 +19,18 @@ o1,1,1
 o2,2,2
 o3,3,3
 `
-	reader := strings.NewReader(csv)
+	r := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []source.SourceReader{{Reader: reader}},
+		Reader:      []source.SourceReader{{Reader: r}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	outputs := make([]chan indexer.ReaderResult, 1)
-	outputs[0] = make(chan indexer.ReaderResult)
+	outputs := make([]chan reader.ReaderResult, 1)
+	outputs[0] = make(chan reader.ReaderResult)
 	csvReader, err := NewCsvReader(&source, outputs)
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +44,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3, 3)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat().ID
+		receivedOids[i] = *row.ToMastercat(0).ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -55,17 +55,17 @@ o2,2,2
 o3,3,3
 `
 
-	reader := strings.NewReader(csv)
+	r := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []source.SourceReader{{Reader: reader}},
+		Reader:      []source.SourceReader{{Reader: r}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
-	outputs := make([]chan indexer.ReaderResult, 1)
-	outputs[0] = make(chan indexer.ReaderResult)
+	outputs := make([]chan reader.ReaderResult, 1)
+	outputs[0] = make(chan reader.ReaderResult)
 
 	csvReader, err := NewCsvReader(&source, outputs, WithHeader([]string{"oid", "ra", "dec"}))
 	if err != nil {
@@ -80,7 +80,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3, 3)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat().ID
+		receivedOids[i] = *row.ToMastercat(0).ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -88,16 +88,16 @@ o3,3,3
 func TestReadWithHeader_Error(t *testing.T) {
 	csv := ""
 
-	reader := strings.NewReader(csv)
+	r := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []source.SourceReader{{Reader: reader}},
+		Reader:      []source.SourceReader{{Reader: r}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
-	outputs := []chan indexer.ReaderResult{make(chan indexer.ReaderResult)}
+	outputs := []chan reader.ReaderResult{make(chan reader.ReaderResult)}
 
 	csvReader, err := NewCsvReader(&source, outputs)
 	require.NoError(t, err)
@@ -114,18 +114,18 @@ o2,2,2
 o3,3,3
 o4,4,4
 `
-	reader := strings.NewReader(csv)
+	r := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []source.SourceReader{{Reader: reader}},
+		Reader:      []source.SourceReader{{Reader: r}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	outputs := make([]chan indexer.ReaderResult, 1)
-	outputs[0] = make(chan indexer.ReaderResult)
+	outputs := make([]chan reader.ReaderResult, 1)
+	outputs[0] = make(chan reader.ReaderResult)
 	csvReader, err := NewCsvReader(
 		&source,
 		outputs,
@@ -157,7 +157,7 @@ o4,4,4
 	expectedOids := []string{"o1", "o2", "o3", "o4"}
 	receivedOids := make([]string, 4, 4)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat().ID
+		receivedOids[i] = *row.ToMastercat(0).ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -168,18 +168,18 @@ o1,1,1
 o2,2,2
 o3,3,3
 `
-	reader := strings.NewReader(csv)
+	r := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []source.SourceReader{{Reader: reader}},
+		Reader:      []source.SourceReader{{Reader: r}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	outputs := make([]chan indexer.ReaderResult, 1)
-	outputs[0] = make(chan indexer.ReaderResult)
+	outputs := make([]chan reader.ReaderResult, 1)
+	outputs[0] = make(chan reader.ReaderResult)
 	csvReader, err := NewCsvReader(
 		&source,
 		outputs,
@@ -210,7 +210,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3, 3)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat().ID
+		receivedOids[i] = *row.ToMastercat(0).ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -221,19 +221,19 @@ o1,1,1
 o2,2,2
 o3,3,3
 `
-	reader := strings.NewReader(csv)
-	reader2 := strings.NewReader(csv)
+	r := strings.NewReader(csv)
+	r2 := strings.NewReader(csv)
 
 	source := source.Source{
-		Reader:      []source.SourceReader{{Reader: reader}, {Reader: reader2}},
+		Reader:      []source.SourceReader{{Reader: r}, {Reader: r2}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	outputs := make([]chan indexer.ReaderResult, 1)
-	outputs[0] = make(chan indexer.ReaderResult)
+	outputs := make([]chan reader.ReaderResult, 1)
+	outputs[0] = make(chan reader.ReaderResult)
 	csvReader, err := NewCsvReader(
 		&source,
 		outputs,
@@ -264,7 +264,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6, 6)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat().ID
+		receivedOids[i] = *row.ToMastercat(0).ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -275,18 +275,18 @@ o1,1,1
 o2,2,2
 o3,3,3
 `
-	reader := strings.NewReader(csv)
+	r := strings.NewReader(csv)
 
 	src := source.Source{
-		Reader:      []source.SourceReader{{Reader: reader}},
+		Reader:      []source.SourceReader{{Reader: r}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	outputs := make([]chan indexer.ReaderResult, 1)
-	outputs[0] = make(chan indexer.ReaderResult)
+	outputs := make([]chan reader.ReaderResult, 1)
+	outputs[0] = make(chan reader.ReaderResult)
 
 	csvReader, err := NewCsvReader(
 		&src,
@@ -310,7 +310,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3, 3)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat().ID
+		receivedOids[i] = *row.ToMastercat(0).ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -321,19 +321,19 @@ o1,1,1
 o2,2,2
 o3,3,3
 `
-	reader := strings.NewReader(csv)
+	r := strings.NewReader(csv)
 
 	src := source.Source{
-		Reader:      []source.SourceReader{{Reader: reader}},
+		Reader:      []source.SourceReader{{Reader: r}},
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
 		CatalogName: "vlass",
 	}
 
-	outputs := make([]chan indexer.ReaderResult, 2)
-	outputs[0] = make(chan indexer.ReaderResult)
-	outputs[1] = make(chan indexer.ReaderResult)
+	outputs := make([]chan reader.ReaderResult, 2)
+	outputs[0] = make(chan reader.ReaderResult)
+	outputs[1] = make(chan reader.ReaderResult)
 
 	csvReader, err := NewCsvReader(
 		&src,
@@ -368,7 +368,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6, 6)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat().ID
+		receivedOids[i] = *row.ToMastercat(0).ID
 	}
 
 	// sort to be able to compare

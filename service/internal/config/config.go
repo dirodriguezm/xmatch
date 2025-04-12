@@ -51,11 +51,20 @@ type IndexerConfig struct {
 	Nside          int    `yaml:"nside"`
 }
 
+type ParquetWriterSchema int
+
+const (
+	AllwiseSchema ParquetWriterSchema = iota
+	MastercatSchema
+	TestSchema
+)
+
 type WriterConfig struct {
 	Type string `yaml:"type"`
 
 	// parquet config
 	OutputFile string `yaml:"output_file"`
+	Schema     ParquetWriterSchema
 }
 
 type ServiceConfig struct {

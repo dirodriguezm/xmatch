@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 
 	"github.com/dirodriguezm/xmatch/service/mocks"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStart_Mastercat(t *testing.T) {
@@ -29,8 +28,7 @@ func TestStart_Mastercat(t *testing.T) {
 	}
 	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
 
-	params, err := row2insertParams(mastercat)
-	require.NoError(t, err)
+	params := mastercat.ToInsertParams()
 	repo := &mocks.Repository{}
 	repo.On("GetDbInstance").Return(nil)
 	repo.On(
@@ -39,14 +37,14 @@ func TestStart_Mastercat(t *testing.T) {
 		mock.Anything,
 		[]repository.InsertObjectParams{params.(repository.InsertObjectParams)},
 	).Return(nil)
-	writer := NewSqliteWriter(repo, make(chan indexer.WriterInput[repository.ParquetMastercat]), make(chan bool), context.Background(), src)
+	w := NewSqliteWriter(repo, make(chan writer.WriterInput[repository.ParquetMastercat]), make(chan bool), context.Background(), src)
 
-	writer.Start()
-	writer.BaseWriter.InboxChannel <- indexer.WriterInput[repository.ParquetMastercat]{
+	w.Start()
+	w.BaseWriter.InboxChannel <- writer.WriterInput[repository.ParquetMastercat]{
 		Rows: []repository.ParquetMastercat{mastercat},
 	}
-	close(writer.BaseWriter.InboxChannel)
-	<-writer.BaseWriter.DoneChannel
+	close(w.BaseWriter.InboxChannel)
+	<-w.BaseWriter.DoneChannel
 
 	repo.AssertExpectations(t)
 }
@@ -59,15 +57,14 @@ func TestStart_Allwise(t *testing.T) {
 	w2sigmpro := 2.0
 	allwise := repository.AllwiseMetadata{
 		Source_id: &source_id,
-		W1mpro:      &w1mpro,
-		W1sigmpro:   &w1sigmpro,
-		W2mpro:      &w2mpro,
-		W2sigmpro:   &w2sigmpro,
+		W1mpro:    &w1mpro,
+		W1sigmpro: &w1sigmpro,
+		W2mpro:    &w2mpro,
+		W2sigmpro: &w2sigmpro,
 	}
 	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
 
-	params, err := row2insertParams(allwise)
-	require.NoError(t, err)
+	params := allwise.ToInsertParams()
 	repo := &mocks.Repository{}
 	repo.On("GetDbInstance").Return(nil)
 	repo.On(
@@ -76,21 +73,21 @@ func TestStart_Allwise(t *testing.T) {
 		mock.Anything,
 		[]repository.InsertAllwiseParams{params.(repository.InsertAllwiseParams)},
 	).Return(nil)
-	writer := NewSqliteWriter(
+	w := NewSqliteWriter(
 		repo,
-		make(chan indexer.WriterInput[repository.AllwiseMetadata]),
+		make(chan writer.WriterInput[repository.AllwiseMetadata]),
 		make(chan bool),
 		context.Background(),
 		src,
 	)
 
-	writer.Start()
-	writer.BaseWriter.InboxChannel <- indexer.WriterInput[repository.AllwiseMetadata]{
+	w.Start()
+	w.BaseWriter.InboxChannel <- writer.WriterInput[repository.AllwiseMetadata]{
 		Rows:  []repository.AllwiseMetadata{allwise},
 		Error: nil,
 	}
-	close(writer.BaseWriter.InboxChannel)
-	<-writer.BaseWriter.DoneChannel
+	close(w.BaseWriter.InboxChannel)
+	<-w.BaseWriter.DoneChannel
 
 	repo.AssertExpectations(t)
 }

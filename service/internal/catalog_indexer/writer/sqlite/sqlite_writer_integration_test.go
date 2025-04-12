@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -96,7 +96,7 @@ catalog_indexer:
 }
 
 func TestActor(t *testing.T) {
-	ch := make(chan indexer.WriterInput[repository.ParquetMastercat])
+	ch := make(chan writer.WriterInput[repository.ParquetMastercat])
 	var repo conesearch.Repository
 	err := ctr.Resolve(&repo)
 	require.NoError(t, err)
@@ -111,7 +111,7 @@ func TestActor(t *testing.T) {
 	decs := []float64{1, 2}
 	ipixs := []int64{1, 2}
 	cats := []string{"test", "test"}
-	ch <- indexer.WriterInput[repository.ParquetMastercat]{Rows: []repository.ParquetMastercat{
+	ch <- writer.WriterInput[repository.ParquetMastercat]{Rows: []repository.ParquetMastercat{
 		{ID: &ids[0], Ra: &ras[0], Dec: &decs[0], Ipix: &ipixs[0], Cat: &cats[0]},
 		{ID: &ids[1], Ra: &ras[1], Dec: &decs[1], Ipix: &ipixs[1], Cat: &cats[1]},
 	}}

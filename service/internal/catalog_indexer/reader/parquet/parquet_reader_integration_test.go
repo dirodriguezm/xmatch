@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -108,9 +107,9 @@ func TestReadMultipleFiles_Parquet(t *testing.T) {
 	require.Len(t, allRows, 10)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, *row.ToMastercat().ID)
-		require.Equal(t, expectedData.Ra, *row.ToMastercat().Ra)
-		require.Equal(t, expectedData.Dec, *row.ToMastercat().Dec)
+		require.Equal(t, expectedData.Oid, *row.ToMastercat(0).ID)
+		require.Equal(t, expectedData.Ra, *row.ToMastercat(0).Ra)
+		require.Equal(t, expectedData.Dec, *row.ToMastercat(0).Dec)
 	}
 }
 
@@ -122,9 +121,9 @@ func TestReadWithMultipleOutputs_Parquet(t *testing.T) {
 	source := fixture.source.Build()
 
 	// create reader
-	channels := make([]chan indexer.ReaderResult, 2)
-	channels[0] = make(chan indexer.ReaderResult)
-	channels[1] = make(chan indexer.ReaderResult)
+	channels := make([]chan reader.ReaderResult, 2)
+	channels[0] = make(chan reader.ReaderResult)
+	channels[1] = make(chan reader.ReaderResult)
 	r := fixture.reader.WithSource(source).WithOutputChannels(channels).Build()
 
 	// act
@@ -162,10 +161,10 @@ func TestReadWithMultipleOutputs_Parquet(t *testing.T) {
 	// there should be 10 rows for each oid
 	count := map[string]int{}
 	for _, row := range allRows {
-		if _, ok := count[*row.ToMastercat().ID]; !ok {
-			count[*row.ToMastercat().ID] = 0
+		if _, ok := count[*row.ToMastercat(0).ID]; !ok {
+			count[*row.ToMastercat(0).ID] = 0
 		}
-		count[*row.ToMastercat().ID]++
+		count[*row.ToMastercat(0).ID]++
 	}
 	require.Equal(t, 10, count["o1"])
 	require.Equal(t, 10, count["o2"])
