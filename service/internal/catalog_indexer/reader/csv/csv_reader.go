@@ -5,7 +5,6 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -19,7 +18,7 @@ type CsvReader struct {
 	currentReader   int
 }
 
-func NewCsvReader(src *source.Source, channel []chan indexer.ReaderResult, opts ...CsvReaderOption) (*CsvReader, error) {
+func NewCsvReader(src *source.Source, channel []chan reader.ReaderResult, opts ...CsvReaderOption) (*CsvReader, error) {
 	readers := []*csv.Reader{}
 	for _, reader := range src.Reader {
 		readers = append(readers, csv.NewReader(reader))

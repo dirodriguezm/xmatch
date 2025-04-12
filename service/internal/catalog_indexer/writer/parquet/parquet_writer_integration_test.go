@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
@@ -65,8 +65,8 @@ catalog_indexer:
 }
 
 func TestActor(t *testing.T) {
-	var w indexer.Writer[repository.ParquetMastercat]
-	err := ctr.Resolve(&w)
+	var w writer.Writer[any]
+	err := ctr.NamedResolve(&w, "indexer_writer")
 	require.NoError(t, err)
 
 	w.Start()
@@ -75,14 +75,14 @@ func TestActor(t *testing.T) {
 	decs := []float64{1, 2}
 	ipixs := []int64{1, 2}
 	cat := "vlass"
-	w.(*parquet_writer.ParquetWriter[repository.ParquetMastercat]).
-		InboxChannel <- indexer.WriterInput[repository.ParquetMastercat]{
-		Rows: []repository.ParquetMastercat{
-			{ID: &oids[0], Ipix: &ipixs[0], Ra: &ras[0], Dec: &decs[0], Cat: &cat},
-			{ID: &oids[1], Ipix: &ipixs[1], Ra: &ras[1], Dec: &decs[1], Cat: &cat},
+	w.(*parquet_writer.ParquetWriter[any]).
+		InboxChannel <- writer.WriterInput[any]{
+		Rows: []any{
+			repository.ParquetMastercat{ID: &oids[0], Ipix: &ipixs[0], Ra: &ras[0], Dec: &decs[0], Cat: &cat},
+			repository.ParquetMastercat{ID: &oids[1], Ipix: &ipixs[1], Ra: &ras[1], Dec: &decs[1], Cat: &cat},
 		},
 	}
-	close(w.(*parquet_writer.ParquetWriter[repository.ParquetMastercat]).InboxChannel)
+	close(w.(*parquet_writer.ParquetWriter[any]).InboxChannel)
 	w.Done()
 
 	// check the parquet file

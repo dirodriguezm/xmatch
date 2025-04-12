@@ -1,27 +1,26 @@
-package allwise_metadata
+package metadata
 
 import (
 	"log/slog"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 )
 
 type IndexerActor struct {
-	inbox  chan indexer.ReaderResult
-	outbox chan indexer.WriterInput[repository.AllwiseMetadata]
+	inbox  chan reader.ReaderResult
+	outbox chan writer.WriterInput[any]
 }
 
 func New(
-	inbox chan indexer.ReaderResult,
-	outbox chan indexer.WriterInput[repository.AllwiseMetadata],
+	inbox chan reader.ReaderResult,
+	outbox chan writer.WriterInput[any],
 ) *IndexerActor {
 	slog.Debug("Creating new Indexer")
 	return &IndexerActor{
 		inbox:  inbox,
 		outbox: outbox,
 	}
-
 }
 
 // Starts the Actor goroutine
@@ -41,21 +40,23 @@ func (actor *IndexerActor) Start() {
 	}()
 }
 
-func (actor *IndexerActor) receive(msg indexer.ReaderResult) {
+func (actor *IndexerActor) receive(msg reader.ReaderResult) {
 	slog.Debug("Indexer Received Message")
 	if msg.Error != nil {
-		actor.outbox <- indexer.WriterInput[repository.AllwiseMetadata]{
+		actor.outbox <- writer.WriterInput[any]{
 			Error: msg.Error,
 			Rows:  nil,
 		}
 		return
 	}
-	objects := make([]repository.AllwiseMetadata, len(msg.Rows))
+
+	objects := make([]any, len(msg.Rows))
 	for i := 0; i < len(msg.Rows); i++ {
-		object := msg.Rows[i].(*repository.AllwiseInputSchema)
+		object := msg.Rows[i]
 		objects[i] = object.ToMetadata()
 	}
-	actor.outbox <- indexer.WriterInput[repository.AllwiseMetadata]{
+
+	actor.outbox <- writer.WriterInput[any]{
 		Error: nil,
 		Rows:  objects,
 	}

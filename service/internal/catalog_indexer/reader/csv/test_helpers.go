@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -15,12 +15,12 @@ type ReaderBuilder struct {
 	ReaderConfig  *config.ReaderConfig
 	t             *testing.T
 	Source        *source.Source
-	OutputChannel []chan indexer.ReaderResult
+	OutputChannel []chan reader.ReaderResult
 }
 
 func AReader(t *testing.T) *ReaderBuilder {
-	outputs := make([]chan indexer.ReaderResult, 1)
-	outputs[0] = make(chan indexer.ReaderResult)
+	outputs := make([]chan reader.ReaderResult, 1)
+	outputs[0] = make(chan reader.ReaderResult)
 	return &ReaderBuilder{
 		t: t,
 		ReaderConfig: &config.ReaderConfig{
@@ -49,7 +49,7 @@ func (builder *ReaderBuilder) WithBatchSize(size int) *ReaderBuilder {
 	return builder
 }
 
-func (builder *ReaderBuilder) WithOutputChannels(ch []chan indexer.ReaderResult) *ReaderBuilder {
+func (builder *ReaderBuilder) WithOutputChannels(ch []chan reader.ReaderResult) *ReaderBuilder {
 	builder.t.Helper()
 
 	builder.OutputChannel = ch
@@ -63,7 +63,7 @@ func (builder *ReaderBuilder) WithSource(src *source.Source) *ReaderBuilder {
 	return builder
 }
 
-func (builder *ReaderBuilder) Build() indexer.Reader {
+func (builder *ReaderBuilder) Build() reader.Reader {
 	builder.t.Helper()
 
 	r, err := NewCsvReader(
@@ -83,14 +83,23 @@ type TestSchema struct {
 	Oid string
 }
 
-func (t *TestSchema) ToMastercat() repository.ParquetMastercat {
+func (t *TestSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
 	cat := "vlass"
 	return repository.ParquetMastercat{
-		ID:  &t.Oid,
-		Ra:  &t.Ra,
-		Dec: &t.Dec,
-		Cat: &cat,
+		ID:   &t.Oid,
+		Ra:   &t.Ra,
+		Dec:  &t.Dec,
+		Cat:  &cat,
+		Ipix: &ipix,
 	}
+}
+
+func (t *TestSchema) ToMetadata() any {
+	return t
+}
+
+func (t *TestSchema) GetCoordinates() (float64, float64) {
+	return t.Ra, t.Dec
 }
 
 func (t *TestSchema) SetField(name string, val interface{}) {

@@ -5,12 +5,15 @@ import (
 	"database/sql"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
-	allwise_metadata "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata/allwise"
+	metadata_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	reader_factory "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/factory"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
 	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
@@ -84,11 +87,11 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register reader
-	readerResults := make(map[string]chan indexer.ReaderResult)
-	readerResults["indexer"] = make(chan indexer.ReaderResult)
-	readerResults["metadata"] = make(chan indexer.ReaderResult)
-	ctr.Singleton(func(src *source.Source, cfg *config.Config) indexer.Reader {
-		outputChannels := []chan indexer.ReaderResult{readerResults["indexer"]}
+	readerResults := make(map[string]chan reader.ReaderResult)
+	readerResults["indexer"] = make(chan reader.ReaderResult)
+	readerResults["metadata"] = make(chan reader.ReaderResult)
+	ctr.Singleton(func(src *source.Source, cfg *config.Config) reader.Reader {
+		outputChannels := []chan reader.ReaderResult{readerResults["indexer"]}
 		if cfg.CatalogIndexer.Source.Metadata {
 			outputChannels = append(outputChannels, readerResults["metadata"])
 		}
@@ -101,7 +104,7 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register indexer
-	writerInput := make(chan indexer.WriterInput[repository.ParquetMastercat])
+	writerInput := make(chan writer.WriterInput[any])
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) *mastercat_indexer.IndexerActor {
 		actor, err := mastercat_indexer.New(src, readerResults["indexer"], writerInput, cfg.CatalogIndexer.Indexer)
 		if err != nil {
@@ -111,27 +114,27 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register metadata indexer
-	// TODO: choose between AllwiseMetadata or other metadata struct
-	writerInputMetadata := make(chan indexer.WriterInput[repository.AllwiseMetadata])
-	ctr.Singleton(func(src *source.Source, cfg *config.Config) *allwise_metadata.IndexerActor {
+	writerInputMetadata := make(chan writer.WriterInput[any])
+	ctr.Singleton(func(src *source.Source, cfg *config.Config) *metadata_indexer.IndexerActor {
 		if !cfg.CatalogIndexer.Source.Metadata {
 			return nil
 		}
-		actor := allwise_metadata.New(readerResults["metadata"], writerInputMetadata)
+		actor := metadata_indexer.New(readerResults["metadata"], writerInputMetadata)
 		return actor
 	})
 
 	// Register mastercat indexer writer
-	ctr.Singleton(func(
+	ctr.NamedSingleton("indexer_writer", func(
 		cfg *config.Config,
 		repo conesearch.Repository,
 		src *source.Source,
-	) indexer.Writer[repository.ParquetMastercat] {
+	) writer.Writer[any] {
 		if cfg.CatalogIndexer.IndexerWriter == nil {
 			panic("Indexer writer not configured")
 		}
 		switch cfg.CatalogIndexer.IndexerWriter.Type {
 		case "parquet":
+			cfg.CatalogIndexer.IndexerWriter.Schema = config.MastercatSchema
 			w, err := parquet_writer.NewParquetWriter(writerInput, make(chan bool), cfg.CatalogIndexer.IndexerWriter)
 			if err != nil {
 				panic(err)
@@ -147,17 +150,23 @@ func BuildIndexerContainer() container.Container {
 	})
 
 	// Register metadata writer
-	ctr.Singleton(func(
+	ctr.NamedSingleton("metadata_writer", func(
 		cfg *config.Config,
 		repo conesearch.Repository,
 		src *source.Source,
-	) indexer.Writer[repository.AllwiseMetadata] {
+	) writer.Writer[any] {
 		if cfg.CatalogIndexer.MetadataWriter == nil {
-			slog.Info("Skipping registration for Allwise metadata writer. Metadata writer not configured")
+			slog.Info("Skipping registration for metadata writer. MetadataWriter not configured")
 			return nil
 		}
-		switch cfg.CatalogIndexer.IndexerWriter.Type {
+		switch cfg.CatalogIndexer.MetadataWriter.Type {
 		case "parquet":
+			switch strings.ToLower(cfg.CatalogIndexer.Source.CatalogName) {
+			case "allwise":
+				cfg.CatalogIndexer.MetadataWriter.Schema = config.AllwiseSchema
+			default:
+				panic("Unknown catalog name")
+			}
 			w, err := parquet_writer.NewParquetWriter(writerInputMetadata, make(chan bool), cfg.CatalogIndexer.MetadataWriter)
 			if err != nil {
 				panic(err)

@@ -3,7 +3,7 @@ package parquet_reader
 import (
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -16,14 +16,23 @@ type TestInputSchema struct {
 	Dec float64
 }
 
-func (t *TestInputSchema) ToMastercat() repository.ParquetMastercat {
+func (t *TestInputSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
 	catalog := "test"
 	return repository.ParquetMastercat{
-		ID:  &t.Oid,
-		Ra:  &t.Ra,
-		Dec: &t.Dec,
-		Cat: &catalog,
+		ID:   &t.Oid,
+		Ra:   &t.Ra,
+		Dec:  &t.Dec,
+		Cat:  &catalog,
+		Ipix: &ipix,
 	}
+}
+
+func (t *TestInputSchema) ToMetadata() any {
+	return t
+}
+
+func (t *TestInputSchema) GetCoordinates() (float64, float64) {
+	return t.Ra, t.Dec
 }
 
 func (t *TestInputSchema) SetField(name string, val interface{}) {
@@ -45,12 +54,12 @@ type ReaderBuilder[T any] struct {
 	ReaderConfig  *config.ReaderConfig
 	t             *testing.T
 	Source        *source.Source
-	OutputChannel []chan indexer.ReaderResult
+	OutputChannel []chan reader.ReaderResult
 }
 
 func AReader[T any](t *testing.T) *ReaderBuilder[T] {
-	outputs := make([]chan indexer.ReaderResult, 1)
-	outputs[0] = make(chan indexer.ReaderResult)
+	outputs := make([]chan reader.ReaderResult, 1)
+	outputs[0] = make(chan reader.ReaderResult)
 	return &ReaderBuilder[T]{
 		t: t,
 		ReaderConfig: &config.ReaderConfig{
@@ -79,7 +88,7 @@ func (builder *ReaderBuilder[T]) WithBatchSize(size int) *ReaderBuilder[T] {
 	return builder
 }
 
-func (builder *ReaderBuilder[T]) WithOutputChannels(ch []chan indexer.ReaderResult) *ReaderBuilder[T] {
+func (builder *ReaderBuilder[T]) WithOutputChannels(ch []chan reader.ReaderResult) *ReaderBuilder[T] {
 	builder.t.Helper()
 
 	builder.OutputChannel = ch
@@ -93,7 +102,7 @@ func (builder *ReaderBuilder[T]) WithSource(src *source.Source) *ReaderBuilder[T
 	return builder
 }
 
-func (builder *ReaderBuilder[T]) Build() indexer.Reader {
+func (builder *ReaderBuilder[T]) Build() reader.Reader {
 	builder.t.Helper()
 
 	r, err := NewParquetReader(

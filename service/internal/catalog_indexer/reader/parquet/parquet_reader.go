@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"reflect"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -21,14 +20,14 @@ type ParquetReader[T any] struct {
 	parquetReaders []*preader.ParquetReader
 	src            *source.Source
 	currentReader  int
-	outbox         []chan indexer.ReaderResult
+	outbox         []chan reader.ReaderResult
 
 	fileReaders []psource.ParquetFile
 }
 
 func NewParquetReader[T any](
 	src *source.Source,
-	channel []chan indexer.ReaderResult,
+	channel []chan reader.ReaderResult,
 	opts ...ParquetReaderOption[T],
 ) (*ParquetReader[T], error) {
 	readers := []*preader.ParquetReader{}

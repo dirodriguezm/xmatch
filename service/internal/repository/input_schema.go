@@ -3,12 +3,14 @@ package repository
 import "strings"
 
 type InputSchema interface {
-	ToMastercat() ParquetMastercat
+	ToMastercat(ipix int64) ParquetMastercat
+	ToMetadata() any
+	GetCoordinates() (float64, float64)
 	SetField(string, any)
 }
 
 type AllwiseInputSchema struct {
-	Source_id  *string  `parquet:"name=source_id, type=BYTE_ARRAY"`
+	Source_id    *string  `parquet:"name=source_id, type=BYTE_ARRAY"`
 	Ra           *float64 `parquet:"name=ra, type=DOUBLE"`
 	Dec          *float64 `parquet:"name=dec, type=DOUBLE"`
 	W1mpro       *float64 `parquet:"name=w1mpro, type=DOUBLE"`
@@ -27,8 +29,7 @@ type AllwiseInputSchema struct {
 	K_msig_2mass *float64 `parquet:"name=k_msig_2mass, type=DOUBLE"`
 }
 
-func (a *AllwiseInputSchema) ToMastercat() ParquetMastercat {
-	ipix := int64(0)
+func (a *AllwiseInputSchema) ToMastercat(ipix int64) ParquetMastercat {
 	catalog := "allwise"
 	return ParquetMastercat{
 		ID:   a.Source_id,
@@ -39,9 +40,13 @@ func (a *AllwiseInputSchema) ToMastercat() ParquetMastercat {
 	}
 }
 
-func (a *AllwiseInputSchema) ToMetadata() AllwiseMetadata {
+func (a *AllwiseInputSchema) GetCoordinates() (float64, float64) {
+	return *a.Ra, *a.Dec
+}
+
+func (a *AllwiseInputSchema) ToMetadata() any {
 	return AllwiseMetadata{
-		Source_id:  a.Source_id,
+		Source_id:    a.Source_id,
 		W1mpro:       a.W1mpro,
 		W1sigmpro:    a.W1sigmpro,
 		W2mpro:       a.W2mpro,

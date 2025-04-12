@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestToInsertObjectParams(t *testing.T) {
+func TestToInsertParams(t *testing.T) {
 	id := "id"
 	cat := "cat"
 	ra := 1.0
@@ -19,10 +19,10 @@ func TestToInsertObjectParams(t *testing.T) {
 		Dec:  &dec,
 		Cat:  &cat,
 	}
-	result := m.ToInsertObjectParams()
-	require.Equal(t, *m.ID, result.ID)
-	require.Equal(t, *m.Ipix, result.Ipix)
-	require.Equal(t, *m.Ra, result.Ra)
-	require.Equal(t, *m.Dec, result.Dec)
-	require.Equal(t, *m.Cat, result.Cat)
+	result := m.ToInsertParams()
+	require.Equal(t, *m.ID, result.(InsertObjectParams).ID)
+	require.Equal(t, *m.Ipix, result.(InsertObjectParams).Ipix)
+	require.Equal(t, *m.Ra, result.(InsertObjectParams).Ra)
+	require.Equal(t, *m.Dec, result.(InsertObjectParams).Dec)
+	require.Equal(t, *m.Cat, result.(InsertObjectParams).Cat)
 }

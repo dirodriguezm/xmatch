@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 )
+
+type ParamsMaker interface {
+	ToInsertParams() any
+}
 
 type SqliteWriter[T any] struct {
 	*writer.BaseWriter[T]
@@ -22,7 +25,7 @@ type SqliteWriter[T any] struct {
 
 func NewSqliteWriter[T any](
 	repository conesearch.Repository,
-	ch chan indexer.WriterInput[T],
+	ch chan writer.WriterInput[T],
 	done chan bool,
 	ctx context.Context,
 	src *source.Source,
@@ -41,7 +44,7 @@ func NewSqliteWriter[T any](
 	return w
 }
 
-func (w *SqliteWriter[T]) Receive(msg indexer.WriterInput[T]) {
+func (w *SqliteWriter[T]) Receive(msg writer.WriterInput[T]) {
 	slog.Debug("Writer received message")
 	if msg.Error != nil {
 		slog.Error("SqliteWriter received error")
@@ -50,11 +53,7 @@ func (w *SqliteWriter[T]) Receive(msg indexer.WriterInput[T]) {
 	params := make([]any, len(msg.Rows))
 	for i, object := range msg.Rows {
 		// convert the received row to insert params needed by the repository
-		p, err := row2insertParams(object)
-		if err != nil {
-			slog.Error("SqliteWriter could not convert received object to insert params", "object", object)
-			panic(err)
-		}
+		p := any(object).(ParamsMaker).ToInsertParams()
 		params[i] = p
 	}
 	// insert converted rows
@@ -69,28 +68,19 @@ func (w *SqliteWriter[T]) Stop() {
 	w.DoneChannel <- true
 }
 
-func row2insertParams[T any](obj T) (any, error) {
-	switch v := any(obj).(type) {
-	case repository.ParquetMastercat:
-		return v.ToInsertObjectParams(), nil
-	case repository.AllwiseMetadata:
-		return v.ToInsertParams(), nil
-	default:
-		return nil, fmt.Errorf("Parameter type not known: %T", v)
-	}
-}
+func insertData[T any](repo conesearch.Repository, ctx context.Context, db *sql.DB, params []T) error {
+	// in case a single writer gets multiple types of data, we need to check which type of data we have
 
-func insertData[T any](repo conesearch.Repository, ctx context.Context, db *sql.DB, rows []T) error {
-	insertObjectParams := make([]repository.InsertObjectParams, 0, len(rows))
-	insertMetadataParams := make([]repository.InsertAllwiseParams, 0, len(rows))
+	insertObjectParams := make([]repository.InsertObjectParams, 0, len(params))
+	insertMetadataParams := make([]repository.InsertAllwiseParams, 0, len(params))
 
-	for i := range rows {
-		if p, ok := any(rows[i]).(repository.InsertObjectParams); ok {
+	for i := range params {
+		if p, ok := any(params[i]).(repository.InsertObjectParams); ok {
 			insertObjectParams = append(insertObjectParams, p)
-		} else if p, ok := any(rows[i]).(repository.InsertAllwiseParams); ok {
+		} else if p, ok := any(params[i]).(repository.InsertAllwiseParams); ok {
 			insertMetadataParams = append(insertMetadataParams, p)
 		} else {
-			return fmt.Errorf("Parameter type not known: %T", rows[i])
+			return fmt.Errorf("Parameter type not known: %T", params[i])
 		}
 	}
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	csv_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/csv"
 	parquet_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
@@ -14,9 +14,9 @@ import (
 
 func ReaderFactory(
 	src *source.Source,
-	outbox []chan indexer.ReaderResult,
+	outbox []chan reader.ReaderResult,
 	cfg *config.ReaderConfig,
-) (indexer.Reader, error) {
+) (reader.Reader, error) {
 	readerType := strings.ToLower(cfg.Type)
 	switch readerType {
 	case "csv":
@@ -34,7 +34,7 @@ func ReaderFactory(
 	}
 }
 
-func parquetFactory(src *source.Source, outbox []chan indexer.ReaderResult, cfg *config.ReaderConfig) (indexer.Reader, error) {
+func parquetFactory(src *source.Source, outbox []chan reader.ReaderResult, cfg *config.ReaderConfig) (reader.Reader, error) {
 	catalog := strings.ToLower(src.CatalogName)
 	if catalog == "allwise" {
 		return parquet_reader.NewParquetReader(
