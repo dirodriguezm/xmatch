@@ -115,7 +115,7 @@ func TestActor(t *testing.T) {
 	err := ctr.Resolve(&repo)
 	require.NoError(t, err)
 	ctx := context.Background()
-	done := make(chan bool)
+	done := make(chan struct{})
 	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
 	w := sqlite_writer.NewSqliteWriter(repo, ch, done, ctx, src)
 

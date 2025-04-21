@@ -34,7 +34,7 @@ type ParquetWriter[T any] struct {
 
 func NewParquetWriter[T any](
 	inbox chan writer.WriterInput[T],
-	done chan bool,
+	done chan struct{},
 	cfg *config.WriterConfig,
 ) (*ParquetWriter[T], error) {
 	slog.Debug("Creating new ParquetWriter")
@@ -96,6 +96,6 @@ func (w *ParquetWriter[T]) Stop() {
 	if err := w.pfile.Close(); err != nil {
 		panic(fmt.Errorf("ParquetWriter could not close parquet file %w", err))
 	}
-	w.DoneChannel <- true
+	w.DoneChannel <- struct{}{}
 	close(w.DoneChannel)
 }

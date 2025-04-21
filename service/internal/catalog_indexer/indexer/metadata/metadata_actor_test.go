@@ -43,6 +43,10 @@ func (t TestInputSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
 
 func (t TestInputSchema) SetField(string, any) {}
 
+func (t TestInputSchema) GetId() string {
+	return t.Id
+}
+
 func TestStart(t *testing.T) {
 	inbox := make(chan reader.ReaderResult)
 	outbox := make(chan writer.WriterInput[any])

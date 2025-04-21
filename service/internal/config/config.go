@@ -27,17 +27,22 @@ import (
 type Config struct {
 	CatalogIndexer *CatalogIndexerConfig `yaml:"catalog_indexer"`
 	Service        *ServiceConfig        `yaml:"service"`
+	Preprocessor   *PreprocessorConfig   `yaml:"preprocessor"`
 }
 
 type CatalogIndexerConfig struct {
-	Database        *DatabaseConfig `yaml:"database"`
-	Source          *SourceConfig   `yaml:"source"`
-	Reader          *ReaderConfig   `yaml:"reader"`
-	Indexer         *IndexerConfig  `yaml:"indexer"`
-	PartitionWriter *WriterConfig   `yaml:"partition_writer"`
-	ReducerWriter   *WriterConfig   `yaml:"reducer_writer"`
-	IndexerWriter   *WriterConfig   `yaml:"indexer_writer"`
-	MetadataWriter  *WriterConfig   `yaml:"metadata_writer"`
+	Database       *DatabaseConfig `yaml:"database"`
+	Source         *SourceConfig   `yaml:"source"`
+	Reader         *ReaderConfig   `yaml:"reader"`
+	Indexer        *IndexerConfig  `yaml:"indexer"`
+	IndexerWriter  *WriterConfig   `yaml:"indexer_writer"`
+	MetadataWriter *WriterConfig   `yaml:"metadata_writer"`
+}
+
+type PreprocessorConfig struct {
+	Source          *SourceConfig          `yaml:"source"`
+	Reader          *ReaderConfig          `yaml:"reader"`
+	PartitionWriter *PartitionWriterConfig `yaml:"partition_writer"`
 }
 
 type SourceConfig struct {
@@ -79,6 +84,16 @@ type WriterConfig struct {
 	// parquet config
 	OutputFile string `yaml:"output_file"`
 	Schema     ParquetWriterSchema
+}
+
+type PartitionWriterConfig struct {
+	Schema      ParquetWriterSchema
+	MaxFileSize int `yaml:"max_file_size"`
+
+	// filesystem config
+	NumPartitions   int    `yaml:"num_partitions"`
+	PartitionLevels int    `yaml:"partition_levels"`
+	BaseDir         string `yaml:"base_dir"`
 }
 
 type ServiceConfig struct {

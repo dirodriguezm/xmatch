@@ -64,6 +64,10 @@ func (t *TestInputSchema) SetField(name string, val interface{}) {
 	}
 }
 
+func (t *TestInputSchema) GetId() string {
+	return t.Oid
+}
+
 type ReaderBuilder[T any] struct {
 	ReaderConfig  *config.ReaderConfig
 	t             *testing.T

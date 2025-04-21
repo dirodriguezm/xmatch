@@ -21,6 +21,7 @@ type InputSchema interface {
 	ToMetadata() any
 	GetCoordinates() (float64, float64)
 	SetField(string, any)
+	GetId() string
 }
 
 type AllwiseInputSchema struct {
@@ -115,4 +116,8 @@ func (a *AllwiseInputSchema) SetField(name string, val any) {
 	case "k_msig_2mass":
 		a.K_msig_2mass = val.(*float64)
 	}
+}
+
+func (a *AllwiseInputSchema) GetId() string {
+	return *a.Source_id
 }

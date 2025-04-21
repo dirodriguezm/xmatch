@@ -51,7 +51,7 @@ func TestStart_Mastercat(t *testing.T) {
 		mock.Anything,
 		[]repository.InsertObjectParams{params.(repository.InsertObjectParams)},
 	).Return(nil)
-	w := NewSqliteWriter(repo, make(chan writer.WriterInput[repository.ParquetMastercat]), make(chan bool), context.Background(), src)
+	w := NewSqliteWriter(repo, make(chan writer.WriterInput[repository.ParquetMastercat]), make(chan struct{}), context.Background(), src)
 
 	w.Start()
 	w.BaseWriter.InboxChannel <- writer.WriterInput[repository.ParquetMastercat]{
@@ -90,7 +90,7 @@ func TestStart_Allwise(t *testing.T) {
 	w := NewSqliteWriter(
 		repo,
 		make(chan writer.WriterInput[repository.AllwiseMetadata]),
-		make(chan bool),
+		make(chan struct{}),
 		context.Background(),
 		src,
 	)

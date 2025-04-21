@@ -52,8 +52,11 @@ func (t *TestSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
 }
 
-// implement the interface
 func (t *TestSchema) SetField(name string, val interface{}) {}
+
+func (t *TestSchema) GetId() string {
+	return t.ID
+}
 
 func TestIndexActor(t *testing.T) {
 	inbox := make(chan reader.ReaderResult)

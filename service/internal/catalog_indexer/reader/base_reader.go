@@ -31,6 +31,7 @@ type Reader interface {
 	Start()
 	Read() ([]repository.InputSchema, error)
 	ReadBatch() ([]repository.InputSchema, error)
+	GetOutbox() []chan ReaderResult
 }
 
 type BaseReader struct {
@@ -73,4 +74,8 @@ func (r BaseReader) Start() {
 			}
 		}
 	}()
+}
+
+func (r BaseReader) GetOutbox() []chan ReaderResult {
+	return r.Outbox
 }
