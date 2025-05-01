@@ -77,6 +77,14 @@ func (manager FileSystemManager) GetDirectory(oid string) (string, error) {
 
 func (manager FileSystemManager) CreateNewFile(dir string, fileNum int) (*os.File, error) {
 	filename := fmt.Sprintf("%03d.parquet", fileNum)
+	if err := os.MkdirAll(dir, 0777); err != nil {
+		return nil, err
+	}
+	return os.Create(path.Join(dir, filename))
+}
+
+func (manager FileSystemManager) CreateNewTmpFile(dir string, fileNum int) (*os.File, error) {
+	filename := fmt.Sprintf("%03d_tmp.parquet", fileNum)
 	file, err := os.Create(path.Join(dir, filename))
 	if err != nil {
 		return nil, err
@@ -97,4 +105,9 @@ func (manager FileSystemManager) GetSizeOfFile(file *os.File) int64 {
 	}
 
 	return fileInfo.Size()
+}
+
+func (manager FileSystemManager) GetFile(baseDir string, fileNum int) (*os.File, error) {
+	filename := fmt.Sprintf("%03d.parquet", fileNum)
+	return os.Open(path.Join(baseDir, filename))
 }

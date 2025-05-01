@@ -94,9 +94,11 @@ func (s *IntegrationTestSuite) TestActor() {
 	s.T().Log(os.ReadDir(dir))
 	result := s.read_helper(path.Join(dir, "0", "001.parquet"))
 	s.Require().Len(result, 3)
-	s.Require().Equal("1", *result[0].Id)
-	s.Require().Equal("2", *result[1].Id)
-	s.Require().Equal("3", *result[2].Id)
+	ids := []string{*result[0].Id, *result[1].Id, *result[2].Id}
+
+	s.Require().Contains(ids, "1")
+	s.Require().Contains(ids, "2")
+	s.Require().Contains(ids, "3")
 }
 
 func (s *IntegrationTestSuite) read_helper(file string) []partition_writer.TestInputSchema {

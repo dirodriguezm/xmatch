@@ -1,26 +1,16 @@
-// Copyright 2024-2025 Diego Rodriguez Mancini
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package partition_writer
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
+	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/stretchr/testify/require"
+	"github.com/xitongsys/parquet-go-source/local"
+	"github.com/xitongsys/parquet-go/reader"
+	"github.com/xitongsys/parquet-go/writer"
 )
 
 type TestInputSchema struct {
@@ -47,11 +37,50 @@ func (r TestInputSchema) GetId() string {
 	return *r.Id
 }
 
+func writeParquet(t *testing.T, file *os.File, rows []TestInputSchema) {
+	t.Helper()
+
+	pr, err := writer.NewParquetWriterFromWriter(file, new(TestInputSchema), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, row := range rows {
+		if err := pr.Write(row); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := pr.WriteStop(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func readParquet(t *testing.T, file string) []TestInputSchema {
+	t.Helper()
+
+	fr, err := local.NewLocalFileReader(file)
+	require.NoError(t, err)
+	defer fr.Close()
+
+	pr, err := reader.NewParquetReader(fr, new(TestInputSchema), 4)
+	require.NoError(t, err)
+	defer pr.ReadStop()
+
+	nrows := pr.GetNumRows()
+
+	records := make([]TestInputSchema, nrows)
+	if err := pr.Read(&records); err != nil {
+		t.Fatal(err)
+	}
+
+	return records
+}
+
 func CreateTestConfig() string {
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "partition_writer_integration_test_*")
 	if err != nil {
-		slog.Error("could not make temp dir")
 		panic(err)
 	}
 
@@ -76,7 +105,6 @@ preprocessor:
 	config = fmt.Sprintf(config, tmpDir)
 	err = os.WriteFile(configPath, []byte(config), 0644)
 	if err != nil {
-		slog.Error("could not write config file")
 		panic(err)
 	}
 	os.Setenv("CONFIG_PATH", configPath)

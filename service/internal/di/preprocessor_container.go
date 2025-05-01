@@ -89,11 +89,7 @@ func BuildPreprocessorContainer() container.Container {
 
 		inputChan := make(chan writer.WriterInput[repository.InputSchema])
 		doneChan := make(chan struct{})
-		w, err := partition_writer.New(cfg.Preprocessor.PartitionWriter, inputChan, doneChan)
-		if err != nil {
-			panic(fmt.Errorf("Could not register partition writer: %w", err))
-		}
-		return w
+		return partition_writer.New(cfg.Preprocessor.PartitionWriter, inputChan, doneChan)
 	})
 
 	return ctr

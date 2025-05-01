@@ -56,7 +56,7 @@ func (handler *PartitionHandler) GetPartition(oid string) (Partition, error) {
 
 		// Extract this level's partition
 		levelValue := currentHash & mask
-		levels[level] = int(levelValue) % handler.NumPartitions
+		levels[level] = int(levelValue % uint64(handler.NumPartitions))
 
 		// Shift right by bits used
 		currentHash = currentHash >> levelBits
