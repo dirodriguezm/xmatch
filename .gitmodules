@@ -1,4 +1,0 @@
-[submodule "healpix"]
-	path = healpix
-	url = ./healpix
-	branch = dev
