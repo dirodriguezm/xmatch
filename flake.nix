@@ -1,26 +1,34 @@
+# Copyright 2024-2025 Matías Medina Silva
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 {
   description = "Entorno de desarrollo para Healpix con libsharp y cfitsio";
 
+  # Entradas necesarias (dependencias)
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable"; # Puedes usar una versión específica
     flake-utils.url = "github:numtide/flake-utils";
 
+    # Fuentes de los proyectos específicos
     libsharp-src = {
       url = "github:Libsharp/libsharp/master"; # Considera usar un commit específico
       flake = false;
-      hash = "sha256-11czd414gmdwp7nqk2b1gy52ddyhvkfx1w88jwj0jqdbnz1c1qdk";
     };
 
     healpix-src = {
       url = "github:healpy/healpixmirror/trunk"; # Considera usar un commit específico
       flake = false;
-      hash = "sha256-1p1gx0vdb1y2ixb5qvxlzn19c74m3wqfswk2lmjrx6zl3am4mya7";
-    };
-
-    cfitsio-src = {
-      url = "https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.5.0.tar.gz";
-      flake = false;
-      hash = "sha256-5IVPwzZcFGLkk6pYa/qi89C7jCC3WlJJVdtkwnQnzgk=";
     };
   };
 
@@ -30,7 +38,6 @@
     flake-utils,
     libsharp-src,
     healpix-src,
-    cfitsio-src,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (
@@ -60,6 +67,7 @@
 
           configureFlags = [
             "--enable-openmp"
+            # "--enable-mpi" # Opcional
             "--enable-pic"
             "--prefix=${placeholder "out"}"
           ];
@@ -90,10 +98,13 @@
         };
 
         # Derivación para cfitsio
-        cfitsio = pkgs.stdenv.mkDerivation {
+        cfitsio = pkgs.stdenv.mkDerivation rec {
           pname = "cfitsio";
           version = "4.5.0";
-          src = cfitsio-src;
+          src = pkgs.fetchurl {
+            url = "https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-${version}.tar.gz";
+            hash = "sha256-5IVPwzZcFGLkk6pYa/qi89C7jCC3WlJJVdtkwnQnzgk=";
+          };
 
           buildInputs = [pkgs.zlib];
           buildPhase = ''
@@ -176,6 +187,7 @@
           };
         };
       in {
+        # Definición del entorno de desarrollo
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             libsharp
