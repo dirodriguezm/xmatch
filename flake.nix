@@ -186,6 +186,16 @@
             platforms = platforms.unix;
           };
         };
+        initHealpix = pkgs.writeShellScriptBin "init-healpix" ''
+          if [ -d ".git/modules/healpix" ]; then
+            echo "Submódulo ya inicializado. Nada que hacer."
+            exit 0
+          fi
+
+          echo "Inicializando submódulo y ejecutando script..."
+          git submodule update --init --recursive
+          ./healpix/run_swig.sh
+        '';
       in {
         # Definición del entorno de desarrollo
         devShells.default = pkgs.mkShell {
@@ -198,6 +208,7 @@
             pkg-config
             swig
             gcc.cc.lib
+            initHealpix
           ];
 
           shellHook = ''
@@ -216,6 +227,8 @@
             echo "  CGO_CFLAGS=$CGO_CFLAGS"
             echo "  CGO_LDFLAGS=$CGO_LDFLAGS"
             echo "  LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
+            initHealpix
           '';
         };
 
