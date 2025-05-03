@@ -55,15 +55,15 @@
           version = "1.0.0";
           src = libsharp-src;
 
-          nativeBuildInputs = [
-            pkgs.autoconf
-            pkgs.automake
-            pkgs.libtool
+          nativeBuildInputs = with pkgs; [
+            autoconf
+            automake
+            libtool
           ];
 
-          buildInputs = [
-            pkgs.fftw
-            pkgs.fftwFloat
+          buildInputs = with pkgs; [
+            fftw
+            fftwFloat
           ];
 
           preConfigure = ''
@@ -123,20 +123,20 @@
           version = "1.16.5";
           src = healpix-src;
 
-          nativeBuildInputs = [
-            pkgs.autoconf
-            pkgs.automake
-            pkgs.libtool
-            pkgs.pkg-config
-            pkgs.patchelf
+          nativeBuildInputs = with pkgs; [
+            autoconf
+            automake
+            libtool
+            pkg-config
+            patchelf
           ];
 
-          buildInputs = [
+          buildInputs = with pkgs; [
             cfitsio
-            pkgs.gfortran
+            gfortran
             libsharp
-            pkgs.zlib
-            pkgs.gcc.cc.lib
+            zlib
+            gcc.cc.lib
           ];
 
           dontAddPrefix = true;
@@ -215,6 +215,7 @@
             just
             pkg-config
             swig
+            git
             gcc.cc.lib
             initHealpix
           ];
