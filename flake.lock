@@ -30,8 +30,8 @@
       },
       "original": {
         "owner": "healpy",
-        "ref": "trunk",
         "repo": "healpixmirror",
+        "rev": "a44dd367e50a038ea38f1916ff78c20607fde315",
         "type": "github"
       }
     },
@@ -47,8 +47,8 @@
       },
       "original": {
         "owner": "Libsharp",
-        "ref": "master",
         "repo": "libsharp",
+        "rev": "8d519468b7932858ff48ef0bdcdeb36561090994",
         "type": "github"
       }
     },
