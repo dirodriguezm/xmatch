@@ -34,13 +34,14 @@ func TestPartitionHandler_GetPartition_Cases(t *testing.T) {
 	for i := 1; i <= 256; i++ {
 		for j := 1; j <= 3; j++ {
 			handler := PartitionHandler{NumPartitions: i, PartitionLevels: j}
-			partition, err := handler.GetPartition("objectid")
+			partition, err := handler.GetPartition("0438p015_ac51-018218")
 
 			require.NoError(t, err)
 			require.Len(t, partition.Levels, j, "Case NumPartitions %d, Levels %d", i, j)
 
 			for level := range partition.Levels {
 				require.Less(t, partition.Levels[level], i)
+				require.GreaterOrEqual(t, partition.Levels[level], 0)
 			}
 		}
 	}
@@ -61,4 +62,16 @@ func TestPartitionHandler_GetPartition_OidHash(t *testing.T) {
 	require.NoError(t, err)
 	part3Str, _ := partition3.LevelsToString(handler.PartitionLevels)
 	require.Equal(t, part1Str, part3Str)
+}
+
+func TestPartitionHandler_GetPartition_SameOid(t *testing.T) {
+	handler := PartitionHandler{NumPartitions: 2, PartitionLevels: 2}
+	partition1, err := handler.GetPartition("FirstId")
+	require.NoError(t, err)
+
+	for i := 0; i < 1000; i++ {
+		partition2, err := handler.GetPartition("FirstId")
+		require.NoError(t, err)
+		require.Equal(t, partition1, partition2)
+	}
 }

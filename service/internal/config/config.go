@@ -94,6 +94,9 @@ type PartitionWriterConfig struct {
 	NumPartitions   int    `yaml:"num_partitions"`
 	PartitionLevels int    `yaml:"partition_levels"`
 	BaseDir         string `yaml:"base_dir"`
+
+	// In Memory Store config
+	InMemoryMaxPartitionSize int `yaml:"in_memory_max_partition_size"`
 }
 
 type ServiceConfig struct {

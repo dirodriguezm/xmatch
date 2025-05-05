@@ -29,6 +29,8 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	partition_writer "github.com/dirodriguezm/xmatch/service/internal/preprocessor/writer"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 // @title			CrossWave HTTP API
@@ -89,6 +91,37 @@ func startCatalogIndexer() {
 	w.Done()
 }
 
+func startPreprocessor() {
+	ctr := di.BuildPreprocessorContainer()
+
+	// initialize partition_writer
+	var partition_w *partition_writer.PartitionWriter
+	ctr.Resolve(&partition_w)
+	partition_w.Start()
+
+	// initialize reader
+	var reader reader.Reader
+	ctr.Resolve(&reader)
+	reader.Start()
+
+	readerResults := reader.GetOutbox()
+	go func() {
+		defer close(partition_w.InboxChannel)
+		for i := range readerResults {
+			for msg := range readerResults[i] {
+				wMsg := writer.WriterInput[repository.InputSchema]{
+					Error: msg.Error,
+					Rows:  msg.Rows,
+				}
+
+				partition_w.InboxChannel <- wMsg
+			}
+		}
+	}()
+
+	partition_w.Done()
+}
+
 func main() {
 	slog.Info("Starting xmatch service")
 	profile := flag.CommandLine.Bool("profile", false, "Enable profiling")
@@ -108,6 +141,8 @@ func main() {
 		startHttpServer()
 	case "indexer":
 		startCatalogIndexer()
+	case "preprocessor":
+		startPreprocessor()
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 	}
