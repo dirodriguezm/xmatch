@@ -15,11 +15,37 @@
 package partition_reader
 
 import (
-	parquet_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/parquet"
-	filesystemmanager "github.com/dirodriguezm/xmatch/service/internal/preprocessor/filesystem_manager"
+	"os"
+	"path/filepath"
 )
 
-type PartitionReader[T any] struct {
-	fs     *filesystemmanager.FileSystemManager
-	reader parquet_reader.ParquetReader[T]
+type PartitionReader struct {
+	dirChannel chan<- string
+}
+
+func NewPartitionReader(dirChannel chan<- string) *PartitionReader {
+	return &PartitionReader{
+		dirChannel: dirChannel,
+	}
+}
+
+// Recursively traverse the directory tree
+// sending each leaf directory to the output channel
+func (pr *PartitionReader) TraversePartitions(baseDir string) error {
+	entries, err := os.ReadDir(baseDir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			err := pr.TraversePartitions(filepath.Join(baseDir, entry.Name()))
+			if err != nil {
+				return err
+			}
+		} else {
+			pr.dirChannel <- baseDir
+			return nil
+		}
+	}
+	return nil
 }
