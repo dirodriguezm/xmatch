@@ -70,10 +70,10 @@ type IndexerConfig struct {
 	Nside          int    `yaml:"nside"`
 }
 
-type ParquetWriterSchema int
+type ParquetSchema int
 
 const (
-	AllwiseSchema ParquetWriterSchema = iota
+	AllwiseSchema ParquetSchema = iota
 	MastercatSchema
 	TestSchema
 )
@@ -83,11 +83,11 @@ type WriterConfig struct {
 
 	// parquet config
 	OutputFile string `yaml:"output_file"`
-	Schema     ParquetWriterSchema
+	Schema     ParquetSchema
 }
 
 type PartitionWriterConfig struct {
-	Schema      ParquetWriterSchema
+	Schema      ParquetSchema
 	MaxFileSize int `yaml:"max_file_size"`
 
 	// filesystem config
