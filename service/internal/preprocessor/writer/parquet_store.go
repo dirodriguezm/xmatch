@@ -30,7 +30,7 @@ import (
 type ParquetStore struct {
 	fs      *filesystemmanager.FileSystemManager
 	maxSize int
-	schema  config.ParquetWriterSchema
+	schema  config.ParquetSchema
 }
 
 func (store *ParquetStore) Write(rowsToWrite map[string][]repository.InputSchema, dirMap map[string]int) (map[string]int, error) {
@@ -198,7 +198,7 @@ func (store *ParquetStore) readTestSchema(pr *reader.ParquetReader, nrows int64)
 	return result, nil
 }
 
-func getParquetSchema(schema config.ParquetWriterSchema) any {
+func getParquetSchema(schema config.ParquetSchema) any {
 	switch schema {
 	case config.AllwiseSchema:
 		return new(repository.AllwiseInputSchema)
