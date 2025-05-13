@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"sync"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
@@ -136,8 +135,8 @@ func TestReadWithMultipleOutputs_Parquet(t *testing.T) {
 
 	// create reader
 	channels := make([]chan reader.ReaderResult, 2)
-	channels[0] = make(chan reader.ReaderResult)
-	channels[1] = make(chan reader.ReaderResult)
+	channels[0] = make(chan reader.ReaderResult, 100)
+	channels[1] = make(chan reader.ReaderResult, 100)
 	r := fixture.reader.WithSource(source).WithOutputChannels(channels).Build()
 
 	// act
@@ -145,29 +144,15 @@ func TestReadWithMultipleOutputs_Parquet(t *testing.T) {
 
 	// collect results
 	allRows := make([]repository.InputSchema, 0)
-	// we need a mutex to allow safe access to allRows
-	mu := sync.Mutex{}
-	done := make(chan struct{})
-	for i := range fixture.reader.OutputChannel {
-		go func() {
-			for msg := range fixture.reader.OutputChannel[i] {
-				if msg.Error != nil {
-					if errors.As(msg.Error, &reader.ReadError{}) {
-						slog.Error("Error reading parquet", "source", msg.Error.(reader.ReadError).Source)
-						return
-					}
-				}
-
-				mu.Lock()
-				allRows = append(allRows, msg.Rows...)
-				mu.Unlock()
+	for _, ch := range fixture.reader.OutputChannel {
+		for msg := range ch {
+			if msg.Error != nil {
+				t.Fatalf("Error sent by reader: %v", msg.Error)
 			}
-			done <- struct{}{}
-		}()
-	}
-	// wait for all rows to be collected
-	<-done
 
+			allRows = append(allRows, msg.Rows...)
+		}
+	}
 	// assert
 	require.Len(t, allRows, 20)
 
