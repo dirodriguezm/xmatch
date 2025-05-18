@@ -17,6 +17,7 @@ package partition_reader
 import (
 	"os"
 	"path"
+	"sync"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/config"
@@ -112,9 +113,13 @@ func (s *WorkerSuite) TestStart() {
 		dirChan := make(chan string, 1)
 		output := make(chan Records, 1)
 		worker := NewWorker(dirChan, config.TestSchema, output)
-		go worker.Start()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go worker.Start(&wg)
 		dirChan <- dir
 		close(dirChan)
+		wg.Wait()
+		close(output)
 
 		records := <-output
 		s.Len(records, 0)
@@ -134,9 +139,13 @@ func (s *WorkerSuite) TestStart() {
 		dirChan := make(chan string, 1)
 		output := make(chan Records, 1)
 		worker := NewWorker(dirChan, config.TestSchema, output)
-		go worker.Start()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go worker.Start(&wg)
 		dirChan <- dir
 		close(dirChan)
+		wg.Wait()
+		close(output)
 
 		records := <-output
 		s.Len(records, 1)

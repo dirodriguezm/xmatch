@@ -25,6 +25,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	partition_reader "github.com/dirodriguezm/xmatch/service/internal/preprocessor/reader"
 	partition_writer "github.com/dirodriguezm/xmatch/service/internal/preprocessor/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/golobby/container/v3"
@@ -91,6 +92,33 @@ func BuildPreprocessorContainer() container.Container {
 		doneChan := make(chan struct{})
 		return partition_writer.New(cfg.Preprocessor.PartitionWriter, inputChan, doneChan)
 	})
+
+	// Register PartitionReader Workers
+	dirChannel := make(chan string)
+	reducerChannel := make(chan partition_reader.Records)
+
+	ctr.Singleton(func(cfg *config.Config) []*partition_reader.Worker {
+		workers := make([]*partition_reader.Worker, cfg.Preprocessor.PartitionReader.NumWorkers)
+		for i := range cfg.Preprocessor.PartitionReader.NumWorkers {
+			workers[i] = partition_reader.NewWorker(
+				dirChannel,
+				cfg.Preprocessor.PartitionWriter.Schema,
+				reducerChannel,
+			)
+		}
+		return workers
+	})
+
+	// Register PartitionReader
+	ctr.Singleton(
+		func(workers []*partition_reader.Worker, cfg *config.Config) *partition_reader.PartitionReader {
+			return partition_reader.NewPartitionReader(
+				dirChannel,
+				workers,
+				cfg.Preprocessor.PartitionWriter.BaseDir,
+			)
+		},
+	)
 
 	return ctr
 }

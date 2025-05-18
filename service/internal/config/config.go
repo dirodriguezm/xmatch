@@ -43,6 +43,7 @@ type PreprocessorConfig struct {
 	Source          *SourceConfig          `yaml:"source"`
 	Reader          *ReaderConfig          `yaml:"reader"`
 	PartitionWriter *PartitionWriterConfig `yaml:"partition_writer"`
+	PartitionReader *PartitionReaderConfig `yaml:"partition_reader"`
 }
 
 type SourceConfig struct {
@@ -97,6 +98,10 @@ type PartitionWriterConfig struct {
 
 	// In Memory Store config
 	InMemoryMaxPartitionSize int `yaml:"in_memory_max_partition_size"`
+}
+
+type PartitionReaderConfig struct {
+	NumWorkers int `yaml:"num_workers"`
 }
 
 type ServiceConfig struct {
