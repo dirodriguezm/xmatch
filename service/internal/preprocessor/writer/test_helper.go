@@ -101,6 +101,8 @@ preprocessor:
     num_partitions: 1
     partition_levels: 1
     base_dir: "%s"
+  partition_reader:
+    num_workers: 1
 `
 	config = fmt.Sprintf(config, tmpDir)
 	err = os.WriteFile(configPath, []byte(config), 0644)

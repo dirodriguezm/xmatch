@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -41,7 +42,9 @@ func NewWorker(dirChannel <-chan string, schema config.ParquetSchema, output cha
 	}
 }
 
-func (w *Worker) Start() {
+func (w *Worker) Start(wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	for dir := range w.dirChannel {
 		records, err := w.readDirectory(dir)
 		if err != nil {
@@ -53,7 +56,6 @@ func (w *Worker) Start() {
 			w.output <- records
 		}
 	}
-	close(w.output)
 }
 
 func (w *Worker) readDirectory(dir string) (Records, error) {

@@ -29,6 +29,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	partition_reader "github.com/dirodriguezm/xmatch/service/internal/preprocessor/reader"
 	partition_writer "github.com/dirodriguezm/xmatch/service/internal/preprocessor/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
@@ -99,10 +100,13 @@ func startPreprocessor() {
 	ctr.Resolve(&partition_w)
 	partition_w.Start()
 
-	// initialize reader
+	// initialize source reader
 	var reader reader.Reader
 	ctr.Resolve(&reader)
 	reader.Start()
+
+	var cfg *config.Config
+	ctr.Resolve(&cfg)
 
 	readerResults := reader.GetOutbox()
 	go func() {
@@ -118,8 +122,12 @@ func startPreprocessor() {
 			}
 		}
 	}()
-
 	partition_w.Done()
+
+	// Now the partition reader part
+	var partition_r *partition_reader.PartitionReader
+	ctr.Resolve(&partition_r)
+	partition_r.Start()
 }
 
 func main() {

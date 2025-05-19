@@ -46,16 +46,15 @@ func (suite *PartitionReaderTestSuite) TestTraversePartitions() {
 	os.WriteFile(path.Join(suite.baseDir, "a", "b", "d", "file1"), []byte("test"), 0777)
 	os.MkdirAll(path.Join(suite.baseDir, "a", "b", "e"), 0777)
 
-	outputChan := make(chan string, 4)
-	pr := NewPartitionReader(outputChan)
+	dirChan := make(chan string, 4)
+	pr := NewPartitionReader(dirChan, nil, suite.baseDir)
 	go func() {
-		err := pr.TraversePartitions(suite.baseDir)
-		suite.Nil(err)
-		close(outputChan)
+		pr.TraversePartitions(suite.baseDir)
+		close(dirChan)
 	}()
 
 	directories := make([]string, 0)
-	for dir := range outputChan {
+	for dir := range dirChan {
 		directories = append(directories, dir)
 	}
 
