@@ -14,7 +14,10 @@
 
 package repository
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 type InputSchema interface {
 	ToMastercat(ipix int64) ParquetMastercat
@@ -120,4 +123,141 @@ func (a *AllwiseInputSchema) SetField(name string, val any) {
 
 func (a *AllwiseInputSchema) GetId() string {
 	return *a.Source_id
+}
+
+type VlassInputSchema struct {
+	Component_name *string  `parquet:"name=Component_name, type=BYTE_ARRAY"`
+	RA             *float64 `parquet:"name=RA, type=DOUBLE"`
+	DEC            *float64 `parquet:"name=DEC, type=DOUBLE"`
+	ERA            *float64 `parquet:"name=E_RA, type=DOUBLE"`
+	EDEC           *float64 `parquet:"name=E_DEC, type=DOUBLE"`
+	TotalFlux      *float64 `parquet:"name=Total_flux, type=DOUBLE"`
+	ETotalFlux     *float64 `parquet:"name=E_Total_flux, type=DOUBLE"`
+}
+
+func (v *VlassInputSchema) GetId() string {
+	return *v.Component_name
+}
+
+func (v *VlassInputSchema) ToMastercat(ipix int64) ParquetMastercat {
+	catalog := "vlass"
+	return ParquetMastercat{
+		ID:   v.Component_name,
+		Ipix: &ipix,
+		Ra:   v.RA,
+		Dec:  v.DEC,
+		Cat:  &catalog,
+	}
+}
+
+func (v *VlassInputSchema) GetCoordinates() (float64, float64) {
+	return *v.RA, *v.DEC
+}
+
+func (v *VlassInputSchema) ToMetadata() any {
+	return VlassMetadata{}
+}
+
+func (v *VlassInputSchema) SetField(name string, val any) {
+	switch n := strings.ToLower(name); n {
+	case "component_name":
+		parsed := val.(string)
+		v.Component_name = &parsed
+	case "ra":
+		parsed, err := strconv.ParseFloat(val.(string), 64)
+		if err != nil {
+			panic(err)
+		}
+		v.RA = &parsed
+	case "dec":
+		parsed, err := strconv.ParseFloat(val.(string), 64)
+		if err != nil {
+			panic(err)
+		}
+		v.DEC = &parsed
+	case "era":
+		parsed, err := strconv.ParseFloat(val.(string), 64)
+		if err != nil {
+			panic(err)
+		}
+		v.ERA = &parsed
+	case "edec":
+		parsed, err := strconv.ParseFloat(val.(string), 64)
+		if err != nil {
+			panic(err)
+		}
+		v.EDEC = &parsed
+	case "totalflux":
+		parsed, err := strconv.ParseFloat(val.(string), 64)
+		if err != nil {
+			panic(err)
+		}
+		v.TotalFlux = &parsed
+	case "etotalflux":
+		parsed, err := strconv.ParseFloat(val.(string), 64)
+		if err != nil {
+			panic(err)
+		}
+		v.ETotalFlux = &parsed
+	}
+}
+
+type VlassObjectSchema struct {
+	Id    *string  `parquet:"name=id, type=BYTE_ARRAY"`
+	Ra    *float64 `parquet:"name=ra, type=DOUBLE"`
+	Dec   *float64 `parquet:"name=dec, type=DOUBLE"`
+	Era   *float64 `parquet:"name=e_ra, type=DOUBLE"`
+	Edec  *float64 `parquet:"name=e_dec, type=DOUBLE"`
+	Flux  *float64 `parquet:"name=flux, type=DOUBLE"`
+	EFlux *float64 `parquet:"name=e_flux, type=DOUBLE"`
+}
+
+func (v *VlassObjectSchema) GetId() string {
+	return *v.Id
+}
+
+func (v *VlassObjectSchema) ToMetadata() any {
+	return VlassMetadata{
+		Id:    v.Id,
+		Ra:    v.Ra,
+		Dec:   v.Dec,
+		Era:   v.Era,
+		Edec:  v.Edec,
+		Flux:  v.Flux,
+		EFlux: v.EFlux,
+	}
+}
+
+func (v *VlassObjectSchema) GetCoordinates() (float64, float64) {
+	return *v.Ra, *v.Dec
+}
+
+func (v *VlassObjectSchema) ToMastercat(ipix int64) ParquetMastercat {
+	catalog := "vlass"
+	return ParquetMastercat{
+		ID:   v.Id,
+		Ipix: &ipix,
+		Ra:   v.Ra,
+		Dec:  v.Dec,
+		Cat:  &catalog,
+	}
+}
+
+func (v *VlassObjectSchema) SetField(name string, val any) {
+	switch n := strings.ToLower(name); n {
+	case "id":
+		v.Id = val.(*string)
+	case "ra":
+		v.Ra = val.(*float64)
+	case "dec":
+		v.Dec = val.(*float64)
+	case "era":
+		v.Era = val.(*float64)
+	case "edec":
+		v.Edec = val.(*float64)
+	case "flux":
+		v.Flux = val.(*float64)
+	case "eflux":
+		v.EFlux = val.(*float64)
+	}
 }

@@ -155,6 +155,8 @@ func (store *ParquetStore) readFile(fname string) ([]repository.InputSchema, err
 	switch store.schema {
 	case config.AllwiseSchema:
 		return store.readAllwiseSchema(pr, nrows)
+	case config.VlassSchema:
+		return store.readVlassSchema(pr, nrows)
 	case config.TestSchema:
 		return store.readTestSchema(pr, nrows)
 	default:
@@ -164,6 +166,24 @@ func (store *ParquetStore) readFile(fname string) ([]repository.InputSchema, err
 
 func (store *ParquetStore) readAllwiseSchema(pr *reader.ParquetReader, nrows int64) ([]repository.InputSchema, error) {
 	records := make([]repository.AllwiseInputSchema, nrows)
+	defer func() {
+		records = nil
+	}()
+
+	if err := pr.Read(&records); err != nil {
+		return nil, err
+	}
+
+	result := make([]repository.InputSchema, len(records))
+	for i, r := range records {
+		result[i] = &r
+	}
+
+	return result, nil
+}
+
+func (store *ParquetStore) readVlassSchema(pr *reader.ParquetReader, nrows int64) ([]repository.InputSchema, error) {
+	records := make([]repository.VlassInputSchema, nrows)
 	defer func() {
 		records = nil
 	}()
@@ -204,6 +224,8 @@ func getParquetSchema(schema config.ParquetSchema) any {
 		return new(repository.AllwiseInputSchema)
 	case config.TestSchema:
 		return new(TestInputSchema)
+	case config.VlassSchema:
+		return new(repository.VlassInputSchema)
 	default:
 		panic("Unknown schema")
 	}

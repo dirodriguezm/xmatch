@@ -16,6 +16,7 @@ package partition_reader
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -43,6 +44,7 @@ func NewWorker(dirChannel <-chan string, schema config.ParquetSchema, output cha
 }
 
 func (w *Worker) Start(wg *sync.WaitGroup) {
+	slog.Debug("Partition Reader Worker starting")
 	defer wg.Done()
 
 	for dir := range w.dirChannel {
@@ -101,6 +103,12 @@ func (w *Worker) readFile(file string) (Records, error) {
 			return nil, fmt.Errorf("error reading parquet file: %w", err)
 		}
 		return convertAllwiseToInputSchema(records), nil
+	case config.VlassSchema:
+		records := make([]repository.VlassInputSchema, num)
+		if err = pr.Read(&records); err != nil {
+			return nil, fmt.Errorf("error reading parquet file: %w", err)
+		}
+		return convertVlassToInputSchema(records), nil
 	case config.TestSchema:
 		records := make([]TestInputSchema, num)
 		if err = pr.Read(&records); err != nil {
@@ -114,8 +122,9 @@ func (w *Worker) readFile(file string) (Records, error) {
 
 func (w *Worker) groupByOid(records Records) map[string]Records {
 	result := make(map[string]Records)
-	for i := 0; i < len(records); i++ {
-		result[records[i].GetId()] = append(result[records[i].GetId()], records[i])
+	for i := range records {
+		id := records[i].GetId()
+		result[id] = append(result[id], records[i])
 	}
 	return result
 }
@@ -124,6 +133,8 @@ func getParquetSchema(schema config.ParquetSchema) any {
 	switch schema {
 	case config.AllwiseSchema:
 		return new(repository.AllwiseInputSchema)
+	case config.VlassSchema:
+		return new(repository.VlassInputSchema)
 	case config.TestSchema:
 		return new(TestInputSchema)
 	default:
@@ -140,6 +151,14 @@ func convertAllwiseToInputSchema(records []repository.AllwiseInputSchema) []repo
 }
 
 func convertTestToInputSchema(records []TestInputSchema) []repository.InputSchema {
+	result := make([]repository.InputSchema, len(records))
+	for i, r := range records {
+		result[i] = &r
+	}
+	return result
+}
+
+func convertVlassToInputSchema(records []repository.VlassInputSchema) []repository.InputSchema {
 	result := make([]repository.InputSchema, len(records))
 	for i, r := range records {
 		result[i] = &r
