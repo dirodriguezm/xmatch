@@ -13,22 +13,11 @@
 # limitations under the License.
 #
 {
-  description = "Development environment for Healpix with libsharp and cfitsio";
-
-  # Required inputs (dependencies)
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-
-    # Source repositories for specific projects
-    libsharp-src = {
-      flake = false;
-      owner = "Libsharp";
-      repo = "libsharp";
-      rev = "8d519468b7932858ff48ef0bdcdeb36561090994";
-      type = "github";
-    };
-
+    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    systems.url = "github:nix-systems/default";
+    devenv.url = "github:cachix/devenv";
+    devenv.inputs.nixpkgs.follows = "nixpkgs";
     healpix-src = {
       flake = false;
       owner = "healpy";
@@ -38,86 +27,30 @@
     };
   };
 
+  nixConfig = {
+    extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
+    extra-substituters = "https://devenv.cachix.org";
+  };
+
   outputs = {
+    self,
     nixpkgs,
-    flake-utils,
-    libsharp-src,
+    devenv,
+    systems,
     healpix-src,
     ...
-  }:
-    flake-utils.lib.eachDefaultSystem (
-      system: let
+  } @ inputs: let
+    forEachSystem = nixpkgs.lib.genAttrs (import systems);
+  in {
+    packages = forEachSystem (system: {
+      devenv-up = self.devShells.${system}.default.config.procfileScript;
+      devenv-test = self.devShells.${system}.default.config.test;
+    });
+
+    devShells =
+      forEachSystem
+      (system: let
         pkgs = nixpkgs.legacyPackages.${system};
-
-        # Derivation for libsharp
-        libsharp = pkgs.stdenv.mkDerivation {
-          pname = "libsharp";
-          version = "1.0.0";
-          src = libsharp-src;
-
-          nativeBuildInputs = with pkgs; [
-            autoconf
-            automake
-            libtool
-          ];
-
-          buildInputs = with pkgs; [
-            fftw
-            fftwFloat
-          ];
-
-          preConfigure = ''
-            autoconf
-          '';
-
-          configureFlags = [
-            "--enable-openmp"
-            "--enable-pic"
-            "--prefix=${placeholder "out"}"
-          ];
-
-          enableParallelBuilding = true;
-
-          buildPhase = ''
-            make SHARP_TARGET=auto compile_all
-          '';
-
-          installPhase = ''
-            mkdir -p $out/lib $out/include $out/bin
-            cp auto/lib/*.a $out/lib/
-            cp -r auto/include/* $out/include/
-            [ -f auto/bin/sharp_testsuite ] && cp auto/bin/sharp_testsuite $out/bin/ || true
-            if [ -f python/libsharp/libsharp.so ]; then
-              mkdir -p $out/${pkgs.python.sitePackages}
-              cp python/libsharp/*.so $out/${pkgs.python.sitePackages}/
-            fi
-          '';
-
-          meta = with pkgs.lib; {
-            description = "Library for fast spherical harmonic transforms";
-            homepage = "https://github.com/Libsharp/libsharp";
-            license = licenses.gpl2Plus;
-            platforms = platforms.unix;
-          };
-        };
-
-        # Derivation for cfitsio
-        cfitsio = pkgs.stdenv.mkDerivation rec {
-          pname = "cfitsio";
-          version = "4.5.0";
-          src = pkgs.fetchurl {
-            url = "https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-${version}.tar.gz";
-            hash = "sha256-5IVPwzZcFGLkk6pYa/qi89C7jCC3WlJJVdtkwnQnzgk=";
-          };
-
-          buildInputs = [pkgs.zlib];
-          buildPhase = ''
-            make -j
-          '';
-          configureFlags = ["--enable-reentrant"];
-        };
-
-        # Derivation for healpix
         healpix = pkgs.stdenv.mkDerivation {
           pname = "healpix";
           version = "1.16.5";
@@ -128,31 +61,28 @@
             automake
             libtool
             pkg-config
+            gfortran
             patchelf
           ];
 
           buildInputs = with pkgs; [
             cfitsio
-            gfortran
-            libsharp
-            zlib
-            gcc.cc.lib
           ];
-
-          dontAddPrefix = true;
 
           configureFlags = [
             "--auto=cxx"
             "--prefix=${placeholder "out"}"
           ];
 
-          FITSINC = "${cfitsio}/include";
-          FITSDIR = "${cfitsio}/lib";
+          FITSINC = "${pkgs.cfitsio}/include";
+          FITSDIR = "${pkgs.cfitsio}/lib";
 
           preConfigure = ''
             cd src/common_libraries/libsharp && autoreconf -i && cd -
             cd src/cxx && autoreconf -i && cd -
           '';
+
+          enableParallelBuilding = true;
 
           buildPhase = ''
             make -j
@@ -160,29 +90,34 @@
 
           installPhase = ''
             mkdir -p $out/lib $out/include
-            cp -r lib/pkgconfig $out/lib/
-            cp lib/libhealpix_cxx.a $out/lib/
-            cp lib/libhealpix_cxx.la $out/lib/
-            cp lib/libhealpix_cxx.so.4.0.5 $out/lib/
-            cp lib/libsharp.a $out/lib/
-            cp lib/libsharp.la $out/lib/
-            cp lib/libsharp.so.2.0.2 $out/lib/
+            ls -l lib
+
+            cp -a lib/* $out/lib/
+            ls -l $out/lib
+            ls -l $out/lib/pkgconfig
             cp -r include/healpix_cxx/* $out/include
 
-            ln -s $out/lib/libhealpix_cxx.so.4.0.5 $out/lib/libhealpix_cxx.so.4
-            ln -s $out/lib/libhealpix_cxx.so.4 $out/lib/libhealpix_cxx.so
-            ln -s $out/lib/libsharp.so.2.0.2 $out/lib/libsharp.so.2
-            ln -s $out/lib/libsharp.so.2 $out/lib/libsharp.so
+            install_name_tool -id $out/lib/libhealpix_cxx.4.dylib $out/lib/libhealpix_cxx.4.dylib
+            install_name_tool -change /private/tmp/nix-build-healpix-1.16.5.drv-0/source/lib/libhealpix_cxx.4.dylib $out/lib/libhealpix_cxx.4.dylib $out/lib/libhealpix_cxx.4.dylib || true
+            install_name_tool -change /private/tmp/nix-build-healpix-1.16.5.drv-0/source/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib $out/lib/libhealpix_cxx.4.dylib || true
 
-            patchelf --set-rpath "${cfitsio}/lib:${libsharp}/lib:$out/lib" $out/lib/libhealpix_cxx.so.4.0.5
-            patchelf --set-rpath "${cfitsio}/lib:$out/lib" $out/lib/libsharp.so.2.0.2
+            install_name_tool -id $out/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib
+            install_name_tool -change /private/tmp/nix-build-healpix-1.16.5.drv-0/source/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib || true
 
-            sed -i "s|includedir=.|includedir=$out/include|g" $out/lib/pkgconfig/healpix_cxx.pc
-            sed -i "s|/build/source/|$out/|g" $out/lib/pkgconfig/healpix_cxx.pc
+            substituteInPlace $out/lib/libhealpix_cxx.la \
+                --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
+
+            substituteInPlace $out/lib/libsharp.la \
+                --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
+
+            substituteInPlace $out/lib/pkgconfig/healpix_cxx.pc \
+                --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
+
+            substituteInPlace $out/lib/pkgconfig/libsharp.pc \
+                --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
           '';
 
-          dontAutoPatchelf = true;
-
+          dontAddPrefix = true;
           meta = with pkgs.lib; {
             description = "Library for fast spherical harmonic transforms";
             homepage = "https://github.com/Libsharp/libsharp";
@@ -190,58 +125,56 @@
             platforms = platforms.unix;
           };
         };
-        initHealpix = pkgs.writeShellScriptBin "init-healpix" ''
-          echo "Initializing submodule and running script..."
-          git submodule update --init --recursive
-          cd healpix
-          cd internal/healpix_cxx
-          # Check if the output file already exists
-          if [ -f "healpix_wrap.cxx" ]; then
-            echo "healpix_wrap.cxx already exists. The script may have already been run."
-            exit 0
-          fi
-          cd ../..
-          bash run_swig.sh
-          cd -
-        '';
       in {
-        # Development environment definition
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            libsharp
-            cfitsio
-            healpix
-            go_1_23
-            just
-            pkg-config
-            swig
-            git
-            gcc.cc.lib
-            initHealpix
+        default = devenv.lib.mkShell {
+          inherit inputs pkgs;
+          modules = [
+            {
+              # https://devenv.sh/reference/options/
+              packages = with pkgs; [
+                healpix
+                just
+                swig
+                cfitsio
+              ];
+
+              env = {
+                LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+                  healpix
+                  pkgs.cfitsio
+                ];
+                PKG_CONFIG_PATH = "${healpix}/lib/pkgconfig";
+                CGO_CFLAGS = "-I${healpix}/include -I${healpix}/include/healpix_cxx -I${pkgs.cfitsio}/include ";
+                CGO_LDFLAGS = "-L${healpix}/lib -L${pkgs.cfitsio}/lib  -lhealpix_cxx -lcfitsio ";
+              };
+
+              scripts.init-healpix.exec = ''
+                echo "Initializing submodule and running script..."
+                git submodule update --init --recursive
+                cd healpix
+                cd internal/healpix_cxx
+                # Check if the output file already exists
+                if [ -f "healpix_wrap.cxx" ]; then
+                  echo "healpix_wrap.cxx already exists. The script may have already been run."
+                  exit 0
+                fi
+                cd ../..
+                bash run_swig.sh
+                cd -
+              '';
+
+              enterShell = ''
+                echo "Healpix development environment configured."
+                init-healpix
+              '';
+
+              languages.go = {
+                enable = true;
+                package = pkgs.go_1_23;
+              };
+            }
           ];
-
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
-            healpix
-            cfitsio
-            libsharp
-            pkgs.gcc.cc.lib
-          ];
-
-          PKG_CONFIG_PATH = "${healpix}/lib/pkgconfig:${cfitsio}/lib/pkgconfig:${libsharp}/lib/pkgconfig";
-          CGO_CFLAGS = "-I${healpix}/include -I${healpix}/include/healpix_cxx -I${cfitsio}/include -I${libsharp}/include";
-          CGO_LDFLAGS = "-L${healpix}/lib -L${cfitsio}/lib -L${libsharp}/lib -lhealpix_cxx -lcfitsio -lsharp";
-
-          shellHook = ''
-            # Configuration for pkg-config
-            echo "Healpix development environment configured."
-            init-healpix
-          '';
         };
-
-        packages = {
-          inherit libsharp cfitsio healpix;
-          default = healpix; # The default package
-        };
-      }
-    );
+      });
+  };
 }
