@@ -88,7 +88,7 @@
             make -j
           '';
 
-          installPhase = ''
+          installPhase = if pkgs.stdenv.isDarwin then ''
             mkdir -p $out/lib $out/include
             ls -l lib
 
@@ -115,6 +115,20 @@
 
             substituteInPlace $out/lib/pkgconfig/libsharp.pc \
                 --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
+          ''else ''
+            mkdir -p $out/lib $out/include
+            ls -l lib
+
+            cp -a lib/* $out/lib/
+            ls -l $out/lib
+            ls -l $out/lib/pkgconfig
+            cp -r include/healpix_cxx/* $out/include
+
+            patchelf --set-rpath "${pkgs.cfitsio}/lib:$out/lib" $out/lib/libhealpix_cxx.so.4.0.5
+            patchelf --set-rpath "${pkgs.cfitsio}/lib:$out/lib" $out/lib/libsharp.so.2.0.2
+
+            sed -i "s|includedir=.|includedir=$out/include|g" $out/lib/pkgconfig/healpix_cxx.pc
+            sed -i "s|/build/source/|$out/|g" $out/lib/pkgconfig/healpix_cxx.pc
           '';
 
           dontAddPrefix = true;
@@ -142,6 +156,7 @@
                 LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
                   healpix
                   pkgs.cfitsio
+                  pkgs.gcc.cc.lib
                 ];
                 PKG_CONFIG_PATH = "${healpix}/lib/pkgconfig";
                 CGO_CFLAGS = "-I${healpix}/include -I${healpix}/include/healpix_cxx -I${pkgs.cfitsio}/include ";
