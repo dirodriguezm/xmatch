@@ -150,6 +150,7 @@
                 just
                 swig
                 cfitsio
+                golangci-lint
               ];
 
               env = {
