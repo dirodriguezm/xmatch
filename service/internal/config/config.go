@@ -77,6 +77,7 @@ const (
 	AllwiseSchema ParquetSchema = iota
 	MastercatSchema
 	TestSchema
+	VlassSchema
 )
 
 type WriterConfig struct {

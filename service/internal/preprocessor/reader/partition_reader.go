@@ -15,6 +15,7 @@
 package partition_reader
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -24,6 +25,7 @@ type PartitionReader struct {
 	dirChannel chan<- string
 	workers    []*Worker
 	baseDir    string
+	wg         sync.WaitGroup
 }
 
 func NewPartitionReader(dirChannel chan<- string, workers []*Worker, baseDir string) *PartitionReader {
@@ -57,14 +59,20 @@ func (pr *PartitionReader) TraversePartitions(baseDir string) {
 // The workers will read from the directory channel and send the records to the output channel
 // The directory channel and worker output channel will be closed when the workers are done
 func (pr *PartitionReader) Start() {
+	slog.Debug("PartitionReader starting")
 	go pr.TraversePartitions(pr.baseDir)
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(pr.workers))
+	pr.wg = sync.WaitGroup{}
+	pr.wg.Add(len(pr.workers))
 	for _, worker := range pr.workers {
-		go worker.Start(&wg)
+		go worker.Start(&pr.wg)
 	}
-	wg.Wait()
+}
+
+func (pr *PartitionReader) Done() {
+	defer slog.Debug("PartitionReader done")
+
+	pr.wg.Wait()
 
 	close(pr.dirChannel)
 	close(pr.workers[0].output)

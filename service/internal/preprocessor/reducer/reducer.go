@@ -13,3 +13,36 @@
 // limitations under the License.
 
 package reducer
+
+import (
+	"log/slog"
+	"sync"
+)
+
+type Reducer struct {
+	workers []*Worker
+	wg      sync.WaitGroup
+}
+
+func NewReducer(workers []*Worker) *Reducer {
+	return &Reducer{
+		workers: workers,
+	}
+}
+
+func (r *Reducer) Start() {
+	slog.Debug("Reducer starting")
+
+	r.wg = sync.WaitGroup{}
+	r.wg.Add(len(r.workers))
+	for _, worker := range r.workers {
+		go worker.Start(&r.wg)
+	}
+}
+
+func (r *Reducer) Done() {
+	defer slog.Debug("Reducer done")
+
+	r.wg.Wait()
+	close(r.workers[0].outCh)
+}

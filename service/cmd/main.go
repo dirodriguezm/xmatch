@@ -30,6 +30,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	partition_reader "github.com/dirodriguezm/xmatch/service/internal/preprocessor/reader"
+	"github.com/dirodriguezm/xmatch/service/internal/preprocessor/reducer"
 	partition_writer "github.com/dirodriguezm/xmatch/service/internal/preprocessor/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
@@ -125,9 +126,16 @@ func startPreprocessor() {
 	partition_w.Done()
 
 	// Now the partition reader part
+	var reducer *reducer.Reducer
+	ctr.Resolve(&reducer)
+	reducer.Start()
+
 	var partition_r *partition_reader.PartitionReader
 	ctr.Resolve(&partition_r)
 	partition_r.Start()
+
+	reducer.Done()
+	partition_r.Done()
 }
 
 func main() {

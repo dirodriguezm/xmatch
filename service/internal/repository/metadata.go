@@ -209,6 +209,16 @@ func (m GetAllwiseFromPixelsRow) ToAllwiseMetadata() AllwiseMetadata {
 	}
 }
 
+type VlassMetadata struct {
+	Id    *string  `parquet:"name=id, type=BYTE_ARRAY"`
+	Ra    *float64 `parquet:"name=ra, type=DOUBLE"`
+	Dec   *float64 `parquet:"name=dec, type=DOUBLE"`
+	Era   *float64 `parquet:"name=e_ra, type=DOUBLE"`
+	Edec  *float64 `parquet:"name=e_dec, type=DOUBLE"`
+	Flux  *float64 `parquet:"name=flux, type=DOUBLE"`
+	EFlux *float64 `parquet:"name=e_flux, type=DOUBLE"`
+}
+
 func nilOr0(f *float64) float64 {
 	if f == nil {
 		return 0

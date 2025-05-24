@@ -144,6 +144,8 @@ func (r *CsvReader) createInputSchema(catalogName string) repository.InputSchema
 	switch catalogName {
 	case "allwise":
 		return &repository.AllwiseInputSchema{}
+	case "vlass":
+		return &repository.VlassInputSchema{}
 	default:
 		return &TestSchema{}
 	}

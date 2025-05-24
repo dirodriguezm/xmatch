@@ -26,6 +26,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	partition_reader "github.com/dirodriguezm/xmatch/service/internal/preprocessor/reader"
+	"github.com/dirodriguezm/xmatch/service/internal/preprocessor/reducer"
 	partition_writer "github.com/dirodriguezm/xmatch/service/internal/preprocessor/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/golobby/container/v3"
@@ -82,10 +83,12 @@ func BuildPreprocessorContainer() container.Container {
 		switch strings.ToLower(cfg.Preprocessor.Source.CatalogName) {
 		case "allwise":
 			cfg.Preprocessor.PartitionWriter.Schema = config.AllwiseSchema
+		case "vlass":
+			cfg.Preprocessor.PartitionWriter.Schema = config.VlassSchema
 		case "test":
 			cfg.Preprocessor.PartitionWriter.Schema = config.TestSchema
 		default:
-			panic(fmt.Errorf("Can't register partition writer: unknown catalog name %s", cfg.CatalogIndexer.Source.CatalogName))
+			panic(fmt.Errorf("Can't register partition writer: unknown catalog name %s", cfg.Preprocessor.Source.CatalogName))
 		}
 
 		inputChan := make(chan writer.WriterInput[repository.InputSchema])
@@ -119,6 +122,25 @@ func BuildPreprocessorContainer() container.Container {
 			)
 		},
 	)
+
+	// Register Reducer Workers
+	processedObjectsChannel := make(chan repository.InputSchema)
+	ctr.Singleton(func(cfg *config.Config) []*reducer.Worker {
+		workers := make([]*reducer.Worker, cfg.Preprocessor.PartitionReader.NumWorkers)
+		for i := range cfg.Preprocessor.PartitionReader.NumWorkers {
+			workers[i] = reducer.NewWorker(
+				reducerChannel,
+				processedObjectsChannel,
+				cfg.Preprocessor.PartitionWriter.Schema,
+			)
+		}
+		return workers
+	})
+
+	// Register Reducer
+	ctr.Singleton(func(workers []*reducer.Worker) *reducer.Reducer {
+		return reducer.NewReducer(workers)
+	})
 
 	return ctr
 }
