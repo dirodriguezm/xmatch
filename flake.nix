@@ -51,6 +51,10 @@
       forEachSystem
       (system: let
         pkgs = nixpkgs.legacyPackages.${system};
+        go-migrate-sqlite = pkgs.go-migrate.overrideAttrs (oldAttrs: {
+          tags = ["sqlite3"];
+        });
+
         healpix = pkgs.stdenv.mkDerivation {
           pname = "healpix";
           version = "1.16.5";
@@ -88,48 +92,51 @@
             make -j
           '';
 
-          installPhase = if pkgs.stdenv.isDarwin then ''
-            mkdir -p $out/lib $out/include
-            ls -l lib
+          installPhase =
+            if pkgs.stdenv.isDarwin
+            then ''
+              mkdir -p $out/lib $out/include
+              ls -l lib
 
-            cp -a lib/* $out/lib/
-            ls -l $out/lib
-            ls -l $out/lib/pkgconfig
-            cp -r include/healpix_cxx/* $out/include
+              cp -a lib/* $out/lib/
+              ls -l $out/lib
+              ls -l $out/lib/pkgconfig
+              cp -r include/healpix_cxx/* $out/include
 
-            install_name_tool -id $out/lib/libhealpix_cxx.4.dylib $out/lib/libhealpix_cxx.4.dylib
-            install_name_tool -change /private/tmp/nix-build-healpix-1.16.5.drv-0/source/lib/libhealpix_cxx.4.dylib $out/lib/libhealpix_cxx.4.dylib $out/lib/libhealpix_cxx.4.dylib || true
-            install_name_tool -change /private/tmp/nix-build-healpix-1.16.5.drv-0/source/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib $out/lib/libhealpix_cxx.4.dylib || true
+              install_name_tool -id $out/lib/libhealpix_cxx.4.dylib $out/lib/libhealpix_cxx.4.dylib
+              install_name_tool -change /private/tmp/nix-build-healpix-1.16.5.drv-0/source/lib/libhealpix_cxx.4.dylib $out/lib/libhealpix_cxx.4.dylib $out/lib/libhealpix_cxx.4.dylib || true
+              install_name_tool -change /private/tmp/nix-build-healpix-1.16.5.drv-0/source/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib $out/lib/libhealpix_cxx.4.dylib || true
 
-            install_name_tool -id $out/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib
-            install_name_tool -change /private/tmp/nix-build-healpix-1.16.5.drv-0/source/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib || true
+              install_name_tool -id $out/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib
+              install_name_tool -change /private/tmp/nix-build-healpix-1.16.5.drv-0/source/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib $out/lib/libsharp.2.dylib || true
 
-            substituteInPlace $out/lib/libhealpix_cxx.la \
-                --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
+              substituteInPlace $out/lib/libhealpix_cxx.la \
+                  --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
 
-            substituteInPlace $out/lib/libsharp.la \
-                --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
+              substituteInPlace $out/lib/libsharp.la \
+                  --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
 
-            substituteInPlace $out/lib/pkgconfig/healpix_cxx.pc \
-                --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
+              substituteInPlace $out/lib/pkgconfig/healpix_cxx.pc \
+                  --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
 
-            substituteInPlace $out/lib/pkgconfig/libsharp.pc \
-                --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
-          ''else ''
-            mkdir -p $out/lib $out/include
-            ls -l lib
+              substituteInPlace $out/lib/pkgconfig/libsharp.pc \
+                  --replace "/private/tmp/nix-build-healpix-1.16.5.drv-0/source" "$out"
+            ''
+            else ''
+              mkdir -p $out/lib $out/include
+              ls -l lib
 
-            cp -a lib/* $out/lib/
-            ls -l $out/lib
-            ls -l $out/lib/pkgconfig
-            cp -r include/healpix_cxx/* $out/include
+              cp -a lib/* $out/lib/
+              ls -l $out/lib
+              ls -l $out/lib/pkgconfig
+              cp -r include/healpix_cxx/* $out/include
 
-            patchelf --set-rpath "${pkgs.cfitsio}/lib:$out/lib" $out/lib/libhealpix_cxx.so.4.0.5
-            patchelf --set-rpath "${pkgs.cfitsio}/lib:$out/lib" $out/lib/libsharp.so.2.0.2
+              patchelf --set-rpath "${pkgs.cfitsio}/lib:$out/lib" $out/lib/libhealpix_cxx.so.4.0.5
+              patchelf --set-rpath "${pkgs.cfitsio}/lib:$out/lib" $out/lib/libsharp.so.2.0.2
 
-            sed -i "s|includedir=.|includedir=$out/include|g" $out/lib/pkgconfig/healpix_cxx.pc
-            sed -i "s|/build/source/|$out/|g" $out/lib/pkgconfig/healpix_cxx.pc
-          '';
+              sed -i "s|includedir=.|includedir=$out/include|g" $out/lib/pkgconfig/healpix_cxx.pc
+              sed -i "s|/build/source/|$out/|g" $out/lib/pkgconfig/healpix_cxx.pc
+            '';
 
           dontAddPrefix = true;
           meta = with pkgs.lib; {
@@ -145,12 +152,15 @@
           modules = [
             {
               # https://devenv.sh/reference/options/
+
               packages = with pkgs; [
                 healpix
                 just
                 swig
                 cfitsio
                 golangci-lint
+                sqlite
+                go-migrate-sqlite
               ];
 
               env = {
