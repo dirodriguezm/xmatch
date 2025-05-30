@@ -54,7 +54,3 @@ func writeParquet(t *testing.T, file *os.File, rows []TestInputSchema) {
 func stringPtr(s string) *string {
 	return &s
 }
-
-func intPtr(i int) *int {
-	return &i
-}

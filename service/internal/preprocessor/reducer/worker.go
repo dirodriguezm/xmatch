@@ -18,32 +18,62 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	partition_reader "github.com/dirodriguezm/xmatch/service/internal/preprocessor/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Worker struct {
-	inCh   <-chan partition_reader.Records
-	outCh  chan<- repository.InputSchema
-	schema config.ParquetSchema
+	inCh      <-chan partition_reader.Records
+	outCh     chan<- writer.WriterInput[repository.InputSchema]
+	schema    config.ParquetSchema
+	batchSize int
 }
 
-func NewWorker(inCh <-chan partition_reader.Records, outCh chan<- repository.InputSchema, schema config.ParquetSchema) *Worker {
+func NewWorker(
+	inCh <-chan partition_reader.Records,
+	outCh chan<- writer.WriterInput[repository.InputSchema],
+	schema config.ParquetSchema,
+	batchSize int,
+) *Worker {
 	return &Worker{
-		inCh:   inCh,
-		outCh:  outCh,
-		schema: schema,
+		inCh:      inCh,
+		outCh:     outCh,
+		schema:    schema,
+		batchSize: batchSize,
 	}
 }
 
 func (w *Worker) Start(wg *sync.WaitGroup) {
-	slog.Debug("Reducer Worker starting")
-	defer wg.Done()
+	slog.Debug("Reducer Worker starting", "batchSize", w.batchSize)
+	defer func() {
+		slog.Debug("Reducer Worker done")
+		wg.Done()
+	}()
 
+	batch := make([]repository.InputSchema, w.batchSize)
+	i := 0
 	for records := range w.inCh {
-		slog.Debug("Reducer sending message")
-		w.outCh <- w.getObject(records)
+		batch[i] = w.getObject(records)
+		i++
+
+		if w.batchSize-1 == i {
+			w.outCh <- writer.WriterInput[repository.InputSchema]{
+				Rows:  batch,
+				Error: nil,
+			}
+			batch = make([]repository.InputSchema, w.batchSize)
+			i = 0
+		}
+	}
+
+	if i > 0 {
+		w.outCh <- writer.WriterInput[repository.InputSchema]{
+			Rows:  batch,
+			Error: nil,
+		}
+		batch = make([]repository.InputSchema, w.batchSize)
 	}
 }
 

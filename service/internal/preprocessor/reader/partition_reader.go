@@ -60,20 +60,22 @@ func (pr *PartitionReader) TraversePartitions(baseDir string) {
 // The directory channel and worker output channel will be closed when the workers are done
 func (pr *PartitionReader) Start() {
 	slog.Debug("PartitionReader starting")
-	go pr.TraversePartitions(pr.baseDir)
 
 	pr.wg = sync.WaitGroup{}
 	pr.wg.Add(len(pr.workers))
 	for _, worker := range pr.workers {
 		go worker.Start(&pr.wg)
 	}
+
+	pr.TraversePartitions(pr.baseDir)
+	close(pr.dirChannel)
 }
 
 func (pr *PartitionReader) Done() {
 	defer slog.Debug("PartitionReader done")
 
 	pr.wg.Wait()
+	slog.Debug("PartitionReader workers done")
 
-	close(pr.dirChannel)
 	close(pr.workers[0].output)
 }

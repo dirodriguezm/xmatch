@@ -17,16 +17,21 @@ package reducer
 import (
 	"log/slog"
 	"sync"
+
+	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Reducer struct {
 	workers []*Worker
+	writer  *parquet_writer.ParquetWriter[repository.InputSchema]
 	wg      sync.WaitGroup
 }
 
-func NewReducer(workers []*Worker) *Reducer {
+func NewReducer(workers []*Worker, writer *parquet_writer.ParquetWriter[repository.InputSchema]) *Reducer {
 	return &Reducer{
 		workers: workers,
+		writer:  writer,
 	}
 }
 
@@ -38,11 +43,15 @@ func (r *Reducer) Start() {
 	for _, worker := range r.workers {
 		go worker.Start(&r.wg)
 	}
+	r.writer.Start()
 }
 
 func (r *Reducer) Done() {
 	defer slog.Debug("Reducer done")
 
 	r.wg.Wait()
+	slog.Debug("Reducer workers done")
 	close(r.workers[0].outCh)
+	r.writer.Done()
+	slog.Debug("Reducer writer done")
 }

@@ -44,6 +44,12 @@ type PreprocessorConfig struct {
 	Reader          *ReaderConfig          `yaml:"reader"`
 	PartitionWriter *PartitionWriterConfig `yaml:"partition_writer"`
 	PartitionReader *PartitionReaderConfig `yaml:"partition_reader"`
+	ReducerWriter   *ReducerWriterConfig   `yaml:"reducer_writer"`
+}
+
+type ReducerWriterConfig struct {
+	WriterConfig `yaml:",inline"`
+	BatchSize    int `yaml:"batch_size"`
 }
 
 type SourceConfig struct {
