@@ -24,6 +24,7 @@ import (
 	reader_factory "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/factory"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	partition_reader "github.com/dirodriguezm/xmatch/service/internal/preprocessor/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/preprocessor/reducer"
@@ -124,7 +125,7 @@ func BuildPreprocessorContainer() container.Container {
 	)
 
 	// Register Reducer Workers
-	processedObjectsChannel := make(chan repository.InputSchema)
+	processedObjectsChannel := make(chan writer.WriterInput[repository.InputSchema])
 	ctr.Singleton(func(cfg *config.Config) []*reducer.Worker {
 		workers := make([]*reducer.Worker, cfg.Preprocessor.PartitionReader.NumWorkers)
 		for i := range cfg.Preprocessor.PartitionReader.NumWorkers {
@@ -132,14 +133,31 @@ func BuildPreprocessorContainer() container.Container {
 				reducerChannel,
 				processedObjectsChannel,
 				cfg.Preprocessor.PartitionWriter.Schema,
+				cfg.Preprocessor.ReducerWriter.BatchSize,
 			)
 		}
 		return workers
 	})
 
+	// Register Reducer Writer
+	ctr.Singleton(func(cfg *config.Config) *parquet_writer.ParquetWriter[repository.InputSchema] {
+		switch strings.ToLower(cfg.Preprocessor.Source.CatalogName) {
+		case "vlass":
+			cfg.Preprocessor.ReducerWriter.WriterConfig.Schema = config.VlassSchema
+		case "default":
+			panic("Catalog name not configured or unknown")
+		}
+
+		writer, err := parquet_writer.NewParquetWriter(processedObjectsChannel, make(chan struct{}), &cfg.Preprocessor.ReducerWriter.WriterConfig)
+		if err != nil {
+			panic(err)
+		}
+		return writer
+	})
+
 	// Register Reducer
-	ctr.Singleton(func(workers []*reducer.Worker) *reducer.Reducer {
-		return reducer.NewReducer(workers)
+	ctr.Singleton(func(workers []*reducer.Worker, writer *parquet_writer.ParquetWriter[repository.InputSchema]) *reducer.Reducer {
+		return reducer.NewReducer(workers, writer)
 	})
 
 	return ctr
