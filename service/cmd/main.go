@@ -134,8 +134,8 @@ func startPreprocessor() {
 	ctr.Resolve(&partition_r)
 	partition_r.Start()
 
-	reducer.Done()
 	partition_r.Done()
+	reducer.Done()
 }
 
 func main() {

@@ -18,6 +18,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	partition_reader "github.com/dirodriguezm/xmatch/service/internal/preprocessor/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -72,7 +73,7 @@ func TestWorker_GetVlassObject(t *testing.T) {
 func TestWorker_TestStart(t *testing.T) {
 	input := testInput()
 	inCh := make(chan partition_reader.Records, 1)
-	outCh := make(chan repository.InputSchema, 1)
+	outCh := make(chan writer.WriterInput[repository.InputSchema], 1)
 
 	worker := &Worker{
 		schema: config.VlassSchema,
@@ -88,7 +89,8 @@ func TestWorker_TestStart(t *testing.T) {
 	wg.Wait()
 	close(outCh)
 
-	result := <-outCh
+	batch := <-outCh
+	result := batch.Rows[0]
 	require.Equal(t, "oid", result.GetId())
 	require.Equal(t, 2.5, *result.(*repository.VlassObjectSchema).Ra)
 	require.Equal(t, 3.0, *result.(*repository.VlassObjectSchema).Dec)
