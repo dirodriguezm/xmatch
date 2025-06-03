@@ -46,3 +46,38 @@ service:
     url: "file:dev.db"
   bulk_chunk_size: 500
   max_bulk_concurrency: 4
+  # Configuration for the preprocessor
+preprocessor:
+  source:
+    # a path to the input file or files
+    url: "file:file.csv"
+    # the type of the input file
+    type: "csv"
+    # the name of the catalog
+    catalog_name: "vlass|ztf|allwise"
+    # name of the RA column in the input files
+    ra_col: "RA"
+    # name of the DEC column in the input files
+    dec_col: "DEC"
+    # name of the object ID column in the input files
+    oid_col: "Component_name"
+    # Nside of the HEALPix grid
+    nside: 18
+    metadata: false
+  reader:
+    # size of the batch to read from the input file
+    batch_size: 50000
+    # type of the reader
+    type: "csv"
+  partition_writer:
+    max_file_size: 1024000
+    num_partitions: 10
+    partition_levels: 1
+    base_dir: "./data/preprocess"
+    in_memory_max_partition_size: 2000
+  partition_reader:
+    num_workers: 4
+  reducer_writer:
+    type: 'parquet'
+    output_dir: "./data/reduce"
+    batch_size: 10000

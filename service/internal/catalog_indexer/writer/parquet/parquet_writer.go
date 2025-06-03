@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"reflect"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
@@ -50,6 +51,8 @@ func NewParquetWriter[T any](
 		schema = new(repository.AllwiseMetadata)
 	case config.MastercatSchema:
 		schema = new(repository.ParquetMastercat)
+	case config.VlassSchema:
+		schema = new(repository.VlassObjectSchema)
 	case config.TestSchema:
 		schema = new(TestStruct)
 	default:
@@ -80,8 +83,13 @@ func (w *ParquetWriter[T]) Receive(msg writer.WriterInput[T]) {
 		panic(msg.Error)
 	}
 
-	for i := 0; i < len(msg.Rows); i++ {
+	for i := range msg.Rows {
 		obj := msg.Rows[i]
+
+		if reflect.DeepEqual(obj, *new(T)) {
+			continue // skip empty objects
+		}
+
 		if err := w.parquetWriter.Write(obj); err != nil {
 			panic(fmt.Errorf("ParquetWriter could not write object %v\n%w", obj, err))
 		}

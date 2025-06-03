@@ -18,6 +18,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
@@ -50,7 +51,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	}
 	s.tmpDir = tmpDir
 
-	s.configPath = partition_writer.CreateTestConfig()
+	s.configPath = partition_writer.CreateTestConfig(filepath.Join(tmpDir, "output.parquet"))
 
 	s.ctr = di.BuildPreprocessorContainer()
 }
