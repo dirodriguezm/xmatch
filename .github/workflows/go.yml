@@ -23,4 +23,4 @@ jobs:
           nix profile install nixpkgs#devenv
 
       - name: Run the tests
-        run: nix develop .#ci --accept-flake-config --command bash -c "cd $GITHUB_WORKSPACE && devenv test"
+        run: nix run .#test
