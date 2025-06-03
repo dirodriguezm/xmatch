@@ -23,4 +23,4 @@ jobs:
           nix profile install nixpkgs#devenv
 
       - name: Run the tests
-        run: nix run .#test
+        run: nix run .#test --acept-flake-config
