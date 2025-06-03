@@ -109,8 +109,8 @@ service:
 	if err != nil {
 		panic(fmt.Errorf("could not resolve server: %w", err))
 	}
-	r := gin.New()
-	router = api.SetupRoutes(r)
+	router = gin.New()
+	api.SetupRoutes(router)
 
 	// run tests
 	m.Run()

@@ -21,8 +21,9 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/dirodriguezm/xmatch/service/internal/api"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	// httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
@@ -114,19 +115,34 @@ func BuildServiceContainer() container.Container {
 		return service
 	})
 
+	// ctr.Singleton(func(
+		// conesearchService *conesearch.ConesearchService,
+		// metadataService *metadata.MetadataService,
+		// config *config.Config,
+	// ) *httpservice.HttpServer {
+		// server, err := httpservice.NewHttpServer(conesearchService, metadataService, config.Service)
+		// if err != nil {
+			// panic(fmt.Errorf("Could not register HttpServer: %w", err))
+		// }
+		// if server == nil {
+			// panic("Server nil while registering HttpServer")
+		// }
+		// return server
+	// })
+
 	ctr.Singleton(func(
 		conesearchService *conesearch.ConesearchService,
 		metadataService *metadata.MetadataService,
 		config *config.Config,
-	) *httpservice.HttpServer {
-		server, err := httpservice.NewHttpServer(conesearchService, metadataService, config.Service)
+	) *api.API {
+		api, err := api.New(conesearchService, metadataService, config.Service)
 		if err != nil {
-			panic(fmt.Errorf("Could not register HttpServer: %w", err))
+			panic(fmt.Errorf("Could not register API: %w", err))
 		}
-		if server == nil {
+		if api == nil {
 			panic("Server nil while registering HttpServer")
 		}
-		return server
+		return api
 	})
 
 	return ctr
