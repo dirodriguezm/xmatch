@@ -200,7 +200,6 @@
               };
 
               enterTest = ''
-                init-healpix
                 cd service
                 just test
               '';
