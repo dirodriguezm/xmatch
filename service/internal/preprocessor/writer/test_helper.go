@@ -77,7 +77,7 @@ func readParquet(t *testing.T, file string) []TestInputSchema {
 	return records
 }
 
-func CreateTestConfig() string {
+func CreateTestConfig(outputFile string) string {
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "partition_writer_integration_test_*")
 	if err != nil {
@@ -103,8 +103,12 @@ preprocessor:
     base_dir: "%s"
   partition_reader:
     num_workers: 1
+  reducer_writer:
+    batch_size: 100
+    type: "parquet"
+    output_file: "%s"
 `
-	config = fmt.Sprintf(config, tmpDir)
+	config = fmt.Sprintf(config, tmpDir, outputFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)
 	if err != nil {
 		panic(err)

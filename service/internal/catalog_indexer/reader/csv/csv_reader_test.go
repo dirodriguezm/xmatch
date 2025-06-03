@@ -40,7 +40,7 @@ o3,3,3
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
-		CatalogName: "vlass",
+		CatalogName: "test",
 	}
 
 	outputs := make([]chan reader.ReaderResult, 1)
@@ -76,7 +76,7 @@ o3,3,3
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
-		CatalogName: "vlass",
+		CatalogName: "test",
 	}
 	outputs := make([]chan reader.ReaderResult, 1)
 	outputs[0] = make(chan reader.ReaderResult)
@@ -135,7 +135,7 @@ o4,4,4
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
-		CatalogName: "vlass",
+		CatalogName: "test",
 	}
 
 	outputs := make([]chan reader.ReaderResult, 1)
@@ -189,7 +189,7 @@ o3,3,3
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
-		CatalogName: "vlass",
+		CatalogName: "test",
 	}
 
 	outputs := make([]chan reader.ReaderResult, 1)
@@ -243,7 +243,7 @@ o3,3,3
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
-		CatalogName: "vlass",
+		CatalogName: "test",
 	}
 
 	outputs := make([]chan reader.ReaderResult, 1)
@@ -296,7 +296,7 @@ o3,3,3
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
-		CatalogName: "vlass",
+		CatalogName: "test",
 	}
 
 	outputs := make([]chan reader.ReaderResult, 1)
@@ -342,7 +342,7 @@ o3,3,3
 		RaCol:       "ra",
 		DecCol:      "dec",
 		OidCol:      "oid",
-		CatalogName: "vlass",
+		CatalogName: "test",
 	}
 
 	outputs := make([]chan reader.ReaderResult, 2)

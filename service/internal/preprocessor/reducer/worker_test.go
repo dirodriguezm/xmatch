@@ -76,9 +76,10 @@ func TestWorker_TestStart(t *testing.T) {
 	outCh := make(chan writer.WriterInput[repository.InputSchema], 1)
 
 	worker := &Worker{
-		schema: config.VlassSchema,
-		inCh:   inCh,
-		outCh:  outCh,
+		schema:    config.VlassSchema,
+		inCh:      inCh,
+		outCh:     outCh,
+		batchSize: 10,
 	}
 
 	wg := sync.WaitGroup{}
