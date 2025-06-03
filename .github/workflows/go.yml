@@ -23,4 +23,4 @@ jobs:
           nix profile install nixpkgs#devenv
 
       - name: Run the tests
-        run: nix develop --no-pure-eval --accept-flake-config --command devenv test
+        run: nix develop --no-pure-eval --command devenv test
