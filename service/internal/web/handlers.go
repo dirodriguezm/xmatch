@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Diego Rodriguez Mancini
+// Copyright 2024-2025 Matías Medina Silva
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,22 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package httpservice_test
-
-// import (
-	// "net/http"
-	// "net/http/httptest"
-	// "testing"
-
-	// "github.com/stretchr/testify/require"
-// )
-
-// func TestPing(t *testing.T) {
-
-	// w := httptest.NewRecorder()
-	// req, _ := http.NewRequest("GET", "/ping", nil)
-	// router.ServeHTTP(w, req)
-
-	// require.Equal(t, http.StatusOK, w.Code)
-	// require.Equal(t, "pong", w.Body.String())
-// }
+package web

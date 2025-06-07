@@ -12,22 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package httpservice_test
+package api
 
-// import (
-	// "net/http"
-	// "net/http/httptest"
-	// "testing"
+type BulkConesearchRequest struct {
+	Ra        []float64 `json:"ra"`
+	Dec       []float64 `json:"dec"`
+	Radius    float64   `json:"radius"`
+	Catalog   string    `json:"catalog"`
+	Nneighbor int       `json:"nneighbor"`
+}
 
-	// "github.com/stretchr/testify/require"
-// )
-
-// func TestPing(t *testing.T) {
-
-	// w := httptest.NewRecorder()
-	// req, _ := http.NewRequest("GET", "/ping", nil)
-	// router.ServeHTTP(w, req)
-
-	// require.Equal(t, http.StatusOK, w.Code)
-	// require.Equal(t, "pong", w.Body.String())
-// }
+type BulkMetadataRequest struct {
+	Ids     []string `json:"ids"`
+	Catalog string   `json:"catalog"`
+}

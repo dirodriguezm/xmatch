@@ -198,6 +198,11 @@
                 enable = true;
                 package = pkgs.go_1_23;
               };
+
+              enterTest = ''
+                cd service
+                just test
+              '';
             }
           ];
         };

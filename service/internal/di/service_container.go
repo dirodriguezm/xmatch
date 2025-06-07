@@ -21,8 +21,11 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/dirodriguezm/xmatch/service/internal/api"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
+	"github.com/dirodriguezm/xmatch/service/internal/web"
+
+	// httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
@@ -114,19 +117,49 @@ func BuildServiceContainer() container.Container {
 		return service
 	})
 
+	// ctr.Singleton(func(
+		// conesearchService *conesearch.ConesearchService,
+		// metadataService *metadata.MetadataService,
+		// config *config.Config,
+	// ) *httpservice.HttpServer {
+		// server, err := httpservice.NewHttpServer(conesearchService, metadataService, config.Service)
+		// if err != nil {
+			// panic(fmt.Errorf("Could not register HttpServer: %w", err))
+		// }
+		// if server == nil {
+			// panic("Server nil while registering HttpServer")
+		// }
+		// return server
+	// })
+
 	ctr.Singleton(func(
 		conesearchService *conesearch.ConesearchService,
 		metadataService *metadata.MetadataService,
 		config *config.Config,
-	) *httpservice.HttpServer {
-		server, err := httpservice.NewHttpServer(conesearchService, metadataService, config.Service)
+	) *api.API {
+		api, err := api.New(conesearchService, metadataService, config.Service)
 		if err != nil {
-			panic(fmt.Errorf("Could not register HttpServer: %w", err))
+			panic(fmt.Errorf("Could not register API: %w", err))
 		}
-		if server == nil {
-			panic("Server nil while registering HttpServer")
+		if api == nil {
+			panic("api nil while registering API")
 		}
-		return server
+		return api
+	})
+
+	ctr.Singleton(func(
+		conesearchService *conesearch.ConesearchService,
+		metadataService *metadata.MetadataService,
+		config *config.Config,
+	) *web.Web {
+		web, err := web.New(conesearchService, metadataService, config.Service)
+		if err != nil {
+			panic(fmt.Errorf("Could not register API: %w", err))
+		}
+		if web == nil {
+			panic("web nil while registering Web")
+		}
+		return web
 	})
 
 	return ctr
