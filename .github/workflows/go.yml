@@ -18,7 +18,7 @@ jobs:
       - uses: cachix/cachix-action@v14
         with:
           name: devenv
-          signingKey: eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI4YWViODk3OC1kNTdhLTQ3ZWEtYTAzOS02ZjdkZmUyZWI1NjYiLCJzY29wZXMiOiJjYWNoZSJ9.C7iH7JcGtMNJbefNDW9RCpE-ufSKVgMPXHX0A8ck7dk
+          authToken: eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI4YWViODk3OC1kNTdhLTQ3ZWEtYTAzOS02ZjdkZmUyZWI1NjYiLCJzY29wZXMiOiJjYWNoZSJ9.C7iH7JcGtMNJbefNDW9RCpE-ufSKVgMPXHX0A8ck7dk
       - name: Install devenv.sh
         run: |
           nix profile install nixpkgs#devenv
