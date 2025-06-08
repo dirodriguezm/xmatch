@@ -21,6 +21,7 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/dirodriguezm/xmatch/service/internal/api"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
 	metadata_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata"
@@ -28,11 +29,12 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
-	httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	partition_reader "github.com/dirodriguezm/xmatch/service/internal/preprocessor/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/preprocessor/reducer"
 	partition_writer "github.com/dirodriguezm/xmatch/service/internal/preprocessor/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/web"
+	"github.com/gin-gonic/gin"
 )
 
 // @title			CrossWave HTTP API
@@ -44,9 +46,16 @@ import (
 // @contact.email	diegorodriguezmancini@gmail.com
 func startHttpServer() {
 	ctr := di.BuildServiceContainer()
-	var httpServer *httpservice.HttpServer
-	ctr.Resolve(&httpServer)
-	httpServer.InitServer()
+	var api *api.API
+	var web *web.Web
+	ctr.Resolve(&api)
+	ctr.Resolve(&web)
+
+	r := gin.New()
+	api.SetupRoutes(r)
+	web.SetupRoutes(r)
+
+	r.Run()
 }
 
 func startCatalogIndexer() {
