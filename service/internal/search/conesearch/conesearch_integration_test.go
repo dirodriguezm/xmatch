@@ -20,6 +20,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/di"
@@ -38,8 +39,6 @@ import (
 var ctr container.Container
 
 func TestMain(m *testing.M) {
-	os.Setenv("LOG_LEVEL", "debug")
-
 	rootPath, err := utils.FindRootModulePath(5)
 	if err != nil {
 		panic(err)
@@ -67,8 +66,6 @@ service:
 		slog.Error("could not write config file")
 		panic(err)
 	}
-	os.Setenv("CONFIG_PATH", configPath)
-
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
 	if err != nil {
@@ -81,10 +78,23 @@ service:
 		panic(err)
 	}
 
-	test_helpers.RegisterCatalogsInDB(context.Background(), dbFile)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	ctx := context.Background()
+	stdout := &strings.Builder{}
+
+	test_helpers.RegisterCatalogsInDB(ctx, dbFile)
 
 	// build DI container
-	ctr = di.BuildServiceContainer()
+	ctr = di.BuildServiceContainer(ctx, getenv, stdout)
 
 	// run tests
 	m.Run()

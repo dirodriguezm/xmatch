@@ -1,8 +1,8 @@
 package partition_writer
 
 import (
+	"io"
 	"log/slog"
-	"os"
 	"path"
 	"testing"
 
@@ -17,10 +17,10 @@ type InMemoryStoreSuite struct {
 	tmpDir string
 }
 
-func setupTestLogger(t *testing.T) {
+func setupTestLogger(t *testing.T, stdout io.Writer) {
 	t.Helper()
 
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	handler := slog.NewTextHandler(stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 
@@ -28,8 +28,8 @@ func setupTestLogger(t *testing.T) {
 	slog.SetDefault(logger)
 }
 
-func (suite *InMemoryStoreSuite) SetupSuite() {
-	setupTestLogger(suite.T())
+func (suite *InMemoryStoreSuite) SetupSuite(stdout io.Writer) {
+	setupTestLogger(suite.T(), stdout)
 }
 
 func (suite *InMemoryStoreSuite) SetupTest() {

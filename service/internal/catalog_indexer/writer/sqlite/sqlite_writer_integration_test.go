@@ -20,6 +20,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
@@ -39,8 +40,6 @@ import (
 var ctr container.Container
 
 func TestMain(m *testing.M) {
-	os.Setenv("LOG_LEVEL", "debug")
-
 	depth := 5
 	rootPath, err := utils.FindRootModulePath(depth)
 	if err != nil {
@@ -51,13 +50,6 @@ func TestMain(m *testing.M) {
 	// remove test database if exist
 	dbFile := filepath.Join(rootPath, "test.db")
 	os.Remove(dbFile)
-
-	// set db connection environment variable
-	err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
-	if err != nil {
-		slog.Error("could not set environment variable")
-		panic(err)
-	}
 
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "sqlite_writer_integration_test_*")
@@ -87,10 +79,24 @@ catalog_indexer:
 		slog.Error("could not write config file")
 		panic(err)
 	}
-	os.Setenv("CONFIG_PATH", configPath)
+
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "DB_CONN":
+			return fmt.Sprintf("file://%s", dbFile)
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	ctx := context.Background()
+	stdout := &strings.Builder{}
 
 	// build DI container
-	ctr = di.BuildIndexerContainer()
+	ctr = di.BuildIndexerContainer(ctx, getenv, stdout)
 
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))

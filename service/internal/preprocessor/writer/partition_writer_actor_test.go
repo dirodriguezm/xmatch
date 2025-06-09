@@ -15,10 +15,12 @@
 package partition_writer_test
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
@@ -41,8 +43,6 @@ type IntegrationTestSuite struct {
 }
 
 func (s *IntegrationTestSuite) SetupSuite() {
-	os.Setenv("LOG_LEVEL", "debug")
-
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "partition_writer_integration_test_*")
 	if err != nil {
@@ -53,7 +53,20 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 	s.configPath = partition_writer.CreateTestConfig(filepath.Join(tmpDir, "output.parquet"))
 
-	s.ctr = di.BuildPreprocessorContainer()
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return s.configPath
+		default:
+			return ""
+		}
+	}
+	ctx := context.Background()
+	stdout := &strings.Builder{}
+
+	s.ctr = di.BuildPreprocessorContainer(ctx, getenv, stdout)
 }
 
 func (s *IntegrationTestSuite) TearDownSuite() {

@@ -15,10 +15,12 @@
 package parquet_writer_test
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
@@ -35,8 +37,6 @@ import (
 var ctr container.Container
 
 func TestMain(m *testing.M) {
-	os.Setenv("LOG_LEVEL", "debug")
-
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "parquet_writer_integration_test_*")
 	if err != nil {
@@ -67,10 +67,22 @@ catalog_indexer:
 		slog.Error("could not write config file")
 		panic(err)
 	}
-	os.Setenv("CONFIG_PATH", configPath)
+
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	ctx := context.Background()
+	stdout := &strings.Builder{}
 
 	// build DI container
-	ctr = di.BuildIndexerContainer()
+	ctr = di.BuildIndexerContainer(ctx, getenv, stdout)
 
 	m.Run()
 	os.Remove(configPath)

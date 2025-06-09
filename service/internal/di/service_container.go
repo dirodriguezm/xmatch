@@ -18,14 +18,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
 	"log/slog"
-	"os"
 
 	"github.com/dirodriguezm/xmatch/service/internal/api"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/web"
 
-	// httpservice "github.com/dirodriguezm/xmatch/service/internal/http_service"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
@@ -36,12 +35,16 @@ import (
 	"github.com/golobby/container/v3"
 )
 
-func BuildServiceContainer() container.Container {
+func BuildServiceContainer(
+	ctx context.Context,
+	getenv func(string) string,
+	stdout io.Writer,
+) container.Container {
 	ctr := container.New()
 
 	// read config
 	ctr.Singleton(func() *config.Config {
-		cfg, err := config.Load()
+		cfg, err := config.Load(getenv)
 		if err != nil {
 			panic(err)
 		}
@@ -57,9 +60,9 @@ func BuildServiceContainer() container.Container {
 			"":      slog.LevelInfo,
 		}
 		var programLevel = new(slog.LevelVar)
-		logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: programLevel}))
+		logger := slog.New(slog.NewJSONHandler(stdout, &slog.HandlerOptions{Level: programLevel}))
 		slog.SetDefault(logger)
-		programLevel.Set(levels[os.Getenv("LOG_LEVEL")])
+		programLevel.Set(levels[getenv("LOG_LEVEL")])
 		return programLevel
 	})
 
@@ -117,27 +120,12 @@ func BuildServiceContainer() container.Container {
 		return service
 	})
 
-	// ctr.Singleton(func(
-		// conesearchService *conesearch.ConesearchService,
-		// metadataService *metadata.MetadataService,
-		// config *config.Config,
-	// ) *httpservice.HttpServer {
-		// server, err := httpservice.NewHttpServer(conesearchService, metadataService, config.Service)
-		// if err != nil {
-			// panic(fmt.Errorf("Could not register HttpServer: %w", err))
-		// }
-		// if server == nil {
-			// panic("Server nil while registering HttpServer")
-		// }
-		// return server
-	// })
-
 	ctr.Singleton(func(
 		conesearchService *conesearch.ConesearchService,
 		metadataService *metadata.MetadataService,
 		config *config.Config,
 	) *api.API {
-		api, err := api.New(conesearchService, metadataService, config.Service)
+		api, err := api.New(conesearchService, metadataService, config.Service, getenv)
 		if err != nil {
 			panic(fmt.Errorf("Could not register API: %w", err))
 		}
@@ -152,7 +140,7 @@ func BuildServiceContainer() container.Container {
 		metadataService *metadata.MetadataService,
 		config *config.Config,
 	) *web.Web {
-		web, err := web.New(conesearchService, metadataService, config.Service)
+		web, err := web.New(conesearchService, metadataService, config.Service, getenv)
 		if err != nil {
 			panic(fmt.Errorf("Could not register API: %w", err))
 		}

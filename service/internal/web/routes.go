@@ -16,14 +16,13 @@ package web
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (web *Web) SetupRoutes(r *gin.Engine) {
 	r.Use(gin.Recovery())
-	if os.Getenv("USE_LOGGER") != "" {
+	if web.getenv("USE_LOGGER") != "" {
 		r.Use(gin.Logger())
 	}
 
