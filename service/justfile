@@ -8,7 +8,10 @@ build:
 	go build -o build/main cmd/main.go
 
 test:
-	go test ./... -race
+	grc go test ./... -race
+
+test-verbose:
+	grc go test -v ./... -race
 
 export CONFIG_PATH := env_var_or_default("CONFIG_PATH", "config.yaml")
 
