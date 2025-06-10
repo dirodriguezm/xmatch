@@ -161,6 +161,7 @@
                 golangci-lint
                 sqlite
                 go-migrate-sqlite
+                air
               ];
 
               env = {

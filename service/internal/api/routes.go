@@ -26,11 +26,6 @@ func (api *API) SetupRoutes(r *gin.Engine) {
 	if r == nil {
 		panic("api: gin engine cannot be nil")
 	}
-	r.Use(gin.Recovery())
-	if api.getenv("USE_LOGGER") != "" {
-		r.Use(gin.Logger())
-	}
-
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})
@@ -44,6 +39,4 @@ func (api *API) SetupRoutes(r *gin.Engine) {
 	}
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	r.SetTrustedProxies([]string{"localhost"})
 }
