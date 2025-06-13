@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	// "runtime/debug"
+	"runtime/debug"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,10 +29,10 @@ func (web *Web) serverError(c *gin.Context, err error) {
 	var (
 		method = c.Request.Method
 		uri    = c.Request.URL
-		// trace  = string(debug.Stack())
+		trace  = string(debug.Stack())
 	)
 
-	slog.Error(err.Error(), "method", method, "uri", uri)
+	slog.Error(err.Error(), "method", method, "uri", uri, "trace", trace)
 
 	data := web.newTemplateData(c)
 	web.render(c, http.StatusNotFound, "error.tmpl.html", data)
