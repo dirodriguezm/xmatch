@@ -58,6 +58,16 @@ func startHttpServer(
 	ctr.Resolve(&web)
 
 	r := gin.New()
+	r.Use(gin.Recovery())
+	if getenv("USE_LOGGER") != "" {
+		slog.Info("HHHERE")
+		r.Use(func(c *gin.Context) {
+			slog.Info("request", "method", c.Request.Method, "path", c.Request.URL.Path)
+			c.Next()
+		})
+	}
+	r.SetTrustedProxies([]string{"localhost"})
+
 	api.SetupRoutes(r)
 	web.SetupRoutes(r)
 

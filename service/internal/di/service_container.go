@@ -21,6 +21,7 @@ import (
 	"io"
 	"log/slog"
 
+	"github.com/charmbracelet/log"
 	"github.com/dirodriguezm/xmatch/service/internal/api"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/web"
@@ -51,7 +52,7 @@ func BuildServiceContainer(
 		return cfg
 	})
 
-	ctr.Singleton(func() *slog.LevelVar {
+	ctr.Singleton(func() *slog.Logger {
 		levels := map[string]slog.Level{
 			"debug": slog.LevelDebug,
 			"info":  slog.LevelInfo,
@@ -59,11 +60,20 @@ func BuildServiceContainer(
 			"warn":  slog.LevelWarn,
 			"":      slog.LevelInfo,
 		}
-		var programLevel = new(slog.LevelVar)
-		logger := slog.New(slog.NewJSONHandler(stdout, &slog.HandlerOptions{Level: programLevel}))
+		lvl := levels[getenv("LOG_LEVEL")]
+		var logger *slog.Logger
+		if getenv("ENVIRONMENT") == "local" {
+			handler := log.NewWithOptions(stdout, log.Options{
+				Level:           log.Level(lvl.Level()),
+				ReportTimestamp: true,
+			})
+			logger = slog.New(handler)
+		} else {
+			logger = slog.New(slog.NewJSONHandler(stdout, &slog.HandlerOptions{Level: lvl}))
+		}
+
 		slog.SetDefault(logger)
-		programLevel.Set(levels[getenv("LOG_LEVEL")])
-		return programLevel
+		return logger
 	})
 
 	// Register DB

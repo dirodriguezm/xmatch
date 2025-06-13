@@ -71,3 +71,9 @@ func GreaterThan[T constraints.Ordered](first, second T, msgAndArgs ...interface
 	}
 	panic(msg)
 }
+
+func Equal[T comparable](this, that T) {
+	if this != that {
+		panic(fmt.Sprintf("expected %v to be equal to %v", this, that))
+	}
+}
