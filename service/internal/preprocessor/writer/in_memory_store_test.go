@@ -4,6 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"path"
+	"strings"
 	"testing"
 
 	filesystemmanager "github.com/dirodriguezm/xmatch/service/internal/preprocessor/filesystem_manager"
@@ -15,6 +16,7 @@ type InMemoryStoreSuite struct {
 	suite.Suite
 	store  *InMemoryStore
 	tmpDir string
+	stdout io.Writer
 }
 
 func setupTestLogger(t *testing.T, stdout io.Writer) {
@@ -28,8 +30,10 @@ func setupTestLogger(t *testing.T, stdout io.Writer) {
 	slog.SetDefault(logger)
 }
 
-func (suite *InMemoryStoreSuite) SetupSuite(stdout io.Writer) {
+func (suite *InMemoryStoreSuite) SetupSuite() {
+	stdout := &strings.Builder{}
 	setupTestLogger(suite.T(), stdout)
+	suite.stdout = stdout
 }
 
 func (suite *InMemoryStoreSuite) SetupTest() {
