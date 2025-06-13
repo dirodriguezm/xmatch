@@ -16,7 +16,6 @@ package api
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -28,7 +27,7 @@ func (api *API) SetupRoutes(r *gin.Engine) {
 		panic("api: gin engine cannot be nil")
 	}
 	r.Use(gin.Recovery())
-	if os.Getenv("USE_LOGGER") != "" {
+	if api.getenv("USE_LOGGER") != "" {
 		r.Use(gin.Logger())
 	}
 

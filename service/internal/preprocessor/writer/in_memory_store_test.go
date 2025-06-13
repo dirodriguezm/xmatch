@@ -1,9 +1,10 @@
 package partition_writer
 
 import (
+	"io"
 	"log/slog"
-	"os"
 	"path"
+	"strings"
 	"testing"
 
 	filesystemmanager "github.com/dirodriguezm/xmatch/service/internal/preprocessor/filesystem_manager"
@@ -15,12 +16,13 @@ type InMemoryStoreSuite struct {
 	suite.Suite
 	store  *InMemoryStore
 	tmpDir string
+	stdout io.Writer
 }
 
-func setupTestLogger(t *testing.T) {
+func setupTestLogger(t *testing.T, stdout io.Writer) {
 	t.Helper()
 
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	handler := slog.NewTextHandler(stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 
@@ -29,7 +31,9 @@ func setupTestLogger(t *testing.T) {
 }
 
 func (suite *InMemoryStoreSuite) SetupSuite() {
-	setupTestLogger(suite.T())
+	stdout := &strings.Builder{}
+	setupTestLogger(suite.T(), stdout)
+	suite.stdout = stdout
 }
 
 func (suite *InMemoryStoreSuite) SetupTest() {

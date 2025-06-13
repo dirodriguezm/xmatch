@@ -55,7 +55,7 @@ func WriteConfigFile(configPath, config string) error {
 		slog.Error("could not write config file")
 		return err
 	}
-	return os.Setenv("CONFIG_PATH", configPath)
+	return nil
 }
 
 func Migrate(dbFile string, rootPath string) error {

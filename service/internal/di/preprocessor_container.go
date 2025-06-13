@@ -15,9 +15,10 @@
 package di
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
@@ -33,11 +34,15 @@ import (
 	"github.com/golobby/container/v3"
 )
 
-func BuildPreprocessorContainer() container.Container {
+func BuildPreprocessorContainer(
+	ctx context.Context,
+	getenv func(string) string,
+	stdout io.Writer,
+) container.Container {
 	ctr := container.New()
 
 	ctr.Singleton(func() *config.Config {
-		cfg, err := config.Load()
+		cfg, err := config.Load(getenv)
 		if err != nil {
 			panic(err)
 		}
@@ -53,9 +58,9 @@ func BuildPreprocessorContainer() container.Container {
 			"":      slog.LevelInfo,
 		}
 		var programLevel = new(slog.LevelVar)
-		logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: programLevel}))
+		logger := slog.New(slog.NewJSONHandler(stdout, &slog.HandlerOptions{Level: programLevel}))
 		slog.SetDefault(logger)
-		programLevel.Set(levels[os.Getenv("LOG_LEVEL")])
+		programLevel.Set(levels[getenv("LOG_LEVEL")])
 		return programLevel
 	})
 

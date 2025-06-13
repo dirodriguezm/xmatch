@@ -113,6 +113,5 @@ preprocessor:
 	if err != nil {
 		panic(err)
 	}
-	os.Setenv("CONFIG_PATH", configPath)
 	return configPath
 }

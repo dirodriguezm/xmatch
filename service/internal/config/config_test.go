@@ -93,58 +93,85 @@ catalog_indexer:
 func TestLoad(t *testing.T) {
 	tests := []struct {
 		name     string
-		setupEnv func(t *testing.T) (cleanup func())
+		setupEnv func(t *testing.T) (cleanup func(), getEnv func(string) string)
 		wantErr  bool
 	}{
 		{
 			name:    "load config path from env variable",
 			wantErr: false,
-			setupEnv: func(t *testing.T) (cleanup func()) {
+			setupEnv: func(t *testing.T) (cleanup func(), getEnv func(string) string) {
 				tempDir := t.TempDir()
 				configPath := filepath.Join(tempDir, "custom_path.yaml")
-				os.Setenv("CONFIG_PATH", configPath)
 				err := os.WriteFile(configPath, []byte(""), 0644)
 				require.NoError(t, err)
 
-				return func() {
-					os.Setenv("CONFIG_PATH", "")
+				getEnv = func(key string) string {
+					switch key {
+					case "CONFIG_PATH":
+						return configPath
+					default:
+						return ""
+					}
+				}
+
+				cleanup = func() {
 					os.Remove(configPath)
 				}
+
+				return cleanup, getEnv
 			},
 		},
 		{
 			name:    "load config path from default location",
 			wantErr: false,
-			setupEnv: func(t *testing.T) (cleanup func()) {
+			setupEnv: func(t *testing.T) (cleanup func(), getEnv func(string) string) {
 				tempDir := t.TempDir()
+				t.Log("asdfsafd")
+				t.Log(tempDir)
 				configPath := filepath.Join(tempDir, "config.yaml")
-				os.Unsetenv("CONFIG_PATH")
 				os.WriteFile(configPath, []byte(""), 0644)
 
-				return func() {
+				getEnv = func(key string) string {
+					switch key {
+					case "CONFIG_PATH":
+						return filepath.Join(tempDir, "config.yaml")
+					default:
+						return ""
+					}
+				}
+
+				cleanup = func() {
 					os.Remove(configPath)
 				}
+
+				return cleanup, getEnv
 			},
 		},
 		{
 			name:    "no config found",
 			wantErr: true,
-			setupEnv: func(t *testing.T) (cleanup func()) {
-				os.Unsetenv("CONFIG_PATH")
-				os.Setenv("CONFIG_PATH", t.TempDir())
-				return func() {
-					os.Unsetenv("CONFIG_PATH")
+			setupEnv: func(t *testing.T) (cleanup func(), getEnv func(string) string) {
+				getEnv = func(key string) string {
+					switch key {
+					case "CONFIG_PATH":
+						return t.TempDir()
+					default:
+						return ""
+					}
 				}
+				cleanup = func() {
+				}
+				return cleanup, getEnv
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cleanup := test.setupEnv(t)
+			cleanup, getEnv := test.setupEnv(t)
 			defer cleanup()
 
-			cfg, err := Load()
+			cfg, err := Load(getEnv)
 			if test.wantErr {
 				require.Error(t, err, "expected test case %s to have error", test.name)
 				return

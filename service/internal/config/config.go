@@ -121,8 +121,8 @@ type DatabaseConfig struct {
 	Url string `yaml:"url"`
 }
 
-func Load() (*Config, error) {
-	configPath := os.Getenv("CONFIG_PATH")
+func Load(getEnv func(string) string) (*Config, error) {
+	configPath := getEnv("CONFIG_PATH")
 	slog.Info("Loading configuration", "path", configPath)
 	if configPath == "" {
 		rootPath, err := utils.FindRootModulePath(5)

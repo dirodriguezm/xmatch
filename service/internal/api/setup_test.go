@@ -21,6 +21,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	api "github.com/dirodriguezm/xmatch/service/internal/api"
@@ -51,7 +52,6 @@ func beforeTest(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	os.Setenv("LOG_LEVEL", "debug")
 	slog.Info("Setting up test environment")
 
 	depth := 5
@@ -63,12 +63,6 @@ func TestMain(m *testing.M) {
 	// remove test database if exist
 	dbFile := filepath.Join(rootPath, "test.db")
 	os.Remove(dbFile)
-
-	// set db connection environment variable
-	err = os.Setenv("DB_CONN", fmt.Sprintf("file://%s", dbFile))
-	if err != nil {
-		panic(fmt.Errorf("could not set environment variable: %w", err))
-	}
 
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "server_test_*")
@@ -89,6 +83,21 @@ service:
 		panic(err)
 	}
 
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "DB_CONN":
+			return fmt.Sprintf("file://%s", dbFile)
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	ctx := context.Background()
+	stdout := &strings.Builder{}
+
 	// create tables
 	err = test_helpers.Migrate(dbFile, rootPath)
 	if err != nil {
@@ -96,12 +105,12 @@ service:
 	}
 
 	// register catalogs
-	err = test_helpers.RegisterCatalogsInDB(context.Background(), dbFile)
+	err = test_helpers.RegisterCatalogsInDB(ctx, dbFile)
 	if err != nil {
 		panic(err)
 	}
 
-	ctr = di.BuildServiceContainer()
+	ctr = di.BuildServiceContainer(ctx, getenv, stdout)
 
 	// initialize server
 	var api *api.API
