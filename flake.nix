@@ -162,6 +162,7 @@
                 sqlite
                 go-migrate-sqlite
                 grc
+                air
               ];
 
               env = {

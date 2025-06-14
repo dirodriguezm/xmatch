@@ -31,3 +31,14 @@ clean-db db:
 
 docs:
 	swag init --dir ./ --generalInfo ./cmd/main.go --output ./docs
+
+export USE_LOGGER := "true"
+export ENVIRONMENT := "local"
+export LOG_LEVEL := "debug"
+
+live-server:
+	air \
+		--build.cmd "just build" --build.bin "./build/main server" --build.delay "100" \
+		--build.exclude_dir "build" \
+		--build.include_ext "go, tpl, tmpl, html, css, scss, js, ts, sql, jpeg, jpg, gif, png, bmp, svg, webp, ico" \
+		--misc.clean_on_exit "true"

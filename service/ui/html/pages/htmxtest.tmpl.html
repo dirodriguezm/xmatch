@@ -1,0 +1,13 @@
+{{define "title"}}HTMX Test{{end}}
+
+{{define "main"}}
+<div hx-get="/htmx-test" hx-trigger="load, every 1s">
+    Loading content via HTMX...
+</div>
+
+<button hx-post="/htmx-click" hx-swap="outerHTML">
+    Click Me!
+</button>
+
+<div id="click-result"></div>
+{{end}}

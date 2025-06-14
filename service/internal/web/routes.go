@@ -15,40 +15,38 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/dirodriguezm/xmatch/service/ui"
 	"github.com/gin-gonic/gin"
 )
 
 func (web *Web) SetupRoutes(r *gin.Engine) {
-	r.Use(gin.Recovery())
-	if web.getenv("USE_LOGGER") != "" {
-		r.Use(gin.Logger())
+	if r == nil {
+		panic("api: gin engine cannot be nil")
 	}
 
-	// Simple route that responds with HTML
-	r.GET("/", func(c *gin.Context) {
-		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(`
-			<!DOCTYPE html>
-			<html>
-			<head>
-				<title>Placeholder Page</title>
-				<style>
-					body { 
-						font-family: Arial, sans-serif; 
-						text-align: center; 
-						padding: 50px; 
-					}
-					h1 { color: #333; }
-				</style>
-			</head>
-			<body>
-				<h1>Website Coming Soon</h1>
-				<p>This is a placeholder page. The real website will be here soon!</p>
-			</body>
-			</html>
-		`))
+	r.GET("/static/*filepath", func(c *gin.Context) {
+		fileServer := http.FileServer(http.FS(ui.Files))
+		fileServer.ServeHTTP(c.Writer, c.Request)
 	})
 
-	r.SetTrustedProxies([]string{"localhost"})
+	r.NoRoute(web.notFound)
+
+	r.GET("/", web.home)
+	r.GET("/htmx", web.testHTMX)
+
+	r.GET("/htmx-test", func(c *gin.Context) {
+		c.String(http.StatusOK, fmt.Sprintf("Server time: %s", time.Now().Format(time.RFC1123)))
+	})
+
+	r.POST("/htmx-click", func(c *gin.Context) {
+		c.String(http.StatusOK, `
+            <div id="click-result" class="flash">
+                Button clicked at: %s
+            </div>
+        `, time.Now().Format(time.Kitchen))
+	})
 }
