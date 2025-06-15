@@ -15,11 +15,10 @@ package web
 
 import (
 	"fmt"
-	"html/template"
-
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
+	"html/template"
 )
 
 type Web struct {
