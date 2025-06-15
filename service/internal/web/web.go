@@ -15,10 +15,11 @@ package web
 
 import (
 	"fmt"
+	"html/template"
+
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
-	"html/template"
 )
 
 type Web struct {
@@ -44,6 +45,9 @@ func New(
 	templateCache, err := newTemplateCache()
 	if err != nil {
 		return nil, fmt.Errorf("err creating template cache: %v", err)
+	}
+	if err := loadTranslations(); err != nil {
+		return nil, fmt.Errorf("Failed to load translations: %v", err)
 	}
 
 	return &Web{getenv, config, conesearchService, metadataService, templateCache}, nil

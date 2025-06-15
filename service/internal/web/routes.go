@@ -28,6 +28,8 @@ func (web *Web) SetupRoutes(r *gin.Engine) {
 		panic("api: gin engine cannot be nil")
 	}
 
+	r.Use(web.localize())
+
 	r.GET("/static/*filepath", func(c *gin.Context) {
 		fileServer := http.FileServer(http.FS(ui.Files))
 		fileServer.ServeHTTP(c.Writer, c.Request)

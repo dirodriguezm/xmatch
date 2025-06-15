@@ -52,9 +52,7 @@ func (web *Web) render(c *gin.Context, status int, page string, data templateDat
 	}
 
 	buf := new(bytes.Buffer)
-
-	err := ts.ExecuteTemplate(buf, "base", data)
-	if err != nil {
+	if err := ts.ExecuteTemplate(buf, "base", data); err != nil {
 		web.serverError(c, err)
 		return
 	}
@@ -63,8 +61,17 @@ func (web *Web) render(c *gin.Context, status int, page string, data templateDat
 }
 
 func (web *Web) newTemplateData(c *gin.Context) templateData {
+	ctx := c.Request.Context()
+
+	localizer, err := localizerFrom(ctx)
+	if err != nil {
+		localizer = defaultLocalizer
+	}
+
 	return templateData{
 		CurrentYear: time.Now().Year(),
+		Local: localizer,
+
 		// Flash:           web.sessionManager.PopString(r.Context(), "flash"),
 		// IsAuthenticated: web.isAuthenticated(r),
 		// CSRFToken:       nosurf.Token(r),
