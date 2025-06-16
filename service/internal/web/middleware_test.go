@@ -24,7 +24,7 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
-func TestPingRoute(t *testing.T) {
+func TestLocalize(t *testing.T) {
 	stdout := &strings.Builder{}
 	router := setupRouter(t, stdout)
 
