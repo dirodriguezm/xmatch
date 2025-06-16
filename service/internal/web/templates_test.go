@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Matías Medina Silva
+// assertions.EqualErr Copyright 2024-2025 Matías Medina Silva
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dirodriguezm/xmatch/service/internal/assertions"
+	"golang.org/x/net/context"
 )
 
 func TestHumanDate(t *testing.T) {
@@ -47,7 +47,7 @@ func TestHumanDate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			hd := humanDate(tt.tm)
 
-			assertions.Equal(hd, tt.want)
+			Equal(t, hd, tt.want)
 		})
 	}
 }
@@ -91,6 +91,43 @@ func TestNewTemplateCache(t *testing.T) {
 			_, ok := cache[test.file]
 			if !ok {
 				t.Fatalf("the template %s does not exist", test.file)
+			}
+		})
+	}
+}
+
+func TestNewTemplateData(t *testing.T) {
+	tests := []struct {
+		name    string
+		context func(t *testing.T) context.Context
+	}{
+		{
+			name:    "Empty context",
+			context: func(t *testing.T) context.Context { return context.Background() },
+		},
+		{
+			name: "Happy Path",
+			context: func(t *testing.T) context.Context {
+				loadTranslations()
+				ctx := context.Background()
+				localizer := createTestLocalizer(t)
+				ctx = context.WithValue(ctx, Localizer, localizer)
+				return ctx
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			td := newTemplateData(tt.context(t))
+
+			if td.Local == nil {
+				t.Fatal("localizer is nil")
+			}
+
+			cy := time.Now().Year()
+
+			if td.CurrentYear != cy {
+				t.Fatalf("expected current year to be %d, got: %d", cy, td.CurrentYear)
 			}
 		})
 	}

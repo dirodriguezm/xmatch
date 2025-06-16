@@ -45,6 +45,9 @@ func New(
 	if err != nil {
 		return nil, fmt.Errorf("err creating template cache: %v", err)
 	}
+	if err := loadTranslations(); err != nil {
+		return nil, fmt.Errorf("Failed to load translations: %v", err)
+	}
 
 	return &Web{getenv, config, conesearchService, metadataService, templateCache}, nil
 }

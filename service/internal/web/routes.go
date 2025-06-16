@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 package web
 
 import (
@@ -28,25 +27,28 @@ func (web *Web) SetupRoutes(r *gin.Engine) {
 		panic("api: gin engine cannot be nil")
 	}
 
-	r.GET("/static/*filepath", func(c *gin.Context) {
-		fileServer := http.FileServer(http.FS(ui.Files))
-		fileServer.ServeHTTP(c.Writer, c.Request)
-	})
+	r.NoRoute(localize(), web.notFound)
 
-	r.NoRoute(web.notFound)
-
-	r.GET("/", web.home)
-	r.GET("/htmx", web.testHTMX)
-
-	r.GET("/htmx-test", func(c *gin.Context) {
-		c.String(http.StatusOK, fmt.Sprintf("Server time: %s", time.Now().Format(time.RFC1123)))
-	})
-
-	r.POST("/htmx-click", func(c *gin.Context) {
-		c.String(http.StatusOK, `
-            <div id="click-result" class="flash">
-                Button clicked at: %s
-            </div>
-        `, time.Now().Format(time.Kitchen))
-	})
+	{
+		root := r.Group("/")
+		root.Use(localize())
+		root.GET("/static/*filepath", func(c *gin.Context) {
+			fileServer := http.FileServer(http.FS(ui.Files))
+			fileServer.ServeHTTP(c.Writer, c.Request)
+		})
+		root.GET("/", web.home)
+		root.GET("/htmx", web.testHTMX)
+		root.GET("/htmx-test", func(c *gin.Context) {
+			c.String(http.StatusOK, fmt.Sprintf(
+				"Server time: %s", time.Now().Format(time.RFC1123)),
+			)
+		})
+		root.POST("/htmx-click", func(c *gin.Context) {
+			c.String(http.StatusOK, `
+			<div id="click-result" class="flash">
+			Button clicked at: %s
+			</div>
+			`, time.Now().Format(time.Kitchen))
+		})
+	}
 }

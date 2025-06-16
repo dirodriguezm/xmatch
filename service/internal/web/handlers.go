@@ -11,21 +11,35 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 package web
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (web *Web) home(c *gin.Context) {
-	data := web.newTemplateData(c)
-	web.render(c, http.StatusOK, "home.tmpl.html", data)
+	ctx := c.Request.Context()
+	data := newTemplateData(ctx)
+	if err := web.render(c, http.StatusOK, "home.tmpl.html", data); err != nil {
+		web.serverError(c, fmt.Errorf("Failed to render home template: %v", err))
+	}
 }
 
 func (web *Web) testHTMX(c *gin.Context) {
-	data := web.newTemplateData(c)
-	web.render(c, http.StatusOK, "htmxtest.tmpl.html", data)
+	ctx := c.Request.Context()
+	data := newTemplateData(ctx)
+	if err := web.render(c, http.StatusOK, "htmxtest.tmpl.html", data); err != nil {
+		web.serverError(c, fmt.Errorf("Failed to render htmxtest template: %v", err))
+	}
+}
+
+func (web *Web) notFound(c *gin.Context) {
+	ctx := c.Request.Context()
+	data := newTemplateData(ctx)
+	if err := web.render(c, http.StatusNotFound, "notfound.tmpl.html", data); err != nil {
+		web.serverError(c, fmt.Errorf("Failed to render not found template: %v", err))
+	}
 }

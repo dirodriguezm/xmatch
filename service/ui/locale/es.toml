@@ -1,0 +1,34 @@
+time_layout = "02 Ene 2006 a las 15:04"  
+
+greeting = "hola mundo"
+server_os = "El sistema operativo del servidor es {{.v0}}."
+current_time = "La hora actual es {{.v0}}."
+
+[accesses]
+one = "Esta página ha sido visitada {{.ct}} vez."
+other = "Esta página ha sido visitada {{.ct}} veces."
+
+[nav]
+home = "Inicio"
+signup = "Registrarse"
+login = "Iniciar sesión"
+
+[footer]
+powered = "Desarrollado con"  
+in = "en"
+
+[404]
+title = "No Enconrado"
+card_title = "404 - Página no encontrada"
+message = "Lo sentimos, la página que buscas no existe."
+link = "Volver al inicio"   
+
+[500]
+title = "500 - Error del servidor"
+message = "¡Ups! Algo salió mal en nuestro lado. Estamos solucionándolo."
+link = "Volver al inicio"   
+
+[home]
+greeting = "¡Sitio web en construcción!"
+paragraph = "Esta es una página temporal. ¡Pronto estará el sitio oficial!"
+title = "Inicio"

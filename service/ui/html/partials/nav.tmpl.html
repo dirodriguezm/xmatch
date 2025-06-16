@@ -1,11 +1,11 @@
 {{define "nav"}}
 <nav>
     <div>
-        <a href='/'>Home</a>
+        <a href='/'>{{ t .Local "nav.home" }}</a>
    </div>
     <div>
-        <a href='/user/signup'>Signup</a>
-        <a href='/user/login'>Login</a>
+        <a href='/user/signup'>{{ t .Local "nav.signup" }}</a>
+        <a href='/user/login'>{{ t .Local "nav.login" }}</a>
     </div>
 </nav>
 {{end}}

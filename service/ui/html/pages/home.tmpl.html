@@ -1,6 +1,6 @@
-{{define "title"}}Home{{end}}
+{{define "title"}}{{ t .Local "home.title" }}{{end}}
 
 {{define "main"}}
-<h1>Website Coming Soon!</h1>
-<p>This is a placeholder page. The real website will be here soon!</p>
+<h1>{{t .Local "home.greeting" }}</h1>
+<p>{{t .Local "home.paragraph" }}</p>
 {{end}}

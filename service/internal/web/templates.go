@@ -14,16 +14,21 @@
 package web
 
 import (
-	"github.com/dirodriguezm/xmatch/service/ui"
+	"context"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"path/filepath"
 	"time"
+
+	"github.com/dirodriguezm/xmatch/service/ui"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
 type templateData struct {
 	CurrentYear int
-	Form        any
+	Form        any //this is for posts requests
+	Local       *i18n.Localizer
 }
 
 func humanDate(t time.Time) string {
@@ -36,6 +41,8 @@ func humanDate(t time.Time) string {
 
 var functions = template.FuncMap{
 	"humanDate": humanDate,
+	"t":         translate,
+	"tc":        translateCount,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
@@ -43,7 +50,7 @@ func newTemplateCache() (map[string]*template.Template, error) {
 
 	pages, err := fs.Glob(ui.Files, "html/pages/*.tmpl.html")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not load globs of html templates: %v", err)
 	}
 
 	for _, page := range pages {
@@ -63,4 +70,16 @@ func newTemplateCache() (map[string]*template.Template, error) {
 	}
 
 	return cache, nil
+}
+
+func newTemplateData(ctx context.Context) templateData {
+	localizer, err := localizerFrom(ctx)
+	if err != nil {
+		localizer = defaultLocalizer
+	}
+
+	return templateData{
+		CurrentYear: time.Now().Year(),
+		Local:       localizer,
+	}
 }
