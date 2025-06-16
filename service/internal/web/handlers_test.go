@@ -13,23 +13,5 @@
 // limitations under the License.
 package web
 
-import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-)
-
-func (web *Web) home(c *gin.Context) {
-	data := web.newTemplateData(c)
-	web.render(c, http.StatusOK, "home.tmpl.html", data)
-}
-
-func (web *Web) testHTMX(c *gin.Context) {
-	data := web.newTemplateData(c)
-	web.render(c, http.StatusOK, "htmxtest.tmpl.html", data)
-}
-
-func (web *Web) notFound(c *gin.Context) {
-	data := web.newTemplateData(c)
-	web.render(c, http.StatusNotFound, "notfound.tmpl.html", data)
-}
+// placeholder for future test of hablders, right now there's no need to because handlers and pages are not 
+// defined yet
