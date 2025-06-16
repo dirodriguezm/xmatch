@@ -26,7 +26,7 @@ import (
 
 func TestLocalize(t *testing.T) {
 	stdout := &strings.Builder{}
-	router := setupRouter(t, stdout)
+	router := SetupRouter(t, stdout)
 
 	var ctx context.Context
 

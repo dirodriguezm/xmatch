@@ -14,6 +14,7 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -26,7 +27,7 @@ import (
 
 type templateData struct {
 	CurrentYear int
-	Form        any
+	Form        any //this is for posts requests
 	Local       *i18n.Localizer
 }
 
@@ -69,4 +70,16 @@ func newTemplateCache() (map[string]*template.Template, error) {
 	}
 
 	return cache, nil
+}
+
+func newTemplateData(ctx context.Context) templateData {
+	localizer, err := localizerFrom(ctx)
+	if err != nil {
+		localizer = defaultLocalizer
+	}
+
+	return templateData{
+		CurrentYear: time.Now().Year(),
+		Local:       localizer,
+	}
 }
