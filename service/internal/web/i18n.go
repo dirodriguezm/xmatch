@@ -3,7 +3,6 @@ package web
 import (
 	"fmt"
 	"io/fs"
-	"log/slog"
 	"strconv"
 
 	"github.com/BurntSushi/toml"
@@ -13,7 +12,7 @@ import (
 )
 
 var (
-	defaultLang = language.Spanish
+	defaultLang = language.English
 )
 
 var translations *i18n.Bundle
@@ -32,7 +31,6 @@ func loadTranslations() error {
 		if err != nil {
 			return fmt.Errorf("error loading bundle locale file %s: %v", locale, err)
 		}
-		slog.Debug("locale loaded", "locale", locale)
 	}
 
 	translations = bundle
@@ -40,7 +38,7 @@ func loadTranslations() error {
 	return nil
 }
 
-func translateFunc(localizer *i18n.Localizer, id string, args ...any) string {
+func translate(localizer *i18n.Localizer, id string, args ...any) string {
 	var data map[string]any
 	if len(args) > 0 {
 		data = make(map[string]any, len(args))
@@ -48,7 +46,6 @@ func translateFunc(localizer *i18n.Localizer, id string, args ...any) string {
 			data["v"+strconv.Itoa(n)] = iface
 		}
 	}
-	slog.Debug("translation", "id", id, "args", args)
 	str, _, err := localizer.LocalizeWithTag(&i18n.LocalizeConfig{
 		MessageID:    id,
 		TemplateData: data,
@@ -59,23 +56,21 @@ func translateFunc(localizer *i18n.Localizer, id string, args ...any) string {
 	return str
 }
 
-func translateCountFunc(localizer *i18n.Localizer) func(string, int, ...any) string {
-	return func(id string, ct int, args ...any) string {
-		data := make(map[string]any, len(args)+1)
-		if len(args) > 0 {
-			for n, iface := range args {
-				data["v"+strconv.Itoa(n)] = iface
-			}
+func translateCount(localizer *i18n.Localizer, id string, ct int, args ...any) string {
+	data := make(map[string]any, len(args)+1)
+	if len(args) > 0 {
+		for n, iface := range args {
+			data["v"+strconv.Itoa(n)] = iface
 		}
-		data["ct"] = ct
-		str, _, err := localizer.LocalizeWithTag(&i18n.LocalizeConfig{
-			MessageID:    id,
-			TemplateData: data,
-			PluralCount:  ct,
-		})
-		if str == "" && err != nil {
-			return "[TL err: " + err.Error() + "]"
-		}
-		return str
 	}
+	data["ct"] = ct
+	str, _, err := localizer.LocalizeWithTag(&i18n.LocalizeConfig{
+		MessageID:    id,
+		TemplateData: data,
+		PluralCount:  ct,
+	})
+	if str == "" && err != nil {
+		return "[TL err: " + err.Error() + "]"
+	}
+	return str
 }
