@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/assertions"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
@@ -53,7 +52,7 @@ func TestLocalizerFrom(t *testing.T) {
 
 			EqualErr(t, err, tt.wantErr)
 			if tt.wantErr != nil {
-				assertions.NotNil(l)
+				NotNil(t, l)
 			}
 		})
 	}
