@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Matías Medina Silva
+// assertions.EqualErr Copyright 2024-2025 Matías Medina Silva
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@ package web
 import (
 	"testing"
 	"time"
-
-	"github.com/dirodriguezm/xmatch/service/internal/assertions"
 )
 
 func TestHumanDate(t *testing.T) {
@@ -47,7 +45,7 @@ func TestHumanDate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			hd := humanDate(tt.tm)
 
-			assertions.Equal(hd, tt.want)
+			Equal(t, hd, tt.want)
 		})
 	}
 }

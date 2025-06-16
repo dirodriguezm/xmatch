@@ -40,8 +40,8 @@ func humanDate(t time.Time) string {
 
 var functions = template.FuncMap{
 	"humanDate": humanDate,
-	"t":         translateFunc,
-	"tc":        translateCountFunc,
+	"t":         translate,
+	"tc":        translateCount,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
