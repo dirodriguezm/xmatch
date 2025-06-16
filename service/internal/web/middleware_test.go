@@ -15,21 +15,36 @@ package web
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
 	"github.com/gin-gonic/gin"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
-func localize() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx := c.Request.Context()
-		acceptLang := c.Request.Header.Get("Accept-Language")
-		if lang := c.Request.URL.Query().Get("lang"); lang != "" {
-			acceptLang = lang
-		}
+func TestPingRoute(t *testing.T) {
+	stdout := &strings.Builder{}
+	router := setupRouter(t, stdout)
 
-		localizer := i18n.NewLocalizer(translations, acceptLang)
+	var ctx context.Context
 
-		c.Request = c.Request.WithContext(context.WithValue(ctx, Localizer, localizer))
-		c.Next()
+	router.Use(localize())
+
+	router.GET("/context", func(c *gin.Context) {
+		ctx = c.Request.Context()
+		c.String(200, "ok")
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/context", nil)
+	router.ServeHTTP(w, req)
+
+	loc, ok := ctx.Value(Localizer).(*i18n.Localizer)
+	if !ok {
+		t.Fatal("could not get localizer from context")
 	}
+
+	NotNil(t, loc)
 }
