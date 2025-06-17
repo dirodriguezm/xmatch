@@ -1,0 +1,9 @@
+time_layout = "2006年1月2日 15:04"
+
+greeting = "こんにちは世界"
+server_os = "サーバーのOSは {{.v0}} です。"
+current_time = "現在時刻は {{.v0}} です。"
+
+[footer]
+powered = "提供"
+in = "で" 
