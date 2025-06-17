@@ -1,0 +1,9 @@
+time_layout = "02 Jan 2006 at 15:04"
+
+greeting = "hello world"
+server_os = "The server's OS is {{.v0}}."
+current_time = "The current time is {{.v0}}."
+
+[footer]
+powered = "Powered By"
+in = "in" 
