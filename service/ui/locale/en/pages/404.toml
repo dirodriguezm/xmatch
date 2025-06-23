@@ -1,0 +1,5 @@
+[404]
+title = "Not Found"
+card_title = "404 - Page Not Found"
+message = "Sorry, the page you're looking for does't exists"
+link = "Go to home page"   

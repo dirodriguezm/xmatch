@@ -1,0 +1,4 @@
+[500]
+title = "500 - Error del servidor"
+message = "¡Ups! Algo salió mal en nuestro lado. Estamos solucionándolo."
+link = "Volver al inicio"   

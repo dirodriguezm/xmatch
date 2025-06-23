@@ -1,0 +1,4 @@
+[500]
+title = "500 - Internal Server Error"
+message = "Something went wrong on our end. We're working to fix it!"
+link = "Go to home page"   

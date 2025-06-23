@@ -1,0 +1,4 @@
+[500]
+title = "500 - Erreur Interne du Serveur"
+message = "Un problème est survenu de notre côté. Nous travaillons à le résoudre!"
+link = "Aller à la page d'accueil"

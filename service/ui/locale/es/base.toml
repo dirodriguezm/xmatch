@@ -1,0 +1,7 @@
+greeting = "hola mundo"
+server_os = "El sistema operativo del servidor es {{.v0}}."
+current_time = "La hora actual es {{.v0}}."
+
+[footer]
+powered = "Desarrollado con"  
+in = "en"

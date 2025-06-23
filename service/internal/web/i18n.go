@@ -16,6 +16,7 @@ package web
 import (
 	"fmt"
 	"io/fs"
+	"path/filepath"
 	"strconv"
 
 	"github.com/BurntSushi/toml"
@@ -34,15 +35,53 @@ var defaultLocalizer *i18n.Localizer
 func loadTranslations() error {
 	bundle := i18n.NewBundle(defaultLang)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-
-	locales, err := fs.Glob(ui.Files, "locale/*.toml")
-	if err != nil {
-		return fmt.Errorf("could not load locales: %v", err)
+	unmarshalFuncs := map[string]i18n.UnmarshalFunc{
+		"toml": toml.Unmarshal,
 	}
-	for _, locale := range locales {
-		_, err = bundle.LoadMessageFileFS(ui.Files, locale)
+
+	langs, err := fs.Glob(ui.Files, "locale/*")
+	if err != nil {
+		return fmt.Errorf("could not load language directories: %v", err)
+	}
+	for _, lang := range langs {
+		tag, err := language.Parse(filepath.Base(lang))
 		if err != nil {
-			return fmt.Errorf("error loading bundle locale file %s: %v", locale, err)
+			return fmt.Errorf("could not load tag for language %s: %v", lang, err)
+		}
+		files, err := fs.Glob(ui.Files, filepath.Join(lang, "*.toml"))
+		if err != nil {
+			return fmt.Errorf("could not load files for language %s: %v", lang, err)
+		}
+
+		// Load base files directly in the language directory
+		for _, file := range files {
+			data, err := ui.Files.ReadFile(file)
+			if err != nil {
+				return fmt.Errorf("cannot read file %s", file)
+			}
+			mf, err := i18n.ParseMessageFileBytes(data, file, unmarshalFuncs)
+			if err != nil {
+				return fmt.Errorf("error loading message file %s: %v", file, err)
+			}
+			bundle.AddMessages(tag, mf.Messages...)
+		}
+
+		// Load files from subdirectories (pages, partials, etc.)
+		subDirs, err := fs.Glob(ui.Files, filepath.Join(lang, "*/*.toml"))
+		if err != nil {
+			return fmt.Errorf("could not load subdirectories for language %s: %v", lang, err)
+		}
+
+		for _, file := range subDirs {
+			data, err := ui.Files.ReadFile(file)
+			if err != nil {
+				return fmt.Errorf("cannot read file %s", file)
+			}
+			mf, err := i18n.ParseMessageFileBytes(data, file, unmarshalFuncs)
+			if err != nil {
+				return fmt.Errorf("error loading message file %s: %v", file, err)
+			}
+			bundle.AddMessages(tag, mf.Messages...)
 		}
 	}
 
