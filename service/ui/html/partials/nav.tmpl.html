@@ -1,11 +1,21 @@
 {{define "nav"}}
+<link rel="stylesheet" href="/static/css/nav.css">
 <nav>
-    <div>
-        <a href='/'>{{ t .Local "nav.home" }}</a>
-   </div>
-    <div>
-        <a href='/user/signup'>{{ t .Local "nav.signup" }}</a>
-        <a href='/user/login'>{{ t .Local "nav.login" }}</a>
-    </div>
+    <form action='/search' method='GET'>
+        <img src="/static/img/search.svg" alt="Logo" />
+        <input type='text' name='q' value>
+        <div id="separator"></div>
+        <div id="autocomplete">
+            <h5>{{ t .Local "nav.searches_header" }}</h5>
+            {{if .Searches}}
+            <ul>
+                {{range .Searches}}
+                <li><a href={{.Url}}>{{.Text}}</a></li>
+                {{end}}
+            </ul>
+            {{end}}
+        </div>
+        <input type='submit' value={{ t .Local "nav.search_button" }}>
+    </form>
 </nav>
 {{end}}

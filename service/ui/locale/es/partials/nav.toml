@@ -2,3 +2,5 @@
 home = "Inicio"
 signup = "Registrarse"
 login = "Iniciar sesión"
+searches_header = "tus ultimas búsquedas"
+search_button  = "Buscar"

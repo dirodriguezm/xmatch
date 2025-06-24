@@ -20,11 +20,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (web *Web) home(c *gin.Context) {
+func (w *Web) home(c *gin.Context) {
 	ctx := c.Request.Context()
 	data := newTemplateData(ctx)
-	if err := web.render(c, http.StatusOK, "home.tmpl.html", data); err != nil {
-		web.serverError(c, fmt.Errorf("Failed to render home template: %v", err))
+	if err := w.render(c, http.StatusOK, "home.tmpl.html", data); err != nil {
+		w.serverError(c, fmt.Errorf("Failed to render home template: %v", err))
 	}
 }
 

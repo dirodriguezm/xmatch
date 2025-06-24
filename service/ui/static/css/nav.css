@@ -1,0 +1,89 @@
+nav {
+    padding-bottom: 15px;
+    color: var(--text-color);
+}
+
+nav a {
+    margin-right: 1.5em;
+    display: inline-block;
+}
+
+nav form {
+    display: flex;
+    flex-direction: column;
+}
+
+nav form #separator {
+    margin: 0px 20px;
+    border-top: 1px solid var(--highlightHigh);
+    display: none;
+}
+
+nav form #autocomplete {
+    padding: 10px 0;
+    display: none;
+}
+
+nav form img {
+    height: 20px;
+    aspect-ratio: auto;
+    position: absolute;
+    margin: 12px 18px;
+    filter: var(--text-filter);
+}
+
+nav form input[type="text"]:focus {
+    background: var(--overlay);
+    border-radius: 24px;
+}
+
+nav form input[type="text"]:focus+#autocomplete {
+    display: block;
+    background: var(--overlay);
+}
+
+nav form li {
+    color: var(--text);
+}
+
+nav form li:hover {
+    color: var(--text);
+    background-color: var(--highlightHigh);
+}
+
+nav form h5 {
+    color: var(--subtle)
+}
+
+/* nav form:focus-within input[type="submit"] { */
+/* margin: 16px auto; */
+/* } */
+
+nav form input[type="submit"] {
+    margin: 16px auto;
+}
+
+nav form input[type="text"] {
+    border: none;
+    border-radius: 30px;
+    width: 100%;
+    padding: 0.75em 48px;
+    padding-right: 0.75em 68px;
+    background-color: var(--highlightMed);
+    color: var(--text);
+}
+
+
+nav form input[type="text"]:hover {
+    background-color: var(--highlightHigh);
+}
+
+nav form input[type="text"]:focus {
+    outline-color: var(--iris);
+    background-color: var(--highlightLow);
+}
+
+nav from input:not(:placeholder-shown) {
+    background-color: red;
+}
+

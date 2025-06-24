@@ -24,7 +24,7 @@ import (
 type Web struct {
 	getenv            func(string) string
 	config            *config.ServiceConfig
-	conesearchService *conesearch.ConesearchService
+	conesearch *conesearch.ConesearchService
 	metadataService   *metadata.MetadataService
 	templateCache     map[string]*template.Template
 }

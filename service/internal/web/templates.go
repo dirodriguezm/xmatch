@@ -25,10 +25,16 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
+type Search struct {
+	Url  string
+	Text string
+}
+
 type templateData struct {
 	CurrentYear int
 	Form        any //this is for posts requests
 	Local       *i18n.Localizer
+	Searches    []Search
 }
 
 func humanDate(t time.Time) string {
@@ -81,5 +87,8 @@ func newTemplateData(ctx context.Context) templateData {
 	return templateData{
 		CurrentYear: time.Now().Year(),
 		Local:       localizer,
+		Searches: []Search{
+			{Text: "alwise", Url: "/search?q=alwise"}, {Text: "otro", Url: "/search?q=otro"},
+		},
 	}
 }

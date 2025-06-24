@@ -1,19 +1,26 @@
 {{define "base"}}
 <!doctype html>
-<html >
+<html>
 
 <head>
     <meta charset='utf-8'>
     <title>{{template "title" .}} - Xmatch</title>
     <link rel='stylesheet' href='/static/css/main.css'>
+    <link rel='stylesheet' href='/static/css/stars.css'>
     <link rel='shortcut icon' href='/static/img/favicon.ico' type='image/x-icon'>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700'>
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap'>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
 
 <body>
+    <div class="stars-container">
+        <div id="stars"></div>
+        <div id="stars2"></div>
+        <div id="stars3"></div>
+    </div>
     <header>
-        <h1><a href='/'>Xmatch</a></h1>
+        <h1><a href='/'><img src="/static/img/logo.svg" alt="Logo" />Xmatch</a></h1>
     </header>
     {{template "nav" .}}
     <main>
