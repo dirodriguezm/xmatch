@@ -203,16 +203,19 @@
               scripts.init-healpix.exec = ''
                 echo "Initializing submodule and running script..."
                 git submodule update --init --recursive
-                cd healpix
-                cd internal/healpix_cxx
+
+                if [ -n "''${CI:-}" ]; then
+                  echo "Running in CI environment"
+                  cd ../healpix && bash run_swig.sh
+                  exit 0
+                fi
+
                 # Check if the output file already exists
-                if [ -f "healpix_wrap.cxx" ]; then
+                if [ -f "healpix/internal/healpix_cxx/healpix_wrap.cxx" ]; then
                   echo "healpix_wrap.cxx already exists. The script may have already been run."
                   exit 0
                 fi
-                cd ../..
-                bash run_swig.sh
-                cd -
+                healpix/run_swig.sh
               '';
 
               enterShell = ''
