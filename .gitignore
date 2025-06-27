@@ -2,8 +2,10 @@
 venv/
 *.db*
 build/
+dist/
 test.csv
 data/
 configs/
 .direnv
 .devenv
+healpix/internal/healpix_cxx/healpix_wrap.cxx
