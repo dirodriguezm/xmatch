@@ -34,3 +34,21 @@ func localize() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func extractRoute() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx := c.Request.Context()
+		route := c.Request.URL.Path
+
+		routes := map[string]string{
+			"/":            "home",
+			"/user/signup": "signup",
+			"/user/login":  "login",
+		}
+
+		selected := routes[route]
+
+		c.Request = c.Request.WithContext(context.WithValue(ctx, Route, selected))
+		c.Next()
+	}
+}

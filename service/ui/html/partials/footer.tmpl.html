@@ -1,0 +1,10 @@
+{{define "footer"}}
+<footer class="text-lg h-16 bg-slate-50 border-t-zinc-200 border-t-1">
+    <p class="mt-5 max-w-fit mx-auto">
+        {{ t .Local "footer.powered" }}
+        <a class="link" href='https://golang.org/'>Go</a>
+        {{ t .Local "footer.in" }}
+        {{.CurrentYear}}
+    </p>
+</footer>
+{{end}}

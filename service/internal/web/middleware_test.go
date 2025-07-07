@@ -24,6 +24,44 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
+func TestExtractRoute(t *testing.T) {
+	tests := []struct {
+		name     string
+		route    string
+		expected string
+	}{
+		{name: "Home Route", route: "/", expected: "home"},
+		{name: "Signup Route", route: "/user/signup", expected: "signup"},
+		{name: "Login Route", route: "/user/login", expected: "login"},
+		{name: "Unknown Route", route: "/unknown", expected: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stdout := &strings.Builder{}
+			router := SetupRouter(t, stdout)
+
+			var ctx context.Context
+			router.Use(extractRoute())
+			router.GET(tt.route, func(c *gin.Context) {
+				ctx = c.Request.Context()
+				c.String(200, "ok")
+			})
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", tt.route, nil)
+
+			router.ServeHTTP(w, req)
+
+			route, ok := ctx.Value(Route).(string)
+			if !ok {
+				t.Fatal("could not get route from context")
+			}
+			Equal(t, route, tt.expected)
+		})
+	}
+
+}
+
 func TestLocalize(t *testing.T) {
 	stdout := &strings.Builder{}
 	router := SetupRouter(t, stdout)

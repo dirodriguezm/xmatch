@@ -27,15 +27,18 @@ func (web *Web) SetupRoutes(r *gin.Engine) {
 		panic("api: gin engine cannot be nil")
 	}
 
-	r.NoRoute(localize(), web.notFound)
+	r.NoRoute(localize(), extractRoute(), web.notFound)
 
 	{
 		root := r.Group("/")
-		root.Use(localize())
-		root.GET("/static/*filepath", func(c *gin.Context) {
+		root.Use(localize(), extractRoute())
+
+		static := root.Group("/static")
+		static.GET("/*filepath", func(c *gin.Context) {
 			fileServer := http.FileServer(http.FS(ui.Files))
 			fileServer.ServeHTTP(c.Writer, c.Request)
 		})
+
 		root.GET("/", web.home)
 		root.GET("/htmx", web.testHTMX)
 		root.GET("/htmx-test", func(c *gin.Context) {

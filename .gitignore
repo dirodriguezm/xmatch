@@ -7,3 +7,4 @@ data/
 configs/
 .direnv
 .devenv
+service/ui/static/css/output.css

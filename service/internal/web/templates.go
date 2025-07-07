@@ -29,6 +29,7 @@ type templateData struct {
 	CurrentYear int
 	Form        any //this is for posts requests
 	Local       *i18n.Localizer
+	Route       string
 }
 
 func humanDate(t time.Time) string {
@@ -78,8 +79,14 @@ func newTemplateData(ctx context.Context) templateData {
 		localizer = defaultLocalizer
 	}
 
+	route, err := routeFrom(ctx)
+	if err != nil {
+		route = ""
+	}
+
 	return templateData{
 		CurrentYear: time.Now().Year(),
 		Local:       localizer,
+		Route:       route,
 	}
 }

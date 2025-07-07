@@ -21,6 +21,42 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
+func TestRouteFrom(t *testing.T) {
+	tests := []struct {
+		name    string
+		ctx     func() context.Context
+		wantErr error
+	}{
+		{
+			name: "No Route in CTX",
+			ctx: func() context.Context {
+				return context.Background()
+			},
+			wantErr: fmt.Errorf("could not get route from context"),
+		},
+		{
+			name: "Good Route in CTX",
+			ctx: func() context.Context {
+				ctx := context.Background()
+				route := "home"
+				ctx = context.WithValue(ctx, Route, route)
+
+				return ctx
+			},
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			route, err := routeFrom(tt.ctx())
+
+			EqualErr(t, err, tt.wantErr)
+			if tt.wantErr != nil {
+				NotNil(t, route)
+			}
+		})
+	}
+}
 func TestLocalizerFrom(t *testing.T) {
 	tests := []struct {
 		name    string

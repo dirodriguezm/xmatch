@@ -25,6 +25,7 @@ type Key int
 const (
 	Localizer Key = iota
 	TraceID
+	Route
 )
 
 func localizerFrom(ctx context.Context) (*i18n.Localizer, error) {
@@ -35,3 +36,10 @@ func localizerFrom(ctx context.Context) (*i18n.Localizer, error) {
 	return loc, nil
 }
 
+func routeFrom(ctx context.Context) (string, error) {
+	selected, ok := ctx.Value(Route).(string)
+	if !ok {
+		return "", fmt.Errorf("could not get route from context")
+	}
+	return selected, nil
+}

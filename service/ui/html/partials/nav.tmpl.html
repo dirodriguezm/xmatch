@@ -1,11 +1,9 @@
 {{define "nav"}}
-<nav>
-    <div>
-        <a href='/'>{{ t .Local "nav.home" }}</a>
-   </div>
-    <div>
-        <a href='/user/signup'>{{ t .Local "nav.signup" }}</a>
-        <a href='/user/login'>{{ t .Local "nav.login" }}</a>
-    </div>
+<nav
+    class="h-16 text-lg bg-slate-50 flex items-center justify-between px-6 py-4 border-zinc-200 border-b-1 border-t-1 sm:px-16 lg:px-24">
+    <a class="link {{ if (eq .Route `home`)}}live{{end}}" href='/'>{{ t .Local "nav.home" }}</a>
+    <a class="{{ if (eq .Route `signup`)}}live{{end}} link ml-auto px-6" href='/user/signup'>{{ t .Local
+        "nav.signup" }}</a>
+    <a class="{{ if (eq .Route `login`)}}live{{end}} link" href='/user/login'>{{ t .Local "nav.login" }}</a>
 </nav>
 {{end}}

@@ -1,0 +1,44 @@
+@import url("https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700");
+@import "tailwindcss";
+
+@theme {
+    --font-mono: 'Ubuntu Mono', "monospace";
+    --font-sans: 'Ubuntu Mono', "monospace";
+}
+
+.link {
+    @apply text-lime-500
+}
+
+.link:active {
+    @apply text-lime-600
+}
+
+.link:hover {
+    @apply text-lime-400
+}
+
+div.error {
+    @apply bg-orange-700 px-10 py-4 text-orange-50 font-bold rounded-lg;
+
+    h1 {
+        @apply text-lg mb-6 sm:text-2xl;
+    }
+
+    p {
+        @apply text-base sm:text-lg;
+    }
+
+    a {
+        @apply underline hover:text-orange-100;
+    }
+}
+
+nav a.live {
+    @apply relative top-1.5;
+
+    &:after {
+        content: "";
+        @apply block left-[calc(50%-0.375rem)] relative top-3 w-3 h-3 bg-slate-50 border-l border-b border-zinc-200 transform -rotate-45;
+    }
+}
