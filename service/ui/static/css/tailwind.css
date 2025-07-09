@@ -1,0 +1,104 @@
+@import url("https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700");
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap");
+@import url(./stars.css);
+@import "tailwindcss";
+
+@theme {
+    --font-mono: 'Orbitron', "monospace";
+    --font-sans: 'Ubuntu Mono', "monospace";
+
+    @keyframes animStar {
+        0% {
+            transform: translateY(0px);
+        }
+
+        100% {
+            transform: translateY(-2000px);
+        }
+    }
+
+    --color-primary: #0a121b;
+    --color-surface: #101a25;
+    --color-overlay: #1b2735;
+    --color-muted: #5b6578;
+    --color-subtle: #7d8a9f;
+    --color-text: #e0e7f4;
+    --color-love: #eb6f92;
+    --color-gold: #f0b976;
+    --color-rose: #e79592;
+    --color-pine: #3a8bac;
+    --color-foam: #8fc7d0;
+    --color-iris: #b8a0e0;
+    --color-highlight-low: #1a2435;
+    --color-highlight-med: #2d3a4d;
+    --color-highlight-high: #3e4d63;
+}
+
+@layer components {
+    .anim-star-fast {
+        animation: animStar 600s linear infinite;
+    }
+
+    .anim-star-medium {
+        animation: animStar 1200s linear infinite;
+    }
+
+    .anim-star-slow {
+        animation: animStar 2400s linear infinite;
+    }
+
+    .shadow-md-inverted {
+        --tw-shadow: 0 -4px 6px 1px rgb(0 0 0 / 0.1), 0 -2px 4px 2px rgb(0 0 0 / 0.1);
+        --tw-shadow-colored: 0 -4px 6px 1px var(--tw-shadow-color), 0 -2px 4px 2px var(--tw-shadow-color);
+        box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+    }
+}
+
+.link {
+    @apply text-foam;
+}
+
+.link:active {
+    @apply brightness-150;
+}
+
+.link:hover {
+    @apply brightness-125;
+}
+
+div.error {
+    @apply bg-orange-900 px-10 py-4 text-text font-bold rounded-2xl;
+
+    h1 {
+        @apply text-lg mb-6 sm:text-2xl;
+    }
+
+    p {
+        @apply text-base sm:text-lg;
+    }
+
+    a {
+        @apply underline hover:text-orange-100;
+    }
+}
+
+nav a {
+    @apply py-4;
+}
+
+nav a.live {
+    @apply border-b-3 border-foam text-foam;
+
+    /* &:after { */
+    /* content: ""; */
+    /* @apply block left-[calc(50%-0.375rem)] relative top-3 w-3 h-3 bg-surface border-l border-b border-slate-700 transform -rotate-45; */
+    /* } */
+}
+
+.stars-container {
+    @apply fixed top-0 left-0 w-screen h-full overflow-hidden -z-50;
+}
+
+.star {
+    @apply absolute top-0 left-0 w-full h-full;
+}

@@ -30,11 +30,19 @@ type Search struct {
 	Text string
 }
 
+type delay struct {
+	Fast   int16
+	Medium int16
+	Slow   int16
+}
+
 type templateData struct {
 	CurrentYear int
-	Form        any //this is for posts requests
+	Route       string
 	Local       *i18n.Localizer
 	Searches    []Search
+	Form        any   //this is for posts requests
+	StarsDelay  delay //percent of delay to apply to the request
 }
 
 func humanDate(t time.Time) string {
@@ -75,13 +83,42 @@ func newTemplateCache() (map[string]*template.Template, error) {
 		cache[name] = ts
 	}
 
+	htmxPages, err := fs.Glob(ui.Files, "html/htmx/*.tmpl.html")
+	if err != nil {
+		return nil, fmt.Errorf("could not load globs of html components: %v", err)
+	}
+
+	for _, htmx := range htmxPages {
+		name := filepath.Base(htmx)
+		patterns := []string{
+			htmx,
+		}
+
+		ts, err := template.New(name).Funcs(functions).ParseFS(ui.Files, patterns...)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse component %s: %v", name, err)
+		}
+
+		cache[name] = ts
+	}
+
 	return cache, nil
 }
 
 func newTemplateData(ctx context.Context) templateData {
-	localizer, err := localizerFrom(ctx)
+	localizer, err := valueFrom[*i18n.Localizer](ctx, Localizer)
 	if err != nil {
 		localizer = defaultLocalizer
+	}
+
+	route, err := valueFrom[string](ctx, Route)
+	if err != nil {
+		route = ""
+	}
+
+	delays, err := valueFrom[delay](ctx, Delays)
+	if err != nil {
+		delays = delay{}
 	}
 
 	return templateData{
@@ -90,5 +127,7 @@ func newTemplateData(ctx context.Context) templateData {
 		Searches: []Search{
 			{Text: "alwise", Url: "/search?q=alwise"}, {Text: "otro", Url: "/search?q=otro"},
 		},
+		Route:      route,
+		StarsDelay: delays,
 	}
 }

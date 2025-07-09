@@ -1,63 +1,9 @@
 {{define "nav"}}
-<link rel="stylesheet" href="/static/css/nav.css">
-<nav>
-    <form action='/search' method='GET'>
-        <img src="/static/img/search.svg" alt="Logo" />
-        <input type='text' name='q' value>
-        <div id="separator"></div>
-        <div id="autocomplete">
-            <h5>{{ t .Local "nav.searches_header" }}</h5>
-            {{if .Searches}}
-            <ul>
-                {{range .Searches}}
-                <li><a href={{.Url}}>{{.Text}}</a></li>
-                {{end}}
-            </ul>
-            {{end}}
-        </div>
-        <input type='submit' value={{ t .Local "nav.search_button" }}>
-    </form>
-    <!-- <form id="conesearchForm"> -->
-        <!-- <div class="form-section"> -->
-            <!-- <h2>Basic Search</h2> -->
-
-            <!-- <div class="form-group"> -->
-                <!-- <label for="ra">Right Ascension (degrees):</label> -->
-                <!-- <input type="text" id="ra" name="ra" required> -->
-            <!-- </div> -->
-
-            <!-- <div class="form-group"> -->
-                <!-- <label for="dec">Declination (degrees):</label> -->
-                <!-- <input type="text" id="dec" name="dec" required> -->
-            <!-- </div> -->
-
-            <!-- <div class="form-group"> -->
-                <!-- <label for="radius">Radius (degrees):</label> -->
-                <!-- <input type="text" id="radius" name="radius" required> -->
-            <!-- </div> -->
-
-            <!-- <div class="form-group"> -->
-                <!-- <label for="catalog">Catalog:</label> -->
-                <!-- <select id="catalog" name="catalog"> -->
-                    <!-- <option value="all">All</option> -->
-                    <!-- <option value="gaia">Gaia</option> -->
-                    <!-- <option value="allwise">AllWISE</option> -->
-                <!-- </select> -->
-            <!-- </div> -->
-
-            <!-- <div class="form-group"> -->
-                <!-- <label for="nneighbor">Number of neighbors:</label> -->
-                <!-- <input type="number" id="nneighbor" name="nneighbor" min="1" value="1"> -->
-            <!-- </div> -->
-
-            <!-- <div class="form-group checkbox-group"> -->
-                <!-- <input type="checkbox" id="getMetadata" name="getMetadata" value="true"> -->
-                <!-- <label for="getMetadata">Include metadata</label> -->
-            <!-- </div> -->
-
-            <!-- <button type="submit">Search</button> -->
-        <!-- </div> -->
-    <!-- </form> -->
-
+<nav
+    class="h-16 text-subtle text-lg bg-surface flex items-center justify-between px-6 py-4 sm:px-16 md:px-20 lg:px-34 shadow-md">
+    <a class="{{if (eq .Route `home`)}}live{{end}}" href='/'>{{ t .Local "nav.home" }}</a>
+    <a class="{{if (eq .Route `signup`)}}live{{end}} ml-auto mr-6" href='/user/signup'>{{ t .Local
+        "nav.signup" }}</a>
+    <a class="{{if (eq .Route `login`)}}live{{end}}" href='/user/login'>{{ t .Local "nav.login" }}</a>
 </nav>
 {{end}}

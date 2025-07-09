@@ -163,6 +163,8 @@
                 go-migrate-sqlite
                 grc
                 air
+                tailwindcss_4
+                tailwindcss-language-server
               ];
 
               env = {

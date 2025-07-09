@@ -27,17 +27,27 @@ func (web *Web) SetupRoutes(r *gin.Engine) {
 		panic("api: gin engine cannot be nil")
 	}
 
-	r.NoRoute(localize(), web.notFound)
+	// TODO: remove extractRoute middleware when the real routes exists
+	r.NoRoute(localize(), extractRoute(), web.notFound)
 
 	{
 		root := r.Group("/")
-		root.Use(localize())
-		root.GET("/static/*filepath", func(c *gin.Context) {
+		root.Use(localize(), extractRoute())
+
+		static := root.Group("/static")
+		static.Use(cacheControl())
+		static.GET("/*filepath", func(c *gin.Context) {
 			fileServer := http.FileServer(http.FS(ui.Files))
 			fileServer.ServeHTTP(c.Writer, c.Request)
 		})
+
 		root.GET("/", web.home)
 		root.GET("/htmx", web.testHTMX)
+
+		stars := root.Group("/stars")
+		stars.Use(calculateStarsDelay())
+		stars.GET("", web.stars)
+
 		root.GET("/htmx-test", func(c *gin.Context) {
 			c.String(http.StatusOK, fmt.Sprintf(
 				"Server time: %s", time.Now().Format(time.RFC1123)),

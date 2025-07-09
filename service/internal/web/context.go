@@ -16,8 +16,6 @@ package web
 import (
 	"context"
 	"fmt"
-
-	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
 type Key int
@@ -25,13 +23,15 @@ type Key int
 const (
 	Localizer Key = iota
 	TraceID
+	Route
+	Delays
 )
 
-func localizerFrom(ctx context.Context) (*i18n.Localizer, error) {
-	loc, ok := ctx.Value(Localizer).(*i18n.Localizer)
+func valueFrom[T any](ctx context.Context, key Key) (T, error) {
+	var zero T
+	value, ok := ctx.Value(key).(T)
 	if !ok {
-		return nil, fmt.Errorf("could not get localizer from context")
+		return zero, fmt.Errorf("could not get value from context for key %d", key)
 	}
-	return loc, nil
+	return value, nil
 }
-

@@ -4,7 +4,7 @@ default:
 migrate db:
 	migrate -database sqlite3://{{db}}.db -path internal/db/migrations up
 
-build:
+build: build-css
 	go build -o build/main cmd/main.go
 
 test:
@@ -36,9 +36,11 @@ export USE_LOGGER := "true"
 export ENVIRONMENT := "local"
 export LOG_LEVEL := "debug"
 
-live-server:
-	air \
-		--build.cmd "just build" --build.bin "./build/main server" --build.delay "100" \
-		--build.exclude_dir "build" \
-		--build.include_ext "go, tpl, tmpl, html, css, scss, js, ts, sql, jpeg, jpg, gif, png, bmp, svg, webp, ico, toml" \
-		--misc.clean_on_exit "true"
+live-server: build-css
+	air 
+
+build-css-watch:
+	tailwindcss --input ./ui/static/css/tailwind.css --output ./ui/static/css/output.css --watch --optimize --minify
+
+build-css:
+	tailwindcss --input ./ui/static/css/tailwind.css --output ./ui/static/css/output.css --optimize --minify

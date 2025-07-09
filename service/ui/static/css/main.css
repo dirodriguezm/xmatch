@@ -42,7 +42,7 @@ body {
     line-height: 1.5;
     background: radial-gradient(ellipse at bottom, var(--overlay) 0%, var(--base) 100%);
     color: var(--text);
-    overflow-y: auto;
+    overflow-y: scroll;
 }
 
 header,

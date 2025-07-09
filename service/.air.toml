@@ -1,0 +1,12 @@
+[build]
+cmd = "just build"
+bin = "./build/main server"
+delay = 100
+exclude_dir = ["build"]
+include_ext = ["go", "tpl", "tmpl", "html", "css", "scss", "js", "ts", "sql", "jpeg", "jpg", "gif", "png", "bmp", "svg", "webp", "ico", "toml"]
+clean_on_exit = true
+
+[proxy]
+enabled = true
+proxy_port = 8090
+app_port = 8080
