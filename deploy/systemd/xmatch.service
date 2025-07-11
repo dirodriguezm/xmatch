@@ -1,0 +1,13 @@
+[Unit]
+Description=Xmatch Service
+
+[Service]
+ExecStart=/nix/var/nix/profiles/default/bin/nix run --extra-experimental-features nix-command --extra-experimental-features flakes nixpkgs#direnv -- exec . bash -c './bin/main server'
+Environment="PATH=/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin:/usr/local/bin:/usr/bin"
+WorkingDirectory=/home/drodriguez/deployment/production
+EnvironmentFile=/home/drodriguez/deployment/production/envfile
+Restart=on-failure
+TimeoutSec=30
+
+[Install]
+WantedBy=default.target
