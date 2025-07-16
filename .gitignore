@@ -2,9 +2,11 @@
 venv/
 *.db*
 build/
+dist/
 test.csv
 data/
 configs/
 .direnv
 .devenv
 service/ui/static/css/output.css
+healpix/internal/healpix_cxx/healpix_wrap.cxx
