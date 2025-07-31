@@ -44,11 +44,12 @@ func BuildIndexerContainer(
 ) container.Container {
 	ctr := container.New()
 	// read config
+	cfg, err := config.Load(getenv)
+	if err != nil {
+		panic(err)
+	}
+
 	ctr.Singleton(func() *config.Config {
-		cfg, err := config.Load(getenv)
-		if err != nil {
-			panic(err)
-		}
 		return cfg
 	})
 
@@ -107,8 +108,8 @@ func BuildIndexerContainer(
 
 	// Register reader
 	readerResults := make(map[string]chan reader.ReaderResult)
-	readerResults["indexer"] = make(chan reader.ReaderResult)
-	readerResults["metadata"] = make(chan reader.ReaderResult)
+	readerResults["indexer"] = make(chan reader.ReaderResult, cfg.CatalogIndexer.ChannelSize)
+	readerResults["metadata"] = make(chan reader.ReaderResult, cfg.CatalogIndexer.ChannelSize)
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) reader.Reader {
 		outputChannels := []chan reader.ReaderResult{readerResults["indexer"]}
 		if cfg.CatalogIndexer.Source.Metadata {
@@ -123,7 +124,7 @@ func BuildIndexerContainer(
 	})
 
 	// Register indexer
-	writerInput := make(chan writer.WriterInput[any])
+	writerInput := make(chan writer.WriterInput[any], cfg.CatalogIndexer.ChannelSize)
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) *mastercat_indexer.IndexerActor {
 		actor, err := mastercat_indexer.New(src, readerResults["indexer"], writerInput, cfg.CatalogIndexer.Indexer)
 		if err != nil {
@@ -133,7 +134,7 @@ func BuildIndexerContainer(
 	})
 
 	// Register metadata indexer
-	writerInputMetadata := make(chan writer.WriterInput[any])
+	writerInputMetadata := make(chan writer.WriterInput[any], cfg.CatalogIndexer.ChannelSize)
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) *metadata_indexer.IndexerActor {
 		if !cfg.CatalogIndexer.Source.Metadata {
 			return nil
