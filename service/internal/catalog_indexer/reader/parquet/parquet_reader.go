@@ -139,15 +139,14 @@ func (r *ParquetReader[T]) ReadBatch() ([]repository.InputSchema, error) {
 	if err != nil {
 		if err == io.EOF && r.currentReader < len(r.parquetReaders)-1 {
 			// only finished current file, but more files remain
+			r.fileReaders[r.currentReader].Close()
 			r.currentReader += 1
 			return currentRows, nil
 		}
 		if err == io.EOF {
 			// finished reading all files
+			r.fileReaders[r.currentReader].Close()
 			r.currentReader += 1
-			for i := range r.fileReaders {
-				r.fileReaders[i].Close()
-			}
 			return currentRows, err
 		}
 		return nil, err

@@ -37,6 +37,7 @@ type CatalogIndexerConfig struct {
 	Indexer        *IndexerConfig  `yaml:"indexer"`
 	IndexerWriter  *WriterConfig   `yaml:"indexer_writer"`
 	MetadataWriter *WriterConfig   `yaml:"metadata_writer"`
+	ChannelSize    int             `yaml:"channel_size"`
 }
 
 type PreprocessorConfig struct {

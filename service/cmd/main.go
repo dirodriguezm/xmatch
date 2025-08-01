@@ -21,6 +21,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"runtime"
 	"runtime/pprof"
 
 	"github.com/dirodriguezm/xmatch/service/internal/api"
@@ -226,12 +227,12 @@ func run(
 	if len(args) < 2 {
 		panic("run: Missing arguments")
 	}
-	fs := flag.NewFlagSet("xmatch", flag.ContinueOnError)
+	fs := flag.NewFlagSet("xmatch", flag.ExitOnError)
 
 	var profile bool
 	fs.BoolVar(&profile, "profile", false, "Enable profiling")
 
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(args[2:]); err != nil {
 		return err
 	}
 
@@ -239,10 +240,33 @@ func run(
 
 	if profile {
 		slog.Info("Profiling enabled")
-		cpuFile, _ := os.Create("cpu.prof")
-		defer cpuFile.Close()
+
+		// CPU profiling
+		cpuFile, err := os.Create("cpu.prof")
+		if err != nil {
+			slog.Error("could not create CPU profile: ", "error", err)
+		}
 		pprof.StartCPUProfile(cpuFile)
-		defer pprof.StopCPUProfile()
+		defer func() {
+			pprof.StopCPUProfile()
+			cpuFile.Close()
+		}()
+
+		// Memory profiling
+		defer func() {
+			memFile, err := os.Create("mem.prof")
+			if err != nil {
+				slog.Error("could not create memory profile: ", "error", err)
+			}
+			defer memFile.Close()
+
+			// Run a GC to get up-to-date memory statistics
+			runtime.GC()
+
+			if err := pprof.WriteHeapProfile(memFile); err != nil {
+				slog.Error("could not write memory profile: ", "error", err)
+			}
+		}()
 	}
 
 	switch command {

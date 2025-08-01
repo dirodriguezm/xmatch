@@ -38,6 +38,7 @@ catalog_indexer:
     type: parquet 
     # path to the output file if type produces a file
     output_file: "vlass_metadata.parquet"
+  channel_size: 50000
 # Configuration file for the web service
 service:
   # Database configuration for the service
