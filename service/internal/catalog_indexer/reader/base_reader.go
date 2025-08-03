@@ -54,16 +54,20 @@ func (r BaseReader) Start() {
 		for !eof {
 			rows, err := r.Reader.ReadBatch()
 			if err != nil && err != io.EOF {
+				// If the error is not EOF, it means that something went wrong reading the file
 				readResult := ReaderResult{
 					Rows:  nil,
 					Error: err,
 				}
+				// We send the message containing the error
 				for i := range r.Outbox {
 					r.Outbox[i] <- readResult
 				}
 				return
 			}
+			// We update the eof variable so that we can stop the loop when all files are read
 			eof = err == io.EOF
+			// Now we can send the actual rows to all the receivers
 			readResult := ReaderResult{
 				Rows:  rows,
 				Error: nil,

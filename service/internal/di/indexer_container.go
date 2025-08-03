@@ -92,7 +92,6 @@ func BuildIndexerContainer(
 
 	// Register CatalogRegister
 	ctr.Singleton(func(repo conesearch.Repository, cfg *config.Config) *indexer.CatalogRegister {
-		ctx := context.Background()
 		return indexer.NewCatalogRegister(ctx, repo, *cfg.CatalogIndexer.Source)
 	})
 
@@ -161,7 +160,7 @@ func BuildIndexerContainer(
 			}
 			return w
 		case "sqlite":
-			w := sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan struct{}), context.TODO(), src)
+			w := sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan struct{}), ctx, src)
 			return w
 		default:
 			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.IndexerWriter.Type)
@@ -193,7 +192,11 @@ func BuildIndexerContainer(
 			}
 			return w
 		case "sqlite":
-			w := sqlite_writer.NewSqliteWriter(repo, writerInputMetadata, make(chan struct{}), context.TODO(), src)
+			ctx := context.Background()
+			timeoutContext, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancel()
+
+			w := sqlite_writer.NewSqliteWriter(repo, writerInputMetadata, make(chan struct{}), timeoutContext, src)
 			return w
 		default:
 			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.MetadataWriter.Type)

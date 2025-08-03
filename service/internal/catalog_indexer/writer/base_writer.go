@@ -15,6 +15,7 @@
 package writer
 
 import (
+	"context"
 	"log/slog"
 )
 
@@ -31,6 +32,7 @@ type Writer[T any] interface {
 }
 
 type BaseWriter[T any] struct {
+	Ctx          context.Context
 	Writer       Writer[T]
 	DoneChannel  chan struct{}
 	InboxChannel chan WriterInput[T]
@@ -41,11 +43,24 @@ func (w BaseWriter[T]) Start() {
 	slog.Debug("Starting Writer")
 
 	go func() {
-		for msg := range w.InboxChannel {
-			w.Writer.Receive(msg)
+		for {
+			select {
+			case <-w.Ctx.Done():
+				// Case for context cancellation
+				slog.Debug("Writer context cancellation")
+				w.Writer.Stop()
+				return
+			case msg, ok := <-w.InboxChannel:
+				// Case for closed channel
+				if !ok {
+					slog.Debug("Writer Done")
+					w.Writer.Stop()
+					return
+				}
+				// Write the received message
+				w.Writer.Receive(msg)
+			}
 		}
-		w.Writer.Stop()
-		slog.Debug("Writer Done")
 	}()
 }
 
