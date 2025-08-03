@@ -47,6 +47,7 @@ func NewSqliteWriter[T any](
 	slog.Debug("Creating new SqliteWriter")
 	w := &SqliteWriter[T]{
 		BaseWriter: &writer.BaseWriter[T]{
+			Ctx:          ctx,
 			DoneChannel:  done,
 			InboxChannel: ch,
 		},
