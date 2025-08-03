@@ -1,6 +1,6 @@
 {{define "nav"}}
 <nav
-    class="h-16 text-subtle text-lg bg-surface flex items-center justify-between px-6 py-4 sm:px-16 md:px-20 lg:px-34 shadow-md">
+    class="h-16 text-subtle text-lg bg-surface flex items-center justify-between px-6 py-4 sm:px-16 md:px-20 lg:px-50 xl:px-82 shadow-md">
     <a class="{{if (eq .Route `home`)}}live{{end}}" href='/'>{{ t .Local "nav.home" }}</a>
     <a class="{{if (eq .Route `signup`)}}live{{end}} ml-auto mr-6" href='/user/signup'>{{ t .Local
         "nav.signup" }}</a>

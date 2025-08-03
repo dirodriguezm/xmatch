@@ -22,17 +22,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (web *Web) SetupRoutes(r *gin.Engine) {
+func (w *Web) Routes(r *gin.Engine) {
 	if r == nil {
 		panic("api: gin engine cannot be nil")
 	}
 
 	// TODO: remove extractRoute middleware when the real routes exists
-	r.NoRoute(localize(), extractRoute(), web.notFound)
+	r.NoRoute(w.localize(), extractRoute(), w.notFound)
 
 	{
 		root := r.Group("/")
-		root.Use(localize(), extractRoute())
+		root.Use(w.localize(), extractRoute())
 
 		static := root.Group("/static")
 		static.Use(cacheControl())
@@ -41,12 +41,13 @@ func (web *Web) SetupRoutes(r *gin.Engine) {
 			fileServer.ServeHTTP(c.Writer, c.Request)
 		})
 
-		root.GET("/", web.home)
-		root.GET("/htmx", web.testHTMX)
+		root.GET("/", w.home)
+		root.GET("/searchbar", w.searchbar)
+		root.GET("/htmx", w.testHTMX)
 
 		stars := root.Group("/stars")
 		stars.Use(calculateStarsDelay())
-		stars.GET("", web.stars)
+		stars.GET("", w.stars)
 
 		root.GET("/htmx-test", func(c *gin.Context) {
 			c.String(http.StatusOK, fmt.Sprintf(

@@ -27,7 +27,7 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
-func localize() gin.HandlerFunc {
+func (w *Web) localize() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 		acceptLang := c.Request.Header.Get("Accept-Language")
@@ -35,7 +35,7 @@ func localize() gin.HandlerFunc {
 			acceptLang = lang
 		}
 
-		localizer := i18n.NewLocalizer(translations, acceptLang)
+		localizer := i18n.NewLocalizer(w.translations, acceptLang)
 
 		c.Request = c.Request.WithContext(context.WithValue(ctx, Localizer, localizer))
 		slog.Debug("localize", "lang", acceptLang)

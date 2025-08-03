@@ -1,0 +1,48 @@
+{{define "base"}}
+<form action="/search" method="get"> 
+    <img src="/static/img/search.svg" alt="Search Icon"
+        class="pointer-events-none left-4 top-9 relative w-4 h-4 inline-block invert-[.91] sepia-[.05] saturate-[10] hue-rotate-[190deg] brightness-[1.043] contrast-[.91]">
+    </img>
+    <input required autofocus id="search" list="catalogs" name="q" type="text" placeholder="{{ t .Local `home.catalog`}}"
+        class="!bg-none pl-10 pr-6 shadow-md h-13 text-left text-text w-full rounded-4xl bg-highlight-med hover:bg-highlight-high focus:bg-highlight-low focus:outline focus:outline-highlight-high focus:outline-2 mb-5">
+    </input>
+    <datalist id="catalogs" class="appearance-none !bg-none">
+        {{range .Catalogs}}
+        <option value="{{.}}"></option>
+        {{end}}
+    </datalist>
+    <div class="grid sm:grid-cols-2 sm:gap-x-6 gap-y-0">
+        <div class="relative z-0 w-full mb-5 group">
+            <label for="ra" class="block mb-2 text-sm font-medium pl-2 text-text">{{ t .Local "home.ra" }}</label>
+            <input id="ra" type="phone" name="ra" min="0.0" max="24.0" step="0.000001"
+                class="text-text bg-highlight-med hover:bg-highlight-high rounded-4xl block w-full pl-6 pr-6 h-13 focus:bg-highlight-low focus:outline focus:outline-highlight-high focus:outline-2">
+        </div>
+        <div class="relative z-0 w-full mb-5 group">
+            <label for="dec" class="block mb-2 text-sm font-medium  text-text">{{ t .Local "home.dec" }}</label>
+            <input id="dec" type="number" name="dec" min="-90.0" max="90.0" step="0.000001"
+                class="text-text bg-highlight-med hover:bg-highlight-high rounded-4xl block w-full pl-10 pr-6 h-13 focus:bg-highlight-low focus:outline focus:outline-highlight-high focus:outline-2">
+        </div>
+        <div class="relative z-0 w-full mb-5 group">
+            <label for="radius" class="block mb-2 text-sm font-medium  text-text">{{ t .Local "home.radius" }}</label>
+            <input id="radius" type="number" name="radius" min="0.0" max="24.0" step="0.000001"
+                class="text-text bg-highlight-med hover:bg-highlight-high rounded-4xl block w-full pl-6 pr-6 h-13 focus:bg-highlight-low focus:outline focus:outline-highlight-high focus:outline-2">
+        </div>
+        <div class="relative z-0 w-full mb-5 group">
+            <label for="dec" class="block mb-2 text-sm font-medium  text-text">{{ t .Local "home.dec" }}</label>
+            <input id="dec" type="number" name="dec" min="-90.0" max="90.0" step="0.000001"
+                class="text-text bg-highlight-med hover:bg-highlight-high rounded-4xl block w-full pl-10 pr-6 h-13 focus:bg-highlight-low focus:outline focus:outline-highlight-high focus:outline-2">
+        </div>
+    </div>
+    <button type="submit"
+        class="cursor-pointer w-full h-13 text-text rounded-4xl bg-highlight-med hover:bg-highlight-high focus:bg-highlight-low focus:outline focus:outline-highlight-high focus:outline-2">
+        {{ t .Local `home.search`}}
+    </button>
+</form>
+<h5 class="text-text">{{ t .Local "home.searchs" }}</h5>
+{{range .Searches}}
+<a href="/search?q={{.}}" class="block text-text hover:text-highlight-high">
+    {{.}}
+</a>
+{{end}}
+
+{{end}}

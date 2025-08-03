@@ -29,10 +29,7 @@ var (
 	defaultLang = language.English
 )
 
-var translations *i18n.Bundle
-var defaultLocalizer *i18n.Localizer
-
-func loadTranslations() error {
+func (w *Web) loadTranslations() error {
 	bundle := i18n.NewBundle(defaultLang)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
 	unmarshalFuncs := map[string]i18n.UnmarshalFunc{
@@ -85,8 +82,8 @@ func loadTranslations() error {
 		}
 	}
 
-	translations = bundle
-	defaultLocalizer = i18n.NewLocalizer(bundle, defaultLang.String())
+	w.translations = bundle
+	w.defaultLocalizer = i18n.NewLocalizer(bundle, defaultLang.String())
 	return nil
 }
 

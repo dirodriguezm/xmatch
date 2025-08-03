@@ -1,12 +1,13 @@
 {{define "title"}}{{ t .Local "home.title" }}{{end}}
 
 {{define "main"}}
-<button
-    class="shadow-md h-12 text-left pb-1 text-text w-full rounded-4xl bg-highlight-med hover:bg-highlight-high active:bg-highlight-low">
+<div hx-target="this" hw-swap="outerHTML">
     <img src="/static/img/search.svg" alt="Search Icon"
-        class="ml-5 w-4 h-4 inline-block invert-[.91] sepia-[.05] saturate-[10] hue-rotate-[190deg] brightness-[1.043] contrast-[.91]">
-    Buscar
-</button>
-<!-- <h1 class="text-text text-lg sm:text-2xl">{{t .Local "home.greeting" }}</h1> -->
-<!-- <p class="text-text mt-2 sm:text-lg">{{t .Local "home.paragraph" }}</p> -->
+    class="pointer-events-none left-4 top-9 relative w-4 h-4 inline-block invert-[.91] sepia-[.05] saturate-[10] hue-rotate-[190deg] brightness-[1.043] contrast-[.91]">
+    </img>
+    <button hx-get="/searchbar" class="pl-10 pr-6 shadow-md h-13 text-left  text-text w-full rounded-4xl bg-highlight-med hover:bg-highlight-high">
+        {{ t .Local `home.search`}}
+    </button>
+</div>
+
 {{end}}

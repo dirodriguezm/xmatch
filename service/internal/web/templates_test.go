@@ -108,7 +108,6 @@ func TestNewTemplateData(t *testing.T) {
 		{
 			name: "Happy Path",
 			context: func(t *testing.T) context.Context {
-				loadTranslations()
 				ctx := context.Background()
 				localizer := createTestLocalizer(t)
 				ctx = context.WithValue(ctx, Localizer, localizer)
@@ -118,7 +117,9 @@ func TestNewTemplateData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			td := newTemplateData(tt.context(t))
+			w := &Web{}
+			w.loadTranslations()
+			td := w.newTemplateData(tt.context(t))
 
 			if td.Local == nil {
 				t.Fatal("localizer is nil")

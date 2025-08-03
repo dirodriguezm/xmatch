@@ -23,7 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (web *Web) serverError(c *gin.Context, err error) {
+func (w *Web) serverError(c *gin.Context, err error) {
 	var (
 		method = c.Request.Method
 		uri    = c.Request.URL
@@ -33,9 +33,9 @@ func (web *Web) serverError(c *gin.Context, err error) {
 	slog.Error(err.Error(), "method", method, "uri", uri, "trace", trace)
 
 	ctx := c.Request.Context()
-	data := newTemplateData(ctx)
+	data := w.newTemplateData(ctx)
 
-	err = web.render(c, http.StatusInternalServerError, "error.tmpl.html", data)
+	err = w.render(c, http.StatusInternalServerError, "error.tmpl.html", data)
 	if err != nil {
 		slog.Error("Failed to render error template", "error", err.Error())
 	}

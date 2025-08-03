@@ -68,7 +68,7 @@ func startHttpServer(
 	r.SetTrustedProxies([]string{"localhost"})
 
 	api.SetupRoutes(r)
-	web.SetupRoutes(r)
+	web.Routes(r)
 
 	err := r.Run()
 	return err

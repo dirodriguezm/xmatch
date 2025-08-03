@@ -1,5 +1,3 @@
-
-//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -52,10 +50,9 @@ func NotNil(t *testing.T, object any, msgAndArgs ...any) {
 	}
 }
 
-func SetupRouter(t *testing.T, stdout *strings.Builder) *gin.Engine {
+func SetupTestRouter(t *testing.T) (*gin.Engine, *strings.Builder) {
+	stdout := &strings.Builder{}
 	t.Helper()
-
-	loadTranslations()
 
 	logger := slog.New(slog.NewTextHandler(
 		stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
@@ -68,5 +65,5 @@ func SetupRouter(t *testing.T, stdout *strings.Builder) *gin.Engine {
 		e.Use(gin.LoggerWithWriter(stdout))
 	})
 
-	return r
+	return r, stdout
 }

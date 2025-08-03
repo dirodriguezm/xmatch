@@ -58,7 +58,7 @@ func TestValueFromDelays(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			val, err := valueFrom[delay](tt.ctx(), Delays)
+			val, err := ValueContext[delay](tt.ctx(), Delays)
 
 			if tt.err != nil {
 				if err == nil || err.Error() != tt.err.Error() {
@@ -77,6 +77,7 @@ func TestValueFromDelays(t *testing.T) {
 }
 
 func TestValueFromLocalizer(t *testing.T) {
+	w := Web{}
 	tests := []struct {
 		name string
 		ctx  func() context.Context
@@ -94,17 +95,17 @@ func TestValueFromLocalizer(t *testing.T) {
 			name: "Good Localizer in CTX",
 			ctx: func() context.Context {
 				ctx := context.Background()
-				localizer := i18n.NewLocalizer(translations, "en")
+				localizer := i18n.NewLocalizer(w.translations, "en")
 				ctx = context.WithValue(ctx, Localizer, localizer)
 
 				return ctx
 			},
-			want: i18n.NewLocalizer(translations, "en"),
+			want: i18n.NewLocalizer(w.translations, "en"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			val, err := valueFrom[*i18n.Localizer](tt.ctx(), Localizer)
+			val, err := ValueContext[*i18n.Localizer](tt.ctx(), Localizer)
 
 			if tt.err != nil {
 				if err == nil || err.Error() != tt.err.Error() {
@@ -150,7 +151,7 @@ func TestValueFromRoute(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			val, err := valueFrom[string](tt.ctx(), Route)
+			val, err := ValueContext[string](tt.ctx(), Route)
 
 			if tt.err != nil {
 				if err == nil || err.Error() != tt.err.Error() {

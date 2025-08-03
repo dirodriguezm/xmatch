@@ -24,21 +24,22 @@ import (
 )
 
 func TestLoadTransactions(t *testing.T) {
-	err := loadTranslations()
+	w := &Web{}
+	err := w.loadTranslations()
 	if err != nil {
 		t.Fatalf("loading translation failed: %v", err)
 	}
 
-	if defaultLocalizer == nil {
+	if w.defaultLocalizer == nil {
 		t.Fatalf("default lozalizer did not get set")
 	}
 
-	if translations == nil {
+	if w.translations == nil {
 		t.Fatalf("translations did not get set")
 	}
 
 	// NOTE: testing just with english for the moment
-	localizer := i18n.NewLocalizer(translations, "en")
+	localizer := i18n.NewLocalizer(w.translations, "en")
 
 	msgID := "time_layout"
 	str, err := localizer.LocalizeMessage(&i18n.Message{ID: msgID})

@@ -17,7 +17,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -38,19 +37,18 @@ func TestExtractRoute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stdout := &strings.Builder{}
-			router := SetupRouter(t, stdout)
+			r, _ := SetupTestRouter(t)
 
 			var ctx context.Context
-			router.Use(extractRoute())
-			router.GET(tt.route, func(c *gin.Context) {
+			r.Use(extractRoute())
+			r.GET(tt.route, func(c *gin.Context) {
 				ctx = c.Request.Context()
 				c.String(200, "ok")
 			})
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", tt.route, nil)
 
-			router.ServeHTTP(w, req)
+			r.ServeHTTP(w, req)
 
 			route, ok := ctx.Value(Route).(string)
 			if !ok {
@@ -59,25 +57,24 @@ func TestExtractRoute(t *testing.T) {
 			Equal(t, route, tt.expected)
 		})
 	}
-
 }
 
 func TestLocalize(t *testing.T) {
-	stdout := &strings.Builder{}
-	router := SetupRouter(t, stdout)
+	r, _ := SetupTestRouter(t)
+	w := Web{}
 
 	var ctx context.Context
 
-	router.Use(localize())
+	r.Use(w.localize())
 
-	router.GET("/context", func(c *gin.Context) {
+	r.GET("/context", func(c *gin.Context) {
 		ctx = c.Request.Context()
 		c.String(200, "ok")
 	})
 
-	w := httptest.NewRecorder()
+	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/context", nil)
-	router.ServeHTTP(w, req)
+	r.ServeHTTP(rec, req)
 
 	loc, ok := ctx.Value(Localizer).(*i18n.Localizer)
 	if !ok {

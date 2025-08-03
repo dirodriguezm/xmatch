@@ -15,39 +15,69 @@ package web
 
 import (
 	"fmt"
+	"html/template"
+
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
-	"html/template"
+	"github.com/go-playground/form/v4"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
 type Web struct {
-	getenv            func(string) string
-	config            *config.ServiceConfig
-	conesearch *conesearch.ConesearchService
-	metadataService   *metadata.MetadataService
-	templateCache     map[string]*template.Template
+	getenv           func(string) string
+	config           *config.ServiceConfig
+	conesearch       *conesearch.ConesearchService
+	metadata         *metadata.MetadataService
+	templateCache    map[string]*template.Template
+	translations     *i18n.Bundle
+	defaultLocalizer *i18n.Localizer
+	formDecoder      *form.Decoder
 }
 
 func New(
-	conesearchService *conesearch.ConesearchService,
-	metadataService *metadata.MetadataService,
+	conesearch *conesearch.ConesearchService,
+	metadata *metadata.MetadataService,
 	config *config.ServiceConfig,
 	getenv func(string string) string,
 ) (*Web, error) {
-	if conesearchService == nil {
+	if conesearch == nil {
 		return nil, fmt.Errorf("ConesearchService was nil while creating HttpServer")
 	}
-	if metadataService == nil {
+	if metadata == nil {
 		return nil, fmt.Errorf("MetadataService was nil while creating HttpServer")
 	}
 	templateCache, err := newTemplateCache()
 	if err != nil {
 		return nil, fmt.Errorf("err creating template cache: %v", err)
 	}
-	if err := loadTranslations(); err != nil {
+
+	w := &Web{
+		getenv:        getenv,
+		config:        config,
+		conesearch:    conesearch,
+		metadata:      metadata,
+		templateCache: templateCache,
+	}
+
+	if err := w.loadTranslations(); err != nil {
 		return nil, fmt.Errorf("Failed to load translations: %v", err)
 	}
 
-	return &Web{getenv, config, conesearchService, metadataService, templateCache}, nil
+	return w, nil
 }
+
+// func TestWeb(t *testing.T) (Web, *strings.Builder) {
+// t.Helper()
+// stdout := &strings.Builder{}
+
+// getenv := func(key string) string {
+// switch key {
+// case "SERVICE_PORT"
+// return "8080"
+
+// c
+
+// w := &Web{
+
+// }

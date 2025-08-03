@@ -25,9 +25,7 @@ import (
 )
 
 func TestServerError(t *testing.T) {
-	// Setup
-	stdout := &strings.Builder{}
-	r := SetupRouter(t, stdout)
+	r, stdout := SetupTestRouter(t)
 
 	tc, err := newTemplateCache()
 	if err != nil {
@@ -35,23 +33,24 @@ func TestServerError(t *testing.T) {
 	}
 
 	// Create minimal Web struct with just what we need for testing
-	web := &Web{
+	w := &Web{
 		templateCache: tc,
 	}
+	w.loadTranslations()
 
 	// Add a simple route to test serverError
 	r.GET("/test", func(c *gin.Context) {
-		web.serverError(c, fmt.Errorf("test error"))
+		w.serverError(c, fmt.Errorf("test error"))
 	})
 
 	// Create test request
 	req := httptest.NewRequest("GET", "/test", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
 
 	// Verify HTTP response
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, w.Code)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
 	}
 
 	// Verify error was logged
@@ -111,8 +110,7 @@ func TestRender(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stdout := new(strings.Builder)
-			r := SetupRouter(t, stdout)
+			r, _ := SetupTestRouter(t)
 
 			web := &Web{
 				templateCache: tt.templateCache,
@@ -145,14 +143,14 @@ func TestRender(t *testing.T) {
 			}
 
 			req := httptest.NewRequest("GET", "/test", nil)
-			w := httptest.NewRecorder()
-			r.ServeHTTP(w, req)
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, req)
 
-			if w.Code != tt.expectedStatus {
-				t.Errorf("expected status %d, got %d", tt.expectedStatus, w.Code)
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("expected status %d, got %d", tt.expectedStatus, rec.Code)
 			}
 
-			if body := w.Body.String(); body != tt.expectedBody {
+			if body := rec.Body.String(); body != tt.expectedBody {
 				t.Errorf("expected body '%s', got '%s'", tt.expectedBody, body)
 			}
 		})

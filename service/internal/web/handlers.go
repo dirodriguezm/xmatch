@@ -22,32 +22,39 @@ import (
 
 func (w *Web) home(c *gin.Context) {
 	ctx := c.Request.Context()
-	data := newTemplateData(ctx)
+	data := w.newTemplateData(ctx)
 	if err := w.render(c, http.StatusOK, "home.tmpl.html", data); err != nil {
 		w.serverError(c, fmt.Errorf("Failed to render home template: %v", err))
 	}
 }
 
-func (web *Web) testHTMX(c *gin.Context) {
+func (w *Web) testHTMX(c *gin.Context) {
 	ctx := c.Request.Context()
-	data := newTemplateData(ctx)
-	if err := web.render(c, http.StatusOK, "htmxtest.tmpl.html", data); err != nil {
-		web.serverError(c, fmt.Errorf("Failed to render htmxtest template: %v", err))
+	data := w.newTemplateData(ctx)
+	if err := w.render(c, http.StatusOK, "htmxtest.tmpl.html", data); err != nil {
+		w.serverError(c, fmt.Errorf("Failed to render htmxtest template: %v", err))
 	}
 }
 
-func (web *Web) notFound(c *gin.Context) {
+func (w *Web) notFound(c *gin.Context) {
 	ctx := c.Request.Context()
-	data := newTemplateData(ctx)
-	if err := web.render(c, http.StatusNotFound, "notfound.tmpl.html", data); err != nil {
-		web.serverError(c, fmt.Errorf("Failed to render not found template: %v", err))
+	data := w.newTemplateData(ctx)
+	if err := w.render(c, http.StatusNotFound, "notfound.tmpl.html", data); err != nil {
+		w.serverError(c, fmt.Errorf("Failed to render not found template: %v", err))
 	}
 }
 
-func (web *Web) stars(c *gin.Context) {
+func (w *Web) stars(c *gin.Context) {
 	ctx := c.Request.Context()
-	data := newTemplateData(ctx)
-	if err := web.render(c, http.StatusOK, "stars.tmpl.html", data); err != nil {
-		web.serverError(c, fmt.Errorf("Failed to render stars template: %v", err))
+	data := w.newTemplateData(ctx)
+	if err := w.render(c, http.StatusOK, "stars.tmpl.html", data); err != nil {
+		w.serverError(c, fmt.Errorf("Failed to render stars template: %v", err))
+	}
+}
+func (w *Web) searchbar(c *gin.Context) {
+	ctx := c.Request.Context()
+	data := w.newTemplateData(ctx)
+	if err := w.render(c, http.StatusOK, "searchbar.tmpl.html", data); err != nil {
+		w.serverError(c, fmt.Errorf("failed to render searchbar template: %w", err))
 	}
 }

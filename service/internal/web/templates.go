@@ -21,14 +21,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/dirodriguezm/xmatch/service/internal/validator"
 	"github.com/dirodriguezm/xmatch/service/ui"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
-
-type Search struct {
-	Url  string
-	Text string
-}
 
 type delay struct {
 	Fast   int16
@@ -40,8 +36,9 @@ type templateData struct {
 	CurrentYear int
 	Route       string
 	Local       *i18n.Localizer
-	Searches    []Search
-	Form        any   //this is for posts requests
+	Searches    []string
+	Catalogs    []string
+	Validator   validator.Validator
 	StarsDelay  delay //percent of delay to apply to the request
 }
 
@@ -105,18 +102,18 @@ func newTemplateCache() (map[string]*template.Template, error) {
 	return cache, nil
 }
 
-func newTemplateData(ctx context.Context) templateData {
-	localizer, err := valueFrom[*i18n.Localizer](ctx, Localizer)
+func (w *Web) newTemplateData(ctx context.Context) templateData {
+	localizer, err := ValueContext[*i18n.Localizer](ctx, Localizer)
 	if err != nil {
-		localizer = defaultLocalizer
+		localizer = w.defaultLocalizer
 	}
 
-	route, err := valueFrom[string](ctx, Route)
+	route, err := ValueContext[string](ctx, Route)
 	if err != nil {
 		route = ""
 	}
 
-	delays, err := valueFrom[delay](ctx, Delays)
+	delays, err := ValueContext[delay](ctx, Delays)
 	if err != nil {
 		delays = delay{}
 	}
@@ -124,10 +121,9 @@ func newTemplateData(ctx context.Context) templateData {
 	return templateData{
 		CurrentYear: time.Now().Year(),
 		Local:       localizer,
-		Searches: []Search{
-			{Text: "alwise", Url: "/search?q=alwise"}, {Text: "otro", Url: "/search?q=otro"},
-		},
-		Route:      route,
-		StarsDelay: delays,
+		Searches:    []string{"alwise", "otro", "uno mas", "otro mas", "mas", "mas mas", "mas mas mas"},
+		Catalogs:    []string{"alwise", "all"},
+		Route:       route,
+		StarsDelay:  delays,
 	}
 }

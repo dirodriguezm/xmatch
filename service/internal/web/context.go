@@ -27,7 +27,7 @@ const (
 	Delays
 )
 
-func valueFrom[T any](ctx context.Context, key Key) (T, error) {
+func ValueContext[T any](ctx context.Context, key Key) (T, error) {
 	var zero T
 	value, ok := ctx.Value(key).(T)
 	if !ok {
