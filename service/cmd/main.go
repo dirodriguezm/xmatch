@@ -82,6 +82,7 @@ func startCatalogIndexer(
 ) (error, context.CancelFunc) {
 	slog.Debug("Starting catalog indexer")
 	ctr, cancel := di.BuildIndexerContainer(ctx, getenv, stdout)
+	return nil, nil
 
 	var cfg *config.Config
 	err := ctr.Resolve(&cfg)
