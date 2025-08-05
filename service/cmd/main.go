@@ -79,21 +79,21 @@ func startCatalogIndexer(
 	ctx context.Context,
 	getenv func(string) string,
 	stdout io.Writer,
-) error {
+) (error, context.CancelFunc) {
 	slog.Debug("Starting catalog indexer")
-	ctr := di.BuildIndexerContainer(ctx, getenv, stdout)
+	ctr, cancel := di.BuildIndexerContainer(ctx, getenv, stdout)
 
 	var cfg *config.Config
 	err := ctr.Resolve(&cfg)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// update catalogs table
 	var catalogRegister *indexer.CatalogRegister
 	err = ctr.Resolve(&catalogRegister)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	catalogRegister.RegisterCatalog()
 
@@ -101,7 +101,7 @@ func startCatalogIndexer(
 	var w writer.Writer[any]
 	err = ctr.NamedResolve(&w, "indexer_writer")
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	w.Start()
@@ -111,7 +111,7 @@ func startCatalogIndexer(
 		var metadataWriter writer.Writer[any]
 		err := ctr.NamedResolve(&metadataWriter, "metadata_writer")
 		if err != nil {
-			return err
+			return err, nil
 		}
 		metadataWriter.Start()
 	}
@@ -120,7 +120,7 @@ func startCatalogIndexer(
 	var catalogIndexer *mastercat_indexer.IndexerActor
 	err = ctr.Resolve(&catalogIndexer)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	catalogIndexer.Start()
 
@@ -129,7 +129,7 @@ func startCatalogIndexer(
 		var actor *metadata_indexer.IndexerActor
 		err := ctr.Resolve(&actor)
 		if err != nil {
-			return err
+			return err, nil
 		}
 		actor.Start()
 	}
@@ -140,7 +140,7 @@ func startCatalogIndexer(
 	reader.Start()
 
 	w.Done()
-	return nil
+	return nil, cancel
 }
 
 func startPreprocessor(
@@ -273,7 +273,9 @@ func run(
 	case "server":
 		return startHttpServer(ctx, getenv, stdout)
 	case "indexer":
-		return startCatalogIndexer(ctx, getenv, stdout)
+		err, cancel := startCatalogIndexer(ctx, getenv, stdout)
+		defer cancel()
+		return err
 	case "preprocessor":
 		return startPreprocessor(ctx, getenv, stdout)
 	default:

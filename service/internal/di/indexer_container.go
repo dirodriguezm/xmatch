@@ -42,7 +42,7 @@ func BuildIndexerContainer(
 	ctx context.Context,
 	getenv func(string) string,
 	stdout io.Writer,
-) container.Container {
+) (container.Container, context.CancelFunc) {
 	ctr := container.New()
 	// read config
 	cfg, err := config.Load(getenv)
@@ -143,6 +143,8 @@ func BuildIndexerContainer(
 		return actor
 	})
 
+	var cancel context.CancelFunc
+	var timeoutContext context.Context
 	// Register mastercat indexer writer
 	ctr.NamedSingleton("indexer_writer", func(
 		cfg *config.Config,
@@ -161,9 +163,7 @@ func BuildIndexerContainer(
 			}
 			return w
 		case "sqlite":
-			ctx := context.Background()
-			timeoutContext, cancel := context.WithTimeout(ctx, 5*time.Minute)
-			defer cancel()
+			timeoutContext, cancel = context.WithTimeout(ctx, 5*time.Minute)
 			w := sqlite_writer.NewSqliteWriter(repo, writerInput, make(chan struct{}), timeoutContext, src)
 			return w
 		default:
@@ -208,5 +208,5 @@ func BuildIndexerContainer(
 		}
 	})
 
-	return ctr
+	return ctr, cancel
 }
