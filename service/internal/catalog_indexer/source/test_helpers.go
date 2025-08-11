@@ -40,9 +40,6 @@ func ASource(t *testing.T) *SourceBuilder {
 		SourceConfig: &config.SourceConfig{
 			Type:        "csv",
 			CatalogName: "test",
-			RaCol:       "ra",
-			DecCol:      "dec",
-			OidCol:      "oid",
 			Nside:       18,
 		},
 	}
@@ -54,9 +51,6 @@ func (builder *SourceBuilder) WithType(t string) *SourceBuilder {
 	builder.SourceConfig = &config.SourceConfig{
 		Type:        t,
 		CatalogName: "test",
-		RaCol:       "ra",
-		DecCol:      "dec",
-		OidCol:      "oid",
 		Nside:       18,
 	}
 	return builder

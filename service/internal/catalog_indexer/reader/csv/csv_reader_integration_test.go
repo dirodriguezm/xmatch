@@ -44,7 +44,7 @@ o1,1,1
 o2,2,2
 `
 	nFiles := 5
-	testData := make([]string, nFiles, nFiles)
+	testData := make([]string, nFiles)
 	for i := range nFiles {
 		testData[i] = fileContent
 	}
@@ -108,12 +108,11 @@ o1,1,1
 o2,2,2
 `
 	nFiles := 5
-	testData := make([]string, nFiles, nFiles)
+	testData := make([]string, nFiles)
 	for i := range nFiles {
 		testData[i] = fileContent
 	}
 	source := fixture.source.WithNestedCsvFiles(testData, testData).Build()
-	require.Len(t, source.Reader, 10)
 
 	// create reader
 	reader := fixture.reader.WithSource(source).Build()

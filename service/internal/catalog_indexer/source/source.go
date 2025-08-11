@@ -21,24 +21,17 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 )
 
-type SourceReader struct {
-	io.Reader
-
-	Url string
-}
-
 type Source struct {
-	Reader      []SourceReader
-	CatalogName string
-	RaCol       string
-	DecCol      string
-	OidCol      string
-	Nside       int
+	Sources       []string
+	CurrentSource int
+	CatalogName   string
+	Nside         int
 }
 
 func NewSource(cfg *config.SourceConfig) (*Source, error) {
@@ -46,42 +39,63 @@ func NewSource(cfg *config.SourceConfig) (*Source, error) {
 	if !validateSourceType(cfg.Type) {
 		return nil, fmt.Errorf("Can't create source with type %s.", cfg.Type)
 	}
-	readers, err := sourceReader(cfg.Url)
+	sources, err := urlSources(cfg.Url)
 	if err != nil {
 		return nil, err
 	}
 	return &Source{
-		Reader:      readers,
-		CatalogName: cfg.CatalogName,
-		RaCol:       cfg.RaCol,
-		DecCol:      cfg.DecCol,
-		OidCol:      cfg.OidCol,
-		Nside:       cfg.Nside,
+		Sources:       sources,
+		CurrentSource: 0,
+		CatalogName:   cfg.CatalogName,
+		Nside:         cfg.Nside,
 	}, nil
+}
+
+// Next reads the next source file or buffer in the list of sources.
+//
+// Returns:
+// - An io.Reader for the next source in the list.
+// - io.EOF if there are no more sources to read.
+// - An error if a file cannot be opened.
+//
+// It increments the currentSource index after successfully opening a file.
+// Buffers with "buffer" prefix are handled separately.
+func (src *Source) Next() (io.Reader, error) {
+	// All sources read
+	if src.CurrentSource >= len(src.Sources) {
+		return nil, io.EOF
+	}
+
+	// In memory source from the source string itself
+	if strings.HasPrefix(src.Sources[src.CurrentSource], "buffer:") {
+		content := strings.Split(src.Sources[src.CurrentSource], "buffer:")[1]
+		src.CurrentSource++
+		return bytes.NewBufferString(content), nil
+	}
+
+	filepath := src.Sources[src.CurrentSource]
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("Could not open file: %s", filepath)
+	}
+	src.CurrentSource++
+
+	return reader, nil
 }
 
 func validateSourceType(stype string) bool {
 	allowedTypes := []string{"csv", "parquet"}
-	for _, t := range allowedTypes {
-		if t == stype {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(allowedTypes, stype)
 }
 
-func sourceReader(url string) ([]SourceReader, error) {
+func urlSources(url string) ([]string, error) {
 	if strings.HasPrefix(url, "file:") {
 		parsedUrl := strings.Split(url, "file:")[1]
-		reader, err := os.Open(parsedUrl)
-		if err != nil {
-			return nil, err
-		}
-		return []SourceReader{{Reader: reader, Url: parsedUrl}}, nil
+		return []string{parsedUrl}, nil
 	}
 
 	if strings.HasPrefix(url, "buffer:") {
-		return []SourceReader{{Reader: &bytes.Buffer{}, Url: url}}, nil
+		return []string{url}, nil
 	}
 
 	if strings.HasPrefix(url, "files:") {
@@ -90,26 +104,21 @@ func sourceReader(url string) ([]SourceReader, error) {
 		if err != nil {
 			return nil, err
 		}
-		readers := []SourceReader{}
+		files := []string{}
 		for _, entry := range entries {
 			if entry.IsDir() {
-				rdrs, err := sourceReader("files:" + filepath.Join(parsedUrl, entry.Name()))
+				rdrs, err := urlSources("files:" + filepath.Join(parsedUrl, entry.Name()))
 				if err != nil {
 					slog.Error("Could not create reader", "entry", entry.Name())
 					return nil, err
 				}
-				readers = append(readers, rdrs...)
+				files = append(files, rdrs...)
 				continue
 			}
 			fileUrl := filepath.Join(parsedUrl, entry.Name())
-			file, err := os.Open(fileUrl)
-			if err != nil {
-				slog.Error("Could not create reader", "entry", entry.Name())
-				return nil, err
-			}
-			readers = append(readers, SourceReader{Reader: file, Url: fileUrl})
+			files = append(files, fileUrl)
 		}
-		return readers, nil
+		return files, nil
 	}
 
 	return nil, fmt.Errorf("Could not parse URL: %s", url)

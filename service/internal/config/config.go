@@ -57,9 +57,6 @@ type SourceConfig struct {
 	Url         string `yaml:"url"`
 	Type        string `yaml:"type"`
 	CatalogName string `yaml:"catalog_name"`
-	RaCol       string `yaml:"ra_col"`
-	DecCol      string `yaml:"dec_col"`
-	OidCol      string `yaml:"oid_col"`
 	Nside       int    `yaml:"nside"`
 	Metadata    bool   `yaml:"metadata"`
 }

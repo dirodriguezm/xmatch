@@ -42,7 +42,7 @@ type BaseReader struct {
 }
 
 func (r BaseReader) Start() {
-	slog.Debug("Starting Reader", "catalog", r.Src.CatalogName, "nside", r.Src.Nside, "numreaders", len(r.Src.Reader))
+	slog.Debug("Starting Reader", "catalog", r.Src.CatalogName, "nside", r.Src.Nside, "numreaders", len(r.Src.Sources))
 	go func() {
 		defer func() {
 			for i := range r.Outbox {
