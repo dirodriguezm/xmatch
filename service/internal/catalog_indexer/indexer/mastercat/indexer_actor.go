@@ -23,7 +23,6 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type IndexerActor struct {
@@ -91,12 +90,5 @@ func (actor *IndexerActor) receive(msg reader.ReaderResult) {
 	actor.outbox <- writer.WriterInput[any]{
 		Rows:  outputBatch,
 		Error: nil,
-	}
-}
-
-func sendError(outbox chan writer.WriterInput[repository.Mastercat], err error) {
-	outbox <- writer.WriterInput[repository.Mastercat]{
-		Rows:  nil,
-		Error: err,
 	}
 }

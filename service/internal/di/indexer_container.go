@@ -154,7 +154,7 @@ func BuildIndexerContainer(
 		switch cfg.CatalogIndexer.IndexerWriter.Type {
 		case "parquet":
 			cfg.CatalogIndexer.IndexerWriter.Schema = config.MastercatSchema
-			w, err := parquet_writer.NewParquetWriter(writerInput, make(chan struct{}), cfg.CatalogIndexer.IndexerWriter)
+			w, err := parquet_writer.NewParquetWriter(writerInput, make(chan struct{}), cfg.CatalogIndexer.IndexerWriter, ctx)
 			if err != nil {
 				panic(err)
 			}
@@ -186,17 +186,13 @@ func BuildIndexerContainer(
 			default:
 				panic("Unknown catalog name")
 			}
-			w, err := parquet_writer.NewParquetWriter(writerInputMetadata, make(chan struct{}), cfg.CatalogIndexer.MetadataWriter)
+			w, err := parquet_writer.NewParquetWriter(writerInputMetadata, make(chan struct{}), cfg.CatalogIndexer.MetadataWriter, ctx)
 			if err != nil {
 				panic(err)
 			}
 			return w
 		case "sqlite":
-			ctx := context.Background()
-			timeoutContext, cancel := context.WithTimeout(ctx, 5*time.Minute)
-			defer cancel()
-
-			w := sqlite_writer.NewSqliteWriter(repo, writerInputMetadata, make(chan struct{}), timeoutContext, src)
+			w := sqlite_writer.NewSqliteWriter(repo, writerInputMetadata, make(chan struct{}), ctx, src)
 			return w
 		default:
 			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.MetadataWriter.Type)

@@ -97,18 +97,18 @@ func startCatalogIndexer(
 	}
 	catalogRegister.RegisterCatalog()
 
-	// initialize w
-	var w writer.Writer[any]
-	err = ctr.NamedResolve(&w, "indexer_writer")
+	// initialize indexerWriter
+	var indexerWriter writer.Writer[any]
+	err = ctr.NamedResolve(&indexerWriter, "indexer_writer")
 	if err != nil {
 		return err
 	}
 
-	w.Start()
+	indexerWriter.Start()
 
 	// initialize metadata writer
+	var metadataWriter writer.Writer[any]
 	if cfg.CatalogIndexer.MetadataWriter != nil && cfg.CatalogIndexer.Source.Metadata {
-		var metadataWriter writer.Writer[any]
 		err := ctr.NamedResolve(&metadataWriter, "metadata_writer")
 		if err != nil {
 			return err

@@ -15,6 +15,7 @@
 package parquet_writer
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -37,6 +38,7 @@ func NewParquetWriter[T any](
 	inbox chan writer.WriterInput[T],
 	done chan struct{},
 	cfg *config.WriterConfig,
+	ctx context.Context,
 ) (*ParquetWriter[T], error) {
 	slog.Debug("Creating new ParquetWriter")
 
@@ -70,6 +72,7 @@ func NewParquetWriter[T any](
 		BaseWriter: &writer.BaseWriter[T]{
 			InboxChannel: inbox,
 			DoneChannel:  done,
+			Ctx:          ctx,
 		},
 	}
 	w.Writer = w

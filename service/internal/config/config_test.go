@@ -54,9 +54,6 @@ catalog_indexer:
 				require.Equal(t, &SourceConfig{
 					Url:         "file:test.csv",
 					CatalogName: "test",
-					RaCol:       "ra",
-					DecCol:      "dec",
-					OidCol:      "oid",
 					Nside:       18,
 				}, cfg.CatalogIndexer.Source)
 				require.Equal(t, &ReaderConfig{BatchSize: 500, Type: "csv"}, cfg.CatalogIndexer.Reader)

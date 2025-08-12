@@ -67,7 +67,7 @@ func setUpTestFixture_Parquet(t *testing.T) *TestFixture {
 	}
 	nFiles := 5
 	testData := make([][][]string, nFiles)
-	for i := 0; i < nFiles; i++ {
+	for i := range nFiles {
 		testData[i] = fileContent
 	}
 	dir := t.TempDir()

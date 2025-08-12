@@ -52,7 +52,7 @@ func (t *TestSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
 }
 
-func (t *TestSchema) SetField(name string, val interface{}) {}
+func (t *TestSchema) SetField(name string, val any) {}
 
 func (t *TestSchema) GetId() string {
 	return t.ID
@@ -69,9 +69,6 @@ func TestIndexActor(t *testing.T) {
 		Url:         "buffer:",
 		Type:        "csv",
 		CatalogName: "catalog",
-		RaCol:       "ra",
-		DecCol:      "dec",
-		OidCol:      "id",
 	})
 	require.NoError(t, err)
 	indexerActor, err := New(src, inbox, outbox, &config.IndexerConfig{OrderingScheme: "nested", Nside: 18})

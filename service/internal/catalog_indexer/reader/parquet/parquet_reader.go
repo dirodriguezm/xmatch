@@ -17,7 +17,7 @@ package parquet_reader
 import (
 	"fmt"
 	"io"
-	"log/slog"
+	"os"
 	"reflect"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
@@ -31,12 +31,11 @@ import (
 
 type ParquetReader[T any] struct {
 	*reader.BaseReader
-	parquetReaders []*preader.ParquetReader
-	src            *source.Source
-	currentReader  int
-	outbox         []chan reader.ReaderResult
-
-	fileReaders []psource.ParquetFile
+	src                  *source.Source
+	currentParquetReader *preader.ParquetReader
+	currentFileReader    psource.ParquetFile
+	currentFileName      string
+	outbox               []chan reader.ReaderResult
 }
 
 func NewParquetReader[T any](
@@ -44,21 +43,23 @@ func NewParquetReader[T any](
 	channel []chan reader.ReaderResult,
 	opts ...ParquetReaderOption[T],
 ) (*ParquetReader[T], error) {
-	readers := []*preader.ParquetReader{}
-	fileReaders := []psource.ParquetFile{}
 
-	for _, srcReader := range src.Reader {
-		fr, err := local.NewLocalFileReader(srcReader.Url)
-		if err != nil {
-			return nil, fmt.Errorf("Could not create NewLocalFileReader\n%w", err)
-		}
-		fileReaders = append(fileReaders, fr)
-		schema := new(T)
-		pr, err := preader.NewParquetReader(fr, schema, 4)
-		if err != nil {
-			return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
-		}
-		readers = append(readers, pr)
+	currentReader, err := src.Next()
+	if err != nil {
+		return nil, fmt.Errorf("could not get next source: %w", err)
+	}
+	defer currentReader.(*os.File).Close() // TODO: Should this be closed?
+	currentFileName := currentReader.(*os.File).Name()
+
+	fr, err := local.NewLocalFileReader(currentFileName)
+	if err != nil {
+		return nil, fmt.Errorf("Could not create NewLocalFileReader\n%w", err)
+	}
+
+	schema := new(T)
+	pr, err := preader.NewParquetReader(fr, schema, 4)
+	if err != nil {
+		return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
 	}
 
 	newReader := &ParquetReader[T]{
@@ -66,11 +67,11 @@ func NewParquetReader[T any](
 			Src:    src,
 			Outbox: channel,
 		},
-		src:            src,
-		currentReader:  0,
-		outbox:         channel,
-		fileReaders:    fileReaders,
-		parquetReaders: readers,
+		src:                  src,
+		currentParquetReader: pr,
+		currentFileReader:    fr,
+		currentFileName:      currentFileName,
+		outbox:               channel,
 	}
 
 	for _, opt := range opts {
@@ -88,7 +89,7 @@ func (r *ParquetReader[T]) ReadSingleFile(currentReader *preader.ParquetReader) 
 	records := make([]T, nrows)
 
 	if err := currentReader.Read(&records); err != nil {
-		return nil, reader.NewReadError(r.currentReader, err, r.src, "Failed to read parquet")
+		return nil, reader.NewReadError(err, r.src, "Failed to read parquet")
 	}
 
 	parsedRecords := convertToInputSchema(records, r.src.CatalogName)
@@ -97,35 +98,71 @@ func (r *ParquetReader[T]) ReadSingleFile(currentReader *preader.ParquetReader) 
 }
 
 func (r *ParquetReader[T]) Read() ([]repository.InputSchema, error) {
-	defer func() {
-		for i := range r.fileReaders {
-			r.fileReaders[i].Close()
-		}
-	}()
+	rows := make([]repository.InputSchema, 0, r.currentParquetReader.GetNumRows())
+	eof := false
 
-	rows := make([]repository.InputSchema, 0, 0)
-	for _, currentReader := range r.parquetReaders {
-		currentRows, err := r.ReadSingleFile(currentReader)
+	for !eof {
+		// Read the current file completely
+		currentRows, err := r.ReadSingleFile(r.currentParquetReader)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Could not read file: %s. %w", r.currentFileName, err)
 		}
 		rows = append(rows, currentRows...)
+
+		// Get next file if any
+		nextReader, err := r.src.Next()
+		if err == io.EOF {
+			//no more files
+			return rows, io.EOF
+		}
+		if err != nil {
+			return nil, fmt.Errorf("Could not get next source: %w", err)
+		}
+
+		nextFileName := nextReader.(*os.File).Name()
+		// TODO: Should the opened file from the Source be closed?
+		nextReader.(*os.File).Close()
+		// If no more files remaining, the returned error will be EOF
+		eof = err == io.EOF
+
+		// Create a new local file reader from the next file in the Source
+		newFileReader, err := local.NewLocalFileReader(nextFileName)
+		if err != nil {
+			return nil, fmt.Errorf("Could not create NewLocalFileReader\n%w", err)
+		}
+
+		// Create a new Parquet File Reader
+		schema := new(T)
+		newParquetReader, err := preader.NewParquetReader(newFileReader, schema, 4)
+		if err != nil {
+			return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
+		}
+
+		// Update the current file reader and close the previous
+		r.currentParquetReader.ReadStop()
+		r.currentFileReader.Close()
+		r.currentFileReader = newFileReader
+		r.currentParquetReader = newParquetReader
+		r.currentFileName = nextFileName
 	}
+
 	return rows, nil
 }
 
+// Reads batch from the passed reader
+// The closing should be handling by the caller
+// Returns io.EOF if there are no more rows to read
 func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]repository.InputSchema, error) {
 	records := make([]T, r.BatchSize)
 
 	if err := currentReader.Read(&records); err != nil {
-		return nil, reader.NewReadError(r.currentReader, err, r.src, "Failed to read parquet in batch")
+		return nil, reader.NewReadError(err, r.src, "Failed to read parquet in batch")
 	}
 
 	parsedRecords := convertToInputSchema(records, r.src.CatalogName)
 
 	if isZeroValueSlice(parsedRecords) {
 		// finished reading
-		currentReader.ReadStop()
 		return nil, io.EOF
 	}
 
@@ -133,30 +170,63 @@ func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetRea
 }
 
 func (r *ParquetReader[T]) ReadBatch() ([]repository.InputSchema, error) {
-	currentReader := r.parquetReaders[r.currentReader]
-	slog.Debug("ParquetReader reading batch")
-	currentRows, err := r.ReadBatchSingleFile(currentReader)
-	if err != nil {
-		if err == io.EOF && r.currentReader < len(r.parquetReaders)-1 {
-			// only finished current file, but more files remain
-			r.fileReaders[r.currentReader].Close()
-			r.currentReader += 1
-			return currentRows, nil
-		}
-		if err == io.EOF {
-			// finished reading all files
-			r.fileReaders[r.currentReader].Close()
-			r.currentReader += 1
-			return currentRows, err
-		}
-		return nil, err
+	currentRows, err := r.ReadBatchSingleFile(r.currentParquetReader)
+
+	// Read did not finish successfully
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("Error while reading batch from current parquet reader: %s. %w", r.currentFileName, err)
 	}
+
+	// EOF means we only finished reading the current file, but more files could remain
+	if err == io.EOF {
+		// Get the next file in the source
+		nextReader, nextError := r.src.Next()
+		// If error is not EOF it means there has been an error retrieving the next file from the Source
+		if nextError != nil && nextError != io.EOF {
+			return currentRows, fmt.Errorf("Error getting the next file from the Source: %w", nextError)
+		}
+		// If error is EOF, it means that there are no more files to read
+		if nextError == io.EOF {
+			return currentRows, io.EOF
+		}
+
+		// Now we update the current reader and close the previous
+		//
+		// first get the next file name
+		nextFileName := nextReader.(*os.File).Name()
+		nextReader.(*os.File).Close()
+
+		// Create a new local file reader from the next file in the Source
+		newFileReader, err := local.NewLocalFileReader(nextFileName)
+		if err != nil {
+			return nil, fmt.Errorf("Could not create NewLocalFileReader\n%w", err)
+		}
+
+		// Create a new Parquet File Reader
+		schema := new(T)
+		newParquetReader, err := preader.NewParquetReader(newFileReader, schema, 4)
+		if err != nil {
+			return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
+		}
+
+		// update the current values
+		r.currentParquetReader.ReadStop()
+		r.currentFileReader.Close()
+		r.currentFileReader = newFileReader
+		r.currentParquetReader = newParquetReader
+		r.currentFileName = nextFileName
+
+		// return the latest rows
+		return currentRows, nil
+	}
+
+	// Here we are still reading the current file.
 	return currentRows, nil
 }
 
 func convertToInputSchema[T any](records []T, catalogName string) []repository.InputSchema {
 	inputSchemas := make([]repository.InputSchema, len(records))
-	for i := 0; i < len(records); i++ {
+	for i := range records {
 		elem := reflect.ValueOf(records[i])
 		if elem.Kind() == reflect.Ptr {
 			elem = elem.Elem()
@@ -199,7 +269,7 @@ func convertToInputSchema[T any](records []T, catalogName string) []repository.I
 }
 
 func isZeroValueSlice(s []repository.InputSchema) bool {
-	for i := 0; i < len(s); i++ {
+	for i := range s {
 		if !isZeroValueInputSchema(s[i]) {
 			return false
 		}
@@ -222,7 +292,7 @@ func isZeroValueInputSchema(schema repository.InputSchema) bool {
 }
 
 // Helper function to check if an interface{} value is zero
-func isZeroValue(v interface{}) bool {
+func isZeroValue(v any) bool {
 	if v == nil {
 		return true
 	}
@@ -238,9 +308,9 @@ func isZeroValue(v interface{}) bool {
 		return !value
 	case string:
 		return value == ""
-	case []interface{}:
+	case []any:
 		return len(value) == 0
-	case map[string]interface{}:
+	case map[string]any:
 		return len(value) == 0
 	default:
 		// For struct types, compare with their zero value

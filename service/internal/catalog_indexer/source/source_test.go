@@ -34,7 +34,7 @@ func TestSourceReader_Files(t *testing.T) {
 	url := fmt.Sprintf("files:%s", dir)
 	source := ASource(t).WithUrl(url).WithCsvFiles([]string{"", ""}).Build()
 
-	require.Len(t, source.Reader, 2)
+	require.Len(t, source.Sources, 2)
 }
 
 func TestSourceReader_NestedFiles(t *testing.T) {
@@ -42,7 +42,7 @@ func TestSourceReader_NestedFiles(t *testing.T) {
 	url := fmt.Sprintf("files:%s", dir)
 	source := ASource(t).WithUrl(url).WithNestedCsvFiles([]string{""}, []string{""}).Build()
 
-	require.Len(t, source.Reader, 2)
+	require.Len(t, source.Sources, 2)
 }
 
 func TestSourceReader_ParquetFiles(t *testing.T) {
@@ -51,5 +51,5 @@ func TestSourceReader_ParquetFiles(t *testing.T) {
 	metadata := []string{"name=Col, type=INT64"}
 	source := ASource(t).WithUrl(url).WithParquetFiles(metadata, [][][]string{{{"1"}}, {{"2"}}}).Build()
 
-	require.Len(t, source.Reader, 2)
+	require.Len(t, source.Sources, 2)
 }
