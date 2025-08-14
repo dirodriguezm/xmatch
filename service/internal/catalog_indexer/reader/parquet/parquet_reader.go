@@ -48,8 +48,8 @@ func NewParquetReader[T any](
 	if err != nil {
 		return nil, fmt.Errorf("could not get next source: %w", err)
 	}
-	defer currentReader.(*os.File).Close() // TODO: Should this be closed?
 	currentFileName := currentReader.(*os.File).Name()
+	currentReader.(*os.File).Close()
 
 	fr, err := local.NewLocalFileReader(currentFileName)
 	if err != nil {
@@ -120,7 +120,6 @@ func (r *ParquetReader[T]) Read() ([]repository.InputSchema, error) {
 		}
 
 		nextFileName := nextReader.(*os.File).Name()
-		// TODO: Should the opened file from the Source be closed?
 		nextReader.(*os.File).Close()
 		// If no more files remaining, the returned error will be EOF
 		eof = err == io.EOF

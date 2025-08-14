@@ -2,7 +2,7 @@ default:
 	just --list
 
 migrate db:
-	migrate -database sqlite3://{{db}}.db -path internal/db/migrations up
+	migrate -database sqlite://{{db}}.db -path internal/db/migrations up
 
 build: build-css
 	go build -o build/main cmd/main.go

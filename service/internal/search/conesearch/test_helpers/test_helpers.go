@@ -24,15 +24,15 @@ import (
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "modernc.org/sqlite"
 )
 
 func RegisterCatalogsInDB(ctx context.Context, dbFile string) error {
 	conn := fmt.Sprintf("file:%s", dbFile)
-	db, err := sql.Open("sqlite3", conn)
+	db, err := sql.Open("sqlite", conn)
 	if err != nil {
-		return fmt.Errorf("could not create sqlite3 connection: %w", err)
+		return fmt.Errorf("could not create sqlite connection: %w", err)
 	}
 	_, err = db.Exec("select 'test conn'")
 	if err != nil {
@@ -59,7 +59,7 @@ func WriteConfigFile(configPath, config string) error {
 }
 
 func Migrate(dbFile string, rootPath string) error {
-	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
+	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite://%s", dbFile))
 	if err != nil {
 		slog.Error("Could not create Migrate instance")
 		return err
