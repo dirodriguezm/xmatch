@@ -57,7 +57,7 @@ func NewParquetReader[T any](
 	}
 
 	schema := new(T)
-	pr, err := preader.NewParquetReader(fr, schema, 4)
+	pr, err := preader.NewParquetReader(fr, schema, 1)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
 	}
@@ -132,7 +132,7 @@ func (r *ParquetReader[T]) Read() ([]repository.InputSchema, error) {
 
 		// Create a new Parquet File Reader
 		schema := new(T)
-		newParquetReader, err := preader.NewParquetReader(newFileReader, schema, 4)
+		newParquetReader, err := preader.NewParquetReader(newFileReader, schema, 1)
 		if err != nil {
 			return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
 		}
@@ -203,7 +203,7 @@ func (r *ParquetReader[T]) ReadBatch() ([]repository.InputSchema, error) {
 
 		// Create a new Parquet File Reader
 		schema := new(T)
-		newParquetReader, err := preader.NewParquetReader(newFileReader, schema, 4)
+		newParquetReader, err := preader.NewParquetReader(newFileReader, schema, 1)
 		if err != nil {
 			return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
 		}

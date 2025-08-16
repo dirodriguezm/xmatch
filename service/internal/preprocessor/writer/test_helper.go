@@ -61,7 +61,7 @@ func readParquet(t *testing.T, file string) []TestInputSchema {
 	require.NoError(t, err)
 	defer fr.Close()
 
-	pr, err := reader.NewParquetReader(fr, new(TestInputSchema), 4)
+	pr, err := reader.NewParquetReader(fr, new(TestInputSchema), 1)
 	require.NoError(t, err)
 	defer pr.ReadStop()
 
