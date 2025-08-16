@@ -22,11 +22,9 @@ func (r TestInputSchema) ToMetadata() any {
 	return nil
 }
 
-func (r TestInputSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
-	return repository.ParquetMastercat{}
+func (r TestInputSchema) ToMastercat(ipix int64) repository.Mastercat {
+	return repository.Mastercat{}
 }
-
-func (r TestInputSchema) SetField(string, any) {}
 
 func (r TestInputSchema) GetId() string {
 	return *r.Id

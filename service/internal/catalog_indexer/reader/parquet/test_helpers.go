@@ -30,14 +30,14 @@ type TestInputSchema struct {
 	Dec float64
 }
 
-func (t *TestInputSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
+func (t *TestInputSchema) ToMastercat(ipix int64) repository.Mastercat {
 	catalog := "test"
-	return repository.ParquetMastercat{
-		ID:   &t.Oid,
-		Ra:   &t.Ra,
-		Dec:  &t.Dec,
-		Cat:  &catalog,
-		Ipix: &ipix,
+	return repository.Mastercat{
+		ID:   t.Oid,
+		Ra:   t.Ra,
+		Dec:  t.Dec,
+		Cat:  catalog,
+		Ipix: ipix,
 	}
 }
 
@@ -47,21 +47,6 @@ func (t *TestInputSchema) ToMetadata() any {
 
 func (t *TestInputSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
-}
-
-func (t *TestInputSchema) SetField(name string, val interface{}) {
-	switch name {
-	case "Ra":
-		if v, ok := val.(float64); ok {
-			t.Ra = v
-		}
-	case "Dec":
-		if v, ok := val.(float64); ok {
-			t.Dec = v
-		}
-	case "Oid":
-		t.Oid = val.(string)
-	}
 }
 
 func (t *TestInputSchema) GetId() string {

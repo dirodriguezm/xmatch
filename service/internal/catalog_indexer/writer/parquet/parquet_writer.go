@@ -50,9 +50,9 @@ func NewParquetWriter[T any](
 	var schema any
 	switch cfg.Schema {
 	case config.AllwiseSchema:
-		schema = new(repository.AllwiseMetadata)
+		schema = new(repository.Allwise)
 	case config.MastercatSchema:
-		schema = new(repository.ParquetMastercat)
+		schema = new(repository.Mastercat)
 	case config.VlassSchema:
 		schema = new(repository.VlassObjectSchema)
 	case config.TestSchema:

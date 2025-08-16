@@ -56,7 +56,7 @@ func (m *MetadataService) BulkFindByID(ctx context.Context, ids []string, catalo
 	if err := m.validateCatalog(catalog); err != nil {
 		return nil, err
 	}
-	for i := 0; i < len(ids); i++ {
+	for i := range ids {
 		if err := m.validateID(ids[i]); err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalog s
 		if err != nil {
 			return nil, err
 		}
-		return result.ToAllwiseMetadata(), nil
+		return result, nil
 	case "vlass":
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
 	case "ztf":
@@ -89,11 +89,7 @@ func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, ca
 		if err != nil {
 			return nil, err
 		}
-		allwiseMetadata := make([]repository.AllwiseMetadata, len(result))
-		for i := 0; i < len(result); i++ {
-			allwiseMetadata[i] = result[i].ToAllwiseMetadata()
-		}
-		return allwiseMetadata, nil
+		return result, nil
 	case "vlass":
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
 	case "ztf":
@@ -124,15 +120,6 @@ func (m *MetadataService) validateID(id string) error {
 		return err
 	}
 
-	return nil
-}
-
-func (m *MetadataService) validateIds(ids []string) error {
-	for i := 0; i < len(ids); i++ {
-		if err := m.validateID(ids[i]); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

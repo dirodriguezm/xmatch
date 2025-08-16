@@ -238,29 +238,31 @@ func convertToInputSchema[T any](records []T, catalogName string) []repository.I
 
 		switch catalogName {
 		case "allwise":
-			inputSchemas[i] = &repository.AllwiseInputSchema{}
-			inputSchemas[i].SetField("Source_id", elem.FieldByName("Source_id").Interface())
-			inputSchemas[i].SetField("Ra", elem.FieldByName("Ra").Interface())
-			inputSchemas[i].SetField("Dec", elem.FieldByName("Dec").Interface())
-			inputSchemas[i].SetField("W1mpro", elem.FieldByName("W1mpro").Interface())
-			inputSchemas[i].SetField("W1sigmpro", elem.FieldByName("W1sigmpro").Interface())
-			inputSchemas[i].SetField("W2mpro", elem.FieldByName("W2mpro").Interface())
-			inputSchemas[i].SetField("W2sigmpro", elem.FieldByName("W2sigmpro").Interface())
-			inputSchemas[i].SetField("W3mpro", elem.FieldByName("W3mpro").Interface())
-			inputSchemas[i].SetField("W3sigmpro", elem.FieldByName("W3sigmpro").Interface())
-			inputSchemas[i].SetField("W4mpro", elem.FieldByName("W4mpro").Interface())
-			inputSchemas[i].SetField("W4sigmpro", elem.FieldByName("W4sigmpro").Interface())
-			inputSchemas[i].SetField("J_m_2mass", elem.FieldByName("J_m_2mass").Interface())
-			inputSchemas[i].SetField("H_m_2mass", elem.FieldByName("H_m_2mass").Interface())
-			inputSchemas[i].SetField("K_m_2mass", elem.FieldByName("K_m_2mass").Interface())
-			inputSchemas[i].SetField("J_msig_2mass", elem.FieldByName("J_msig_2mass").Interface())
-			inputSchemas[i].SetField("H_msig_2mass", elem.FieldByName("H_msig_2mass").Interface())
-			inputSchemas[i].SetField("K_msig_2mass", elem.FieldByName("K_msig_2mass").Interface())
+			inputSchemas[i] = &repository.AllwiseInputSchema{
+				Source_id:    elem.FieldByName("Source_id").Interface().(*string),
+				Ra:           elem.FieldByName("Ra").Interface().(*float64),
+				Dec:          elem.FieldByName("Dec").Interface().(*float64),
+				W1mpro:       elem.FieldByName("W1mpro").Interface().(*float64),
+				W1sigmpro:    elem.FieldByName("W1sigmpro").Interface().(*float64),
+				W2mpro:       elem.FieldByName("W2mpro").Interface().(*float64),
+				W2sigmpro:    elem.FieldByName("W2sigmpro").Interface().(*float64),
+				W3mpro:       elem.FieldByName("W3mpro").Interface().(*float64),
+				W3sigmpro:    elem.FieldByName("W3sigmpro").Interface().(*float64),
+				W4mpro:       elem.FieldByName("W4mpro").Interface().(*float64),
+				W4sigmpro:    elem.FieldByName("W4sigmpro").Interface().(*float64),
+				J_m_2mass:    elem.FieldByName("J_m_2mass").Interface().(*float64),
+				H_m_2mass:    elem.FieldByName("H_m_2mass").Interface().(*float64),
+				K_m_2mass:    elem.FieldByName("K_m_2mass").Interface().(*float64),
+				J_msig_2mass: elem.FieldByName("J_msig_2mass").Interface().(*float64),
+				H_msig_2mass: elem.FieldByName("H_msig_2mass").Interface().(*float64),
+				K_msig_2mass: elem.FieldByName("K_msig_2mass").Interface().(*float64),
+			}
 		default:
-			inputSchemas[i] = &TestInputSchema{}
-			inputSchemas[i].SetField("Oid", elem.FieldByName("Oid").Interface())
-			inputSchemas[i].SetField("Ra", elem.FieldByName("Ra").Interface())
-			inputSchemas[i].SetField("Dec", elem.FieldByName("Dec").Interface())
+			inputSchemas[i] = &TestInputSchema{
+				Oid: elem.FieldByName("Oid").Interface().(string),
+				Ra:  elem.FieldByName("Ra").Interface().(float64),
+				Dec: elem.FieldByName("Dec").Interface().(float64),
+			}
 		}
 
 	}

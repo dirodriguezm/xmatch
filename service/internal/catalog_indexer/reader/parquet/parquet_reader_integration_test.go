@@ -120,9 +120,9 @@ func TestReadMultipleFiles_Parquet(t *testing.T) {
 	require.Len(t, allRows, 10)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, *row.ToMastercat(0).ID)
-		require.Equal(t, expectedData.Ra, *row.ToMastercat(0).Ra)
-		require.Equal(t, expectedData.Dec, *row.ToMastercat(0).Dec)
+		require.Equal(t, expectedData.Oid, row.ToMastercat(0).ID)
+		require.Equal(t, expectedData.Ra, row.ToMastercat(0).Ra)
+		require.Equal(t, expectedData.Dec, row.ToMastercat(0).Dec)
 	}
 }
 
@@ -160,10 +160,10 @@ func TestReadWithMultipleOutputs_Parquet(t *testing.T) {
 	// there should be 10 rows for each oid
 	count := map[string]int{}
 	for _, row := range allRows {
-		if _, ok := count[*row.ToMastercat(0).ID]; !ok {
-			count[*row.ToMastercat(0).ID] = 0
+		if _, ok := count[row.ToMastercat(0).ID]; !ok {
+			count[row.ToMastercat(0).ID] = 0
 		}
-		count[*row.ToMastercat(0).ID]++
+		count[row.ToMastercat(0).ID]++
 	}
 	require.Equal(t, 10, count["o1"])
 	require.Equal(t, 10, count["o2"])

@@ -31,6 +31,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golobby/container/v3"
 	"github.com/stretchr/testify/require"
@@ -116,7 +117,7 @@ catalog_indexer:
 }
 
 func TestActor(t *testing.T) {
-	ch := make(chan writer.WriterInput[repository.ParquetMastercat])
+	ch := make(chan writer.WriterInput[repository.Mastercat])
 	var repo conesearch.Repository
 	err := ctr.Resolve(&repo)
 	require.NoError(t, err)
@@ -131,9 +132,9 @@ func TestActor(t *testing.T) {
 	decs := []float64{1, 2}
 	ipixs := []int64{1, 2}
 	cats := []string{"test", "test"}
-	ch <- writer.WriterInput[repository.ParquetMastercat]{Rows: []repository.ParquetMastercat{
-		{ID: &ids[0], Ra: &ras[0], Dec: &decs[0], Ipix: &ipixs[0], Cat: &cats[0]},
-		{ID: &ids[1], Ra: &ras[1], Dec: &decs[1], Ipix: &ipixs[1], Cat: &cats[1]},
+	ch <- writer.WriterInput[repository.Mastercat]{Rows: []repository.Mastercat{
+		{ID: ids[0], Ra: ras[0], Dec: decs[0], Ipix: ipixs[0], Cat: cats[0]},
+		{ID: ids[1], Ra: ras[1], Dec: decs[1], Ipix: ipixs[1], Cat: cats[1]},
 	}}
 	close(ch)
 	<-done

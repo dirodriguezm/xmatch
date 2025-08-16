@@ -154,8 +154,8 @@ func isEmptyResult(result any) bool {
 	switch result.(type) {
 	case []repository.Mastercat:
 		return len(result.([]repository.Mastercat)) == 0
-	case []repository.AllwiseMetadata:
-		return len(result.([]repository.AllwiseMetadata)) == 0
+	case []repository.Allwise:
+		return len(result.([]repository.Allwise)) == 0
 	default:
 		return false
 	}

@@ -37,11 +37,9 @@ func (t TestInputSchema) ToMetadata() any {
 	return t
 }
 
-func (t TestInputSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
-	return repository.ParquetMastercat{}
+func (t TestInputSchema) ToMastercat(ipix int64) repository.Mastercat {
+	return repository.Mastercat{}
 }
-
-func (t TestInputSchema) SetField(string, any) {}
 
 func (t TestInputSchema) GetId() string {
 	return t.Id
@@ -54,7 +52,7 @@ func TestStart(t *testing.T) {
 
 	actor.Start()
 	rows := make([]repository.InputSchema, 10)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		rows[i] = TestInputSchema{
 			Id:  "test",
 			Ra:  float64(i),
@@ -70,7 +68,7 @@ func TestStart(t *testing.T) {
 	for msg := range outbox {
 		require.NoError(t, msg.Error)
 		require.Len(t, msg.Rows, 10)
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			require.Equal(t, rows[i].(TestInputSchema).Id, msg.Rows[i].(TestInputSchema).Id)
 			require.Equal(t, rows[i].(TestInputSchema).Ra, msg.Rows[i].(TestInputSchema).Ra)
 			require.Equal(t, rows[i].(TestInputSchema).Dec, msg.Rows[i].(TestInputSchema).Dec)

@@ -14,16 +14,12 @@
 
 package repository
 
-import (
-	"strconv"
-	"strings"
-)
+import "database/sql"
 
 type InputSchema interface {
-	ToMastercat(ipix int64) ParquetMastercat
+	ToMastercat(ipix int64) Mastercat
 	ToMetadata() any
 	GetCoordinates() (float64, float64)
-	SetField(string, any)
 	GetId() string
 }
 
@@ -47,14 +43,13 @@ type AllwiseInputSchema struct {
 	K_msig_2mass *float64 `parquet:"name=k_msig_2mass, type=DOUBLE"`
 }
 
-func (a *AllwiseInputSchema) ToMastercat(ipix int64) ParquetMastercat {
-	catalog := "allwise"
-	return ParquetMastercat{
-		ID:   a.Source_id,
-		Ipix: &ipix,
-		Ra:   a.Ra,
-		Dec:  a.Dec,
-		Cat:  &catalog,
+func (a *AllwiseInputSchema) ToMastercat(ipix int64) Mastercat {
+	return Mastercat{
+		ID:   *a.Source_id,
+		Ipix: ipix,
+		Ra:   *a.Ra,
+		Dec:  *a.Dec,
+		Cat:  "allwise",
 	}
 }
 
@@ -63,62 +58,30 @@ func (a *AllwiseInputSchema) GetCoordinates() (float64, float64) {
 }
 
 func (a *AllwiseInputSchema) ToMetadata() any {
-	return AllwiseMetadata{
-		Source_id:    a.Source_id,
-		W1mpro:       a.W1mpro,
-		W1sigmpro:    a.W1sigmpro,
-		W2mpro:       a.W2mpro,
-		W2sigmpro:    a.W2sigmpro,
-		W3mpro:       a.W3mpro,
-		W3sigmpro:    a.W3sigmpro,
-		W4mpro:       a.W4mpro,
-		W4sigmpro:    a.W4sigmpro,
-		J_m_2mass:    a.J_m_2mass,
-		H_m_2mass:    a.H_m_2mass,
-		K_m_2mass:    a.K_m_2mass,
-		J_msig_2mass: a.J_msig_2mass,
-		H_msig_2mass: a.H_msig_2mass,
-		K_msig_2mass: a.K_msig_2mass,
+	return Allwise{
+		ID:         *a.Source_id,
+		W1mpro:     sql.NullFloat64{Float64: defaultVal(a.W1mpro), Valid: a.W1mpro != nil},
+		W1sigmpro:  sql.NullFloat64{Float64: defaultVal(a.W1sigmpro), Valid: a.W1sigmpro != nil},
+		W2mpro:     sql.NullFloat64{Float64: defaultVal(a.W2mpro), Valid: a.W2mpro != nil},
+		W2sigmpro:  sql.NullFloat64{Float64: defaultVal(a.W2sigmpro), Valid: a.W2sigmpro != nil},
+		W3mpro:     sql.NullFloat64{Float64: defaultVal(a.W3mpro), Valid: a.W3mpro != nil},
+		W3sigmpro:  sql.NullFloat64{Float64: defaultVal(a.W3sigmpro), Valid: a.W3sigmpro != nil},
+		W4mpro:     sql.NullFloat64{Float64: defaultVal(a.W4mpro), Valid: a.W4mpro != nil},
+		W4sigmpro:  sql.NullFloat64{Float64: defaultVal(a.W4sigmpro), Valid: a.W4sigmpro != nil},
+		JM2mass:    sql.NullFloat64{Float64: defaultVal(a.J_m_2mass), Valid: a.J_m_2mass != nil},
+		HM2mass:    sql.NullFloat64{Float64: defaultVal(a.H_m_2mass), Valid: a.H_m_2mass != nil},
+		KM2mass:    sql.NullFloat64{Float64: defaultVal(a.K_m_2mass), Valid: a.K_m_2mass != nil},
+		JMsig2mass: sql.NullFloat64{Float64: defaultVal(a.J_msig_2mass), Valid: a.J_msig_2mass != nil},
+		HMsig2mass: sql.NullFloat64{Float64: defaultVal(a.H_msig_2mass), Valid: a.H_msig_2mass != nil},
+		KMsig2mass: sql.NullFloat64{Float64: defaultVal(a.K_msig_2mass), Valid: a.K_msig_2mass != nil},
 	}
 }
 
-func (a *AllwiseInputSchema) SetField(name string, val any) {
-	switch n := strings.ToLower(name); n {
-	case "source_id":
-		a.Source_id = val.(*string)
-	case "ra":
-		a.Ra = val.(*float64)
-	case "dec":
-		a.Dec = val.(*float64)
-	case "w1mpro":
-		a.W1mpro = val.(*float64)
-	case "w1sigmpro":
-		a.W1sigmpro = val.(*float64)
-	case "w2mpro":
-		a.W2mpro = val.(*float64)
-	case "w2sigmpro":
-		a.W2sigmpro = val.(*float64)
-	case "w3mpro":
-		a.W3mpro = val.(*float64)
-	case "w3sigmpro":
-		a.W3sigmpro = val.(*float64)
-	case "w4mpro":
-		a.W4mpro = val.(*float64)
-	case "w4sigmpro":
-		a.W4sigmpro = val.(*float64)
-	case "j_m_2mass":
-		a.J_m_2mass = val.(*float64)
-	case "h_m_2mass":
-		a.H_m_2mass = val.(*float64)
-	case "k_m_2mass":
-		a.K_m_2mass = val.(*float64)
-	case "j_msig_2mass":
-		a.J_msig_2mass = val.(*float64)
-	case "h_msig_2mass":
-		a.H_msig_2mass = val.(*float64)
-	case "k_msig_2mass":
-		a.K_msig_2mass = val.(*float64)
+func defaultVal(f *float64) float64 {
+	if f == nil {
+		return -9999.0
 	}
+	return *f
 }
 
 func (a *AllwiseInputSchema) GetId() string {
@@ -139,14 +102,14 @@ func (v *VlassInputSchema) GetId() string {
 	return *v.Component_name
 }
 
-func (v *VlassInputSchema) ToMastercat(ipix int64) ParquetMastercat {
+func (v *VlassInputSchema) ToMastercat(ipix int64) Mastercat {
 	catalog := "vlass"
-	return ParquetMastercat{
-		ID:   v.Component_name,
-		Ipix: &ipix,
-		Ra:   v.RA,
-		Dec:  v.DEC,
-		Cat:  &catalog,
+	return Mastercat{
+		ID:   *v.Component_name,
+		Ipix: ipix,
+		Ra:   *v.RA,
+		Dec:  *v.DEC,
+		Cat:  catalog,
 	}
 }
 
@@ -155,51 +118,7 @@ func (v *VlassInputSchema) GetCoordinates() (float64, float64) {
 }
 
 func (v *VlassInputSchema) ToMetadata() any {
-	return VlassMetadata{}
-}
-
-func (v *VlassInputSchema) SetField(name string, val any) {
-	switch n := strings.ToLower(name); n {
-	case "component_name":
-		parsed := val.(string)
-		v.Component_name = &parsed
-	case "ra":
-		parsed, err := strconv.ParseFloat(val.(string), 64)
-		if err != nil {
-			panic(err)
-		}
-		v.RA = &parsed
-	case "dec":
-		parsed, err := strconv.ParseFloat(val.(string), 64)
-		if err != nil {
-			panic(err)
-		}
-		v.DEC = &parsed
-	case "era":
-		parsed, err := strconv.ParseFloat(val.(string), 64)
-		if err != nil {
-			panic(err)
-		}
-		v.ERA = &parsed
-	case "edec":
-		parsed, err := strconv.ParseFloat(val.(string), 64)
-		if err != nil {
-			panic(err)
-		}
-		v.EDEC = &parsed
-	case "totalflux":
-		parsed, err := strconv.ParseFloat(val.(string), 64)
-		if err != nil {
-			panic(err)
-		}
-		v.TotalFlux = &parsed
-	case "etotalflux":
-		parsed, err := strconv.ParseFloat(val.(string), 64)
-		if err != nil {
-			panic(err)
-		}
-		v.ETotalFlux = &parsed
-	}
+	return nil
 }
 
 type VlassObjectSchema struct {
@@ -216,15 +135,26 @@ func (v *VlassObjectSchema) GetId() string {
 	return *v.Id
 }
 
+// TODO: CREATE THIS THROUGH A DATABASE MODEL
+type Vlass struct {
+	Id    string
+	Ra    float64
+	Dec   float64
+	Era   float64
+	Edec  float64
+	Flux  float64
+	EFlux float64
+}
+
 func (v *VlassObjectSchema) ToMetadata() any {
-	return VlassMetadata{
-		Id:    v.Id,
-		Ra:    v.Ra,
-		Dec:   v.Dec,
-		Era:   v.Era,
-		Edec:  v.Edec,
-		Flux:  v.Flux,
-		EFlux: v.EFlux,
+	return Vlass{
+		Id:    *v.Id,
+		Ra:    *v.Ra,
+		Dec:   *v.Dec,
+		Era:   *v.Era,
+		Edec:  *v.Edec,
+		Flux:  *v.Flux,
+		EFlux: *v.EFlux,
 	}
 }
 
@@ -232,32 +162,13 @@ func (v *VlassObjectSchema) GetCoordinates() (float64, float64) {
 	return *v.Ra, *v.Dec
 }
 
-func (v *VlassObjectSchema) ToMastercat(ipix int64) ParquetMastercat {
+func (v *VlassObjectSchema) ToMastercat(ipix int64) Mastercat {
 	catalog := "vlass"
-	return ParquetMastercat{
-		ID:   v.Id,
-		Ipix: &ipix,
-		Ra:   v.Ra,
-		Dec:  v.Dec,
-		Cat:  &catalog,
-	}
-}
-
-func (v *VlassObjectSchema) SetField(name string, val any) {
-	switch n := strings.ToLower(name); n {
-	case "id":
-		v.Id = val.(*string)
-	case "ra":
-		v.Ra = val.(*float64)
-	case "dec":
-		v.Dec = val.(*float64)
-	case "era":
-		v.Era = val.(*float64)
-	case "edec":
-		v.Edec = val.(*float64)
-	case "flux":
-		v.Flux = val.(*float64)
-	case "eflux":
-		v.EFlux = val.(*float64)
+	return Mastercat{
+		ID:   *v.Id,
+		Ipix: ipix,
+		Ra:   *v.Ra,
+		Dec:  *v.Dec,
+		Cat:  catalog,
 	}
 }

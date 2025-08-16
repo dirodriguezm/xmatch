@@ -103,8 +103,8 @@ func TestActor(t *testing.T) {
 	cat := "vlass"
 	w.(*parquet_writer.ParquetWriter[any]).InboxChannel <- writer.WriterInput[any]{
 		Rows: []any{
-			repository.ParquetMastercat{ID: &oids[0], Ipix: &ipixs[0], Ra: &ras[0], Dec: &decs[0], Cat: &cat},
-			repository.ParquetMastercat{ID: &oids[1], Ipix: &ipixs[1], Ra: &ras[1], Dec: &decs[1], Cat: &cat},
+			repository.Mastercat{ID: oids[0], Ipix: ipixs[0], Ra: ras[0], Dec: decs[0], Cat: cat},
+			repository.Mastercat{ID: oids[1], Ipix: ipixs[1], Ra: ras[1], Dec: decs[1], Cat: cat},
 		},
 	}
 	close(w.(*parquet_writer.ParquetWriter[any]).InboxChannel)
@@ -114,15 +114,15 @@ func TestActor(t *testing.T) {
 	var cfg *config.Config
 	err = ctr.Resolve(&cfg)
 	require.NoError(t, err)
-	result := read_helper[repository.ParquetMastercat](t, cfg.CatalogIndexer.IndexerWriter.OutputFile)
+	result := read_helper[repository.Mastercat](t, cfg.CatalogIndexer.IndexerWriter.OutputFile)
 
 	require.Equal(t, 2, len(result))
 	for i, row := range result {
-		require.Equal(t, fmt.Sprintf("oid%d", i+1), *row.ID)
-		require.Equal(t, int64(i+1), *row.Ipix)
-		require.Equal(t, float64(i+1), *row.Ra)
-		require.Equal(t, float64(i+1), *row.Dec)
-		require.Equal(t, "vlass", *row.Cat)
+		require.Equal(t, fmt.Sprintf("oid%d", i+1), row.ID)
+		require.Equal(t, int64(i+1), row.Ipix)
+		require.Equal(t, float64(i+1), row.Ra)
+		require.Equal(t, float64(i+1), row.Dec)
+		require.Equal(t, "vlass", row.Cat)
 	}
 }
 

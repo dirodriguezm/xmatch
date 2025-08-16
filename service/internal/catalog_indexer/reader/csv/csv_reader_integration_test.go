@@ -91,9 +91,9 @@ func TestReadMultipleFiles_Csv(t *testing.T) {
 	require.Len(t, allRows, 10)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, *row.ToMastercat(0).ID)
-		require.Equal(t, expectedData.Ra, *row.ToMastercat(0).Ra)
-		require.Equal(t, expectedData.Dec, *row.ToMastercat(0).Dec)
+		require.Equal(t, expectedData.Oid, row.ToMastercat(0).ID)
+		require.Equal(t, expectedData.Ra, row.ToMastercat(0).Ra)
+		require.Equal(t, expectedData.Dec, row.ToMastercat(0).Dec)
 	}
 }
 
@@ -135,8 +135,8 @@ o2,2,2
 	require.Len(t, allRows, 20)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, *row.ToMastercat(0).ID)
-		require.Equal(t, expectedData.Ra, *row.ToMastercat(0).Ra)
-		require.Equal(t, expectedData.Dec, *row.ToMastercat(0).Dec)
+		require.Equal(t, expectedData.Oid, row.ToMastercat(0).ID)
+		require.Equal(t, expectedData.Ra, row.ToMastercat(0).Ra)
+		require.Equal(t, expectedData.Dec, row.ToMastercat(0).Dec)
 	}
 }

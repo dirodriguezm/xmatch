@@ -33,13 +33,13 @@ type TestSchema struct {
 }
 
 // implement the interface
-func (t *TestSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
-	return repository.ParquetMastercat{
-		ID:   &t.ID,
-		Ra:   &t.Ra,
-		Dec:  &t.Dec,
-		Cat:  &t.Cat,
-		Ipix: &ipix,
+func (t *TestSchema) ToMastercat(ipix int64) repository.Mastercat {
+	return repository.Mastercat{
+		ID:   t.ID,
+		Ra:   t.Ra,
+		Dec:  t.Dec,
+		Cat:  t.Cat,
+		Ipix: ipix,
 	}
 }
 
@@ -51,8 +51,6 @@ func (t *TestSchema) ToMetadata() any {
 func (t *TestSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
 }
-
-func (t *TestSchema) SetField(name string, val any) {}
 
 func (t *TestSchema) GetId() string {
 	return t.ID
@@ -77,10 +75,10 @@ func TestIndexActor(t *testing.T) {
 	indexerActor.Start()
 	inbox <- reader.ReaderResult{Rows: rows, Error: nil}
 	close(inbox)
-	results := make([]repository.ParquetMastercat, 2)
+	results := make([]repository.Mastercat, 2)
 	for msg := range outbox {
 		for i, obj := range msg.Rows {
-			results[i] = obj.(repository.ParquetMastercat)
+			results[i] = obj.(repository.Mastercat)
 		}
 	}
 

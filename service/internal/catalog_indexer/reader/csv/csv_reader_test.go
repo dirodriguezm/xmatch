@@ -56,7 +56,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat(0).ID
+		receivedOids[i] = row.ToMastercat(0).ID
 	}
 
 	require.Equal(t, expectedOids, receivedOids)
@@ -91,7 +91,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat(0).ID
+		receivedOids[i] = row.ToMastercat(0).ID
 	}
 
 	require.Equal(t, expectedOids, receivedOids)
@@ -162,7 +162,7 @@ o4,4,4
 	expectedOids := []string{"o1", "o2", "o3", "o4"}
 	receivedOids := make([]string, 4)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat(0).ID
+		receivedOids[i] = row.ToMastercat(0).ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -211,7 +211,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat(0).ID
+		receivedOids[i] = row.ToMastercat(0).ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -260,7 +260,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat(0).ID
+		receivedOids[i] = row.ToMastercat(0).ID
 	}
 
 	require.Equal(t, expectedOids, receivedOids)
@@ -303,7 +303,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat(0).ID
+		receivedOids[i] = row.ToMastercat(0).ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -356,7 +356,7 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6)
 	for i, row := range rows {
-		receivedOids[i] = *row.ToMastercat(0).ID
+		receivedOids[i] = row.ToMastercat(0).ID
 	}
 
 	// sort to be able to compare

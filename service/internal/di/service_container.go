@@ -103,7 +103,7 @@ func BuildServiceContainer(
 	})
 
 	ctr.Singleton(func(r conesearch.Repository, cfg *config.Config) *conesearch.ConesearchService {
-		ctx := context.TODO()
+		ctx := context.Background()
 		catalogs, err := r.GetCatalogs(ctx)
 		if err != nil {
 			slog.Error("Could not find catalogs in DB when creating conesearch service", "error", err)

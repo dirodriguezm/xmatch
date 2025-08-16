@@ -175,10 +175,7 @@ func (c *ConesearchService) BulkConesearch(
 		for i := 0; i < len(ra); i += chunkSize {
 			wg.Add(1)
 
-			end := i + chunkSize
-			if end > len(ra) {
-				end = len(ra)
-			}
+			end := min(i+chunkSize, len(ra))
 			chunkRa := ra[i:end]
 			chunkDec := dec[i:end]
 
@@ -190,7 +187,7 @@ func (c *ConesearchService) BulkConesearch(
 					wg.Done()
 				}()
 
-				for j := 0; j < len(chunkRa); j++ {
+				for j := range chunkRa {
 					point := healpix.RADec(chunkRa[j], chunkDec[j])
 					pixelRange := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
 					pixelList := pixelRangeToList(pixelRange)

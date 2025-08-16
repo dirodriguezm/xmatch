@@ -18,6 +18,8 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"reflect"
+	"strconv"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
@@ -74,10 +76,7 @@ func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader) ([]repository.Inpu
 
 	// Transform data into the correct schema
 	for _, record := range records {
-		row := r.createInputSchema(r.Src.CatalogName)
-		for i, h := range r.Header {
-			row.SetField(h, record[i])
-		}
+		row := r.createInputSchema(r.Src.CatalogName, record)
 		rows = append(rows, row)
 	}
 
@@ -128,12 +127,7 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]repository
 			return nil, err
 		}
 
-		row := r.createInputSchema(r.Src.CatalogName)
-
-		for j, h := range r.Header {
-			row.SetField(h, record[j])
-		}
-
+		row := r.createInputSchema(r.Src.CatalogName, record)
 		rows = append(rows, row)
 	}
 
@@ -180,13 +174,82 @@ func (r *CsvReader) ReadBatch() ([]repository.InputSchema, error) {
 	return rows, nil
 }
 
-func (r *CsvReader) createInputSchema(catalogName string) repository.InputSchema {
+func (r *CsvReader) createInputSchema(catalogName string, record []string) repository.InputSchema {
 	switch catalogName {
 	case "allwise":
-		return &repository.AllwiseInputSchema{}
+		schema := repository.AllwiseInputSchema{}
+		err := fillStructFromStrings(&schema, record)
+		if err != nil {
+			panic(err)
+		}
+		return &schema
 	case "vlass":
-		return &repository.VlassInputSchema{}
+		schema := repository.VlassInputSchema{}
+		err := fillStructFromStrings(&schema, record)
+		if err != nil {
+			panic(err)
+		}
+		return &schema
 	default:
-		return &TestSchema{}
+		schema := TestSchema{}
+		err := fillStructFromStrings(&schema, record)
+		if err != nil {
+			panic(err)
+		}
+		return &schema
 	}
+}
+
+func fillStructFromStrings(s any, values []string) error {
+	v := reflect.ValueOf(s).Elem() // must be pointer to struct
+	t := v.Type()
+
+	if len(values) < v.NumField() {
+		return fmt.Errorf("not enough values: got %d, need %d", len(values), v.NumField())
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if !field.CanSet() {
+			continue
+		}
+
+		strVal := values[i]
+		switch field.Kind() {
+		case reflect.String:
+			field.SetString(strVal)
+
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if strVal == "" {
+				continue
+			}
+			n, err := strconv.ParseInt(strVal, 10, 64)
+			if err != nil {
+				return fmt.Errorf("field %s: %w", t.Field(i).Name, err)
+			}
+			field.SetInt(n)
+
+		case reflect.Float32, reflect.Float64:
+			if strVal == "" {
+				continue
+			}
+			f, err := strconv.ParseFloat(strVal, 64)
+			if err != nil {
+				return fmt.Errorf("field %s: %w", t.Field(i).Name, err)
+			}
+			field.SetFloat(f)
+
+		case reflect.Bool:
+			if strVal == "" {
+				continue
+			}
+			b, err := strconv.ParseBool(strVal)
+			if err != nil {
+				return fmt.Errorf("field %s: %w", t.Field(i).Name, err)
+			}
+			field.SetBool(b)
+		}
+	}
+
+	return nil
 }
