@@ -238,7 +238,7 @@ func convertToInputSchema[T any](records []T, catalogName string) []repository.I
 
 		switch catalogName {
 		case "allwise":
-			inputSchemas[i] = &repository.AllwiseInputSchema{
+			inputSchemas[i] = repository.AllwiseInputSchema{
 				Source_id:    elem.FieldByName("Source_id").Interface().(*string),
 				Ra:           elem.FieldByName("Ra").Interface().(*float64),
 				Dec:          elem.FieldByName("Dec").Interface().(*float64),
@@ -258,7 +258,7 @@ func convertToInputSchema[T any](records []T, catalogName string) []repository.I
 				K_msig_2mass: elem.FieldByName("K_msig_2mass").Interface().(*float64),
 			}
 		default:
-			inputSchemas[i] = &TestInputSchema{
+			inputSchemas[i] = TestInputSchema{
 				Oid: elem.FieldByName("Oid").Interface().(string),
 				Ra:  elem.FieldByName("Ra").Interface().(float64),
 				Dec: elem.FieldByName("Dec").Interface().(float64),

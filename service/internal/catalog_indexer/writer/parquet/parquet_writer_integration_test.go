@@ -49,6 +49,7 @@ catalog_indexer:
   source:
     url: "buffer:"
     type: "csv"
+    catalog_name: "vlass"
   reader:
     batch_size: 500
     type: "csv"
@@ -91,7 +92,7 @@ catalog_indexer:
 }
 
 func TestActor(t *testing.T) {
-	var w writer.Writer[any]
+	var w writer.Writer[repository.Mastercat]
 	err := ctr.NamedResolve(&w, "indexer_writer")
 	require.NoError(t, err)
 
@@ -101,13 +102,13 @@ func TestActor(t *testing.T) {
 	decs := []float64{1, 2}
 	ipixs := []int64{1, 2}
 	cat := "vlass"
-	w.(*parquet_writer.ParquetWriter[any]).InboxChannel <- writer.WriterInput[any]{
-		Rows: []any{
-			repository.Mastercat{ID: oids[0], Ipix: ipixs[0], Ra: ras[0], Dec: decs[0], Cat: cat},
-			repository.Mastercat{ID: oids[1], Ipix: ipixs[1], Ra: ras[1], Dec: decs[1], Cat: cat},
+	w.(*parquet_writer.ParquetWriter[repository.Mastercat]).InboxChannel <- writer.WriterInput[repository.Mastercat]{
+		Rows: []repository.Mastercat{
+			{ID: oids[0], Ipix: ipixs[0], Ra: ras[0], Dec: decs[0], Cat: cat},
+			{ID: oids[1], Ipix: ipixs[1], Ra: ras[1], Dec: decs[1], Cat: cat},
 		},
 	}
-	close(w.(*parquet_writer.ParquetWriter[any]).InboxChannel)
+	close(w.(*parquet_writer.ParquetWriter[repository.Mastercat]).InboxChannel)
 	w.Done()
 
 	// check the parquet file

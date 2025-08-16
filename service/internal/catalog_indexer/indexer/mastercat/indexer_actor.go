@@ -23,19 +23,20 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type IndexerActor struct {
 	source *source.Source
 	mapper *healpix.HEALPixMapper
 	inbox  chan reader.ReaderResult
-	outbox chan writer.WriterInput[any]
+	outbox chan writer.WriterInput[repository.Mastercat]
 }
 
 func New(
 	src *source.Source,
 	inbox chan reader.ReaderResult,
-	outbox chan writer.WriterInput[any],
+	outbox chan writer.WriterInput[repository.Mastercat],
 	cfg *config.IndexerConfig,
 ) (*IndexerActor, error) {
 	slog.Debug("Creating new Indexer")
@@ -63,32 +64,38 @@ func (actor *IndexerActor) Start() {
 			slog.Debug("Closing Indexer")
 		}()
 		for msg := range actor.inbox {
-			actor.receive(msg)
+			actor.Receive(msg)
 		}
 	}()
 }
 
-func (actor *IndexerActor) receive(msg reader.ReaderResult) {
+func (actor *IndexerActor) Receive(msg reader.ReaderResult) {
 	slog.Debug("Indexer Received Message")
 	if msg.Error != nil {
-		actor.outbox <- writer.WriterInput[any]{
+		actor.outbox <- writer.WriterInput[repository.Mastercat]{
 			Rows:  nil,
 			Error: msg.Error,
 		}
 		return
 	}
 
-	outputBatch := make([]any, len(msg.Rows))
+	outputBatch := make([]repository.Mastercat, len(msg.Rows))
 	for i, row := range msg.Rows {
 		ra, dec := row.GetCoordinates()
 		point := healpix.RADec(ra, dec)
 		ipix := actor.mapper.PixelAt(point)
-		outputBatch[i] = row.ToMastercat(ipix)
+		mastercat := repository.Mastercat{}
+		row.FillMastercat(&mastercat, ipix)
+		outputBatch[i] = mastercat
 	}
 
 	slog.Debug("Indexer sending message")
-	actor.outbox <- writer.WriterInput[any]{
+	actor.outbox <- writer.WriterInput[repository.Mastercat]{
 		Rows:  outputBatch,
 		Error: nil,
 	}
+}
+
+func (actor *IndexerActor) GetOutbox() chan writer.WriterInput[repository.Mastercat] {
+	return actor.outbox
 }

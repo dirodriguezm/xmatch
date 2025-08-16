@@ -64,6 +64,7 @@ catalog_indexer:
   source:
     url: "buffer:"
     type: "csv"
+    catalog_name: "vlass"
   reader:
     batch_size: 500
     type: "csv"

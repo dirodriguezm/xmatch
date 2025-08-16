@@ -19,28 +19,28 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type IndexerActor struct {
 	inbox  chan reader.ReaderResult
-	outbox chan writer.WriterInput[any]
+	outbox chan writer.WriterInput[repository.Metadata]
+	parser MetadataParser[repository.Metadata]
 }
 
 func New(
 	inbox chan reader.ReaderResult,
-	outbox chan writer.WriterInput[any],
+	outbox chan writer.WriterInput[repository.Metadata],
+	parser MetadataParser[repository.Metadata],
 ) *IndexerActor {
 	slog.Debug("Creating new Indexer")
 	return &IndexerActor{
 		inbox:  inbox,
 		outbox: outbox,
+		parser: parser,
 	}
 }
 
-// Starts the Actor goroutine
-//
-// Listen for messages in the inbox channel and process them
-// sending the results to the outbox channel
 func (actor *IndexerActor) Start() {
 	slog.Debug("Starting Indexer")
 	go func() {
@@ -49,29 +49,32 @@ func (actor *IndexerActor) Start() {
 			slog.Debug("Closing Indexer")
 		}()
 		for msg := range actor.inbox {
-			actor.receive(msg)
+			actor.Receive(msg)
 		}
 	}()
 }
 
-func (actor *IndexerActor) receive(msg reader.ReaderResult) {
+func (actor *IndexerActor) Receive(msg reader.ReaderResult) {
 	slog.Debug("Indexer Received Message")
 	if msg.Error != nil {
-		actor.outbox <- writer.WriterInput[any]{
+		actor.outbox <- writer.WriterInput[repository.Metadata]{
 			Error: msg.Error,
 			Rows:  nil,
 		}
 		return
 	}
 
-	objects := make([]any, len(msg.Rows))
-	for i := 0; i < len(msg.Rows); i++ {
-		object := msg.Rows[i]
-		objects[i] = object.ToMetadata()
+	objects := make([]repository.Metadata, len(msg.Rows))
+	for i, row := range msg.Rows {
+		objects[i] = actor.parser.Parse(row)
 	}
 
-	actor.outbox <- writer.WriterInput[any]{
+	actor.outbox <- writer.WriterInput[repository.Metadata]{
 		Error: nil,
 		Rows:  objects,
 	}
+}
+
+func (actor *IndexerActor) GetOutbox() chan writer.WriterInput[repository.Metadata] {
+	return actor.outbox
 }

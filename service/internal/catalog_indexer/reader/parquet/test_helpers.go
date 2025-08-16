@@ -30,26 +30,21 @@ type TestInputSchema struct {
 	Dec float64
 }
 
-func (t *TestInputSchema) ToMastercat(ipix int64) repository.Mastercat {
-	catalog := "test"
-	return repository.Mastercat{
-		ID:   t.Oid,
-		Ra:   t.Ra,
-		Dec:  t.Dec,
-		Cat:  catalog,
-		Ipix: ipix,
-	}
+func (t TestInputSchema) FillMastercat(dst *repository.Mastercat, ipix int64) {
+	dst.ID = t.Oid
+	dst.Ra = t.Ra
+	dst.Dec = t.Dec
+	dst.Cat = "test"
+	dst.Ipix = ipix
 }
 
-func (t *TestInputSchema) ToMetadata() any {
-	return t
-}
+func (t TestInputSchema) FillMetadata(dst repository.Metadata) {}
 
-func (t *TestInputSchema) GetCoordinates() (float64, float64) {
+func (t TestInputSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
 }
 
-func (t *TestInputSchema) GetId() string {
+func (t TestInputSchema) GetId() string {
 	return t.Oid
 }
 

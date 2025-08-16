@@ -14,31 +14,6 @@
 
 package repository
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/require"
-)
-
-func TestAllwiseInputSchemaToMastercat(t *testing.T) {
-	source_id := "source_id"
-	ra := 0.0
-	dec := 0.0
-	catalog := "allwise"
-	ipix := int64(0)
-	a := &AllwiseInputSchema{
-		Source_id: &source_id,
-		Ra:        &ra,
-		Dec:       &dec,
-	}
-	require.Implements(t, (*InputSchema)(nil), a)
-	expected := Mastercat{
-		ID:   source_id,
-		Ra:   ra,
-		Dec:  dec,
-		Cat:  catalog,
-		Ipix: ipix,
-	}
-	actual := a.ToMastercat(0)
-	require.Equal(t, expected, actual)
+type Metadata interface {
+	GetId() string
 }
