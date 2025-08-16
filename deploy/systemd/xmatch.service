@@ -1,0 +1,17 @@
+[Unit]
+Description=Xmatch Service
+
+[Service]
+ExecStart=%h/deployment/production/bin/main
+WorkingDirectory=%h/deployment/production
+EnvironmentFile=%h/deployment/production/envfile
+Restart=on-failure
+TimeoutSec=30
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=yes
+NoNewPrivileges=true
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=default.target
