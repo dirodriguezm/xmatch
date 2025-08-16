@@ -43,7 +43,7 @@ type AllwiseInputSchema struct {
 	K_msig_2mass *float64 `parquet:"name=k_msig_2mass, type=DOUBLE"`
 }
 
-func (a *AllwiseInputSchema) ToMastercat(ipix int64) Mastercat {
+func (a AllwiseInputSchema) ToMastercat(ipix int64) Mastercat {
 	return Mastercat{
 		ID:   *a.Source_id,
 		Ipix: ipix,
@@ -53,11 +53,11 @@ func (a *AllwiseInputSchema) ToMastercat(ipix int64) Mastercat {
 	}
 }
 
-func (a *AllwiseInputSchema) GetCoordinates() (float64, float64) {
+func (a AllwiseInputSchema) GetCoordinates() (float64, float64) {
 	return *a.Ra, *a.Dec
 }
 
-func (a *AllwiseInputSchema) ToMetadata() any {
+func (a AllwiseInputSchema) ToMetadata() any {
 	return Allwise{
 		ID:         *a.Source_id,
 		W1mpro:     sql.NullFloat64{Float64: defaultVal(a.W1mpro), Valid: a.W1mpro != nil},
@@ -98,11 +98,11 @@ type VlassInputSchema struct {
 	ETotalFlux     *float64 `parquet:"name=E_Total_flux, type=DOUBLE"`
 }
 
-func (v *VlassInputSchema) GetId() string {
+func (v VlassInputSchema) GetId() string {
 	return *v.Component_name
 }
 
-func (v *VlassInputSchema) ToMastercat(ipix int64) Mastercat {
+func (v VlassInputSchema) ToMastercat(ipix int64) Mastercat {
 	catalog := "vlass"
 	return Mastercat{
 		ID:   *v.Component_name,
@@ -113,11 +113,11 @@ func (v *VlassInputSchema) ToMastercat(ipix int64) Mastercat {
 	}
 }
 
-func (v *VlassInputSchema) GetCoordinates() (float64, float64) {
+func (v VlassInputSchema) GetCoordinates() (float64, float64) {
 	return *v.RA, *v.DEC
 }
 
-func (v *VlassInputSchema) ToMetadata() any {
+func (v VlassInputSchema) ToMetadata() any {
 	return nil
 }
 
@@ -131,7 +131,7 @@ type VlassObjectSchema struct {
 	EFlux *float64 `parquet:"name=e_flux, type=DOUBLE"`
 }
 
-func (v *VlassObjectSchema) GetId() string {
+func (v VlassObjectSchema) GetId() string {
 	return *v.Id
 }
 
@@ -146,7 +146,7 @@ type Vlass struct {
 	EFlux float64
 }
 
-func (v *VlassObjectSchema) ToMetadata() any {
+func (v VlassObjectSchema) ToMetadata() any {
 	return Vlass{
 		Id:    *v.Id,
 		Ra:    *v.Ra,
@@ -158,11 +158,11 @@ func (v *VlassObjectSchema) ToMetadata() any {
 	}
 }
 
-func (v *VlassObjectSchema) GetCoordinates() (float64, float64) {
+func (v VlassObjectSchema) GetCoordinates() (float64, float64) {
 	return *v.Ra, *v.Dec
 }
 
-func (v *VlassObjectSchema) ToMastercat(ipix int64) Mastercat {
+func (v VlassObjectSchema) ToMastercat(ipix int64) Mastercat {
 	catalog := "vlass"
 	return Mastercat{
 		ID:   *v.Id,

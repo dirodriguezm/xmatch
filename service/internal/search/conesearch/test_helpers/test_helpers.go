@@ -70,7 +70,7 @@ func Migrate(dbFile string, rootPath string) error {
 
 func InsertAllwiseMastercat(nobjects int, db *sql.DB) error {
 	repo := repository.New(db)
-	for i := 0; i < nobjects; i++ {
+	for i := range nobjects {
 		ra := i
 		dec := i
 		// ra can't be greater than 360
@@ -111,7 +111,7 @@ func InsertAllwiseMastercat(nobjects int, db *sql.DB) error {
 
 func InsertAllwiseMetadata(nobjects int, db *sql.DB) error {
 	repo := repository.New(db)
-	for i := 0; i < nobjects; i++ {
+	for i := range nobjects {
 		metadata := repository.InsertAllwiseParams{
 			ID:         fmt.Sprintf("allwise-%d", i),
 			W1mpro:     sql.NullFloat64{Float64: 1.0, Valid: true},
