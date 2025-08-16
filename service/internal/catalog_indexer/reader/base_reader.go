@@ -76,6 +76,8 @@ func (r BaseReader) Start() {
 			for i := range r.Outbox {
 				r.Outbox[i] <- readResult
 			}
+			rows = nil
+			readResult.Rows = nil
 		}
 	}()
 }

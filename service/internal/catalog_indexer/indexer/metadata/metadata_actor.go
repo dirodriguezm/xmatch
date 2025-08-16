@@ -67,12 +67,16 @@ func (actor *IndexerActor) Receive(msg reader.ReaderResult) {
 	objects := make([]repository.Metadata, len(msg.Rows))
 	for i, row := range msg.Rows {
 		objects[i] = actor.parser.Parse(row)
+		row = nil
 	}
 
 	actor.outbox <- writer.WriterInput[repository.Metadata]{
 		Error: nil,
 		Rows:  objects,
 	}
+
+	msg.Rows = nil
+	objects = nil
 }
 
 func (actor *IndexerActor) GetOutbox() chan writer.WriterInput[repository.Metadata] {

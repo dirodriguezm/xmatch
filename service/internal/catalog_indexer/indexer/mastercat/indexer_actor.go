@@ -56,7 +56,7 @@ func New(
 	}, nil
 }
 
-func (actor *IndexerActor) Start() {
+func (actor IndexerActor) Start() {
 	slog.Debug("Starting Indexer")
 	go func() {
 		defer func() {
@@ -69,7 +69,7 @@ func (actor *IndexerActor) Start() {
 	}()
 }
 
-func (actor *IndexerActor) Receive(msg reader.ReaderResult) {
+func (actor IndexerActor) Receive(msg reader.ReaderResult) {
 	slog.Debug("Indexer Received Message")
 	if msg.Error != nil {
 		actor.outbox <- writer.WriterInput[repository.Mastercat]{
@@ -80,12 +80,12 @@ func (actor *IndexerActor) Receive(msg reader.ReaderResult) {
 	}
 
 	outputBatch := make([]repository.Mastercat, len(msg.Rows))
-	for i, row := range msg.Rows {
-		ra, dec := row.GetCoordinates()
+	for i := range msg.Rows {
+		ra, dec := msg.Rows[i].GetCoordinates()
 		point := healpix.RADec(ra, dec)
 		ipix := actor.mapper.PixelAt(point)
 		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, ipix)
+		msg.Rows[i].FillMastercat(&mastercat, ipix)
 		outputBatch[i] = mastercat
 	}
 
@@ -94,6 +94,9 @@ func (actor *IndexerActor) Receive(msg reader.ReaderResult) {
 		Rows:  outputBatch,
 		Error: nil,
 	}
+
+	msg.Rows = nil
+	outputBatch = nil
 }
 
 func (actor *IndexerActor) GetOutbox() chan writer.WriterInput[repository.Mastercat] {
