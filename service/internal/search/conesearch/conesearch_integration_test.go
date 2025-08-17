@@ -33,6 +33,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,19 +64,17 @@ service:
 	config = fmt.Sprintf(config, dbFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)
 	if err != nil {
-		slog.Error("could not write config file")
-		panic(err)
+		panic(fmt.Errorf("could not write config file: %w", err))
 	}
+
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
 	if err != nil {
-		slog.Error("Could not create Migrate instance")
-		panic(err)
+		panic(fmt.Errorf("Could not create Migrate instance: %w", err))
 	}
 	err = mig.Up()
 	if err != nil {
-		slog.Error("Error during migrations", "error", err)
-		panic(err)
+		panic(fmt.Errorf("Error during migrations: %w", err))
 	}
 
 	getenv := func(key string) string {
@@ -160,7 +159,7 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result.([]repository.AllwiseMetadata)))
+	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result.([]repository.Allwise)))
 
 	CleanDB(t, repo)
 }

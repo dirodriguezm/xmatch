@@ -7,3 +7,48 @@ sql:
       go:
         package: "repository"
         out: "../repository"
+        overrides:
+          - column: "allwise.id"
+            go_struct_tag: 'parquet:"name=source_id, type=BYTE_ARRAY" json:"id" '
+          - column: "allwise.w1mpro"
+            go_struct_tag: 'parquet:"name=w1mpro, type=DOUBLE" json:"w1mpro"'
+          - column: "allwise.w1sigmpro"
+            go_struct_tag: 'parquet:"name=w1sigmpro, type=DOUBLE" json:"w1sigmpro"'
+          - column: "allwise.w2mpro"
+            go_struct_tag: 'parquet:"name=w2mpro, type=DOUBLE" json:"w2mpro"'
+          - column: "allwise.w2sigmpro"
+            go_struct_tag: 'parquet:"name=w2sigmpro, type=DOUBLE" json:"w2sigmpro"'
+          - column: "allwise.w3mpro"
+            go_struct_tag: 'parquet:"name=w3mpro, type=DOUBLE" json:"w3mpro"'
+          - column: "allwise.w3sigmpro"
+            go_struct_tag: 'parquet:"name=w3sigmpro, type=DOUBLE" json:"w3sigmpro"'
+          - column: "allwise.w4mpro"
+            go_struct_tag: 'parquet:"name=w4mpro, type=DOUBLE" json:"w4mpro"'
+          - column: "allwise.w4sigmpro"
+            go_struct_tag: 'parquet:"name=w4sigmpro, type=DOUBLE" json:"w4sigmpro"'
+          - column: "allwise.j_m_2mass"
+            go_struct_tag: 'parquet:"name=j_m_2mass, type=DOUBLE" json:"j_m_2mass"'
+          - column: "allwise.j_msig_2mass"
+            go_struct_tag: 'parquet:"name=j_msig_2mass, type=DOUBLE" json:"j_msig_2mass"'
+          - column: "allwise.h_m_2mass"
+            go_struct_tag: 'parquet:"name=h_m_2mass, type=DOUBLE" json:"h_m_2mass"'
+          - column: "allwise.h_msig_2mass"
+            go_struct_tag: 'parquet:"name=h_msig_2mass, type=DOUBLE" json:"h_msig_2mass"'
+          - column: "allwise.k_m_2mass"
+            go_struct_tag: 'parquet:"name=k_m_2mass, type=DOUBLE" json:"k_m_2mass"'
+          - column: "allwise.k_msig_2mass"
+            go_struct_tag: 'parquet:"name=k_msig_2mass, type=DOUBLE" json:"k_msig_2mass"'
+          - column: "mastercat.id"
+            go_struct_tag: 'parquet:"name=id, type=BYTE_ARRAY" json:"id"'
+          - column: "mastercat.ipix"
+            go_struct_tag: 'parquet:"name=ipix, type=INT64" json:"ipix"'
+          - column: "mastercat.ra"
+            go_struct_tag: 'parquet:"name=ra, type=DOUBLE" json:"ra"'
+          - column: "mastercat.dec"
+            go_struct_tag: 'parquet:"name=dec, type=DOUBLE" json:"dec"'
+          - column: "mastercat.cat"
+            go_struct_tag: 'parquet:"name=cat, type=BYTE_ARRAY" json:"cat"'
+
+
+
+

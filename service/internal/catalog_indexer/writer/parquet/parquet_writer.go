@@ -15,6 +15,7 @@
 package parquet_writer
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -37,6 +38,7 @@ func NewParquetWriter[T any](
 	inbox chan writer.WriterInput[T],
 	done chan struct{},
 	cfg *config.WriterConfig,
+	ctx context.Context,
 ) (*ParquetWriter[T], error) {
 	slog.Debug("Creating new ParquetWriter")
 
@@ -48,9 +50,9 @@ func NewParquetWriter[T any](
 	var schema any
 	switch cfg.Schema {
 	case config.AllwiseSchema:
-		schema = new(repository.AllwiseMetadata)
+		schema = new(repository.Allwise)
 	case config.MastercatSchema:
-		schema = new(repository.ParquetMastercat)
+		schema = new(repository.Mastercat)
 	case config.VlassSchema:
 		schema = new(repository.VlassObjectSchema)
 	case config.TestSchema:
@@ -70,6 +72,7 @@ func NewParquetWriter[T any](
 		BaseWriter: &writer.BaseWriter[T]{
 			InboxChannel: inbox,
 			DoneChannel:  done,
+			Ctx:          ctx,
 		},
 	}
 	w.Writer = w

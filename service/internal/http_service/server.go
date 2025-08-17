@@ -156,11 +156,11 @@ func (server *HttpServer) conesearchHandler(c *gin.Context) {
 }
 
 func isEmptyResult(result any) bool {
-	switch result.(type) {
+	switch result := result.(type) {
 	case []repository.Mastercat:
-		return len(result.([]repository.Mastercat)) == 0
-	case []repository.AllwiseMetadata:
-		return len(result.([]repository.AllwiseMetadata)) == 0
+		return len(result) == 0
+	case []repository.Allwise:
+		return len(result) == 0
 	default:
 		return false
 	}

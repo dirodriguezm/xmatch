@@ -80,7 +80,7 @@ func startCatalogIndexer(
 	getenv func(string) string,
 	stdout io.Writer,
 ) error {
-	slog.Debug("Starting catalog indexer")
+	slog.Info("Starting catalog indexer")
 	ctr := di.BuildIndexerContainer(ctx, getenv, stdout)
 
 	var cfg *config.Config
@@ -97,18 +97,18 @@ func startCatalogIndexer(
 	}
 	catalogRegister.RegisterCatalog()
 
-	// initialize w
-	var w writer.Writer[any]
-	err = ctr.NamedResolve(&w, "indexer_writer")
+	// initialize indexerWriter
+	var indexerWriter writer.Writer[repository.Mastercat]
+	err = ctr.NamedResolve(&indexerWriter, "indexer_writer")
 	if err != nil {
 		return err
 	}
 
-	w.Start()
+	indexerWriter.Start()
 
 	// initialize metadata writer
+	var metadataWriter writer.Writer[repository.Metadata]
 	if cfg.CatalogIndexer.MetadataWriter != nil && cfg.CatalogIndexer.Source.Metadata {
-		var metadataWriter writer.Writer[any]
 		err := ctr.NamedResolve(&metadataWriter, "metadata_writer")
 		if err != nil {
 			return err
@@ -139,7 +139,17 @@ func startCatalogIndexer(
 	ctr.Resolve(&reader)
 	reader.Start()
 
-	w.Done()
+	// wait for indexer to finish
+	indexerWriter.Done()
+	slog.Info("Catalog indexer finished writing")
+
+	// wait for metadata indexer to finish
+	if cfg.CatalogIndexer.MetadataWriter != nil && cfg.CatalogIndexer.Source.Metadata {
+		metadataWriter.Done()
+		slog.Info("Metadata indexer finished writing")
+	}
+
+	slog.Info("Catalog indexer finished successfully")
 	return nil
 }
 
@@ -273,7 +283,8 @@ func run(
 	case "server":
 		return startHttpServer(ctx, getenv, stdout)
 	case "indexer":
-		return startCatalogIndexer(ctx, getenv, stdout)
+		err := startCatalogIndexer(ctx, getenv, stdout)
+		return err
 	case "preprocessor":
 		return startPreprocessor(ctx, getenv, stdout)
 	default:

@@ -10,12 +10,6 @@ catalog_indexer:
     type: "csv"
     # the name of the catalog
     catalog_name: "vlass|ztf|allwise"
-    # name of the RA column in the input files
-    ra_col: "ra"
-    # name of the DEC column in the input files
-    dec_col: "dec"
-    # name of the object ID column in the input files
-    oid_col: "id"
     # Nside of the HEALPix grid
     nside: 18
     # Wether to index metadata

@@ -144,7 +144,7 @@ func (store *ParquetStore) readFile(fname string) ([]repository.InputSchema, err
 
 	readerSchema := getParquetSchema(store.schema)
 
-	pr, err := reader.NewParquetReader(fr, readerSchema, 4)
+	pr, err := reader.NewParquetReader(fr, readerSchema, 1)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
 	}

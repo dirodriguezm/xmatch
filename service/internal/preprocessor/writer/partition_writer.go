@@ -15,6 +15,8 @@
 package partition_writer
 
 import (
+	"context"
+
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	filesystemmanager "github.com/dirodriguezm/xmatch/service/internal/preprocessor/filesystem_manager"
@@ -31,9 +33,11 @@ type PartitionWriter struct {
 	dirMap map[string]int
 }
 
-func New(cfg *config.PartitionWriterConfig,
+func New(
+	cfg *config.PartitionWriterConfig,
 	inputChan chan writer.WriterInput[repository.InputSchema],
 	doneChan chan struct{},
+	ctx context.Context,
 ) *PartitionWriter {
 	fs := filesystemmanager.FileSystemManager{
 		BaseDir: cfg.BaseDir,
@@ -46,6 +50,7 @@ func New(cfg *config.PartitionWriterConfig,
 		BaseWriter: &writer.BaseWriter[repository.InputSchema]{
 			InboxChannel: inputChan,
 			DoneChannel:  doneChan,
+			Ctx:          ctx,
 		},
 		cfg: cfg,
 		parquetStore: &ParquetStore{

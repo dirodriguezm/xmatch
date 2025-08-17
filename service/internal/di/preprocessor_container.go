@@ -99,7 +99,7 @@ func BuildPreprocessorContainer(
 
 		inputChan := make(chan writer.WriterInput[repository.InputSchema])
 		doneChan := make(chan struct{})
-		return partition_writer.New(cfg.Preprocessor.PartitionWriter, inputChan, doneChan)
+		return partition_writer.New(cfg.Preprocessor.PartitionWriter, inputChan, doneChan, ctx)
 	})
 
 	// Register PartitionReader Workers
@@ -153,7 +153,7 @@ func BuildPreprocessorContainer(
 			panic("Catalog name not configured or unknown")
 		}
 
-		writer, err := parquet_writer.NewParquetWriter(processedObjectsChannel, make(chan struct{}), &cfg.Preprocessor.ReducerWriter.WriterConfig)
+		writer, err := parquet_writer.NewParquetWriter(processedObjectsChannel, make(chan struct{}), &cfg.Preprocessor.ReducerWriter.WriterConfig, ctx)
 		if err != nil {
 			panic(err)
 		}

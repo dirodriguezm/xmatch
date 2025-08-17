@@ -67,7 +67,7 @@ func NearestNeighborSearch(objects []repository.Mastercat, ra, dec, radius float
 	return result
 }
 
-func NearestNeighborSearchForAllwiseMetadata(objects []repository.GetAllwiseFromPixelsRow, ra, dec, radius float64, maxNeighbors int) []repository.AllwiseMetadata {
+func NearestNeighborSearchForAllwiseMetadata(objects []repository.GetAllwiseFromPixelsRow, ra, dec, radius float64, maxNeighbors int) []repository.Allwise {
 	pts := []kdtree.Point{}
 	for _, obj := range objects {
 		pts = append(pts, knnObject{AllwiseObj: obj, catalog: "allwise"})
@@ -77,24 +77,35 @@ func NearestNeighborSearchForAllwiseMetadata(objects []repository.GetAllwiseFrom
 	nearObjs := tree.KNN(&points.Point2D{X: ra, Y: dec}, maxNeighbors)
 
 	// now we need to check that distance between nearest objects and center is actually lower than radius
-	result := []repository.AllwiseMetadata{}
+	result := []repository.Allwise{}
 	for _, obj := range nearObjs {
 		dist := haversineDistance(obj, &points.Point2D{X: ra, Y: dec})
 		if dist > radius {
 			continue
 		}
-		result = append(result, obj.(knnObject).AllwiseObj.ToAllwiseMetadata())
+		result = append(result, convertToMetadataModel(obj.(knnObject).AllwiseObj))
 	}
 	return result
 }
 
-func euclideanDistance(p1, p2 kdtree.Point) float64 {
-	if p1.Dimensions() != 2 || p2.Dimensions() != 2 {
-		err := fmt.Errorf("Can't calculate distance between points of dimension %v and %v", p1.Dimensions(), p2.Dimensions())
-		panic(err)
+func convertToMetadataModel(obj repository.GetAllwiseFromPixelsRow) repository.Allwise {
+	return repository.Allwise{
+		ID:         obj.ID,
+		W1mpro:     obj.W1mpro,
+		W1sigmpro:  obj.W1sigmpro,
+		W2mpro:     obj.W2mpro,
+		W2sigmpro:  obj.W2sigmpro,
+		W3mpro:     obj.W3mpro,
+		W3sigmpro:  obj.W3sigmpro,
+		W4mpro:     obj.W4mpro,
+		W4sigmpro:  obj.W4sigmpro,
+		JM2mass:    obj.JM2mass,
+		JMsig2mass: obj.JMsig2mass,
+		HM2mass:    obj.HM2mass,
+		HMsig2mass: obj.HMsig2mass,
+		KM2mass:    obj.KM2mass,
+		KMsig2mass: obj.KMsig2mass,
 	}
-	dsquared := math.Pow(p2.Dimension(0)-p1.Dimension(0), 2) + math.Pow(p2.Dimension(1)-p1.Dimension(1), 2)
-	return math.Sqrt(dsquared)
 }
 
 // Return the distance in arcsec, between two points in a sphere, using the Haversine Formula

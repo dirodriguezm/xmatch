@@ -26,13 +26,14 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func RegisterCatalogsInDB(ctx context.Context, dbFile string) error {
 	conn := fmt.Sprintf("file:%s", dbFile)
 	db, err := sql.Open("sqlite3", conn)
 	if err != nil {
-		return fmt.Errorf("could not create sqlite3 connection: %w", err)
+		return fmt.Errorf("could not create sqlite connection: %w", err)
 	}
 	_, err = db.Exec("select 'test conn'")
 	if err != nil {
@@ -69,7 +70,7 @@ func Migrate(dbFile string, rootPath string) error {
 
 func InsertAllwiseMastercat(nobjects int, db *sql.DB) error {
 	repo := repository.New(db)
-	for i := 0; i < nobjects; i++ {
+	for i := range nobjects {
 		ra := i
 		dec := i
 		// ra can't be greater than 360
@@ -110,7 +111,7 @@ func InsertAllwiseMastercat(nobjects int, db *sql.DB) error {
 
 func InsertAllwiseMetadata(nobjects int, db *sql.DB) error {
 	repo := repository.New(db)
-	for i := 0; i < nobjects; i++ {
+	for i := range nobjects {
 		metadata := repository.InsertAllwiseParams{
 			ID:         fmt.Sprintf("allwise-%d", i),
 			W1mpro:     sql.NullFloat64{Float64: 1.0, Valid: true},

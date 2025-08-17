@@ -29,32 +29,54 @@ type TestInputSchema struct {
 	Dec float64
 }
 
+type TestMetadata struct {
+	Id  string
+	Ra  float64
+	Dec float64
+}
+
 func (t TestInputSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
 }
 
-func (t TestInputSchema) ToMetadata() any {
-	return t
+func (t TestInputSchema) FillMetadata(dst repository.Metadata) {
+	dst.(*TestMetadata).Id = t.Id
+	dst.(*TestMetadata).Ra = t.Ra
+	dst.(*TestMetadata).Dec = t.Dec
 }
 
-func (t TestInputSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
-	return repository.ParquetMastercat{}
+func (t TestInputSchema) FillMastercat(dst *repository.Mastercat, ipix int64) {
+	dst.ID = t.Id
+	dst.Ra = t.Ra
+	dst.Dec = t.Dec
+	dst.Cat = "test"
+	dst.Ipix = ipix
 }
-
-func (t TestInputSchema) SetField(string, any) {}
 
 func (t TestInputSchema) GetId() string {
 	return t.Id
 }
 
+func (t TestMetadata) GetId() string {
+	return t.Id
+}
+
+type TestMetadataParser struct{}
+
+func (p TestMetadataParser) Parse(in repository.InputSchema) repository.Metadata {
+	testMetadata := TestMetadata{}
+	in.FillMetadata(&testMetadata)
+	return testMetadata
+}
+
 func TestStart(t *testing.T) {
 	inbox := make(chan reader.ReaderResult)
-	outbox := make(chan writer.WriterInput[any])
-	actor := New(inbox, outbox)
+	outbox := make(chan writer.WriterInput[repository.Metadata])
+	actor := New(inbox, outbox, TestMetadataParser{})
 
 	actor.Start()
 	rows := make([]repository.InputSchema, 10)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		rows[i] = TestInputSchema{
 			Id:  "test",
 			Ra:  float64(i),
@@ -70,10 +92,10 @@ func TestStart(t *testing.T) {
 	for msg := range outbox {
 		require.NoError(t, msg.Error)
 		require.Len(t, msg.Rows, 10)
-		for i := 0; i < 10; i++ {
-			require.Equal(t, rows[i].(TestInputSchema).Id, msg.Rows[i].(TestInputSchema).Id)
-			require.Equal(t, rows[i].(TestInputSchema).Ra, msg.Rows[i].(TestInputSchema).Ra)
-			require.Equal(t, rows[i].(TestInputSchema).Dec, msg.Rows[i].(TestInputSchema).Dec)
+		for i := range 10 {
+			require.Equal(t, rows[i].(TestInputSchema).Id, msg.Rows[i].(TestMetadata).Id)
+			require.Equal(t, rows[i].(TestInputSchema).Ra, msg.Rows[i].(TestMetadata).Ra)
+			require.Equal(t, rows[i].(TestInputSchema).Dec, msg.Rows[i].(TestMetadata).Dec)
 		}
 	}
 }

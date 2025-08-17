@@ -42,11 +42,11 @@ func TestMetadata_FindByID(t *testing.T) {
 		router.ServeHTTP(recorder, req)
 
 		require.Equal(t, http.StatusOK, recorder.Code)
-		var result repository.AllwiseMetadata
+		var result repository.Allwise
 		if err := json.Unmarshal(recorder.Body.Bytes(), &result); err != nil {
 			t.Fatalf("could not unmarshal response: %v\n%v\nOn id: %v", err, recorder.Body.String(), i)
 		}
-		require.Equal(t, fmt.Sprintf("allwise-%v", i), *result.Source_id)
+		require.Equal(t, fmt.Sprintf("allwise-%v", i), result.ID)
 	}
 }
 
@@ -96,7 +96,7 @@ func TestMetadata_BulkFindByID(t *testing.T) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code, "Request: %v | Response: %v", body, w.Body.String())
 
-	var result []repository.AllwiseMetadata
+	var result []repository.Allwise
 
 	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
 		t.Fatalf("could not unmarshal response: %v\n%v", err, w.Body.String())

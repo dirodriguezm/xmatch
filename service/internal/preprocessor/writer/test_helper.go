@@ -23,15 +23,9 @@ func (r TestInputSchema) GetCoordinates() (float64, float64) {
 	return 0, 0
 }
 
-func (r TestInputSchema) ToMetadata() any {
-	return nil
-}
+func (r TestInputSchema) FillMetadata(dst repository.Metadata) {}
 
-func (r TestInputSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
-	return repository.ParquetMastercat{}
-}
-
-func (r TestInputSchema) SetField(string, any) {}
+func (r TestInputSchema) FillMastercat(dst *repository.Mastercat, ipix int64) {}
 
 func (r TestInputSchema) GetId() string {
 	return *r.Id
@@ -63,7 +57,7 @@ func readParquet(t *testing.T, file string) []TestInputSchema {
 	require.NoError(t, err)
 	defer fr.Close()
 
-	pr, err := reader.NewParquetReader(fr, new(TestInputSchema), 4)
+	pr, err := reader.NewParquetReader(fr, new(TestInputSchema), 1)
 	require.NoError(t, err)
 	defer pr.ReadStop()
 

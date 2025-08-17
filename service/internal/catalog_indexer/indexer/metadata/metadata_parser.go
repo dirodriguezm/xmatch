@@ -12,8 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package repository
+package metadata
 
-type Metadata interface {
-	GetId() string
+import "github.com/dirodriguezm/xmatch/service/internal/repository"
+
+type MetadataParser[T any] interface {
+	Parse(in repository.InputSchema) T
+}
+
+type AllwiseMetadataParser struct{}
+
+func (p AllwiseMetadataParser) Parse(in repository.InputSchema) repository.Metadata {
+	allwise := repository.Allwise{}
+	in.FillMetadata(&allwise)
+	return allwise
+}
+
+type VlassMetadataParser struct{}
+
+func (p VlassMetadataParser) Parse(in repository.InputSchema) repository.Metadata {
+	vlass := repository.VlassObjectSchema{} //TODO: replace with db model
+	in.FillMetadata(&vlass)
+	return vlass
 }

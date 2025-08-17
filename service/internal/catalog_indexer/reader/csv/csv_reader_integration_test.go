@@ -44,7 +44,7 @@ o1,1,1
 o2,2,2
 `
 	nFiles := 5
-	testData := make([]string, nFiles, nFiles)
+	testData := make([]string, nFiles)
 	for i := range nFiles {
 		testData[i] = fileContent
 	}
@@ -91,9 +91,11 @@ func TestReadMultipleFiles_Csv(t *testing.T) {
 	require.Len(t, allRows, 10)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, *row.ToMastercat(0).ID)
-		require.Equal(t, expectedData.Ra, *row.ToMastercat(0).Ra)
-		require.Equal(t, expectedData.Dec, *row.ToMastercat(0).Dec)
+		mastercat := repository.Mastercat{}
+		row.FillMastercat(&mastercat, 0)
+		require.Equal(t, expectedData.Oid, mastercat.ID)
+		require.Equal(t, expectedData.Ra, mastercat.Ra)
+		require.Equal(t, expectedData.Dec, mastercat.Dec)
 	}
 }
 
@@ -108,12 +110,11 @@ o1,1,1
 o2,2,2
 `
 	nFiles := 5
-	testData := make([]string, nFiles, nFiles)
+	testData := make([]string, nFiles)
 	for i := range nFiles {
 		testData[i] = fileContent
 	}
 	source := fixture.source.WithNestedCsvFiles(testData, testData).Build()
-	require.Len(t, source.Reader, 10)
 
 	// create reader
 	reader := fixture.reader.WithSource(source).Build()
@@ -136,8 +137,10 @@ o2,2,2
 	require.Len(t, allRows, 20)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, *row.ToMastercat(0).ID)
-		require.Equal(t, expectedData.Ra, *row.ToMastercat(0).Ra)
-		require.Equal(t, expectedData.Dec, *row.ToMastercat(0).Dec)
+		mastercat := repository.Mastercat{}
+		row.FillMastercat(&mastercat, 0)
+		require.Equal(t, expectedData.Oid, mastercat.ID)
+		require.Equal(t, expectedData.Ra, mastercat.Ra)
+		require.Equal(t, expectedData.Dec, mastercat.Dec)
 	}
 }

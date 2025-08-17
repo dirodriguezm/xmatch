@@ -15,7 +15,6 @@
 package csv_reader
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
@@ -92,57 +91,23 @@ func (builder *ReaderBuilder) Build() reader.Reader {
 }
 
 type TestSchema struct {
+	Oid string
 	Ra  float64
 	Dec float64
-	Oid string
 }
 
-func (t *TestSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
-	cat := "vlass"
-	return repository.ParquetMastercat{
-		ID:   &t.Oid,
-		Ra:   &t.Ra,
-		Dec:  &t.Dec,
-		Cat:  &cat,
-		Ipix: &ipix,
-	}
+func (t *TestSchema) FillMastercat(dst *repository.Mastercat, ipix int64) {
+	dst.ID = t.Oid
+	dst.Ra = t.Ra
+	dst.Dec = t.Dec
+	dst.Cat = "test"
+	dst.Ipix = ipix
 }
 
-func (t *TestSchema) ToMetadata() any {
-	return t
-}
+func (t *TestSchema) FillMetadata(dst repository.Metadata) {}
 
 func (t *TestSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
-}
-
-func (t *TestSchema) SetField(name string, val interface{}) {
-	switch name {
-	case "ra":
-		if v, ok := val.(float64); ok {
-			t.Ra = v
-		}
-		if v, ok := val.(string); ok {
-			ra, err := strconv.ParseFloat(v, 64)
-			if err != nil {
-				panic(err)
-			}
-			t.Ra = ra
-		}
-	case "dec":
-		if v, ok := val.(float64); ok {
-			t.Dec = v
-		}
-		if v, ok := val.(string); ok {
-			dec, err := strconv.ParseFloat(v, 64)
-			if err != nil {
-				panic(err)
-			}
-			t.Dec = dec
-		}
-	case "oid":
-		t.Oid = val.(string)
-	}
 }
 
 func (t *TestSchema) GetId() string {

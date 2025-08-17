@@ -81,7 +81,7 @@ func BuildServiceContainer(
 		conn := cfg.Service.Database.Url
 		db, err := sql.Open("sqlite3", conn)
 		if err != nil {
-			slog.Error("Could not create sqlite3 connection", "conn", conn)
+			slog.Error("Could not create sqlite connection", "conn", conn)
 			panic(err)
 		}
 		_, err = db.Exec("select 'test conn'")
@@ -103,7 +103,7 @@ func BuildServiceContainer(
 	})
 
 	ctr.Singleton(func(r conesearch.Repository, cfg *config.Config) *conesearch.ConesearchService {
-		ctx := context.TODO()
+		ctx := context.Background()
 		catalogs, err := r.GetCatalogs(ctx)
 		if err != nil {
 			slog.Error("Could not find catalogs in DB when creating conesearch service", "error", err)

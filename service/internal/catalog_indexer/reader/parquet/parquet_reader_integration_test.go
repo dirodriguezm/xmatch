@@ -67,7 +67,7 @@ func setUpTestFixture_Parquet(t *testing.T) *TestFixture {
 	}
 	nFiles := 5
 	testData := make([][][]string, nFiles)
-	for i := 0; i < nFiles; i++ {
+	for i := range nFiles {
 		testData[i] = fileContent
 	}
 	dir := t.TempDir()
@@ -120,9 +120,11 @@ func TestReadMultipleFiles_Parquet(t *testing.T) {
 	require.Len(t, allRows, 10)
 	for i, row := range allRows {
 		expectedData := fixture.expectedRows[i%2]
-		require.Equal(t, expectedData.Oid, *row.ToMastercat(0).ID)
-		require.Equal(t, expectedData.Ra, *row.ToMastercat(0).Ra)
-		require.Equal(t, expectedData.Dec, *row.ToMastercat(0).Dec)
+		mastercat := repository.Mastercat{}
+		row.FillMastercat(&mastercat, 0)
+		require.Equal(t, expectedData.Oid, mastercat.ID)
+		require.Equal(t, expectedData.Ra, mastercat.Ra)
+		require.Equal(t, expectedData.Dec, mastercat.Dec)
 	}
 }
 
@@ -160,10 +162,12 @@ func TestReadWithMultipleOutputs_Parquet(t *testing.T) {
 	// there should be 10 rows for each oid
 	count := map[string]int{}
 	for _, row := range allRows {
-		if _, ok := count[*row.ToMastercat(0).ID]; !ok {
-			count[*row.ToMastercat(0).ID] = 0
+		mastercat := repository.Mastercat{}
+		row.FillMastercat(&mastercat, 0)
+		if _, ok := count[mastercat.ID]; !ok {
+			count[mastercat.ID] = 0
 		}
-		count[*row.ToMastercat(0).ID]++
+		count[mastercat.ID]++
 	}
 	require.Equal(t, 10, count["o1"])
 	require.Equal(t, 10, count["o2"])

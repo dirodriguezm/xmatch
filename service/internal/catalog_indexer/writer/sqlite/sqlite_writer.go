@@ -26,10 +26,6 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 )
 
-type ParamsMaker interface {
-	ToInsertParams() any
-}
-
 type SqliteWriter[T any] struct {
 	*writer.BaseWriter[T]
 	repository conesearch.Repository
@@ -47,6 +43,7 @@ func NewSqliteWriter[T any](
 	slog.Debug("Creating new SqliteWriter")
 	w := &SqliteWriter[T]{
 		BaseWriter: &writer.BaseWriter[T]{
+			Ctx:          ctx,
 			DoneChannel:  done,
 			InboxChannel: ch,
 		},
@@ -67,7 +64,7 @@ func (w *SqliteWriter[T]) Receive(msg writer.WriterInput[T]) {
 	params := make([]any, len(msg.Rows))
 	for i, object := range msg.Rows {
 		// convert the received row to insert params needed by the repository
-		p := any(object).(ParamsMaker).ToInsertParams()
+		p := toInsertParams(object)
 		params[i] = p
 	}
 	// insert converted rows
@@ -75,6 +72,39 @@ func (w *SqliteWriter[T]) Receive(msg writer.WriterInput[T]) {
 	if err != nil {
 		slog.Error("SqliteWriter could not write objects to database")
 		panic(err)
+	}
+}
+
+func toInsertParams(obj any) any {
+	switch obj := obj.(type) {
+	case repository.Mastercat:
+		return repository.InsertObjectParams{
+			ID:   obj.ID,
+			Ipix: obj.Ipix,
+			Ra:   obj.Ra,
+			Dec:  obj.Dec,
+			Cat:  obj.Cat,
+		}
+	case repository.Allwise:
+		return repository.InsertAllwiseParams{
+			ID:         obj.ID,
+			W1mpro:     obj.W1mpro,
+			W1sigmpro:  obj.W1sigmpro,
+			W2mpro:     obj.W2mpro,
+			W2sigmpro:  obj.W2sigmpro,
+			W3mpro:     obj.W3mpro,
+			W3sigmpro:  obj.W3sigmpro,
+			W4mpro:     obj.W4mpro,
+			W4sigmpro:  obj.W4sigmpro,
+			JM2mass:    obj.JM2mass,
+			JMsig2mass: obj.JMsig2mass,
+			HM2mass:    obj.HM2mass,
+			HMsig2mass: obj.HMsig2mass,
+			KM2mass:    obj.KM2mass,
+			KMsig2mass: obj.KMsig2mass,
+		}
+	default:
+		panic(fmt.Errorf("Unknown object type: %T", obj))
 	}
 }
 

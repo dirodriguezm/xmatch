@@ -33,45 +33,36 @@ type TestSchema struct {
 }
 
 // implement the interface
-func (t *TestSchema) ToMastercat(ipix int64) repository.ParquetMastercat {
-	return repository.ParquetMastercat{
-		ID:   &t.ID,
-		Ra:   &t.Ra,
-		Dec:  &t.Dec,
-		Cat:  &t.Cat,
-		Ipix: &ipix,
-	}
+func (t TestSchema) FillMastercat(dst *repository.Mastercat, ipix int64) {
+	dst.ID = t.ID
+	dst.Ra = t.Ra
+	dst.Dec = t.Dec
+	dst.Cat = t.Cat
+	dst.Ipix = ipix
 }
 
 // implement the interface
-func (t *TestSchema) ToMetadata() any {
-	return t
-}
+func (t TestSchema) FillMetadata(dst repository.Metadata) {}
 
-func (t *TestSchema) GetCoordinates() (float64, float64) {
+func (t TestSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
 }
 
-func (t *TestSchema) SetField(name string, val interface{}) {}
-
-func (t *TestSchema) GetId() string {
+func (t TestSchema) GetId() string {
 	return t.ID
 }
 
 func TestIndexActor(t *testing.T) {
 	inbox := make(chan reader.ReaderResult)
-	outbox := make(chan writer.WriterInput[any])
+	outbox := make(chan writer.WriterInput[repository.Mastercat])
 	rows := make([]repository.InputSchema, 2)
-	rows[0] = &TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
-	rows[1] = &TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
+	rows[0] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
+	rows[1] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
 
 	src, err := source.NewSource(&config.SourceConfig{
 		Url:         "buffer:",
 		Type:        "csv",
 		CatalogName: "catalog",
-		RaCol:       "ra",
-		DecCol:      "dec",
-		OidCol:      "id",
 	})
 	require.NoError(t, err)
 	indexerActor, err := New(src, inbox, outbox, &config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
@@ -80,11 +71,9 @@ func TestIndexActor(t *testing.T) {
 	indexerActor.Start()
 	inbox <- reader.ReaderResult{Rows: rows, Error: nil}
 	close(inbox)
-	results := make([]repository.ParquetMastercat, 2)
+	results := make([]repository.Mastercat, 2)
 	for msg := range outbox {
-		for i, obj := range msg.Rows {
-			results[i] = obj.(repository.ParquetMastercat)
-		}
+		copy(results, msg.Rows)
 	}
 
 	require.Len(t, results, 2)
