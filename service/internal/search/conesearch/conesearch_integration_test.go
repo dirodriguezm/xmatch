@@ -31,10 +31,10 @@ import (
 	"github.com/golobby/container/v3"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
-	_ "modernc.org/sqlite"
 )
 
 var ctr container.Container
@@ -68,7 +68,7 @@ service:
 	}
 
 	// create tables
-	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite://%s", dbFile))
+	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
 	if err != nil {
 		panic(fmt.Errorf("Could not create Migrate instance: %w", err))
 	}

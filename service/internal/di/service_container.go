@@ -30,7 +30,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/golobby/container/v3"
@@ -79,7 +79,7 @@ func BuildServiceContainer(
 	// Register DB
 	ctr.Singleton(func(cfg *config.Config) *sql.DB {
 		conn := cfg.Service.Database.Url
-		db, err := sql.Open("sqlite", conn)
+		db, err := sql.Open("sqlite3", conn)
 		if err != nil {
 			slog.Error("Could not create sqlite connection", "conn", conn)
 			panic(err)

@@ -71,7 +71,7 @@ func BuildIndexerContainer(
 	// Register DB
 	ctr.Singleton(func(cfg *config.Config) *sql.DB {
 		conn := cfg.CatalogIndexer.Database.Url
-		db, err := sql.Open("sqlite", conn)
+		db, err := sql.Open("sqlite3", conn)
 		if err != nil {
 			slog.Error("Could not create sqlite connection", "conn", conn)
 			panic(err)

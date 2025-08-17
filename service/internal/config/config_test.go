@@ -33,7 +33,7 @@ func TestLoadFile(t *testing.T) {
 			input: `
 catalog_indexer:
   database:
-    url: "sqlite://test.db"
+    url: "sqlite3://test.db"
   source:
     url: "file:test.csv"
     catalog_name: "test"
@@ -50,7 +50,7 @@ catalog_indexer:
     type: "sqlite"
 `,
 			validate: func(t *testing.T, cfg *Config) {
-				require.Equal(t, &DatabaseConfig{Url: "sqlite://test.db"}, cfg.CatalogIndexer.Database)
+				require.Equal(t, &DatabaseConfig{Url: "sqlite3://test.db"}, cfg.CatalogIndexer.Database)
 				require.Equal(t, &SourceConfig{
 					Url:         "file:test.csv",
 					CatalogName: "test",

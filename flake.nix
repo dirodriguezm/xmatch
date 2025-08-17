@@ -52,7 +52,7 @@
       (system: let
         pkgs = nixpkgs.legacyPackages.${system};
         go-migrate-sqlite = pkgs.go-migrate.overrideAttrs (oldAttrs: {
-          tags = ["sqlite"];
+          tags = ["sqlite3"];
         });
 
         healpix = pkgs.stdenv.mkDerivation {
