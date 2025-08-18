@@ -24,22 +24,22 @@ type WriterInput[T any] struct {
 	Rows  []T
 }
 
-type Writer[T any] interface {
+type Writer[I any, O any] interface {
 	Start()
 	Done()
 	Stop()
-	Receive(WriterInput[T])
+	Receive(WriterInput[I])
 }
 
-type BaseWriter[T any] struct {
+type BaseWriter[I any, O any] struct {
 	Ctx          context.Context
-	Writer       Writer[T]
+	Writer       Writer[I, O]
 	DoneChannel  chan struct{}
-	InboxChannel chan WriterInput[T]
+	InboxChannel chan WriterInput[I]
 }
 
 // Start starts the writer goroutine
-func (w BaseWriter[T]) Start() {
+func (w BaseWriter[I, O]) Start() {
 	slog.Debug("Starting Writer")
 
 	go func() {
@@ -65,6 +65,6 @@ func (w BaseWriter[T]) Start() {
 }
 
 // Done blocks until the writer has finished processing all messages
-func (w *BaseWriter[T]) Done() {
+func (w *BaseWriter[I, O]) Done() {
 	<-w.DoneChannel
 }

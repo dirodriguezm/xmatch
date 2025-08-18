@@ -35,7 +35,7 @@ func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []Insert
 	return tx.Commit()
 }
 
-func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []InsertAllwiseParams) error {
+func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []Metadata) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil
@@ -43,7 +43,7 @@ func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []Inser
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
-		err = qtx.InsertAllwise(ctx, arg[i])
+		err = qtx.InsertAllwise(ctx, arg[i].(InsertAllwiseParams))
 	}
 	if err != nil {
 		return err

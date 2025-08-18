@@ -125,7 +125,13 @@ func TestActor(t *testing.T) {
 	ctx := context.Background()
 	done := make(chan struct{})
 	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
-	w := sqlite_writer.NewSqliteWriter(repo, ch, done, ctx, src)
+	parser := sqlite_writer.MastercatParser{}
+	bulkWriter := sqlite_writer.MastercatWriter{
+		Repo: repo,
+		Ctx:  ctx,
+		Db:   repo.GetDbInstance(),
+	}
+	w := sqlite_writer.NewSqliteWriter(repo, ch, done, ctx, src, parser, bulkWriter)
 
 	w.Start()
 	ids := []string{"1", "2"}

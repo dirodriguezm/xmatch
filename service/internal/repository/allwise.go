@@ -114,3 +114,7 @@ func (schema AllwiseInputSchema) FillMetadata(dst Metadata) {
 func (a Allwise) GetId() string {
 	return a.ID
 }
+
+func (m InsertAllwiseParams) GetId() string {
+	return m.ID
+}

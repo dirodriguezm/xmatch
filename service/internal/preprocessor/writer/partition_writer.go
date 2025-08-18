@@ -25,7 +25,7 @@ import (
 )
 
 type PartitionWriter struct {
-	*writer.BaseWriter[repository.InputSchema]
+	*writer.BaseWriter[repository.InputSchema, repository.InputSchema]
 	cfg           *config.PartitionWriterConfig
 	parquetStore  *ParquetStore
 	inMemoryStore *InMemoryStore
@@ -47,7 +47,7 @@ func New(
 		},
 	}
 	w := &PartitionWriter{
-		BaseWriter: &writer.BaseWriter[repository.InputSchema]{
+		BaseWriter: &writer.BaseWriter[repository.InputSchema, repository.InputSchema]{
 			InboxChannel: inputChan,
 			DoneChannel:  doneChan,
 			Ctx:          ctx,

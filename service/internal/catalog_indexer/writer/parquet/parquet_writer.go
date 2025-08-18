@@ -28,7 +28,7 @@ import (
 )
 
 type ParquetWriter[T any] struct {
-	*writer.BaseWriter[T]
+	*writer.BaseWriter[T, T]
 	parquetWriter *pwriter.ParquetWriter
 	pfile         *os.File
 	OutputFile    string
@@ -69,7 +69,7 @@ func NewParquetWriter[T any](
 	w := &ParquetWriter[T]{
 		parquetWriter: parquetWriter,
 		pfile:         file,
-		BaseWriter: &writer.BaseWriter[T]{
+		BaseWriter: &writer.BaseWriter[T, T]{
 			InboxChannel: inbox,
 			DoneChannel:  done,
 			Ctx:          ctx,

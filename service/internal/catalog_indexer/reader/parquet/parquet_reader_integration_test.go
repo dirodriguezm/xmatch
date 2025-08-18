@@ -28,25 +28,12 @@ import (
 
 var metadata = []string{
 	"name=oid, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY",
-	"name=ra, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY",
-	"name=dec, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY",
-	"name=mag, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY",
-}
-
-var metadata2 = []string{
-	"name=oid, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY",
 	"name=ra, type=DOUBLE",
 	"name=dec, type=DOUBLE",
 	"name=mag, type=DOUBLE",
 }
 
 type TestData struct {
-	Oid string `parquet:"name=oid, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Ra  string `parquet:"name=ra, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Dec string `parquet:"name=dec, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-}
-
-type TestData2 struct {
 	Oid string  `parquet:"name=oid, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	Ra  float64 `parquet:"name=ra, type=DOUBLE"`
 	Dec float64 `parquet:"name=dec, type=DOUBLE"`
@@ -54,8 +41,8 @@ type TestData2 struct {
 
 type TestFixture struct {
 	source       *source.SourceBuilder
-	reader       *ReaderBuilder[TestData2]
-	expectedRows []TestData2
+	reader       *ReaderBuilder[TestData]
+	expectedRows []TestData
 }
 
 func setUpTestFixture_Parquet(t *testing.T) *TestFixture {
@@ -77,9 +64,9 @@ func setUpTestFixture_Parquet(t *testing.T) *TestFixture {
 			ASource(t).
 			WithType("parquet").
 			WithUrl(url).
-			WithParquetFiles(metadata2, testData),
-		reader: AReader[TestData2](t).WithType("parquet"),
-		expectedRows: []TestData2{
+			WithParquetFiles(metadata, testData),
+		reader: AReader[TestData](t).WithType("parquet"),
+		expectedRows: []TestData{
 			{"o1", 1, 1},
 			{"o2", 2, 2},
 		},

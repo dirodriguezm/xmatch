@@ -139,7 +139,7 @@ func BuildIndexerContainer(
 		repo conesearch.Repository,
 		src *source.Source,
 		ind *mastercat_indexer.IndexerActor,
-	) writer.Writer[repository.Mastercat] {
+	) writer.Writer[repository.Mastercat, repository.InsertObjectParams] {
 		if cfg.CatalogIndexer.IndexerWriter == nil {
 			panic("Indexer writer not configured")
 		}
@@ -152,7 +152,13 @@ func BuildIndexerContainer(
 			}
 			return w
 		case "sqlite":
-			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src)
+			parser := sqlite_writer.MastercatParser{}
+			bulkWriter := sqlite_writer.MastercatWriter{
+				Repo: repo,
+				Ctx:  ctx,
+				Db:   repo.GetDbInstance(),
+			}
+			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src, parser, bulkWriter)
 			return w
 		default:
 			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.IndexerWriter.Type)
@@ -181,7 +187,7 @@ func BuildIndexerContainer(
 		repo conesearch.Repository,
 		src *source.Source,
 		ind *metadata_indexer.IndexerActor,
-	) writer.Writer[repository.Metadata] {
+	) writer.Writer[repository.Metadata, repository.Metadata] {
 		if cfg.CatalogIndexer.MetadataWriter == nil {
 			slog.Info("Skipping registration for metadata writer. MetadataWriter not configured")
 			return nil
@@ -200,7 +206,20 @@ func BuildIndexerContainer(
 			}
 			return w
 		case "sqlite":
-			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src)
+			var parser sqlite_writer.ParamsParser[repository.Metadata, repository.Metadata]
+			var bulkWriter sqlite_writer.ParamsWriter[repository.Metadata]
+			switch strings.ToLower(cfg.CatalogIndexer.Source.CatalogName) {
+			case "allwise":
+				parser = sqlite_writer.AllwiseParser{}
+				bulkWriter = sqlite_writer.AllwiseWriter{
+					Repo: repo,
+					Ctx:  ctx,
+					Db:   repo.GetDbInstance(),
+				}
+			default:
+				panic(fmt.Errorf("Unknown catalog name: %s", cfg.CatalogIndexer.Source.CatalogName))
+			}
+			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src, parser, bulkWriter)
 			return w
 		default:
 			panic(fmt.Errorf("Unknown catalog name: %s", cfg.CatalogIndexer.Source.CatalogName))

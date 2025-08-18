@@ -41,7 +41,7 @@ type Repository interface {
 	GetDbInstance() *sql.DB
 	InsertAllwise(context.Context, repository.InsertAllwiseParams) error
 	GetAllwise(context.Context, string) (repository.Allwise, error)
-	BulkInsertAllwise(context.Context, *sql.DB, []repository.InsertAllwiseParams) error
+	BulkInsertAllwise(context.Context, *sql.DB, []repository.Metadata) error
 	RemoveAllObjects(context.Context) error
 	BulkGetAllwise(context.Context, []string) ([]repository.Allwise, error)
 	GetAllwiseFromPixels(context.Context, []int64) ([]repository.GetAllwiseFromPixelsRow, error)
