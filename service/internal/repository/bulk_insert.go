@@ -19,7 +19,7 @@ import (
 	"database/sql"
 )
 
-func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []InsertObjectParams) error {
+func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []Mastercat) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil
@@ -27,7 +27,7 @@ func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []Insert
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
-		_, err = qtx.InsertObject(ctx, arg[i])
+		err = qtx.InsertMastercat(ctx, arg[i])
 	}
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []Insert
 	return tx.Commit()
 }
 
-func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []Metadata) error {
+func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []Allwise) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil
@@ -43,7 +43,7 @@ func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []Metad
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
-		err = qtx.InsertAllwise(ctx, arg[i].(InsertAllwiseParams))
+		err = qtx.InsertAllwiseWithoutParams(ctx, arg[i])
 	}
 	if err != nil {
 		return err

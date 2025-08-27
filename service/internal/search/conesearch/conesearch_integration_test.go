@@ -111,7 +111,7 @@ func TestConesearch(t *testing.T) {
 		t.Error(err)
 	}
 
-	objects := []repository.InsertObjectParams{
+	objects := []repository.Mastercat{
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
@@ -121,7 +121,7 @@ func TestConesearch(t *testing.T) {
 		t.Error(err)
 	}
 	for _, obj := range objects {
-		repo.InsertObject(context.Background(), obj)
+		repo.InsertMastercat(context.Background(), obj)
 	}
 
 	result, err := service.Conesearch(0, 0, 1, 10, "all")
@@ -140,7 +140,7 @@ func TestConesearch_WithMetadata(t *testing.T) {
 		t.Error(err)
 	}
 
-	objects := []repository.InsertObjectParams{
+	objects := []repository.Mastercat{
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
@@ -151,8 +151,8 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	}
 	for _, obj := range objects {
 		ctx := context.Background()
-		repo.InsertObject(ctx, obj)
-		repo.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: obj.ID})
+		repo.InsertMastercat(ctx, obj)
+		repo.InsertAllwiseWithoutParams(ctx, repository.Allwise{ID: obj.ID})
 	}
 
 	result, err := service.FindMetadataByConesearch(0, 0, 1, 10, "allwise")
@@ -173,7 +173,7 @@ func TestBulkConesearch(t *testing.T) {
 	}
 
 	// insert objects
-	objects := []repository.InsertObjectParams{
+	objects := []repository.Mastercat{
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
@@ -183,7 +183,7 @@ func TestBulkConesearch(t *testing.T) {
 		t.Error(err)
 	}
 	for _, obj := range objects {
-		repo.InsertObject(context.Background(), obj)
+		repo.InsertMastercat(context.Background(), obj)
 	}
 
 	// set up test cases

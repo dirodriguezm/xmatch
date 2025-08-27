@@ -24,20 +24,17 @@ import (
 
 type IndexerActor struct {
 	inbox  chan reader.ReaderResult
-	outbox chan writer.WriterInput[repository.Metadata]
-	parser MetadataParser[repository.Metadata]
+	outbox chan writer.WriterInput[repository.Allwise]
 }
 
 func New(
 	inbox chan reader.ReaderResult,
-	outbox chan writer.WriterInput[repository.Metadata],
-	parser MetadataParser[repository.Metadata],
+	outbox chan writer.WriterInput[repository.Allwise],
 ) *IndexerActor {
 	slog.Debug("Creating new Indexer")
 	return &IndexerActor{
 		inbox:  inbox,
 		outbox: outbox,
-		parser: parser,
 	}
 }
 
@@ -57,20 +54,19 @@ func (actor *IndexerActor) Start() {
 func (actor *IndexerActor) Receive(msg reader.ReaderResult) {
 	slog.Debug("Indexer Received Message")
 	if msg.Error != nil {
-		actor.outbox <- writer.WriterInput[repository.Metadata]{
+		actor.outbox <- writer.WriterInput[repository.Allwise]{
 			Error: msg.Error,
 			Rows:  nil,
 		}
 		return
 	}
 
-	objects := make([]repository.Metadata, len(msg.Rows))
-	for i, row := range msg.Rows {
-		objects[i] = actor.parser.Parse(row)
-		row = nil
+	objects := make([]repository.Allwise, len(msg.Rows))
+	for i := range msg.Rows {
+		msg.Rows[i].FillMetadata(&objects[i])
 	}
 
-	actor.outbox <- writer.WriterInput[repository.Metadata]{
+	actor.outbox <- writer.WriterInput[repository.Allwise]{
 		Error: nil,
 		Rows:  objects,
 	}
@@ -79,6 +75,6 @@ func (actor *IndexerActor) Receive(msg reader.ReaderResult) {
 	objects = nil
 }
 
-func (actor *IndexerActor) GetOutbox() chan writer.WriterInput[repository.Metadata] {
+func (actor *IndexerActor) GetOutbox() chan writer.WriterInput[repository.Allwise] {
 	return actor.outbox
 }

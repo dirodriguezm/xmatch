@@ -108,16 +108,16 @@ func (_c *MockRepository_BulkGetAllwise_Call) RunAndReturn(run func(context1 con
 }
 
 // BulkInsertAllwise provides a mock function for the type MockRepository
-func (_mock *MockRepository) BulkInsertAllwise(context1 context.Context, dB *sql.DB, metadatas []repository.Metadata) error {
-	ret := _mock.Called(context1, dB, metadatas)
+func (_mock *MockRepository) BulkInsertAllwise(context1 context.Context, dB *sql.DB, allwises []repository.Allwise) error {
+	ret := _mock.Called(context1, dB, allwises)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BulkInsertAllwise")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []repository.Metadata) error); ok {
-		r0 = returnFunc(context1, dB, metadatas)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []repository.Allwise) error); ok {
+		r0 = returnFunc(context1, dB, allwises)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -132,12 +132,12 @@ type MockRepository_BulkInsertAllwise_Call struct {
 // BulkInsertAllwise is a helper method to define mock.On call
 //   - context1 context.Context
 //   - dB *sql.DB
-//   - metadatas []repository.Metadata
-func (_e *MockRepository_Expecter) BulkInsertAllwise(context1 interface{}, dB interface{}, metadatas interface{}) *MockRepository_BulkInsertAllwise_Call {
-	return &MockRepository_BulkInsertAllwise_Call{Call: _e.mock.On("BulkInsertAllwise", context1, dB, metadatas)}
+//   - allwises []repository.Allwise
+func (_e *MockRepository_Expecter) BulkInsertAllwise(context1 interface{}, dB interface{}, allwises interface{}) *MockRepository_BulkInsertAllwise_Call {
+	return &MockRepository_BulkInsertAllwise_Call{Call: _e.mock.On("BulkInsertAllwise", context1, dB, allwises)}
 }
 
-func (_c *MockRepository_BulkInsertAllwise_Call) Run(run func(context1 context.Context, dB *sql.DB, metadatas []repository.Metadata)) *MockRepository_BulkInsertAllwise_Call {
+func (_c *MockRepository_BulkInsertAllwise_Call) Run(run func(context1 context.Context, dB *sql.DB, allwises []repository.Allwise)) *MockRepository_BulkInsertAllwise_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -147,9 +147,9 @@ func (_c *MockRepository_BulkInsertAllwise_Call) Run(run func(context1 context.C
 		if args[1] != nil {
 			arg1 = args[1].(*sql.DB)
 		}
-		var arg2 []repository.Metadata
+		var arg2 []repository.Allwise
 		if args[2] != nil {
-			arg2 = args[2].([]repository.Metadata)
+			arg2 = args[2].([]repository.Allwise)
 		}
 		run(
 			arg0,
@@ -165,22 +165,22 @@ func (_c *MockRepository_BulkInsertAllwise_Call) Return(err error) *MockReposito
 	return _c
 }
 
-func (_c *MockRepository_BulkInsertAllwise_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, metadatas []repository.Metadata) error) *MockRepository_BulkInsertAllwise_Call {
+func (_c *MockRepository_BulkInsertAllwise_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, allwises []repository.Allwise) error) *MockRepository_BulkInsertAllwise_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // BulkInsertObject provides a mock function for the type MockRepository
-func (_mock *MockRepository) BulkInsertObject(context1 context.Context, dB *sql.DB, insertObjectParamss []repository.InsertObjectParams) error {
-	ret := _mock.Called(context1, dB, insertObjectParamss)
+func (_mock *MockRepository) BulkInsertObject(context1 context.Context, dB *sql.DB, mastercats []repository.Mastercat) error {
+	ret := _mock.Called(context1, dB, mastercats)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BulkInsertObject")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []repository.InsertObjectParams) error); ok {
-		r0 = returnFunc(context1, dB, insertObjectParamss)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []repository.Mastercat) error); ok {
+		r0 = returnFunc(context1, dB, mastercats)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -195,12 +195,12 @@ type MockRepository_BulkInsertObject_Call struct {
 // BulkInsertObject is a helper method to define mock.On call
 //   - context1 context.Context
 //   - dB *sql.DB
-//   - insertObjectParamss []repository.InsertObjectParams
-func (_e *MockRepository_Expecter) BulkInsertObject(context1 interface{}, dB interface{}, insertObjectParamss interface{}) *MockRepository_BulkInsertObject_Call {
-	return &MockRepository_BulkInsertObject_Call{Call: _e.mock.On("BulkInsertObject", context1, dB, insertObjectParamss)}
+//   - mastercats []repository.Mastercat
+func (_e *MockRepository_Expecter) BulkInsertObject(context1 interface{}, dB interface{}, mastercats interface{}) *MockRepository_BulkInsertObject_Call {
+	return &MockRepository_BulkInsertObject_Call{Call: _e.mock.On("BulkInsertObject", context1, dB, mastercats)}
 }
 
-func (_c *MockRepository_BulkInsertObject_Call) Run(run func(context1 context.Context, dB *sql.DB, insertObjectParamss []repository.InsertObjectParams)) *MockRepository_BulkInsertObject_Call {
+func (_c *MockRepository_BulkInsertObject_Call) Run(run func(context1 context.Context, dB *sql.DB, mastercats []repository.Mastercat)) *MockRepository_BulkInsertObject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -210,9 +210,9 @@ func (_c *MockRepository_BulkInsertObject_Call) Run(run func(context1 context.Co
 		if args[1] != nil {
 			arg1 = args[1].(*sql.DB)
 		}
-		var arg2 []repository.InsertObjectParams
+		var arg2 []repository.Mastercat
 		if args[2] != nil {
-			arg2 = args[2].([]repository.InsertObjectParams)
+			arg2 = args[2].([]repository.Mastercat)
 		}
 		run(
 			arg0,
@@ -228,7 +228,7 @@ func (_c *MockRepository_BulkInsertObject_Call) Return(err error) *MockRepositor
 	return _c
 }
 
-func (_c *MockRepository_BulkInsertObject_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, insertObjectParamss []repository.InsertObjectParams) error) *MockRepository_BulkInsertObject_Call {
+func (_c *MockRepository_BulkInsertObject_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, mastercats []repository.Mastercat) error) *MockRepository_BulkInsertObject_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -605,44 +605,44 @@ func (_c *MockRepository_GetDbInstance_Call) RunAndReturn(run func() *sql.DB) *M
 	return _c
 }
 
-// InsertAllwise provides a mock function for the type MockRepository
-func (_mock *MockRepository) InsertAllwise(context1 context.Context, insertAllwiseParams repository.InsertAllwiseParams) error {
-	ret := _mock.Called(context1, insertAllwiseParams)
+// InsertAllwiseWithoutParams provides a mock function for the type MockRepository
+func (_mock *MockRepository) InsertAllwiseWithoutParams(context1 context.Context, allwise repository.Allwise) error {
+	ret := _mock.Called(context1, allwise)
 
 	if len(ret) == 0 {
-		panic("no return value specified for InsertAllwise")
+		panic("no return value specified for InsertAllwiseWithoutParams")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.InsertAllwiseParams) error); ok {
-		r0 = returnFunc(context1, insertAllwiseParams)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.Allwise) error); ok {
+		r0 = returnFunc(context1, allwise)
 	} else {
 		r0 = ret.Error(0)
 	}
 	return r0
 }
 
-// MockRepository_InsertAllwise_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertAllwise'
-type MockRepository_InsertAllwise_Call struct {
+// MockRepository_InsertAllwiseWithoutParams_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertAllwiseWithoutParams'
+type MockRepository_InsertAllwiseWithoutParams_Call struct {
 	*mock.Call
 }
 
-// InsertAllwise is a helper method to define mock.On call
+// InsertAllwiseWithoutParams is a helper method to define mock.On call
 //   - context1 context.Context
-//   - insertAllwiseParams repository.InsertAllwiseParams
-func (_e *MockRepository_Expecter) InsertAllwise(context1 interface{}, insertAllwiseParams interface{}) *MockRepository_InsertAllwise_Call {
-	return &MockRepository_InsertAllwise_Call{Call: _e.mock.On("InsertAllwise", context1, insertAllwiseParams)}
+//   - allwise repository.Allwise
+func (_e *MockRepository_Expecter) InsertAllwiseWithoutParams(context1 interface{}, allwise interface{}) *MockRepository_InsertAllwiseWithoutParams_Call {
+	return &MockRepository_InsertAllwiseWithoutParams_Call{Call: _e.mock.On("InsertAllwiseWithoutParams", context1, allwise)}
 }
 
-func (_c *MockRepository_InsertAllwise_Call) Run(run func(context1 context.Context, insertAllwiseParams repository.InsertAllwiseParams)) *MockRepository_InsertAllwise_Call {
+func (_c *MockRepository_InsertAllwiseWithoutParams_Call) Run(run func(context1 context.Context, allwise repository.Allwise)) *MockRepository_InsertAllwiseWithoutParams_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 repository.InsertAllwiseParams
+		var arg1 repository.Allwise
 		if args[1] != nil {
-			arg1 = args[1].(repository.InsertAllwiseParams)
+			arg1 = args[1].(repository.Allwise)
 		}
 		run(
 			arg0,
@@ -652,40 +652,31 @@ func (_c *MockRepository_InsertAllwise_Call) Run(run func(context1 context.Conte
 	return _c
 }
 
-func (_c *MockRepository_InsertAllwise_Call) Return(err error) *MockRepository_InsertAllwise_Call {
+func (_c *MockRepository_InsertAllwiseWithoutParams_Call) Return(err error) *MockRepository_InsertAllwiseWithoutParams_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockRepository_InsertAllwise_Call) RunAndReturn(run func(context1 context.Context, insertAllwiseParams repository.InsertAllwiseParams) error) *MockRepository_InsertAllwise_Call {
+func (_c *MockRepository_InsertAllwiseWithoutParams_Call) RunAndReturn(run func(context1 context.Context, allwise repository.Allwise) error) *MockRepository_InsertAllwiseWithoutParams_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // InsertCatalog provides a mock function for the type MockRepository
-func (_mock *MockRepository) InsertCatalog(context1 context.Context, insertCatalogParams repository.InsertCatalogParams) (repository.Catalog, error) {
+func (_mock *MockRepository) InsertCatalog(context1 context.Context, insertCatalogParams repository.InsertCatalogParams) error {
 	ret := _mock.Called(context1, insertCatalogParams)
 
 	if len(ret) == 0 {
 		panic("no return value specified for InsertCatalog")
 	}
 
-	var r0 repository.Catalog
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.InsertCatalogParams) (repository.Catalog, error)); ok {
-		return returnFunc(context1, insertCatalogParams)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.InsertCatalogParams) repository.Catalog); ok {
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.InsertCatalogParams) error); ok {
 		r0 = returnFunc(context1, insertCatalogParams)
 	} else {
-		r0 = ret.Get(0).(repository.Catalog)
+		r0 = ret.Error(0)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, repository.InsertCatalogParams) error); ok {
-		r1 = returnFunc(context1, insertCatalogParams)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
+	return r0
 }
 
 // MockRepository_InsertCatalog_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertCatalog'
@@ -718,63 +709,54 @@ func (_c *MockRepository_InsertCatalog_Call) Run(run func(context1 context.Conte
 	return _c
 }
 
-func (_c *MockRepository_InsertCatalog_Call) Return(catalog repository.Catalog, err error) *MockRepository_InsertCatalog_Call {
-	_c.Call.Return(catalog, err)
+func (_c *MockRepository_InsertCatalog_Call) Return(err error) *MockRepository_InsertCatalog_Call {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockRepository_InsertCatalog_Call) RunAndReturn(run func(context1 context.Context, insertCatalogParams repository.InsertCatalogParams) (repository.Catalog, error)) *MockRepository_InsertCatalog_Call {
+func (_c *MockRepository_InsertCatalog_Call) RunAndReturn(run func(context1 context.Context, insertCatalogParams repository.InsertCatalogParams) error) *MockRepository_InsertCatalog_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// InsertObject provides a mock function for the type MockRepository
-func (_mock *MockRepository) InsertObject(context1 context.Context, insertObjectParams repository.InsertObjectParams) (repository.Mastercat, error) {
-	ret := _mock.Called(context1, insertObjectParams)
+// InsertMastercat provides a mock function for the type MockRepository
+func (_mock *MockRepository) InsertMastercat(context1 context.Context, mastercat repository.Mastercat) error {
+	ret := _mock.Called(context1, mastercat)
 
 	if len(ret) == 0 {
-		panic("no return value specified for InsertObject")
+		panic("no return value specified for InsertMastercat")
 	}
 
-	var r0 repository.Mastercat
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.InsertObjectParams) (repository.Mastercat, error)); ok {
-		return returnFunc(context1, insertObjectParams)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.InsertObjectParams) repository.Mastercat); ok {
-		r0 = returnFunc(context1, insertObjectParams)
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.Mastercat) error); ok {
+		r0 = returnFunc(context1, mastercat)
 	} else {
-		r0 = ret.Get(0).(repository.Mastercat)
+		r0 = ret.Error(0)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, repository.InsertObjectParams) error); ok {
-		r1 = returnFunc(context1, insertObjectParams)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
+	return r0
 }
 
-// MockRepository_InsertObject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertObject'
-type MockRepository_InsertObject_Call struct {
+// MockRepository_InsertMastercat_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertMastercat'
+type MockRepository_InsertMastercat_Call struct {
 	*mock.Call
 }
 
-// InsertObject is a helper method to define mock.On call
+// InsertMastercat is a helper method to define mock.On call
 //   - context1 context.Context
-//   - insertObjectParams repository.InsertObjectParams
-func (_e *MockRepository_Expecter) InsertObject(context1 interface{}, insertObjectParams interface{}) *MockRepository_InsertObject_Call {
-	return &MockRepository_InsertObject_Call{Call: _e.mock.On("InsertObject", context1, insertObjectParams)}
+//   - mastercat repository.Mastercat
+func (_e *MockRepository_Expecter) InsertMastercat(context1 interface{}, mastercat interface{}) *MockRepository_InsertMastercat_Call {
+	return &MockRepository_InsertMastercat_Call{Call: _e.mock.On("InsertMastercat", context1, mastercat)}
 }
 
-func (_c *MockRepository_InsertObject_Call) Run(run func(context1 context.Context, insertObjectParams repository.InsertObjectParams)) *MockRepository_InsertObject_Call {
+func (_c *MockRepository_InsertMastercat_Call) Run(run func(context1 context.Context, mastercat repository.Mastercat)) *MockRepository_InsertMastercat_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 repository.InsertObjectParams
+		var arg1 repository.Mastercat
 		if args[1] != nil {
-			arg1 = args[1].(repository.InsertObjectParams)
+			arg1 = args[1].(repository.Mastercat)
 		}
 		run(
 			arg0,
@@ -784,12 +766,12 @@ func (_c *MockRepository_InsertObject_Call) Run(run func(context1 context.Contex
 	return _c
 }
 
-func (_c *MockRepository_InsertObject_Call) Return(mastercat repository.Mastercat, err error) *MockRepository_InsertObject_Call {
-	_c.Call.Return(mastercat, err)
+func (_c *MockRepository_InsertMastercat_Call) Return(err error) *MockRepository_InsertMastercat_Call {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockRepository_InsertObject_Call) RunAndReturn(run func(context1 context.Context, insertObjectParams repository.InsertObjectParams) (repository.Mastercat, error)) *MockRepository_InsertObject_Call {
+func (_c *MockRepository_InsertMastercat_Call) RunAndReturn(run func(context1 context.Context, mastercat repository.Mastercat) error) *MockRepository_InsertMastercat_Call {
 	_c.Call.Return(run)
 	return _c
 }

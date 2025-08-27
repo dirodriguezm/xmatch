@@ -151,11 +151,11 @@ func (api *API) conesearch(c *gin.Context) {
 
 func isEmptyResult(result any) bool {
 	// WARN: in this layer there should not be any references to repository, that should be done in service
-	switch result.(type) {
+	switch result := result.(type) {
 	case []repository.Mastercat:
-		return len(result.([]repository.Mastercat)) == 0
+		return len(result) == 0
 	case []repository.Allwise:
-		return len(result.([]repository.Allwise)) == 0
+		return len(result) == 0
 	default:
 		return false
 	}

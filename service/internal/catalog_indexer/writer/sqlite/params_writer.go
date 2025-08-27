@@ -32,7 +32,7 @@ type MastercatWriter struct {
 	Db   *sql.DB
 }
 
-func (w MastercatWriter) BulkWrite(objs []repository.InsertObjectParams) error {
+func (w MastercatWriter) BulkWrite(objs []repository.Mastercat) error {
 	return w.Repo.BulkInsertObject(w.Ctx, w.Db, objs)
 }
 
@@ -42,6 +42,6 @@ type AllwiseWriter struct {
 	Db   *sql.DB
 }
 
-func (w AllwiseWriter) BulkWrite(objs []repository.Metadata) error {
+func (w AllwiseWriter) BulkWrite(objs []repository.Allwise) error {
 	return w.Repo.BulkInsertAllwise(w.Ctx, w.Db, objs)
 }

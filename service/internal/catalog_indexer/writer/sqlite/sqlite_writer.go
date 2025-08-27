@@ -23,27 +23,25 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 )
 
-type SqliteWriter[I, O any] struct {
-	*writer.BaseWriter[I, O]
+type SqliteWriter[T any] struct {
+	*writer.BaseWriter[T]
 	repository conesearch.Repository
 	ctx        context.Context
 	src        *source.Source
-	parser     ParamsParser[I, O]
-	bulkWriter ParamsWriter[O]
+	bulkWriter ParamsWriter[T]
 }
 
-func NewSqliteWriter[I, O any](
+func NewSqliteWriter[T any](
 	repository conesearch.Repository,
-	ch chan writer.WriterInput[I],
+	ch chan writer.WriterInput[T],
 	done chan struct{},
 	ctx context.Context,
 	src *source.Source,
-	parser ParamsParser[I, O],
-	bulkWriter ParamsWriter[O],
-) *SqliteWriter[I, O] {
+	bulkWriter ParamsWriter[T],
+) *SqliteWriter[T] {
 	slog.Debug("Creating new SqliteWriter")
-	w := &SqliteWriter[I, O]{
-		BaseWriter: &writer.BaseWriter[I, O]{
+	w := &SqliteWriter[T]{
+		BaseWriter: &writer.BaseWriter[T]{
 			Ctx:          ctx,
 			DoneChannel:  done,
 			InboxChannel: ch,
@@ -51,34 +49,27 @@ func NewSqliteWriter[I, O any](
 		repository: repository,
 		ctx:        ctx,
 		src:        src,
-		parser:     parser,
 		bulkWriter: bulkWriter,
 	}
 	w.Writer = w
 	return w
 }
 
-func (w *SqliteWriter[I, O]) Receive(msg writer.WriterInput[I]) {
+func (w *SqliteWriter[T]) Receive(msg writer.WriterInput[T]) {
 	slog.Debug("Writer received message")
 	if msg.Error != nil {
 		slog.Error("SqliteWriter received error")
 		panic(msg.Error)
 	}
 
-	params := make([]O, len(msg.Rows))
-	for i, object := range msg.Rows {
-		// convert the received row to insert params needed by the repository
-		p := w.parser.Parse(object)
-		params[i] = p
-	}
-	// insert converted rows
-	err := w.bulkWriter.BulkWrite(params)
+	// insert rows
+	err := w.bulkWriter.BulkWrite(msg.Rows)
 	if err != nil {
 		slog.Error("SqliteWriter could not write objects to database")
 		panic(err)
 	}
 }
 
-func (w *SqliteWriter[I, O]) Stop() {
+func (w *SqliteWriter[T]) Stop() {
 	w.DoneChannel <- struct{}{}
 }

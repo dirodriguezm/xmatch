@@ -92,7 +92,7 @@ catalog_indexer:
 }
 
 func TestActor(t *testing.T) {
-	var w writer.Writer[repository.Mastercat, repository.InsertObjectParams]
+	var w writer.Writer[repository.Mastercat]
 	err := ctr.NamedResolve(&w, "indexer_writer")
 	require.NoError(t, err)
 

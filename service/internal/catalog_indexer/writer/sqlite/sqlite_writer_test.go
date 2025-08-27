@@ -38,7 +38,7 @@ func TestStart_Mastercat(t *testing.T) {
 	}
 	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
 
-	params := repository.InsertObjectParams{
+	params := repository.Mastercat{
 		ID:   mastercat.ID,
 		Ipix: mastercat.Ipix,
 		Ra:   mastercat.Ra,
@@ -51,15 +51,14 @@ func TestStart_Mastercat(t *testing.T) {
 		"BulkInsertObject",
 		mock.Anything,
 		mock.Anything,
-		[]repository.InsertObjectParams{params},
+		[]repository.Mastercat{params},
 	).Return(nil)
-	parser := MastercatParser{}
 	bulkWriter := MastercatWriter{
 		Repo: repo,
 		Ctx:  context.Background(),
 		Db:   repo.GetDbInstance(),
 	}
-	w := NewSqliteWriter(repo, make(chan writer.WriterInput[repository.Mastercat]), make(chan struct{}), context.Background(), src, parser, bulkWriter)
+	w := NewSqliteWriter(repo, make(chan writer.WriterInput[repository.Mastercat]), make(chan struct{}), context.Background(), src, bulkWriter)
 
 	w.Start()
 	w.BaseWriter.InboxChannel <- writer.WriterInput[repository.Mastercat]{
@@ -81,7 +80,7 @@ func TestStart_Allwise(t *testing.T) {
 	}
 	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
 
-	params := repository.InsertAllwiseParams{
+	params := repository.Allwise{
 		ID:         allwise.ID,
 		W1mpro:     allwise.W1mpro,
 		W1sigmpro:  allwise.W1sigmpro,
@@ -104,15 +103,14 @@ func TestStart_Allwise(t *testing.T) {
 		"BulkInsertAllwise",
 		mock.Anything,
 		mock.Anything,
-		[]repository.Metadata{params},
+		[]repository.Allwise{params},
 	).Return(nil)
 	w := NewSqliteWriter(
 		repo,
-		make(chan writer.WriterInput[repository.Metadata]),
+		make(chan writer.WriterInput[repository.Allwise]),
 		make(chan struct{}),
 		context.Background(),
 		src,
-		AllwiseParser{},
 		AllwiseWriter{
 			Repo: repo,
 			Ctx:  context.Background(),
@@ -121,8 +119,8 @@ func TestStart_Allwise(t *testing.T) {
 	)
 
 	w.Start()
-	w.BaseWriter.InboxChannel <- writer.WriterInput[repository.Metadata]{
-		Rows:  []repository.Metadata{allwise},
+	w.BaseWriter.InboxChannel <- writer.WriterInput[repository.Allwise]{
+		Rows:  []repository.Allwise{allwise},
 		Error: nil,
 	}
 	close(w.BaseWriter.InboxChannel)

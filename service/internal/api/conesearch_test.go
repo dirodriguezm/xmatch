@@ -143,7 +143,7 @@ func TestConesearch_NNeighbor(t *testing.T) {
 
 	point := healpix.RADec(0.0000001, 0)
 	ipix := mapper.PixelAt(point)
-	_, err = repo.InsertObject(ctx, repository.InsertObjectParams{
+	err = repo.InsertObject(ctx, repository.InsertObjectParams{
 		ID:   "allwise-1",
 		Ra:   0.0000001,
 		Dec:  0,
@@ -152,7 +152,7 @@ func TestConesearch_NNeighbor(t *testing.T) {
 	})
 	point = healpix.RADec(0.0000002, 0)
 	ipix = mapper.PixelAt(point)
-	_, err = repo.InsertObject(ctx, repository.InsertObjectParams{
+	err = repo.InsertObject(ctx, repository.InsertObjectParams{
 		ID:   "allwise-2",
 		Ipix: ipix,
 		Ra:   0.0000002,

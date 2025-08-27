@@ -21,20 +21,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 )
 
-type Repository interface {
-	InsertAllwise(context.Context, repository.InsertAllwiseParams) error
-	GetAllwise(context.Context, string) (repository.Allwise, error)
-	BulkGetAllwise(context.Context, []string) ([]repository.Allwise, error)
-}
-
 type MetadataService struct {
-	repository Repository
+	repository conesearch.Repository
 }
 
-func NewMetadataService(repo Repository) (*MetadataService, error) {
+func NewMetadataService(repo conesearch.Repository) (*MetadataService, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("Repository was nil while creating MetadataService")
 	}

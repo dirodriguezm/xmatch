@@ -9,13 +9,12 @@ FROM mastercat
 WHERE ipix IN (sqlc.slice(ipix))
 AND cat = ?;
 
--- name: InsertObject :one
+-- name: InsertObject :exec
 INSERT INTO mastercat (
 	id, ipix, ra, dec, cat
 ) VALUES (
 	?, ?, ?, ?, ?
-)
-RETURNING *;
+);
 
 -- name: GetAllObjects :many
 SELECT *
@@ -25,13 +24,12 @@ FROM mastercat;
 SELECT *
 FROM catalogs;
 
--- name: InsertCatalog :one
+-- name: InsertCatalog :exec
 INSERT INTO catalogs (
 	name, nside
 ) VALUES (
 	?, ?
-)
-RETURNING *;
+);
 
 -- name: InsertAllwise :exec
 INSERT INTO allwise (
