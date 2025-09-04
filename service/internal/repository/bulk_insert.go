@@ -22,15 +22,15 @@ import (
 func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []Mastercat) error {
 	tx, err := db.Begin()
 	if err != nil {
-		return nil
+		return err
 	}
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
 		err = qtx.InsertMastercat(ctx, arg[i])
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }
@@ -38,15 +38,15 @@ func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []Master
 func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []Allwise) error {
 	tx, err := db.Begin()
 	if err != nil {
-		return nil
+		return err
 	}
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
 		err = qtx.InsertAllwiseWithoutParams(ctx, arg[i])
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }

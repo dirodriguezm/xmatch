@@ -76,6 +76,10 @@ func BuildIndexerContainer(
 			slog.Error("Could not create sqlite connection", "conn", conn)
 			panic(err)
 		}
+		db.SetMaxOpenConns(1)    // SQLite only supports 1 writer connection
+		db.SetMaxIdleConns(1)    // Keep 1 idle connection
+		db.SetConnMaxLifetime(0) // Connections don't expire
+		db.SetConnMaxIdleTime(0) // Idle connections don't expire
 		_, err = db.Exec("select 'test conn'")
 		if err != nil {
 			slog.Error("Could not connect to database", "conn", conn)
