@@ -1,6 +1,9 @@
 package repository
 
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+)
 
 type AllwiseInputSchema struct {
 	Source_id    *string  `parquet:"name=source_id, type=BYTE_ARRAY"`
@@ -113,4 +116,29 @@ func (schema AllwiseInputSchema) FillMetadata(dst Metadata) {
 
 func (a Allwise) GetId() string {
 	return a.ID
+}
+
+func (m InsertAllwiseParams) GetId() string {
+	return m.ID
+}
+
+func (q *Queries) InsertAllwiseWithoutParams(ctx context.Context, arg Allwise) error {
+	_, err := q.db.ExecContext(ctx, insertAllwise,
+		arg.ID,
+		arg.W1mpro,
+		arg.W1sigmpro,
+		arg.W2mpro,
+		arg.W2sigmpro,
+		arg.W3mpro,
+		arg.W3sigmpro,
+		arg.W4mpro,
+		arg.W4sigmpro,
+		arg.JM2mass,
+		arg.JMsig2mass,
+		arg.HM2mass,
+		arg.HMsig2mass,
+		arg.KM2mass,
+		arg.KMsig2mass,
+	)
+	return err
 }

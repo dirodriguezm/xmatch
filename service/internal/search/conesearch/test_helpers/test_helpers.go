@@ -41,10 +41,10 @@ func RegisterCatalogsInDB(ctx context.Context, dbFile string) error {
 	}
 
 	repo := repository.New(db)
-	if _, err := repo.InsertCatalog(ctx, repository.InsertCatalogParams{Name: "vlass", Nside: 18}); err != nil {
+	if err := repo.InsertCatalog(ctx, repository.InsertCatalogParams{Name: "vlass", Nside: 18}); err != nil {
 		return fmt.Errorf("could not insert catalog vlass: %w", err)
 	}
-	if _, err := repo.InsertCatalog(ctx, repository.InsertCatalogParams{Name: "allwise", Nside: 18}); err != nil {
+	if err := repo.InsertCatalog(ctx, repository.InsertCatalogParams{Name: "allwise", Nside: 18}); err != nil {
 		return fmt.Errorf("could not insert catalog allwise: %w", err)
 	}
 	return nil
@@ -94,7 +94,7 @@ func InsertAllwiseMastercat(nobjects int, db *sql.DB) error {
 		ipix := mapper.PixelAt(point)
 
 		// insert object
-		_, err = repo.InsertObject(context.Background(), repository.InsertObjectParams{
+		err = repo.InsertObject(context.Background(), repository.InsertObjectParams{
 			ID:   fmt.Sprintf("allwise-%d", i),
 			Ipix: ipix,
 			Ra:   float64(ra),
@@ -112,7 +112,7 @@ func InsertAllwiseMastercat(nobjects int, db *sql.DB) error {
 func InsertAllwiseMetadata(nobjects int, db *sql.DB) error {
 	repo := repository.New(db)
 	for i := range nobjects {
-		metadata := repository.InsertAllwiseParams{
+		metadata := repository.Allwise{
 			ID:         fmt.Sprintf("allwise-%d", i),
 			W1mpro:     sql.NullFloat64{Float64: 1.0, Valid: true},
 			W1sigmpro:  sql.NullFloat64{Float64: 0.1, Valid: true},
@@ -129,7 +129,7 @@ func InsertAllwiseMetadata(nobjects int, db *sql.DB) error {
 			KM2mass:    sql.NullFloat64{Float64: 7.0, Valid: true},
 			KMsig2mass: sql.NullFloat64{Float64: 0.7, Valid: true},
 		}
-		err := repo.InsertAllwise(context.Background(), metadata)
+		err := repo.InsertAllwiseWithoutParams(context.Background(), metadata)
 		if err != nil {
 			return fmt.Errorf("could not insert allwise metadata: %w", err)
 		}

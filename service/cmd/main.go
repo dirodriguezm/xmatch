@@ -36,6 +36,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/preprocessor/reducer"
 	partition_writer "github.com/dirodriguezm/xmatch/service/internal/preprocessor/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/web"
 	"github.com/gin-gonic/gin"
 )
@@ -107,7 +108,7 @@ func startCatalogIndexer(
 	indexerWriter.Start()
 
 	// initialize metadata writer
-	var metadataWriter writer.Writer[repository.Metadata]
+	var metadataWriter writer.Writer[repository.Allwise]
 	if cfg.CatalogIndexer.MetadataWriter != nil && cfg.CatalogIndexer.Source.Metadata {
 		err := ctr.NamedResolve(&metadataWriter, "metadata_writer")
 		if err != nil {
@@ -147,6 +148,15 @@ func startCatalogIndexer(
 	if cfg.CatalogIndexer.MetadataWriter != nil && cfg.CatalogIndexer.Source.Metadata {
 		metadataWriter.Done()
 		slog.Info("Metadata indexer finished writing")
+	}
+
+	// close db connection
+	slog.Info("Closing db connection")
+	var repo conesearch.Repository
+	ctr.Resolve(&repo)
+	err = repo.GetDbInstance().Close()
+	if err != nil {
+		slog.Error("Could not close db connection", "error", err)
 	}
 
 	slog.Info("Catalog indexer finished successfully")
