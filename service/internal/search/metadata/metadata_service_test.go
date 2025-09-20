@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/dirodriguezm/xmatch/service/mocks"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +50,7 @@ func TestMetadata_ValidateCatalog(t *testing.T) {
 }
 
 func TestMetadata_FindByID(t *testing.T) {
-	repo := &mocks.Repository{}
+	repo := &conesearch.MockRepository{}
 	repo.On("GetAllwise", mock.Anything, "allwise1").Return(repository.Allwise{ID: "allwise1"}, nil)
 
 	m := &MetadataService{
@@ -64,7 +64,7 @@ func TestMetadata_FindByID(t *testing.T) {
 }
 
 func TestMetadata_BulkFindByID(t *testing.T) {
-	repo := &mocks.Repository{}
+	repo := &conesearch.MockRepository{}
 	repo.On("BulkGetAllwise", mock.Anything, []string{"allwise1", "allwise2"}).Return([]repository.Allwise{{ID: "allwise1"}, {ID: "allwise2"}}, nil)
 
 	m := &MetadataService{
@@ -81,7 +81,7 @@ func TestMetadata_BulkFindByID(t *testing.T) {
 }
 
 func TestMetadata_Bulk_EmptyResult(t *testing.T) {
-	repo := &mocks.Repository{}
+	repo := &conesearch.MockRepository{}
 
 	repo.
 		On("GetAllwise", mock.Anything, "allwise1").
@@ -98,7 +98,7 @@ func TestMetadata_Bulk_EmptyResult(t *testing.T) {
 }
 
 func TestMetadata_SomeDBError(t *testing.T) {
-	repo := &mocks.Repository{}
+	repo := &conesearch.MockRepository{}
 
 	repo.
 		On("GetAllwise", mock.Anything, "allwise1").

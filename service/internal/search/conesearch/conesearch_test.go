@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/dirodriguezm/xmatch/service/mocks"
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +31,7 @@ func TestConesearch(t *testing.T) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &mocks.Repository{}
+	repo := &MockRepository{}
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
@@ -47,7 +46,7 @@ func TestConesearch(t *testing.T) {
 }
 
 func TestConesearch_WithRepositoryError(t *testing.T) {
-	repo := &mocks.Repository{}
+	repo := &MockRepository{}
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(nil, errors.New("Test error"))
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
@@ -68,7 +67,7 @@ func TestConesearch_WithMultipleMappers(t *testing.T) {
 	ztfObjects := []repository.Mastercat{
 		{ID: "ZTFA", Ra: 1, Dec: 1, Cat: "ztf"},
 	}
-	repo := &mocks.Repository{}
+	repo := &MockRepository{}
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(vlassObjects, nil).Once()
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(ztfObjects, nil).Once()
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}, {Name: "ztf", Nside: 12}}
@@ -95,7 +94,7 @@ func TestBulkConesearch(t *testing.T) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &mocks.Repository{}
+	repo := &MockRepository{}
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
@@ -133,7 +132,7 @@ func TestConesearch_WithMetadata(t *testing.T) {
 		{ID: "A", Ra: 1, Dec: 1},
 		{ID: "B", Ra: 10, Dec: 10},
 	}
-	repo := &mocks.Repository{}
+	repo := &MockRepository{}
 	repo.On("GetAllwiseFromPixels", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "allwise", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
@@ -152,7 +151,7 @@ func FuzzConesearch(f *testing.F) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &mocks.Repository{}
+	repo := &MockRepository{}
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))

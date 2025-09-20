@@ -1,0 +1,11 @@
+template: testify
+template-data:
+  unroll-variadic: true
+packages:
+  github.com/dirodriguezm/xmatch/service/internal/search/conesearch:
+    config:
+      dir: "{{.InterfaceDir}}"
+      filename: "mocks.go"
+      structname: "Mock{{.InterfaceName}}"
+    interfaces:
+      Repository:

@@ -379,13 +379,12 @@ func (q *Queries) InsertAllwise(ctx context.Context, arg InsertAllwiseParams) er
 	return err
 }
 
-const insertCatalog = `-- name: InsertCatalog :one
+const insertCatalog = `-- name: InsertCatalog :exec
 INSERT INTO catalogs (
 	name, nside
 ) VALUES (
 	?, ?
 )
-RETURNING name, nside
 `
 
 type InsertCatalogParams struct {
@@ -393,20 +392,17 @@ type InsertCatalogParams struct {
 	Nside int64
 }
 
-func (q *Queries) InsertCatalog(ctx context.Context, arg InsertCatalogParams) (Catalog, error) {
-	row := q.db.QueryRowContext(ctx, insertCatalog, arg.Name, arg.Nside)
-	var i Catalog
-	err := row.Scan(&i.Name, &i.Nside)
-	return i, err
+func (q *Queries) InsertCatalog(ctx context.Context, arg InsertCatalogParams) error {
+	_, err := q.db.ExecContext(ctx, insertCatalog, arg.Name, arg.Nside)
+	return err
 }
 
-const insertObject = `-- name: InsertObject :one
+const insertObject = `-- name: InsertObject :exec
 INSERT INTO mastercat (
 	id, ipix, ra, dec, cat
 ) VALUES (
 	?, ?, ?, ?, ?
 )
-RETURNING id, ipix, ra, dec, cat
 `
 
 type InsertObjectParams struct {
@@ -417,23 +413,15 @@ type InsertObjectParams struct {
 	Cat  string  `json:"cat" parquet:"name=cat, type=BYTE_ARRAY"`
 }
 
-func (q *Queries) InsertObject(ctx context.Context, arg InsertObjectParams) (Mastercat, error) {
-	row := q.db.QueryRowContext(ctx, insertObject,
+func (q *Queries) InsertObject(ctx context.Context, arg InsertObjectParams) error {
+	_, err := q.db.ExecContext(ctx, insertObject,
 		arg.ID,
 		arg.Ipix,
 		arg.Ra,
 		arg.Dec,
 		arg.Cat,
 	)
-	var i Mastercat
-	err := row.Scan(
-		&i.ID,
-		&i.Ipix,
-		&i.Ra,
-		&i.Dec,
-		&i.Cat,
-	)
-	return i, err
+	return err
 }
 
 const removeAllAllwise = `-- name: RemoveAllAllwise :exec

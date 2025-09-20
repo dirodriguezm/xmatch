@@ -97,11 +97,6 @@ func BuildServiceContainer(
 		return repository.New(db)
 	})
 
-	// the metadata.Repository is a subset of conesearch.Repository
-	ctr.Singleton(func(repo conesearch.Repository) metadata.Repository {
-		return repo
-	})
-
 	ctr.Singleton(func(r conesearch.Repository, cfg *config.Config) *conesearch.ConesearchService {
 		ctx := context.Background()
 		catalogs, err := r.GetCatalogs(ctx)
@@ -122,7 +117,7 @@ func BuildServiceContainer(
 		return con
 	})
 
-	ctr.Singleton(func(r metadata.Repository) *metadata.MetadataService {
+	ctr.Singleton(func(r conesearch.Repository) *metadata.MetadataService {
 		service, err := metadata.NewMetadataService(r)
 		if err != nil {
 			panic(fmt.Errorf("Could not create MetadataService: %w", err))

@@ -21,7 +21,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
@@ -77,6 +76,10 @@ func BuildIndexerContainer(
 			slog.Error("Could not create sqlite connection", "conn", conn)
 			panic(err)
 		}
+		db.SetMaxOpenConns(1)    // SQLite only supports 1 writer connection
+		db.SetMaxIdleConns(1)    // Keep 1 idle connection
+		db.SetConnMaxLifetime(0) // Connections don't expire
+		db.SetConnMaxIdleTime(0) // Idle connections don't expire
 		_, err = db.Exec("select 'test conn'")
 		if err != nil {
 			slog.Error("Could not connect to database", "conn", conn)
@@ -152,7 +155,12 @@ func BuildIndexerContainer(
 			}
 			return w
 		case "sqlite":
-			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src)
+			bulkWriter := sqlite_writer.MastercatWriter{
+				Repo: repo,
+				Ctx:  ctx,
+				Db:   repo.GetDbInstance(),
+			}
+			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src, bulkWriter)
 			return w
 		default:
 			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.IndexerWriter.Type)
@@ -162,17 +170,8 @@ func BuildIndexerContainer(
 
 	// Register metadata indexer
 	ctr.Singleton(func(src *source.Source, cfg *config.Config) *metadata_indexer.IndexerActor {
-		outbox := make(chan writer.WriterInput[repository.Metadata], cfg.CatalogIndexer.ChannelSize)
-		var parser metadata_indexer.MetadataParser[repository.Metadata]
-		switch strings.ToLower(cfg.CatalogIndexer.Source.CatalogName) {
-		case "allwise":
-			parser = metadata_indexer.AllwiseMetadataParser{}
-		case "vlass":
-			parser = metadata_indexer.VlassMetadataParser{}
-		default:
-			panic(fmt.Errorf("Unknown catalog name: %s", cfg.CatalogIndexer.Source.CatalogName))
-		}
-		return metadata_indexer.New(readerResults["metadata"], outbox, parser)
+		outbox := make(chan writer.WriterInput[repository.Allwise], cfg.CatalogIndexer.ChannelSize)
+		return metadata_indexer.New(readerResults["metadata"], outbox)
 	})
 
 	// Register metadata writer
@@ -181,26 +180,27 @@ func BuildIndexerContainer(
 		repo conesearch.Repository,
 		src *source.Source,
 		ind *metadata_indexer.IndexerActor,
-	) writer.Writer[repository.Metadata] {
+	) writer.Writer[repository.Allwise] {
 		if cfg.CatalogIndexer.MetadataWriter == nil {
 			slog.Info("Skipping registration for metadata writer. MetadataWriter not configured")
 			return nil
 		}
 		switch cfg.CatalogIndexer.MetadataWriter.Type {
 		case "parquet":
-			switch strings.ToLower(cfg.CatalogIndexer.Source.CatalogName) {
-			case "allwise":
-				cfg.CatalogIndexer.MetadataWriter.Schema = config.AllwiseSchema
-			default:
-				panic("Unknown catalog name")
-			}
+			cfg.CatalogIndexer.MetadataWriter.Schema = config.AllwiseSchema
 			w, err := parquet_writer.NewParquetWriter(ind.GetOutbox(), make(chan struct{}), cfg.CatalogIndexer.MetadataWriter, ctx)
 			if err != nil {
 				panic(err)
 			}
 			return w
 		case "sqlite":
-			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src)
+			var bulkWriter sqlite_writer.ParamsWriter[repository.Allwise]
+			bulkWriter = sqlite_writer.AllwiseWriter{
+				Repo: repo,
+				Ctx:  ctx,
+				Db:   repo.GetDbInstance(),
+			}
+			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src, bulkWriter)
 			return w
 		default:
 			panic(fmt.Errorf("Unknown catalog name: %s", cfg.CatalogIndexer.Source.CatalogName))
