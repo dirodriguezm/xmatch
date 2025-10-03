@@ -68,6 +68,7 @@ type ReaderConfig struct {
 	// CSV config
 	Header          []string `yaml:"header"`
 	FirstLineHeader bool     `yaml:"first_line_header"`
+	Comment         string   `yaml:"comment"`
 }
 
 type IndexerConfig struct {

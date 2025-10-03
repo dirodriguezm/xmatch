@@ -40,6 +40,7 @@ func ReaderFactory(
 			csv_reader.WithCsvBatchSize(cfg.BatchSize),
 			csv_reader.WithHeader(cfg.Header),
 			csv_reader.WithFirstLineHeader(cfg.FirstLineHeader),
+			csv_reader.WithComment(cfg.Comment),
 		)
 	case "parquet":
 		return parquetFactory(src, outbox, cfg)

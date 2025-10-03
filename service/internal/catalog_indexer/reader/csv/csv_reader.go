@@ -19,12 +19,15 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"slices"
 	"strconv"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
+
+var nullValues = []string{"", "NA", "N/A", "NULL", "NaN", "n/a", "null", "nan"}
 
 type CsvReader struct {
 	*reader.BaseReader
@@ -190,6 +193,13 @@ func (r *CsvReader) createInputSchema(catalogName string, record []string) repos
 			panic(err)
 		}
 		return &schema
+	case "gaia":
+		schema := repository.GaiaInputSchema{}
+		err := fillStructFromStrings(&schema, record)
+		if err != nil {
+			panic(err)
+		}
+		return &schema
 	default:
 		schema := TestSchema{}
 		err := fillStructFromStrings(&schema, record)
@@ -220,7 +230,7 @@ func fillStructFromStrings(s any, values []string) error {
 			field.SetString(strVal)
 
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			if strVal == "" {
+			if slices.Contains(nullValues, strVal) {
 				continue
 			}
 			n, err := strconv.ParseInt(strVal, 10, 64)
@@ -230,7 +240,7 @@ func fillStructFromStrings(s any, values []string) error {
 			field.SetInt(n)
 
 		case reflect.Float32, reflect.Float64:
-			if strVal == "" {
+			if slices.Contains(nullValues, strVal) {
 				continue
 			}
 			f, err := strconv.ParseFloat(strVal, 64)
@@ -240,7 +250,7 @@ func fillStructFromStrings(s any, values []string) error {
 			field.SetFloat(f)
 
 		case reflect.Bool:
-			if strVal == "" {
+			if slices.Contains(nullValues, strVal) {
 				continue
 			}
 			b, err := strconv.ParseBool(strVal)

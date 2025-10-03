@@ -36,3 +36,12 @@ func WithCsvBatchSize(size int) CsvReaderOption {
 		r.BatchSize = size
 	}
 }
+
+func WithComment(comment string) CsvReaderOption {
+	return func(r *CsvReader) {
+		for _, char := range comment {
+			r.currentReader.Comment = rune(char)
+			break
+		}
+	}
+}

@@ -63,3 +63,28 @@ FROM allwise
 JOIN mastercat ON mastercat.id = allwise.id
 WHERE mastercat.ipix IN (sqlc.slice(ipix));
 
+-- name: InsertGaia :exec
+INSERT INTO gaia (
+	id, ra, dec
+) VALUES (
+	?, ?, ?
+);
+
+-- name: GetGaia :one
+SELECT *
+FROM gaia
+WHERE id = ?;
+
+-- name: BulkGetGaia :many
+SELECT *
+FROM gaia
+WHERE id IN (sqlc.slice(id));
+
+-- name: RemoveAllGaia :exec
+DELETE FROM gaia;
+
+-- name: GetGaiaFromPixels :many
+SELECT gaia.*, mastercat.ra, mastercat.dec
+FROM gaia 
+JOIN mastercat ON mastercat.id = gaia.id
+WHERE mastercat.ipix IN (sqlc.slice(ipix));
