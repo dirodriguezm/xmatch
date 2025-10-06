@@ -68,6 +68,7 @@ type ReaderConfig struct {
 	// CSV config
 	Header          []string `yaml:"header"`
 	FirstLineHeader bool     `yaml:"first_line_header"`
+	Comment         string   `yaml:"comment"`
 }
 
 type IndexerConfig struct {
@@ -82,14 +83,15 @@ const (
 	MastercatSchema
 	TestSchema
 	VlassSchema
+	GaiaSchema
 )
 
 type WriterConfig struct {
 	Type string `yaml:"type"`
 
 	// parquet config
-	OutputFile string `yaml:"output_file"`
-	Schema     ParquetSchema
+	OutputFile string        `yaml:"output_file"`
+	Schema     ParquetSchema `yaml:"schema"`
 }
 
 type PartitionWriterConfig struct {

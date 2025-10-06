@@ -108,16 +108,16 @@ func (_c *MockRepository_BulkGetAllwise_Call) RunAndReturn(run func(context1 con
 }
 
 // BulkInsertAllwise provides a mock function for the type MockRepository
-func (_mock *MockRepository) BulkInsertAllwise(context1 context.Context, dB *sql.DB, allwises []repository.Allwise) error {
-	ret := _mock.Called(context1, dB, allwises)
+func (_mock *MockRepository) BulkInsertAllwise(context1 context.Context, dB *sql.DB, vs []any) error {
+	ret := _mock.Called(context1, dB, vs)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BulkInsertAllwise")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []repository.Allwise) error); ok {
-		r0 = returnFunc(context1, dB, allwises)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []any) error); ok {
+		r0 = returnFunc(context1, dB, vs)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -132,12 +132,12 @@ type MockRepository_BulkInsertAllwise_Call struct {
 // BulkInsertAllwise is a helper method to define mock.On call
 //   - context1 context.Context
 //   - dB *sql.DB
-//   - allwises []repository.Allwise
-func (_e *MockRepository_Expecter) BulkInsertAllwise(context1 interface{}, dB interface{}, allwises interface{}) *MockRepository_BulkInsertAllwise_Call {
-	return &MockRepository_BulkInsertAllwise_Call{Call: _e.mock.On("BulkInsertAllwise", context1, dB, allwises)}
+//   - vs []any
+func (_e *MockRepository_Expecter) BulkInsertAllwise(context1 interface{}, dB interface{}, vs interface{}) *MockRepository_BulkInsertAllwise_Call {
+	return &MockRepository_BulkInsertAllwise_Call{Call: _e.mock.On("BulkInsertAllwise", context1, dB, vs)}
 }
 
-func (_c *MockRepository_BulkInsertAllwise_Call) Run(run func(context1 context.Context, dB *sql.DB, allwises []repository.Allwise)) *MockRepository_BulkInsertAllwise_Call {
+func (_c *MockRepository_BulkInsertAllwise_Call) Run(run func(context1 context.Context, dB *sql.DB, vs []any)) *MockRepository_BulkInsertAllwise_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -147,9 +147,9 @@ func (_c *MockRepository_BulkInsertAllwise_Call) Run(run func(context1 context.C
 		if args[1] != nil {
 			arg1 = args[1].(*sql.DB)
 		}
-		var arg2 []repository.Allwise
+		var arg2 []any
 		if args[2] != nil {
-			arg2 = args[2].([]repository.Allwise)
+			arg2 = args[2].([]any)
 		}
 		run(
 			arg0,
@@ -165,22 +165,85 @@ func (_c *MockRepository_BulkInsertAllwise_Call) Return(err error) *MockReposito
 	return _c
 }
 
-func (_c *MockRepository_BulkInsertAllwise_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, allwises []repository.Allwise) error) *MockRepository_BulkInsertAllwise_Call {
+func (_c *MockRepository_BulkInsertAllwise_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, vs []any) error) *MockRepository_BulkInsertAllwise_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BulkInsertGaia provides a mock function for the type MockRepository
+func (_mock *MockRepository) BulkInsertGaia(context1 context.Context, dB *sql.DB, vs []any) error {
+	ret := _mock.Called(context1, dB, vs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BulkInsertGaia")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []any) error); ok {
+		r0 = returnFunc(context1, dB, vs)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRepository_BulkInsertGaia_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BulkInsertGaia'
+type MockRepository_BulkInsertGaia_Call struct {
+	*mock.Call
+}
+
+// BulkInsertGaia is a helper method to define mock.On call
+//   - context1 context.Context
+//   - dB *sql.DB
+//   - vs []any
+func (_e *MockRepository_Expecter) BulkInsertGaia(context1 interface{}, dB interface{}, vs interface{}) *MockRepository_BulkInsertGaia_Call {
+	return &MockRepository_BulkInsertGaia_Call{Call: _e.mock.On("BulkInsertGaia", context1, dB, vs)}
+}
+
+func (_c *MockRepository_BulkInsertGaia_Call) Run(run func(context1 context.Context, dB *sql.DB, vs []any)) *MockRepository_BulkInsertGaia_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *sql.DB
+		if args[1] != nil {
+			arg1 = args[1].(*sql.DB)
+		}
+		var arg2 []any
+		if args[2] != nil {
+			arg2 = args[2].([]any)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_BulkInsertGaia_Call) Return(err error) *MockRepository_BulkInsertGaia_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRepository_BulkInsertGaia_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, vs []any) error) *MockRepository_BulkInsertGaia_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // BulkInsertObject provides a mock function for the type MockRepository
-func (_mock *MockRepository) BulkInsertObject(context1 context.Context, dB *sql.DB, mastercats []repository.Mastercat) error {
-	ret := _mock.Called(context1, dB, mastercats)
+func (_mock *MockRepository) BulkInsertObject(context1 context.Context, dB *sql.DB, vs []any) error {
+	ret := _mock.Called(context1, dB, vs)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BulkInsertObject")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []repository.Mastercat) error); ok {
-		r0 = returnFunc(context1, dB, mastercats)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []any) error); ok {
+		r0 = returnFunc(context1, dB, vs)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -195,12 +258,12 @@ type MockRepository_BulkInsertObject_Call struct {
 // BulkInsertObject is a helper method to define mock.On call
 //   - context1 context.Context
 //   - dB *sql.DB
-//   - mastercats []repository.Mastercat
-func (_e *MockRepository_Expecter) BulkInsertObject(context1 interface{}, dB interface{}, mastercats interface{}) *MockRepository_BulkInsertObject_Call {
-	return &MockRepository_BulkInsertObject_Call{Call: _e.mock.On("BulkInsertObject", context1, dB, mastercats)}
+//   - vs []any
+func (_e *MockRepository_Expecter) BulkInsertObject(context1 interface{}, dB interface{}, vs interface{}) *MockRepository_BulkInsertObject_Call {
+	return &MockRepository_BulkInsertObject_Call{Call: _e.mock.On("BulkInsertObject", context1, dB, vs)}
 }
 
-func (_c *MockRepository_BulkInsertObject_Call) Run(run func(context1 context.Context, dB *sql.DB, mastercats []repository.Mastercat)) *MockRepository_BulkInsertObject_Call {
+func (_c *MockRepository_BulkInsertObject_Call) Run(run func(context1 context.Context, dB *sql.DB, vs []any)) *MockRepository_BulkInsertObject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -210,9 +273,9 @@ func (_c *MockRepository_BulkInsertObject_Call) Run(run func(context1 context.Co
 		if args[1] != nil {
 			arg1 = args[1].(*sql.DB)
 		}
-		var arg2 []repository.Mastercat
+		var arg2 []any
 		if args[2] != nil {
-			arg2 = args[2].([]repository.Mastercat)
+			arg2 = args[2].([]any)
 		}
 		run(
 			arg0,
@@ -228,7 +291,7 @@ func (_c *MockRepository_BulkInsertObject_Call) Return(err error) *MockRepositor
 	return _c
 }
 
-func (_c *MockRepository_BulkInsertObject_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, mastercats []repository.Mastercat) error) *MockRepository_BulkInsertObject_Call {
+func (_c *MockRepository_BulkInsertObject_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, vs []any) error) *MockRepository_BulkInsertObject_Call {
 	_c.Call.Return(run)
 	return _c
 }

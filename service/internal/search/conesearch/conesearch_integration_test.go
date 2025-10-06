@@ -59,7 +59,7 @@ func TestMain(m *testing.M) {
 	config := `
 service:
   database:
-    url: "file:%s"
+    url: "file:%s?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000"
 `
 	config = fmt.Sprintf(config, dbFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)

@@ -21,7 +21,9 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"strings"
 
+	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
 	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
 	metadata_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata"
@@ -37,22 +39,7 @@ import (
 	"github.com/golobby/container/v3"
 )
 
-func BuildIndexerContainer(
-	ctx context.Context,
-	getenv func(string) string,
-	stdout io.Writer,
-) container.Container {
-	ctr := container.New()
-	// read config
-	cfg, err := config.Load(getenv)
-	if err != nil {
-		panic(err)
-	}
-
-	ctr.Singleton(func() *config.Config {
-		return cfg
-	})
-
+func RegisterLogger(ctr container.Container, stdout io.Writer) {
 	ctr.Singleton(func() *slog.LevelVar {
 		levels := map[string]slog.Level{
 			"debug": slog.LevelDebug,
@@ -67,10 +54,25 @@ func BuildIndexerContainer(
 		programLevel.Set(levels[os.Getenv("LOG_LEVEL")])
 		return programLevel
 	})
+}
 
-	// Register DB
+func RegisterConfig(ctr container.Container, getenv func(string) string) {
+	cfg, err := config.Load(getenv)
+	if err != nil {
+		panic(err)
+	}
+	ctr.Singleton(func() *config.Config {
+		return cfg
+	})
+}
+
+func RegisterDB(ctr container.Container) {
 	ctr.Singleton(func(cfg *config.Config) *sql.DB {
 		conn := cfg.CatalogIndexer.Database.Url
+		// Ensure write access with proper SQLite parameters
+		if !strings.Contains(conn, "?") {
+			conn += "?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000"
+		}
 		db, err := sql.Open("sqlite3", conn)
 		if err != nil {
 			slog.Error("Could not create sqlite connection", "conn", conn)
@@ -88,18 +90,21 @@ func BuildIndexerContainer(
 		slog.Debug("Created database", "conn", conn)
 		return db
 	})
+}
 
-	// Register Repository
+func RegisterRepository(ctr container.Container) {
 	ctr.Singleton(func(db *sql.DB) conesearch.Repository {
 		return repository.New(db)
 	})
+}
 
-	// Register CatalogRegister
+func RegisterCatalogRegister(ctr container.Container, ctx context.Context) {
 	ctr.Singleton(func(repo conesearch.Repository, cfg *config.Config) *indexer.CatalogRegister {
 		return indexer.NewCatalogRegister(ctx, repo, *cfg.CatalogIndexer.Source)
 	})
+}
 
-	// Register Source
+func RegisterSource(ctr container.Container) {
 	ctr.Singleton(func(cfg *config.Config) *source.Source {
 		src, err := source.NewSource(cfg.CatalogIndexer.Source)
 		if err != nil {
@@ -108,104 +113,158 @@ func BuildIndexerContainer(
 		}
 		return src
 	})
+}
 
-	// Register reader
-	readerResults := make(map[string]chan reader.ReaderResult)
-	readerResults["indexer"] = make(chan reader.ReaderResult, cfg.CatalogIndexer.ChannelSize)
-	readerResults["metadata"] = make(chan reader.ReaderResult, cfg.CatalogIndexer.ChannelSize)
-	ctr.Singleton(func(src *source.Source, cfg *config.Config) reader.Reader {
-		outputChannels := []chan reader.ReaderResult{readerResults["indexer"]}
-		if cfg.CatalogIndexer.Source.Metadata {
-			outputChannels = append(outputChannels, readerResults["metadata"])
-		}
-		r, err := reader_factory.ReaderFactory(src, outputChannels, cfg.CatalogIndexer.Reader)
-		if err != nil {
-			slog.Error("Could not register reader", "error", err, "source", src, "config", cfg.CatalogIndexer.Reader)
-			panic(err)
-		}
-		return r
-	})
-
-	// Register mastercat indexer
-	ctr.Singleton(func(src *source.Source, cfg *config.Config) *mastercat_indexer.IndexerActor {
-		writerInput := make(chan writer.WriterInput[repository.Mastercat], cfg.CatalogIndexer.ChannelSize)
-		ind, err := mastercat_indexer.New(src, readerResults["indexer"], writerInput, cfg.CatalogIndexer.Indexer)
-		if err != nil {
-			panic(err)
-		}
-		return ind
-	})
-
-	// Register mastercat indexer writer
-	ctr.NamedSingleton("indexer_writer", func(
+func RegisterMastercatWriter(ctr container.Container, ctx context.Context) {
+	ctr.NamedSingleton("mastercat_writer", func(
 		cfg *config.Config,
 		repo conesearch.Repository,
 		src *source.Source,
-		ind *mastercat_indexer.IndexerActor,
-	) writer.Writer[repository.Mastercat] {
+	) *actor.Actor {
 		if cfg.CatalogIndexer.IndexerWriter == nil {
 			panic("Indexer writer not configured")
 		}
 		switch cfg.CatalogIndexer.IndexerWriter.Type {
 		case "parquet":
 			cfg.CatalogIndexer.IndexerWriter.Schema = config.MastercatSchema
-			w, err := parquet_writer.NewParquetWriter(ind.GetOutbox(), make(chan struct{}), cfg.CatalogIndexer.IndexerWriter, ctx)
+			w, err := parquet_writer.New[repository.Mastercat](cfg.CatalogIndexer.IndexerWriter, ctx)
 			if err != nil {
 				panic(err)
 			}
-			return w
+			return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx)
 		case "sqlite":
-			bulkWriter := sqlite_writer.MastercatWriter{
-				Repo: repo,
-				Ctx:  ctx,
-				Db:   repo.GetDbInstance(),
-			}
-			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src, bulkWriter)
-			return w
+			w := sqlite_writer.New(repo, ctx, "mastercat")
+			return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx)
 		default:
 			slog.Error("Writer type not allowed", "type", cfg.CatalogIndexer.IndexerWriter.Type)
 			panic("Writer type not allowed")
 		}
 	})
+}
 
-	// Register metadata indexer
-	ctr.Singleton(func(src *source.Source, cfg *config.Config) *metadata_indexer.IndexerActor {
-		outbox := make(chan writer.WriterInput[repository.Allwise], cfg.CatalogIndexer.ChannelSize)
-		return metadata_indexer.New(readerResults["metadata"], outbox)
+func RegisterMastercatIndexer(ctr container.Container, ctx context.Context) {
+	ctr.NamedSingleton("mastercat_indexer", func(src *source.Source, cfg *config.Config) *actor.Actor {
+		ind, err := mastercat_indexer.New(src, cfg.CatalogIndexer.Indexer)
+		if err != nil {
+			panic(err)
+		}
+		var mastercatWriter *actor.Actor
+		ctr.NamedResolve(&mastercatWriter, "mastercat_writer")
+		return actor.New(cfg.CatalogIndexer.ChannelSize, ind.Index, nil, []*actor.Actor{mastercatWriter}, ctx)
 	})
+}
 
-	// Register metadata writer
+func RegisterMetadataWriter(ctr container.Container, ctx context.Context) {
 	ctr.NamedSingleton("metadata_writer", func(
 		cfg *config.Config,
 		repo conesearch.Repository,
 		src *source.Source,
-		ind *metadata_indexer.IndexerActor,
-	) writer.Writer[repository.Allwise] {
+	) *actor.Actor {
 		if cfg.CatalogIndexer.MetadataWriter == nil {
 			slog.Info("Skipping registration for metadata writer. MetadataWriter not configured")
 			return nil
 		}
 		switch cfg.CatalogIndexer.MetadataWriter.Type {
 		case "parquet":
-			cfg.CatalogIndexer.MetadataWriter.Schema = config.AllwiseSchema
-			w, err := parquet_writer.NewParquetWriter(ind.GetOutbox(), make(chan struct{}), cfg.CatalogIndexer.MetadataWriter, ctx)
+			var w writer.Writer
+			var err error
+			switch cfg.CatalogIndexer.MetadataWriter.Schema {
+			case config.AllwiseSchema:
+				w, err = parquet_writer.New[repository.Allwise](cfg.CatalogIndexer.MetadataWriter, ctx)
+			case config.VlassSchema:
+				w, err = parquet_writer.New[repository.VlassObjectSchema](cfg.CatalogIndexer.MetadataWriter, ctx)
+			case config.GaiaSchema:
+				w, err = parquet_writer.New[repository.Gaia](cfg.CatalogIndexer.MetadataWriter, ctx)
+			default:
+				err = fmt.Errorf("Unknown schema %v", cfg.CatalogIndexer.MetadataWriter.Schema)
+			}
 			if err != nil {
 				panic(err)
 			}
-			return w
+			return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx)
 		case "sqlite":
-			var bulkWriter sqlite_writer.ParamsWriter[repository.Allwise]
-			bulkWriter = sqlite_writer.AllwiseWriter{
-				Repo: repo,
-				Ctx:  ctx,
-				Db:   repo.GetDbInstance(),
+			switch cfg.CatalogIndexer.MetadataWriter.Schema {
+			case config.AllwiseSchema:
+				w := sqlite_writer.New(repo, ctx, "allwise")
+				return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx)
+			case config.VlassSchema:
+				w := sqlite_writer.New(repo, ctx, "vlass")
+				return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx)
+			case config.GaiaSchema:
+				w := sqlite_writer.New(repo, ctx, "gaia")
+				return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx)
+			default:
+				panic(fmt.Errorf("Unknown schema %v", cfg.CatalogIndexer.MetadataWriter.Schema))
 			}
-			w := sqlite_writer.NewSqliteWriter(repo, ind.GetOutbox(), make(chan struct{}), ctx, src, bulkWriter)
-			return w
 		default:
-			panic(fmt.Errorf("Unknown catalog name: %s", cfg.CatalogIndexer.Source.CatalogName))
+			panic(fmt.Errorf("Unknown Metadata Writer Type: %s", cfg.CatalogIndexer.MetadataWriter.Type))
 		}
 	})
+}
+
+func RegisterMetadataIndexer(ctr container.Container, ctx context.Context) {
+	ctr.NamedSingleton("metadata_indexer", func(src *source.Source, cfg *config.Config) *actor.Actor {
+		var metadataWriter *actor.Actor
+		ctr.NamedResolve(&metadataWriter, "metadata_writer")
+		indexer := metadata_indexer.New(cfg.CatalogIndexer.Source.CatalogName)
+		return actor.New(cfg.CatalogIndexer.ChannelSize, indexer.Index, nil, []*actor.Actor{metadataWriter}, ctx)
+	})
+}
+
+func RegisterReader(ctr container.Container) {
+	ctr.Singleton(func(src *source.Source, cfg *config.Config) *reader.SourceReader {
+		r, err := reader_factory.ReaderFactory(src, cfg.CatalogIndexer.Reader)
+		if err != nil {
+			slog.Error("Could not register reader", "error", err, "source", src, "config", cfg.CatalogIndexer.Reader)
+			panic(err)
+		}
+		var mastercatIndexer *actor.Actor
+		var metadataIndexer *actor.Actor
+		err = ctr.NamedResolve(&mastercatIndexer, "mastercat_indexer")
+		if err != nil {
+			panic(fmt.Errorf("Could not resolve mastercat indexer: %w", err))
+		}
+		err = ctr.NamedResolve(&metadataIndexer, "metadata_indexer")
+		if err != nil {
+			panic(fmt.Errorf("Could not resolve metadata indexer: %w", err))
+		}
+
+		sourceReader := reader.SourceReader{
+			Reader:    r,
+			Src:       src,
+			BatchSize: cfg.CatalogIndexer.Reader.BatchSize,
+			Receivers: []*actor.Actor{mastercatIndexer},
+		}
+		if cfg.CatalogIndexer.Source.Metadata {
+			sourceReader.Receivers = append(sourceReader.Receivers, metadataIndexer)
+		}
+		return &sourceReader
+	})
+}
+
+func BuildIndexerContainer(
+	ctx context.Context,
+	getenv func(string) string,
+	stdout io.Writer,
+) container.Container {
+	ctr := container.New()
+
+	// Order is important
+	// Pipeline is:
+	// Reader -> MastercatIndexer -> MastercatWriter
+	//        -> MetadataIndexer -> MetadataWriter
+	// The order is reversed: Writer, Indexer, Reader
+	RegisterConfig(ctr, getenv)
+	RegisterLogger(ctr, stdout)
+	RegisterDB(ctr)
+	RegisterRepository(ctr)
+	RegisterCatalogRegister(ctr, ctx)
+	RegisterSource(ctr)
+	RegisterMastercatWriter(ctr, ctx)
+	RegisterMetadataWriter(ctr, ctx)
+	RegisterMastercatIndexer(ctr, ctx)
+	RegisterMetadataIndexer(ctr, ctx)
+	RegisterReader(ctr)
 
 	return ctr
 }

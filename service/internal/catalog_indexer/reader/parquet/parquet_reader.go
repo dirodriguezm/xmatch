@@ -30,20 +30,14 @@ import (
 )
 
 type ParquetReader[T any] struct {
-	*reader.BaseReader
-	src                  *source.Source
 	currentParquetReader *preader.ParquetReader
 	currentFileReader    psource.ParquetFile
 	currentFileName      string
-	outbox               []chan reader.ReaderResult
+	src                  *source.Source
+	batchSize            int
 }
 
-func NewParquetReader[T any](
-	src *source.Source,
-	channel []chan reader.ReaderResult,
-	opts ...ParquetReaderOption[T],
-) (*ParquetReader[T], error) {
-
+func NewParquetReader[T any](src *source.Source, opts ...ParquetReaderOption[T]) (*ParquetReader[T], error) {
 	currentReader, err := src.Next()
 	if err != nil {
 		return nil, fmt.Errorf("could not get next source: %w", err)
@@ -63,47 +57,41 @@ func NewParquetReader[T any](
 	}
 
 	newReader := &ParquetReader[T]{
-		BaseReader: &reader.BaseReader{
-			Src:    src,
-			Outbox: channel,
-		},
-		src:                  src,
 		currentParquetReader: pr,
 		currentFileReader:    fr,
 		currentFileName:      currentFileName,
-		outbox:               channel,
+		src:                  src,
 	}
 
 	for _, opt := range opts {
 		opt(newReader)
 	}
 
-	newReader.Reader = newReader
 	return newReader, nil
 }
 
-func (r *ParquetReader[T]) ReadSingleFile(currentReader *preader.ParquetReader) ([]repository.InputSchema, error) {
+func (r *ParquetReader[T]) ReadSingleFile(src *source.Source, currentReader *preader.ParquetReader) ([]any, error) {
 	defer currentReader.ReadStop()
 
 	nrows := currentReader.GetNumRows()
 	records := make([]T, nrows)
 
 	if err := currentReader.Read(&records); err != nil {
-		return nil, reader.NewReadError(err, r.src, "Failed to read parquet")
+		return nil, reader.NewReadError(err, src, "Failed to read parquet")
 	}
 
-	parsedRecords := convertToInputSchema(records, r.src.CatalogName)
+	parsedRecords := convertToInputSchema(records, src.CatalogName)
 
 	return parsedRecords, nil
 }
 
-func (r *ParquetReader[T]) Read() ([]repository.InputSchema, error) {
-	rows := make([]repository.InputSchema, 0, r.currentParquetReader.GetNumRows())
+func (r *ParquetReader[T]) Read() ([]any, error) {
+	rows := make([]any, 0, r.currentParquetReader.GetNumRows())
 	eof := false
 
 	for !eof {
 		// Read the current file completely
-		currentRows, err := r.ReadSingleFile(r.currentParquetReader)
+		currentRows, err := r.ReadSingleFile(r.src, r.currentParquetReader)
 		if err != nil {
 			return nil, fmt.Errorf("Could not read file: %s. %w", r.currentFileName, err)
 		}
@@ -151,8 +139,8 @@ func (r *ParquetReader[T]) Read() ([]repository.InputSchema, error) {
 // Reads batch from the passed reader
 // The closing should be handling by the caller
 // Returns io.EOF if there are no more rows to read
-func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]repository.InputSchema, error) {
-	records := make([]T, r.BatchSize)
+func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]any, error) {
+	records := make([]T, r.batchSize)
 
 	if err := currentReader.Read(&records); err != nil {
 		return nil, reader.NewReadError(err, r.src, "Failed to read parquet in batch")
@@ -168,7 +156,7 @@ func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetRea
 	return parsedRecords, nil
 }
 
-func (r *ParquetReader[T]) ReadBatch() ([]repository.InputSchema, error) {
+func (r *ParquetReader[T]) ReadBatch() ([]any, error) {
 	currentRows, err := r.ReadBatchSingleFile(r.currentParquetReader)
 
 	// Read did not finish successfully
@@ -223,8 +211,8 @@ func (r *ParquetReader[T]) ReadBatch() ([]repository.InputSchema, error) {
 	return currentRows, nil
 }
 
-func convertToInputSchema[T any](records []T, catalogName string) []repository.InputSchema {
-	inputSchemas := make([]repository.InputSchema, len(records))
+func convertToInputSchema[T any](records []T, catalogName string) []any {
+	inputSchemas := make([]any, len(records))
 	for i := range records {
 		elem := reflect.ValueOf(records[i])
 		if elem.Kind() == reflect.Ptr {
@@ -269,9 +257,9 @@ func convertToInputSchema[T any](records []T, catalogName string) []repository.I
 	return inputSchemas
 }
 
-func isZeroValueSlice(s []repository.InputSchema) bool {
+func isZeroValueSlice(s []any) bool {
 	for i := range s {
-		if !isZeroValueInputSchema(s[i]) {
+		if !isZeroValueInputSchema(s[i].(repository.InputSchema)) {
 			return false
 		}
 	}
@@ -317,4 +305,9 @@ func isZeroValue(v any) bool {
 		// For struct types, compare with their zero value
 		return reflect.DeepEqual(v, reflect.Zero(reflect.TypeOf(v)).Interface())
 	}
+}
+
+func (r *ParquetReader[T]) Close() error {
+	r.currentParquetReader.ReadStop()
+	return r.currentFileReader.Close()
 }

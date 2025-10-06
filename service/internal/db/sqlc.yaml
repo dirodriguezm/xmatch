@@ -48,7 +48,13 @@ sql:
             go_struct_tag: 'parquet:"name=dec, type=DOUBLE" json:"dec"'
           - column: "mastercat.cat"
             go_struct_tag: 'parquet:"name=cat, type=BYTE_ARRAY" json:"cat"'
-
-
-
-
+          - column: "gaia.id"
+            go_struct_tag: 'parquet:"name=id, type=BYTE_ARRAY" json:"id"'
+          - column: "gaia.ra"
+            go_struct_tag: 'parquet:"name=ra, type=DOUBLE" json:"ra"'
+          - column: "gaia.dec"
+            go_struct_tag: 'parquet:"name=dec, type=DOUBLE" json:"dec"'
+overrides:
+  go:
+    rename:
+      gaium: Gaia

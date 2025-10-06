@@ -21,6 +21,6 @@ func WithParquetBatchSize[T any](size int) ParquetReaderOption[T] {
 		if size <= 0 {
 			size = 1
 		}
-		r.BatchSize = size
+		r.batchSize = size
 	}
 }

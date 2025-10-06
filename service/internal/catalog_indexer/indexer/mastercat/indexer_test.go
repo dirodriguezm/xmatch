@@ -17,9 +17,8 @@ package mastercat_indexer
 import (
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
+	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
@@ -53,9 +52,7 @@ func (t TestSchema) GetId() string {
 }
 
 func TestIndexActor(t *testing.T) {
-	inbox := make(chan reader.ReaderResult)
-	outbox := make(chan writer.WriterInput[repository.Mastercat])
-	rows := make([]repository.InputSchema, 2)
+	rows := make([]any, 2)
 	rows[0] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
 	rows[1] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
 
@@ -65,16 +62,29 @@ func TestIndexActor(t *testing.T) {
 		CatalogName: "catalog",
 	})
 	require.NoError(t, err)
-	indexerActor, err := New(src, inbox, outbox, &config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
-	require.NoError(t, err)
 
-	indexerActor.Start()
-	inbox <- reader.ReaderResult{Rows: rows, Error: nil}
-	close(inbox)
-	results := make([]repository.Mastercat, 2)
-	for msg := range outbox {
-		copy(results, msg.Rows)
-	}
+	indexer, err := New(src, &config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
+	require.NoError(t, err)
+	ctx := t.Context()
+
+	results := make([]any, 0)
+	receiver := actor.New(
+		2,
+		func(a *actor.Actor, m actor.Message) {
+			results = append(results, m.Rows...)
+		},
+		nil,
+		nil,
+		ctx,
+	)
+	a := actor.New(2, indexer.Index, nil, []*actor.Actor{receiver}, ctx)
+
+	receiver.Start()
+	a.Start()
+	a.Send(actor.Message{Rows: rows, Error: nil})
+
+	a.Stop()
+	receiver.Stop()
 
 	require.Len(t, results, 2)
 }
