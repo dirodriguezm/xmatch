@@ -83,14 +83,15 @@ const (
 	MastercatSchema
 	TestSchema
 	VlassSchema
+	GaiaSchema
 )
 
 type WriterConfig struct {
 	Type string `yaml:"type"`
 
 	// parquet config
-	OutputFile string `yaml:"output_file"`
-	Schema     ParquetSchema
+	OutputFile string        `yaml:"output_file"`
+	Schema     ParquetSchema `yaml:"schema"`
 }
 
 type PartitionWriterConfig struct {

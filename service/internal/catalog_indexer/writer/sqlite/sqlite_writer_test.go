@@ -17,18 +17,16 @@ package sqlite_writer
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 
 	"github.com/stretchr/testify/mock"
 )
 
-func TestStart_Mastercat(t *testing.T) {
+func TestReceive_Mastercat(t *testing.T) {
 	mastercat := repository.Mastercat{
 		ID:   "1",
 		Ipix: int64(1),
@@ -36,41 +34,23 @@ func TestStart_Mastercat(t *testing.T) {
 		Dec:  1.0,
 		Cat:  "test",
 	}
-	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
 
-	params := repository.Mastercat{
-		ID:   mastercat.ID,
-		Ipix: mastercat.Ipix,
-		Ra:   mastercat.Ra,
-		Dec:  mastercat.Dec,
-		Cat:  mastercat.Cat,
-	}
 	repo := &conesearch.MockRepository{}
 	repo.On("GetDbInstance").Return(nil)
 	repo.On(
 		"BulkInsertObject",
 		mock.Anything,
 		mock.Anything,
-		[]repository.Mastercat{params},
+		[]any{mastercat},
 	).Return(nil)
-	bulkWriter := MastercatWriter{
-		Repo: repo,
-		Ctx:  context.Background(),
-		Db:   repo.GetDbInstance(),
-	}
-	w := NewSqliteWriter(repo, make(chan writer.WriterInput[repository.Mastercat]), make(chan struct{}), context.Background(), src, bulkWriter)
 
-	w.Start()
-	w.BaseWriter.InboxChannel <- writer.WriterInput[repository.Mastercat]{
-		Rows: []repository.Mastercat{mastercat},
-	}
-	close(w.BaseWriter.InboxChannel)
-	<-w.BaseWriter.DoneChannel
+	w := New(repo, context.Background(), "mastercat")
+	w.Write(nil, actor.Message{Rows: []any{mastercat}, Error: nil})
 
 	repo.AssertExpectations(t)
 }
 
-func TestStart_Allwise(t *testing.T) {
+func TestReceive_Allwise(t *testing.T) {
 	allwise := repository.Allwise{
 		ID:        "test",
 		W1mpro:    sql.NullFloat64{Float64: 1.0, Valid: true},
@@ -78,53 +58,18 @@ func TestStart_Allwise(t *testing.T) {
 		W2mpro:    sql.NullFloat64{Float64: 2.0, Valid: true},
 		W2sigmpro: sql.NullFloat64{Float64: 2.0, Valid: true},
 	}
-	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
 
-	params := repository.Allwise{
-		ID:         allwise.ID,
-		W1mpro:     allwise.W1mpro,
-		W1sigmpro:  allwise.W1sigmpro,
-		W2mpro:     allwise.W2mpro,
-		W2sigmpro:  allwise.W2sigmpro,
-		W3mpro:     allwise.W3mpro,
-		W3sigmpro:  allwise.W3sigmpro,
-		W4mpro:     allwise.W4mpro,
-		W4sigmpro:  allwise.W4sigmpro,
-		JM2mass:    allwise.JM2mass,
-		JMsig2mass: allwise.JMsig2mass,
-		HM2mass:    allwise.HM2mass,
-		HMsig2mass: allwise.HMsig2mass,
-		KM2mass:    allwise.KM2mass,
-		KMsig2mass: allwise.KMsig2mass,
-	}
 	repo := &conesearch.MockRepository{}
 	repo.On("GetDbInstance").Return(nil)
 	repo.On(
 		"BulkInsertAllwise",
 		mock.Anything,
 		mock.Anything,
-		[]repository.Allwise{params},
+		[]any{allwise},
 	).Return(nil)
-	w := NewSqliteWriter(
-		repo,
-		make(chan writer.WriterInput[repository.Allwise]),
-		make(chan struct{}),
-		context.Background(),
-		src,
-		AllwiseWriter{
-			Repo: repo,
-			Ctx:  context.Background(),
-			Db:   repo.GetDbInstance(),
-		},
-	)
 
-	w.Start()
-	w.BaseWriter.InboxChannel <- writer.WriterInput[repository.Allwise]{
-		Rows:  []repository.Allwise{allwise},
-		Error: nil,
-	}
-	close(w.BaseWriter.InboxChannel)
-	<-w.BaseWriter.DoneChannel
+	w := New(repo, context.Background(), "allwise")
+	w.Write(nil, actor.Message{Rows: []any{allwise}, Error: nil})
 
 	repo.AssertExpectations(t)
 }

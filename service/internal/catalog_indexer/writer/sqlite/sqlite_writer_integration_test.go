@@ -23,8 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -69,7 +68,7 @@ catalog_indexer:
     batch_size: 500
     type: "csv"
   database:
-    url: "file:%s"
+    url: "file:%s?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000"
   indexer:
     ordering_scheme: "nested"
   indexer_writer:
@@ -117,33 +116,25 @@ catalog_indexer:
 	os.Remove(tmpDir)
 }
 
-func TestActor(t *testing.T) {
-	ch := make(chan writer.WriterInput[repository.Mastercat])
+func TestReceive(t *testing.T) {
 	var repo conesearch.Repository
 	err := ctr.Resolve(&repo)
 	require.NoError(t, err)
 	ctx := context.Background()
-	done := make(chan struct{})
-	src := source.ASource(t).WithUrl(fmt.Sprintf("files:%s", t.TempDir())).Build()
-	bulkWriter := sqlite_writer.MastercatWriter{
-		Repo: repo,
-		Ctx:  ctx,
-		Db:   repo.GetDbInstance(),
-	}
-	w := sqlite_writer.NewSqliteWriter(repo, ch, done, ctx, src, bulkWriter)
+	w := sqlite_writer.New(repo, ctx, "mastercat")
 
-	w.Start()
 	ids := []string{"1", "2"}
 	ras := []float64{1, 2}
 	decs := []float64{1, 2}
 	ipixs := []int64{1, 2}
 	cats := []string{"test", "test"}
-	ch <- writer.WriterInput[repository.Mastercat]{Rows: []repository.Mastercat{
-		{ID: ids[0], Ra: ras[0], Dec: decs[0], Ipix: ipixs[0], Cat: cats[0]},
-		{ID: ids[1], Ra: ras[1], Dec: decs[1], Ipix: ipixs[1], Cat: cats[1]},
-	}}
-	close(ch)
-	<-done
+	w.Write(nil, actor.Message{
+		Rows: []any{
+			repository.Mastercat{ID: ids[0], Ra: ras[0], Dec: decs[0], Ipix: ipixs[0], Cat: cats[0]},
+			repository.Mastercat{ID: ids[1], Ra: ras[1], Dec: decs[1], Ipix: ipixs[1], Cat: cats[1]},
+		},
+		Error: nil,
+	})
 
 	// check the database
 	objects, err := repo.GetAllObjects(ctx)

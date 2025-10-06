@@ -25,15 +25,12 @@ import (
 )
 
 type ReaderBuilder struct {
-	ReaderConfig  *config.ReaderConfig
-	t             *testing.T
-	Source        *source.Source
-	OutputChannel []chan reader.ReaderResult
+	ReaderConfig *config.ReaderConfig
+	t            *testing.T
+	Source       *source.Source
 }
 
 func AReader(t *testing.T) *ReaderBuilder {
-	outputs := make([]chan reader.ReaderResult, 1)
-	outputs[0] = make(chan reader.ReaderResult)
 	return &ReaderBuilder{
 		t: t,
 		ReaderConfig: &config.ReaderConfig{
@@ -41,7 +38,6 @@ func AReader(t *testing.T) *ReaderBuilder {
 			FirstLineHeader: true,
 			BatchSize:       1,
 		},
-		OutputChannel: outputs,
 	}
 }
 
@@ -62,13 +58,6 @@ func (builder *ReaderBuilder) WithBatchSize(size int) *ReaderBuilder {
 	return builder
 }
 
-func (builder *ReaderBuilder) WithOutputChannels(ch []chan reader.ReaderResult) *ReaderBuilder {
-	builder.t.Helper()
-
-	builder.OutputChannel = ch
-	return builder
-}
-
 func (builder *ReaderBuilder) WithSource(src *source.Source) *ReaderBuilder {
 	builder.t.Helper()
 
@@ -81,8 +70,6 @@ func (builder *ReaderBuilder) Build() reader.Reader {
 
 	r, err := NewCsvReader(
 		builder.Source,
-		builder.OutputChannel,
-		WithCsvBatchSize(builder.ReaderConfig.BatchSize),
 		WithHeader(builder.ReaderConfig.Header),
 		WithFirstLineHeader(builder.ReaderConfig.FirstLineHeader),
 	)

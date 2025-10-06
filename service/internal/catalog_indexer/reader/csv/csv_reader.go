@@ -22,7 +22,6 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
@@ -30,37 +29,35 @@ import (
 var nullValues = []string{"", "NA", "N/A", "NULL", "NaN", "n/a", "null", "nan"}
 
 type CsvReader struct {
-	*reader.BaseReader
-	Header          []string
-	FirstLineHeader bool
-	currentReader   *csv.Reader
+	Header            []string
+	FirstLineHeader   bool
+	currentFileReader io.ReadCloser
+	currentReader     *csv.Reader
+	src               *source.Source
+	batchSize         int
 }
 
-func NewCsvReader(src *source.Source, channel []chan reader.ReaderResult, opts ...CsvReaderOption) (*CsvReader, error) {
-	currentReader, err := src.Next()
+func NewCsvReader(src *source.Source, opts ...CsvReaderOption) (*CsvReader, error) {
+	currentFileReader, err := src.Next()
 	if err != nil {
 		return nil, fmt.Errorf("could not get next source: %w", err)
 	}
 
 	r := &CsvReader{
-		BaseReader: &reader.BaseReader{
-			Src:    src,
-			Outbox: channel,
-		},
-		currentReader: csv.NewReader(currentReader),
+		currentReader:     csv.NewReader(currentFileReader),
+		currentFileReader: currentFileReader,
+		src:               src,
 	}
 
 	for _, opt := range opts {
 		opt(r)
 	}
 
-	r.Reader = r
-
 	return r, nil
 }
 
-func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader) ([]repository.InputSchema, error) {
-	rows := make([]repository.InputSchema, 0, r.BatchSize)
+func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader, catalogName string) ([]any, error) {
+	rows := make([]any, 0)
 
 	// Read the header if not already read
 	if r.Header == nil {
@@ -79,26 +76,26 @@ func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader) ([]repository.Inpu
 
 	// Transform data into the correct schema
 	for _, record := range records {
-		row := r.createInputSchema(r.Src.CatalogName, record)
+		row := r.createInputSchema(catalogName, record)
 		rows = append(rows, row)
 	}
 
 	return rows, nil
 }
 
-func (r *CsvReader) Read() ([]repository.InputSchema, error) {
-	rows := make([]repository.InputSchema, 0)
+func (r *CsvReader) Read() ([]any, error) {
+	rows := make([]any, 0)
 
 	eof := false
 	for !eof {
-		currentRows, readErr := r.ReadSingleFile(r.currentReader)
+		currentRows, readErr := r.ReadSingleFile(r.currentReader, r.src.CatalogName)
 		if readErr != nil {
 			return nil, readErr
 		}
 
 		rows = append(rows, currentRows...)
 
-		ioReader, err := r.Src.Next()
+		ioReader, err := r.src.Next()
 		eof = err == io.EOF
 		if err != nil && !eof {
 			return nil, fmt.Errorf("Could not get next source: %w", err)
@@ -110,8 +107,8 @@ func (r *CsvReader) Read() ([]repository.InputSchema, error) {
 	return rows, nil
 }
 
-func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]repository.InputSchema, error) {
-	rows := make([]repository.InputSchema, 0, r.BatchSize)
+func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader, batchSize int, catalogName string) ([]any, error) {
+	rows := make([]any, 0, batchSize)
 
 	if r.Header == nil {
 		header, err := currentReader.Read()
@@ -121,7 +118,7 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]repository
 		r.Header = header
 	}
 
-	for range r.BatchSize {
+	for range batchSize {
 		record, err := currentReader.Read()
 		if err == io.EOF {
 			return rows, err
@@ -130,7 +127,7 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]repository
 			return nil, err
 		}
 
-		row := r.createInputSchema(r.Src.CatalogName, record)
+		row := r.createInputSchema(catalogName, record)
 		rows = append(rows, row)
 	}
 
@@ -141,13 +138,13 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader) ([]repository
 // It processes records in batches according to the BatchSize.
 // If the end of the file is reached, it retrieves the next source if available.
 // Returns the processed rows or an error, including EOF if the end of the last file is reached.
-func (r *CsvReader) ReadBatch() ([]repository.InputSchema, error) {
+func (r *CsvReader) ReadBatch() ([]any, error) {
 	// Initialize the result slice. Right now, the last batch of a file could have
 	// less than BatchSize rows. Maybe the slice could have a fixed size, but it's not too important currently.
-	rows := make([]repository.InputSchema, 0, r.BatchSize)
+	rows := make([]any, 0, r.batchSize)
 
 	// Create CSV reader from file reader and read a batch
-	currentRows, err := r.ReadBatchSingleFile(r.currentReader)
+	currentRows, err := r.ReadBatchSingleFile(r.currentReader, r.batchSize, r.src.CatalogName)
 
 	// If the error is EOF, we get the next reader from the Source.
 	// And if there is no next reader, we return the rows we have so far.
@@ -158,7 +155,7 @@ func (r *CsvReader) ReadBatch() ([]repository.InputSchema, error) {
 		}
 
 		var nextErr error
-		ioReader, nextErr := r.Src.Next()
+		ioReader, nextErr := r.src.Next()
 		if nextErr != nil {
 			return rows, nextErr // This error can potentially be EOF, handled by the caller.
 		}
@@ -262,4 +259,8 @@ func fillStructFromStrings(s any, values []string) error {
 	}
 
 	return nil
+}
+
+func (r *CsvReader) Close() error {
+	return r.currentFileReader.Close()
 }

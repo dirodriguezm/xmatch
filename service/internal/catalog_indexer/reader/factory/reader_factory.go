@@ -28,35 +28,41 @@ import (
 
 func ReaderFactory(
 	src *source.Source,
-	outbox []chan reader.ReaderResult,
 	cfg *config.ReaderConfig,
 ) (reader.Reader, error) {
+	if cfg.BatchSize <= 0 {
+		return nil, fmt.Errorf("Batch size must be greater than 0")
+	}
 	readerType := strings.ToLower(cfg.Type)
 	switch readerType {
 	case "csv":
 		return csv_reader.NewCsvReader(
 			src,
-			outbox,
-			csv_reader.WithCsvBatchSize(cfg.BatchSize),
 			csv_reader.WithHeader(cfg.Header),
 			csv_reader.WithFirstLineHeader(cfg.FirstLineHeader),
 			csv_reader.WithComment(cfg.Comment),
+			csv_reader.WithCsvBatchSize(cfg.BatchSize),
 		)
 	case "parquet":
-		return parquetFactory(src, outbox, cfg)
+		return parquetFactory(src, cfg)
 	default:
 		return nil, fmt.Errorf("Reader type not allowed")
 	}
 }
 
-func parquetFactory(src *source.Source, outbox []chan reader.ReaderResult, cfg *config.ReaderConfig) (reader.Reader, error) {
-	catalog := strings.ToLower(src.CatalogName)
-	if catalog == "allwise" {
+func parquetFactory(src *source.Source, cfg *config.ReaderConfig) (reader.Reader, error) {
+	switch strings.ToLower(src.CatalogName) {
+	case "allwise":
 		return parquet_reader.NewParquetReader(
 			src,
-			outbox,
 			parquet_reader.WithParquetBatchSize[repository.AllwiseInputSchema](cfg.BatchSize),
 		)
+	case "gaia":
+		return parquet_reader.NewParquetReader(
+			src,
+			parquet_reader.WithParquetBatchSize[repository.GaiaInputSchema](cfg.BatchSize),
+		)
+	default:
+		return nil, fmt.Errorf("Schema not found for catalog %s", src.CatalogName)
 	}
-	return nil, fmt.Errorf("Schema not found for catalog")
 }

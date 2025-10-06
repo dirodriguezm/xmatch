@@ -1,6 +1,9 @@
 package repository
 
-import "context"
+import (
+	"context"
+	"database/sql"
+)
 
 type GaiaInputSchema struct {
 	SolutionID                  int64   `json:"solution_id" parquet:"name=solution_id, type=INT64"`
@@ -165,9 +168,14 @@ func (schema GaiaInputSchema) GetCoordinates() (float64, float64) {
 	return schema.RA, schema.Dec
 }
 
-func (schema GaiaInputSchema) FillMetadata(dst Metadata) {}
+func (schema GaiaInputSchema) FillMetadata(dst Metadata) {
+	dst.(*Gaia).ID = schema.GetId()
+	dst.(*Gaia).Ra = sql.NullFloat64{Float64: schema.RA, Valid: true}
+	dst.(*Gaia).Dec = sql.NullFloat64{Float64: schema.Dec, Valid: true}
+}
+
 func (schema GaiaInputSchema) FillMastercat(dst *Mastercat, ipix int64) {
-	dst.ID = schema.Designation
+	dst.ID = schema.GetId()
 	dst.Ra = schema.RA
 	dst.Dec = schema.Dec
 	dst.Cat = "gaia"

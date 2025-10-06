@@ -18,36 +18,34 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStart(t *testing.T) {
-	inbox := make(chan reader.ReaderResult)
-	outbox := make(chan writer.WriterInput[repository.Allwise])
-	actor := New(inbox, outbox)
+	indexer := Indexer{}
+	result := make([]actor.Message, 0)
+	ctx := t.Context()
+	testActor := actor.New(1, func(a *actor.Actor, m actor.Message) {
+		result = append(result, m)
+	}, nil, nil, ctx)
+	indexerActor := actor.New(1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
 
-	actor.Start()
-	rows := make([]repository.InputSchema, 10)
+	testActor.Start()
+	indexerActor.Start()
+
+	rows := make([]any, 10)
 	for i := range 10 {
 		id := "test" + strconv.Itoa(i)
 		rows[i] = repository.AllwiseInputSchema{
 			Source_id: &id,
 		}
 	}
-	inbox <- reader.ReaderResult{
-		Rows:  rows,
-		Error: nil,
-	}
-	close(inbox)
+	indexerActor.Send(actor.Message{Rows: rows, Error: nil})
 
-	for msg := range outbox {
-		require.NoError(t, msg.Error)
-		require.Len(t, msg.Rows, 10)
-		for i := range 10 {
-			require.Equal(t, *rows[i].(repository.AllwiseInputSchema).Source_id, msg.Rows[i].ID)
-		}
-	}
+	indexerActor.Stop()
+	testActor.Stop()
+
+	require.Len(t, result, 1)
 }

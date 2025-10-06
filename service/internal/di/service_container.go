@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 
 	"github.com/charmbracelet/log"
 	"github.com/dirodriguezm/xmatch/service/internal/api"
@@ -79,6 +80,10 @@ func BuildServiceContainer(
 	// Register DB
 	ctr.Singleton(func(cfg *config.Config) *sql.DB {
 		conn := cfg.Service.Database.Url
+		// Ensure write access with proper SQLite parameters
+		if !strings.Contains(conn, "?") {
+			conn += "?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000"
+		}
 		db, err := sql.Open("sqlite3", conn)
 		if err != nil {
 			slog.Error("Could not create sqlite connection", "conn", conn)

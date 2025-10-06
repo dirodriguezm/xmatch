@@ -15,7 +15,6 @@
 package source
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log/slog"
@@ -51,6 +50,37 @@ func NewSource(cfg *config.SourceConfig) (*Source, error) {
 	}, nil
 }
 
+// StringReadCloser implements io.ReadCloser for a string
+type StringReadCloser struct {
+	str   string
+	index int
+}
+
+// Read implements the io.Reader interface
+func (s *StringReadCloser) Read(p []byte) (n int, err error) {
+	if s.index >= len(s.str) {
+		return 0, io.EOF
+	}
+
+	n = copy(p, s.str[s.index:])
+	s.index += n
+	return n, nil
+}
+
+// Close implements the io.Closer interface
+func (s *StringReadCloser) Close() error {
+	// For a string buffer, there's nothing to close, but we still need to implement the method
+	return nil
+}
+
+// NewStringReadCloser creates a new StringReadCloser from a string
+func NewStringReadCloser(str string) *StringReadCloser {
+	return &StringReadCloser{
+		str:   str,
+		index: 0,
+	}
+}
+
 // Next reads the next source file or buffer in the list of sources.
 //
 // Returns:
@@ -60,17 +90,18 @@ func NewSource(cfg *config.SourceConfig) (*Source, error) {
 //
 // It increments the currentSource index after successfully opening a file.
 // Buffers with "buffer" prefix are handled separately.
-func (src *Source) Next() (io.Reader, error) {
+func (src *Source) Next() (io.ReadCloser, error) {
 	// All sources read
 	if src.CurrentSource >= len(src.Sources) {
 		return nil, io.EOF
 	}
+	slog.Info("Reading source", "current", src.CurrentSource+1, "total", len(src.Sources))
 
 	// In memory source from the source string itself
 	if strings.HasPrefix(src.Sources[src.CurrentSource], "buffer:") {
 		content := strings.Split(src.Sources[src.CurrentSource], "buffer:")[1]
 		src.CurrentSource++
-		return bytes.NewBufferString(content), nil
+		return NewStringReadCloser(content), nil
 	}
 
 	filepath := src.Sources[src.CurrentSource]

@@ -13,12 +13,13 @@ func TestActor(t *testing.T) {
 			receivedMessages = append(receivedMessages, row.(string))
 		}
 	}
-	actor2 := New(10, handler2, nil)
+	ctx := t.Context()
+	actor2 := New(10, handler2, nil, nil, ctx)
 
 	handler1 := func(a *Actor, msg Message) {
-		actor2.Send(msg)
+		a.Broadcast(msg)
 	}
-	actor1 := New(10, handler1, []*Actor{actor2})
+	actor1 := New(10, handler1, nil, []*Actor{actor2}, ctx)
 
 	actor2.Start()
 	actor1.Start()

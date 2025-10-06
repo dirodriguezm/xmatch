@@ -30,7 +30,7 @@ import (
 )
 
 func RegisterCatalogsInDB(ctx context.Context, dbFile string) error {
-	conn := fmt.Sprintf("file:%s", dbFile)
+	conn := fmt.Sprintf("file:%s?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000", dbFile)
 	db, err := sql.Open("sqlite3", conn)
 	if err != nil {
 		return fmt.Errorf("could not create sqlite connection: %w", err)

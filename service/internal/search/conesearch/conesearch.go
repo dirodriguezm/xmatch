@@ -34,14 +34,15 @@ import (
 type Repository interface {
 	FindObjects(context.Context, []int64) ([]repository.Mastercat, error)
 	InsertMastercat(context.Context, repository.Mastercat) error
-	BulkInsertObject(context.Context, *sql.DB, []repository.Mastercat) error
 	GetAllObjects(context.Context) ([]repository.Mastercat, error)
 	GetCatalogs(context.Context) ([]repository.Catalog, error)
 	InsertCatalog(context.Context, repository.InsertCatalogParams) error
 	GetDbInstance() *sql.DB
 	InsertAllwiseWithoutParams(context.Context, repository.Allwise) error
 	GetAllwise(context.Context, string) (repository.Allwise, error)
-	BulkInsertAllwise(context.Context, *sql.DB, []repository.Allwise) error
+	BulkInsertAllwise(context.Context, *sql.DB, []any) error
+	BulkInsertGaia(context.Context, *sql.DB, []any) error
+	BulkInsertObject(context.Context, *sql.DB, []any) error
 	RemoveAllObjects(context.Context) error
 	BulkGetAllwise(context.Context, []string) ([]repository.Allwise, error)
 	GetAllwiseFromPixels(context.Context, []int64) ([]repository.GetAllwiseFromPixelsRow, error)

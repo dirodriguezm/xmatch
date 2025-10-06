@@ -49,15 +49,12 @@ func (t TestInputSchema) GetId() string {
 }
 
 type ReaderBuilder[T any] struct {
-	ReaderConfig  *config.ReaderConfig
-	t             *testing.T
-	Source        *source.Source
-	OutputChannel []chan reader.ReaderResult
+	ReaderConfig *config.ReaderConfig
+	t            *testing.T
+	Source       *source.Source
 }
 
 func AReader[T any](t *testing.T) *ReaderBuilder[T] {
-	outputs := make([]chan reader.ReaderResult, 1)
-	outputs[0] = make(chan reader.ReaderResult)
 	return &ReaderBuilder[T]{
 		t: t,
 		ReaderConfig: &config.ReaderConfig{
@@ -65,7 +62,6 @@ func AReader[T any](t *testing.T) *ReaderBuilder[T] {
 			FirstLineHeader: true,
 			BatchSize:       1,
 		},
-		OutputChannel: outputs,
 	}
 }
 
@@ -86,13 +82,6 @@ func (builder *ReaderBuilder[T]) WithBatchSize(size int) *ReaderBuilder[T] {
 	return builder
 }
 
-func (builder *ReaderBuilder[T]) WithOutputChannels(ch []chan reader.ReaderResult) *ReaderBuilder[T] {
-	builder.t.Helper()
-
-	builder.OutputChannel = ch
-	return builder
-}
-
 func (builder *ReaderBuilder[T]) WithSource(src *source.Source) *ReaderBuilder[T] {
 	builder.t.Helper()
 
@@ -103,11 +92,7 @@ func (builder *ReaderBuilder[T]) WithSource(src *source.Source) *ReaderBuilder[T
 func (builder *ReaderBuilder[T]) Build() reader.Reader {
 	builder.t.Helper()
 
-	r, err := NewParquetReader(
-		builder.Source,
-		builder.OutputChannel,
-		WithParquetBatchSize[T](builder.ReaderConfig.BatchSize),
-	)
+	r, err := NewParquetReader[T](builder.Source)
 	require.NoError(builder.t, err)
 	return r
 }

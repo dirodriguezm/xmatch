@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -91,11 +90,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	outputs := make([]chan reader.ReaderResult, 1)
-	for i := range outputs {
-		outputs[i] = make(chan reader.ReaderResult)
-	}
-	parquetReader, err := NewParquetReader[Object](source, outputs)
+	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +105,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	receivedOids := make([]string, 10)
 	for i, row := range rows {
 		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
+		row.(repository.InputSchema).FillMastercat(&mastercat, 0)
 		receivedOids[i] = mastercat.ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
@@ -127,11 +122,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	outputs := make([]chan reader.ReaderResult, 1)
-	for i := range outputs {
-		outputs[i] = make(chan reader.ReaderResult)
-	}
-	parquetReader, err := NewParquetReader(source, outputs, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +131,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []repository.InputSchema
+	var rows []any
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -150,7 +141,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 
 		for _, row := range rows {
 			mastercat := repository.Mastercat{}
-			row.FillMastercat(&mastercat, 0)
+			row.(repository.InputSchema).FillMastercat(&mastercat, 0)
 			receivedOids = append(receivedOids, mastercat.ID)
 		}
 	}
@@ -169,11 +160,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	outputs := make([]chan reader.ReaderResult, 1)
-	for i := range outputs {
-		outputs[i] = make(chan reader.ReaderResult)
-	}
-	parquetReader, err := NewParquetReader(source, outputs, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +169,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []repository.InputSchema
+	var rows []any
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -192,7 +179,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 
 		for _, row := range rows {
 			mastercat := repository.Mastercat{}
-			row.FillMastercat(&mastercat, 0)
+			row.(repository.InputSchema).FillMastercat(&mastercat, 0)
 			receivedOids = append(receivedOids, mastercat.ID)
 		}
 	}
@@ -211,11 +198,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	outputs := make([]chan reader.ReaderResult, 1)
-	for i := range outputs {
-		outputs[i] = make(chan reader.ReaderResult)
-	}
-	parquetReader, err := NewParquetReader(source, outputs, WithParquetBatchSize[Object](5))
+	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +207,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []repository.InputSchema
+	var rows []any
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -234,7 +217,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 
 		for _, row := range rows {
 			mastercat := repository.Mastercat{}
-			row.FillMastercat(&mastercat, 0)
+			row.(repository.InputSchema).FillMastercat(&mastercat, 0)
 			receivedOids = append(receivedOids, mastercat.ID)
 		}
 	}

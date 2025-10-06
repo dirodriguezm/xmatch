@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
@@ -91,30 +91,28 @@ catalog_indexer:
 	os.Remove(tmpDir)
 }
 
-func TestActor(t *testing.T) {
-	var w writer.Writer[repository.Mastercat]
-	err := ctr.NamedResolve(&w, "indexer_writer")
-	require.NoError(t, err)
-
-	w.Start()
+func TestWrite(t *testing.T) {
 	oids := []string{"oid1", "oid2"}
 	ras := []float64{1, 2}
 	decs := []float64{1, 2}
 	ipixs := []int64{1, 2}
 	cat := "vlass"
-	w.(*parquet_writer.ParquetWriter[repository.Mastercat]).InboxChannel <- writer.WriterInput[repository.Mastercat]{
-		Rows: []repository.Mastercat{
-			{ID: oids[0], Ipix: ipixs[0], Ra: ras[0], Dec: decs[0], Cat: cat},
-			{ID: oids[1], Ipix: ipixs[1], Ra: ras[1], Dec: decs[1], Cat: cat},
-		},
-	}
-	close(w.(*parquet_writer.ParquetWriter[repository.Mastercat]).InboxChannel)
-	w.Done()
 
 	// check the parquet file
 	var cfg *config.Config
-	err = ctr.Resolve(&cfg)
+	err := ctr.Resolve(&cfg)
 	require.NoError(t, err)
+
+	writer, err := parquet_writer.New[repository.Mastercat](cfg.CatalogIndexer.IndexerWriter, t.Context())
+	writer.Write(nil, actor.Message{
+		Rows: []any{
+			repository.Mastercat{ID: oids[0], Ipix: ipixs[0], Ra: ras[0], Dec: decs[0], Cat: cat},
+			repository.Mastercat{ID: oids[1], Ipix: ipixs[1], Ra: ras[1], Dec: decs[1], Cat: cat},
+		},
+		Error: nil,
+	})
+	writer.Stop(nil)
+
 	result := read_helper[repository.Mastercat](t, cfg.CatalogIndexer.IndexerWriter.OutputFile)
 
 	require.Equal(t, 2, len(result))

@@ -16,60 +16,67 @@ package sqlite_writer
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"log/slog"
+	"strings"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 )
 
-type SqliteWriter[T any] struct {
-	*writer.BaseWriter[T]
+type SqliteWriter struct {
 	repository conesearch.Repository
 	ctx        context.Context
-	src        *source.Source
-	bulkWriter ParamsWriter[T]
+	db         *sql.DB
+	table      string
 }
 
-func NewSqliteWriter[T any](
-	repository conesearch.Repository,
-	ch chan writer.WriterInput[T],
-	done chan struct{},
-	ctx context.Context,
-	src *source.Source,
-	bulkWriter ParamsWriter[T],
-) *SqliteWriter[T] {
+func New(repo conesearch.Repository, ctx context.Context, table string) *SqliteWriter {
 	slog.Debug("Creating new SqliteWriter")
-	w := &SqliteWriter[T]{
-		BaseWriter: &writer.BaseWriter[T]{
-			Ctx:          ctx,
-			DoneChannel:  done,
-			InboxChannel: ch,
-		},
-		repository: repository,
-		ctx:        ctx,
-		src:        src,
-		bulkWriter: bulkWriter,
-	}
-	w.Writer = w
+	w := &SqliteWriter{repository: repo, ctx: ctx, db: repo.GetDbInstance(), table: table}
 	return w
 }
 
-func (w *SqliteWriter[T]) Receive(msg writer.WriterInput[T]) {
-	slog.Debug("Writer received message")
+func (w *SqliteWriter) Write(a *actor.Actor, msg actor.Message) {
+	defer func() {
+		if r := recover(); r != nil {
+			w.Stop(a)
+			panic(r)
+		}
+	}()
+
+	slog.Debug("SqliteWriter received message", "table", w.table)
 	if msg.Error != nil {
 		slog.Error("SqliteWriter received error")
-		panic(msg.Error)
+		panic(fmt.Errorf("SqliteWriter received error: %w", msg.Error))
 	}
 
-	// insert rows
-	err := w.bulkWriter.BulkWrite(msg.Rows)
+	var err error
+	switch strings.ToLower(w.table) {
+	case "mastercat":
+		slog.Debug("SqliteWriter Writing Mastercat", "len", len(msg.Rows))
+		err = w.repository.BulkInsertObject(w.ctx, w.db, msg.Rows)
+	case "allwise":
+		slog.Debug("SqliteWriter Writing Allwise", "len", len(msg.Rows))
+		err = w.repository.BulkInsertAllwise(w.ctx, w.db, msg.Rows)
+	case "gaia":
+		slog.Debug("SqliteWriter Writing Gaia", "len", len(msg.Rows))
+		err = w.repository.BulkInsertGaia(w.ctx, w.db, msg.Rows)
+	default:
+		err = fmt.Errorf("Table %s not supported", w.table)
+	}
+
 	if err != nil {
 		slog.Error("SqliteWriter could not write objects to database")
 		panic(err)
 	}
 }
 
-func (w *SqliteWriter[T]) Stop() {
-	w.DoneChannel <- struct{}{}
+func (w *SqliteWriter) Stop(a *actor.Actor) {
+	slog.Debug("Stopping SqliteWriter", "table", w.table)
+	err := w.db.Close()
+	if err != nil {
+		panic(err)
+	}
 }

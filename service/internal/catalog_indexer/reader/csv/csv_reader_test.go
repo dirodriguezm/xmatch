@@ -16,11 +16,8 @@ package csv_reader
 
 import (
 	"io"
-	"sort"
-	"sync"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -43,9 +40,7 @@ o3,3,3
 	})
 	require.NoError(t, err)
 
-	outputs := make([]chan reader.ReaderResult, 1)
-	outputs[0] = make(chan reader.ReaderResult)
-	csvReader, err := NewCsvReader(source, outputs)
+	csvReader, err := NewCsvReader(source, WithCsvBatchSize(2))
 	require.NoError(t, err)
 
 	rows, err := csvReader.Read()
@@ -57,7 +52,7 @@ o3,3,3
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
 		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
+		row.(repository.InputSchema).FillMastercat(&mastercat, 0)
 		receivedOids[i] = mastercat.ID
 	}
 
@@ -79,10 +74,7 @@ o3,3,3
 	})
 	require.NoError(t, err)
 
-	outputs := make([]chan reader.ReaderResult, 1)
-	outputs[0] = make(chan reader.ReaderResult)
-
-	csvReader, err := NewCsvReader(source, outputs, WithHeader([]string{"oid", "ra", "dec"}))
+	csvReader, err := NewCsvReader(source, WithHeader([]string{"oid", "ra", "dec"}), WithCsvBatchSize(2))
 	require.NoError(t, err)
 
 	rows, err := csvReader.Read()
@@ -94,7 +86,7 @@ o3,3,3
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
 		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
+		row.(repository.InputSchema).FillMastercat(&mastercat, 0)
 		receivedOids[i] = mastercat.ID
 	}
 
@@ -107,9 +99,7 @@ func TestReadWithHeader_Error(t *testing.T) {
 		CatalogName: "vlass",
 	}
 
-	outputs := []chan reader.ReaderResult{make(chan reader.ReaderResult)}
-
-	csvReader, err := NewCsvReader(&source, outputs)
+	csvReader, err := NewCsvReader(&source, WithCsvBatchSize(2))
 	require.NoError(t, err)
 
 	rows, err := csvReader.Read()
@@ -130,11 +120,8 @@ o4,4,4
 		CatalogName: "test",
 	}
 
-	outputs := make([]chan reader.ReaderResult, 1)
-	outputs[0] = make(chan reader.ReaderResult)
 	csvReader, err := NewCsvReader(
 		&source,
-		outputs,
 		WithCsvBatchSize(2),
 		WithFirstLineHeader(true),
 	)
@@ -155,10 +142,10 @@ o4,4,4
 			break
 		}
 
-		require.Len(t, batch, csvReader.BatchSize)
+		require.Len(t, batch, 2)
 
 		for _, row := range batch {
-			rows = append(rows, row)
+			rows = append(rows, row.(repository.InputSchema))
 		}
 	}
 
@@ -185,13 +172,10 @@ o3,3,3
 		CatalogName: "test",
 	}
 
-	outputs := make([]chan reader.ReaderResult, 1)
-	outputs[0] = make(chan reader.ReaderResult)
 	csvReader, err := NewCsvReader(
 		&source,
-		outputs,
-		WithCsvBatchSize(2),
 		WithFirstLineHeader(true),
+		WithCsvBatchSize(2),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -209,7 +193,7 @@ o3,3,3
 			eof = true
 		}
 		for _, row := range batch {
-			rows = append(rows, row)
+			rows = append(rows, row.(repository.InputSchema))
 		}
 	}
 
@@ -236,13 +220,10 @@ o3,3,3
 		CatalogName: "test",
 	}
 
-	outputs := make([]chan reader.ReaderResult, 1)
-	outputs[0] = make(chan reader.ReaderResult)
 	csvReader, err := NewCsvReader(
 		&source,
-		outputs,
-		WithCsvBatchSize(2),
 		WithFirstLineHeader(true),
+		WithCsvBatchSize(2),
 	)
 	require.NoError(t, err)
 
@@ -259,7 +240,7 @@ o3,3,3
 		}
 
 		for _, row := range batch {
-			rows = append(rows, row)
+			rows = append(rows, row.(repository.InputSchema))
 		}
 	}
 
@@ -273,109 +254,5 @@ o3,3,3
 		receivedOids[i] = mastercat.ID
 	}
 
-	require.Equal(t, expectedOids, receivedOids)
-}
-
-func TestActor(t *testing.T) {
-	csv := `oid,ra,dec
-o1,1,1
-o2,2,2
-o3,3,3
-`
-
-	src := source.Source{
-		Sources:     []string{"buffer:" + csv},
-		CatalogName: "test",
-	}
-
-	outputs := make([]chan reader.ReaderResult, 1)
-	outputs[0] = make(chan reader.ReaderResult)
-
-	csvReader, err := NewCsvReader(
-		&src,
-		outputs,
-		WithCsvBatchSize(2),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	csvReader.Start()
-
-	var rows []repository.InputSchema
-	for i := range csvReader.Outbox {
-		for msg := range csvReader.Outbox[i] {
-			for _, row := range msg.Rows {
-				rows = append(rows, row)
-			}
-		}
-	}
-	require.Equal(t, 3, len(rows))
-	expectedOids := []string{"o1", "o2", "o3"}
-	receivedOids := make([]string, 3)
-	for i, row := range rows {
-		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
-		receivedOids[i] = mastercat.ID
-	}
-	require.Equal(t, expectedOids, receivedOids)
-}
-
-func TestActor_WithMultipleOutputs(t *testing.T) {
-	csv := `oid,ra,dec
-o1,1,1
-o2,2,2
-o3,3,3
-`
-	src := source.Source{
-		Sources:     []string{"buffer:" + csv},
-		CatalogName: "test",
-	}
-
-	outputs := make([]chan reader.ReaderResult, 2)
-	outputs[0] = make(chan reader.ReaderResult)
-	outputs[1] = make(chan reader.ReaderResult)
-
-	csvReader, err := NewCsvReader(
-		&src,
-		outputs,
-		WithCsvBatchSize(2),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	csvReader.Start()
-
-	// read from all outbox concurrently
-	// we need a lock to ensure safe access to the rows slice when appending
-	// and a done channel to signal when all go routines are done
-	var rows []repository.InputSchema
-	mu := sync.Mutex{}
-	wg := sync.WaitGroup{}
-	for i := range csvReader.Outbox {
-		wg.Add(1)
-		go func() {
-			for msg := range csvReader.Outbox[i] {
-				mu.Lock()
-				rows = append(rows, msg.Rows...)
-				mu.Unlock()
-			}
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-
-	require.Equal(t, 6, len(rows))
-	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
-	receivedOids := make([]string, 6)
-	for i, row := range rows {
-		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
-		receivedOids[i] = mastercat.ID
-	}
-
-	// sort to be able to compare
-	sort.Strings(receivedOids)
-	sort.Strings(expectedOids)
-	// compare
 	require.Equal(t, expectedOids, receivedOids)
 }

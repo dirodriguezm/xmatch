@@ -19,7 +19,7 @@ import (
 	"database/sql"
 )
 
-func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []Mastercat) error {
+func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []any) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []Master
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
-		err = qtx.InsertMastercat(ctx, arg[i])
+		err = qtx.InsertMastercat(ctx, arg[i].(Mastercat))
 		if err != nil {
 			return err
 		}
@@ -35,7 +35,7 @@ func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []Master
 	return tx.Commit()
 }
 
-func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []Allwise) error {
+func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []any) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -43,7 +43,23 @@ func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []Allwi
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
-		err = qtx.InsertAllwiseWithoutParams(ctx, arg[i])
+		err = qtx.InsertAllwiseWithoutParams(ctx, arg[i].(Allwise))
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (q *Queries) BulkInsertGaia(ctx context.Context, db *sql.DB, arg []any) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	qtx := q.WithTx(tx)
+	for i := range arg {
+		err = qtx.InsertGaiaWithoutParams(ctx, arg[i].(Gaia))
 		if err != nil {
 			return err
 		}
