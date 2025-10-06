@@ -33,6 +33,12 @@ jobs:
         run: |
           nix profile install nixpkgs#devenv
 
+      - name: Run build
+        run: |
+          nix develop .# --no-pure-eval --accept-flake-config --command init-healpix
+          cd service
+          nix develop .# --no-pure-eval --accept-flake-config --command just build
+
       - name: Run the tests
         run: |
           nix develop .# --no-pure-eval --accept-flake-config --command init-healpix

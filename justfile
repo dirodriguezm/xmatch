@@ -6,7 +6,7 @@ migrate db:
 
 [working-directory: 'service']
 build: build-css
-	go build -o build/main cmd/main.go
+	go build -o build/main cmd/*.go
 
 [working-directory: 'service']
 test:
