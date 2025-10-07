@@ -50,6 +50,12 @@ func BuildServiceContainer(
 		if err != nil {
 			panic(err)
 		}
+		if cfg.Service.BulkChunkSize <= 0 {
+			panic("Config: BulkChunkSize must be greater than 0")
+		}
+		if cfg.Service.MaxBulkConcurrency <= 0 {
+			panic("Config: MaxBulkConcurrency must be greater than 0")
+		}
 		return cfg
 	})
 

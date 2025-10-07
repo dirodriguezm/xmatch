@@ -107,6 +107,74 @@ func (_c *MockRepository_BulkGetAllwise_Call) RunAndReturn(run func(context1 con
 	return _c
 }
 
+// BulkGetGaia provides a mock function for the type MockRepository
+func (_mock *MockRepository) BulkGetGaia(context1 context.Context, strings []string) ([]repository.Gaia, error) {
+	ret := _mock.Called(context1, strings)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BulkGetGaia")
+	}
+
+	var r0 []repository.Gaia
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) ([]repository.Gaia, error)); ok {
+		return returnFunc(context1, strings)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) []repository.Gaia); ok {
+		r0 = returnFunc(context1, strings)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]repository.Gaia)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = returnFunc(context1, strings)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRepository_BulkGetGaia_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BulkGetGaia'
+type MockRepository_BulkGetGaia_Call struct {
+	*mock.Call
+}
+
+// BulkGetGaia is a helper method to define mock.On call
+//   - context1 context.Context
+//   - strings []string
+func (_e *MockRepository_Expecter) BulkGetGaia(context1 interface{}, strings interface{}) *MockRepository_BulkGetGaia_Call {
+	return &MockRepository_BulkGetGaia_Call{Call: _e.mock.On("BulkGetGaia", context1, strings)}
+}
+
+func (_c *MockRepository_BulkGetGaia_Call) Run(run func(context1 context.Context, strings []string)) *MockRepository_BulkGetGaia_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []string
+		if args[1] != nil {
+			arg1 = args[1].([]string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_BulkGetGaia_Call) Return(gaias []repository.Gaia, err error) *MockRepository_BulkGetGaia_Call {
+	_c.Call.Return(gaias, err)
+	return _c
+}
+
+func (_c *MockRepository_BulkGetGaia_Call) RunAndReturn(run func(context1 context.Context, strings []string) ([]repository.Gaia, error)) *MockRepository_BulkGetGaia_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // BulkInsertAllwise provides a mock function for the type MockRepository
 func (_mock *MockRepository) BulkInsertAllwise(context1 context.Context, dB *sql.DB, vs []any) error {
 	ret := _mock.Called(context1, dB, vs)
@@ -664,6 +732,140 @@ func (_c *MockRepository_GetDbInstance_Call) Return(dB *sql.DB) *MockRepository_
 }
 
 func (_c *MockRepository_GetDbInstance_Call) RunAndReturn(run func() *sql.DB) *MockRepository_GetDbInstance_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetGaia provides a mock function for the type MockRepository
+func (_mock *MockRepository) GetGaia(context1 context.Context, s string) (repository.Gaia, error) {
+	ret := _mock.Called(context1, s)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGaia")
+	}
+
+	var r0 repository.Gaia
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (repository.Gaia, error)); ok {
+		return returnFunc(context1, s)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) repository.Gaia); ok {
+		r0 = returnFunc(context1, s)
+	} else {
+		r0 = ret.Get(0).(repository.Gaia)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(context1, s)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRepository_GetGaia_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGaia'
+type MockRepository_GetGaia_Call struct {
+	*mock.Call
+}
+
+// GetGaia is a helper method to define mock.On call
+//   - context1 context.Context
+//   - s string
+func (_e *MockRepository_Expecter) GetGaia(context1 interface{}, s interface{}) *MockRepository_GetGaia_Call {
+	return &MockRepository_GetGaia_Call{Call: _e.mock.On("GetGaia", context1, s)}
+}
+
+func (_c *MockRepository_GetGaia_Call) Run(run func(context1 context.Context, s string)) *MockRepository_GetGaia_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_GetGaia_Call) Return(gaia repository.Gaia, err error) *MockRepository_GetGaia_Call {
+	_c.Call.Return(gaia, err)
+	return _c
+}
+
+func (_c *MockRepository_GetGaia_Call) RunAndReturn(run func(context1 context.Context, s string) (repository.Gaia, error)) *MockRepository_GetGaia_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetGaiaFromPixels provides a mock function for the type MockRepository
+func (_mock *MockRepository) GetGaiaFromPixels(context1 context.Context, int64s []int64) ([]repository.GetGaiaFromPixelsRow, error) {
+	ret := _mock.Called(context1, int64s)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGaiaFromPixels")
+	}
+
+	var r0 []repository.GetGaiaFromPixelsRow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []int64) ([]repository.GetGaiaFromPixelsRow, error)); ok {
+		return returnFunc(context1, int64s)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []int64) []repository.GetGaiaFromPixelsRow); ok {
+		r0 = returnFunc(context1, int64s)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]repository.GetGaiaFromPixelsRow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []int64) error); ok {
+		r1 = returnFunc(context1, int64s)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRepository_GetGaiaFromPixels_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGaiaFromPixels'
+type MockRepository_GetGaiaFromPixels_Call struct {
+	*mock.Call
+}
+
+// GetGaiaFromPixels is a helper method to define mock.On call
+//   - context1 context.Context
+//   - int64s []int64
+func (_e *MockRepository_Expecter) GetGaiaFromPixels(context1 interface{}, int64s interface{}) *MockRepository_GetGaiaFromPixels_Call {
+	return &MockRepository_GetGaiaFromPixels_Call{Call: _e.mock.On("GetGaiaFromPixels", context1, int64s)}
+}
+
+func (_c *MockRepository_GetGaiaFromPixels_Call) Run(run func(context1 context.Context, int64s []int64)) *MockRepository_GetGaiaFromPixels_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []int64
+		if args[1] != nil {
+			arg1 = args[1].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_GetGaiaFromPixels_Call) Return(getGaiaFromPixelsRows []repository.GetGaiaFromPixelsRow, err error) *MockRepository_GetGaiaFromPixels_Call {
+	_c.Call.Return(getGaiaFromPixelsRows, err)
+	return _c
+}
+
+func (_c *MockRepository_GetGaiaFromPixels_Call) RunAndReturn(run func(context1 context.Context, int64s []int64) ([]repository.GetGaiaFromPixelsRow, error)) *MockRepository_GetGaiaFromPixels_Call {
 	_c.Call.Return(run)
 	return _c
 }

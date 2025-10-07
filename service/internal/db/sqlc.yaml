@@ -50,10 +50,24 @@ sql:
             go_struct_tag: 'parquet:"name=cat, type=BYTE_ARRAY" json:"cat"'
           - column: "gaia.id"
             go_struct_tag: 'parquet:"name=id, type=BYTE_ARRAY" json:"id"'
-          - column: "gaia.ra"
-            go_struct_tag: 'parquet:"name=ra, type=DOUBLE" json:"ra"'
-          - column: "gaia.dec"
-            go_struct_tag: 'parquet:"name=dec, type=DOUBLE" json:"dec"'
+          - column: "gaia.phot_g_mean_flux"
+            go_struct_tag: 'parquet:"name=phot_g_mean_flux, type=DOUBLE" json:"phot_g_mean_flux"'
+          - column: "gaia.phot_g_mean_flux_error"
+            go_struct_tag: 'parquet:"name=phot_g_mean_flux_error, type=DOUBLE" json:"phot_g_mean_flux_error"'
+          - column: "gaia.phot_g_mean_mag"
+            go_struct_tag: 'parquet:"name=phot_g_mean_mag, type=DOUBLE" json:"phot_g_mean_mag"'
+          - column: "gaia.phot_bp_mean_flux"
+            go_struct_tag: 'parquet:"name=phot_bp_mean_flux, type=DOUBLE" json:"phot_bp_mean_flux"'
+          - column: "gaia.phot_bp_mean_flux_error"
+            go_struct_tag: 'parquet:"name=phot_bp_mean_flux_error, type=DOUBLE" json:"phot_bp_mean_flux_error"'
+          - column: "gaia.phot_bp_mean_mag"
+            go_struct_tag: 'parquet:"name=phot_bp_mean_mag, type=DOUBLE" json:"phot_bp_mean_mag"'
+          - column: "gaia.phot_rp_mean_flux"
+            go_struct_tag: 'parquet:"name=phot_rp_mean_flux, type=DOUBLE" json:"phot_rp_mean_flux"'
+          - column: "gaia.phot_rp_mean_flux_error"
+            go_struct_tag: 'parquet:"name=phot_rp_mean_flux_error, type=DOUBLE" json:"phot_rp_mean_flux_error"'
+          - column: "gaia.phot_rp_mean_mag"
+            go_struct_tag: 'parquet:"name=phot_rp_mean_mag, type=DOUBLE" json:"phot_rp_mean_mag"'
 overrides:
   go:
     rename:

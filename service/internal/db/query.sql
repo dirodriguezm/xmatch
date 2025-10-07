@@ -65,9 +65,18 @@ WHERE mastercat.ipix IN (sqlc.slice(ipix));
 
 -- name: InsertGaia :exec
 INSERT INTO gaia (
-	id, ra, dec
+	id, 
+  phot_g_mean_flux,
+  phot_g_mean_flux_error,
+  phot_g_mean_mag,
+  phot_bp_mean_flux,
+  phot_bp_mean_flux_error,
+  phot_bp_mean_mag,
+  phot_rp_mean_flux,
+  phot_rp_mean_flux_error,
+  phot_rp_mean_mag
 ) VALUES (
-	?, ?, ?
+	?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 );
 
 -- name: GetGaia :one

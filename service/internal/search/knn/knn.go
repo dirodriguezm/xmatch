@@ -26,9 +26,9 @@ import (
 )
 
 type knnObject struct {
-	Obj        repository.Mastercat
-	AllwiseObj repository.GetAllwiseFromPixelsRow
-	catalog    string
+	Obj         repository.Mastercat
+	MetadataObj repository.MetadataWithCoordinates
+	catalog     string
 }
 
 func (knn knnObject) Dimensions() int {
@@ -38,15 +38,20 @@ func (knn knnObject) Dimensions() int {
 func (knn knnObject) Dimension(i int) float64 {
 	var dimensions []float64
 	switch strings.ToLower(knn.catalog) {
-	case "allwise":
-		dimensions = []float64{knn.AllwiseObj.Ra, knn.AllwiseObj.Dec}
-	default:
+	case "":
 		dimensions = []float64{knn.Obj.Ra, knn.Obj.Dec}
+	default:
+		ra, dec := knn.MetadataObj.GetCoordinates()
+		dimensions = []float64{ra, dec}
 	}
 	return dimensions[i]
 }
 
-func NearestNeighborSearch(objects []repository.Mastercat, ra, dec, radius float64, maxNeighbors int) []repository.Mastercat {
+func NearestNeighborSearch(
+	objects []repository.Mastercat,
+	ra, dec, radius float64,
+	maxNeighbors int,
+) []repository.Mastercat {
 	pts := []kdtree.Point{}
 	for _, obj := range objects {
 		pts = append(pts, knnObject{Obj: obj})
@@ -67,28 +72,46 @@ func NearestNeighborSearch(objects []repository.Mastercat, ra, dec, radius float
 	return result
 }
 
-func NearestNeighborSearchForAllwiseMetadata(objects []repository.GetAllwiseFromPixelsRow, ra, dec, radius float64, maxNeighbors int) []repository.Allwise {
+func NearestNeighborSearchForMetadata(
+	objects []repository.MetadataWithCoordinates,
+	ra, dec, radius float64,
+	maxNeighbors int,
+	catalog string,
+) []repository.Metadata {
 	pts := []kdtree.Point{}
 	for _, obj := range objects {
-		pts = append(pts, knnObject{AllwiseObj: obj, catalog: "allwise"})
+		pts = append(pts, knnObject{MetadataObj: obj, catalog: catalog})
 	}
 	tree := kdtree.New(pts)
 
 	nearObjs := tree.KNN(&points.Point2D{X: ra, Y: dec}, maxNeighbors)
 
 	// now we need to check that distance between nearest objects and center is actually lower than radius
-	result := []repository.Allwise{}
+	result := make([]repository.Metadata, 0)
 	for _, obj := range nearObjs {
 		dist := haversineDistance(obj, &points.Point2D{X: ra, Y: dec})
 		if dist > radius {
 			continue
 		}
-		result = append(result, convertToMetadataModel(obj.(knnObject).AllwiseObj))
+		switch strings.ToLower(obj.(knnObject).catalog) {
+		case "allwise":
+			result = append(result, convertToAllwise(obj.(knnObject).MetadataObj.(repository.GetAllwiseFromPixelsRow)))
+		case "gaia":
+			result = append(result, convertToGaia(obj.(knnObject).MetadataObj.(repository.GetGaiaFromPixelsRow)))
+		case "all":
+			if metadataObj, ok := obj.(knnObject).MetadataObj.(repository.GetAllwiseFromPixelsRow); ok {
+				result = append(result, convertToAllwise(metadataObj))
+			} else if metadataObj, ok := obj.(knnObject).MetadataObj.(repository.GetGaiaFromPixelsRow); ok {
+				result = append(result, convertToGaia(metadataObj))
+			}
+		default:
+			panic("Unknown catalog to KNN Search for Metadata")
+		}
 	}
 	return result
 }
 
-func convertToMetadataModel(obj repository.GetAllwiseFromPixelsRow) repository.Allwise {
+func convertToAllwise(obj repository.GetAllwiseFromPixelsRow) repository.Allwise {
 	return repository.Allwise{
 		ID:         obj.ID,
 		W1mpro:     obj.W1mpro,
@@ -105,6 +128,21 @@ func convertToMetadataModel(obj repository.GetAllwiseFromPixelsRow) repository.A
 		HMsig2mass: obj.HMsig2mass,
 		KM2mass:    obj.KM2mass,
 		KMsig2mass: obj.KMsig2mass,
+	}
+}
+
+func convertToGaia(obj repository.GetGaiaFromPixelsRow) repository.Gaia {
+	return repository.Gaia{
+		ID:                  obj.ID,
+		PhotGMeanFlux:       obj.PhotGMeanFlux,
+		PhotGMeanFluxError:  obj.PhotGMeanFluxError,
+		PhotGMeanMag:        obj.PhotGMeanMag,
+		PhotBpMeanFlux:      obj.PhotBpMeanFlux,
+		PhotBpMeanFluxError: obj.PhotBpMeanFluxError,
+		PhotBpMeanMag:       obj.PhotBpMeanMag,
+		PhotRpMeanFlux:      obj.PhotRpMeanFlux,
+		PhotRpMeanFluxError: obj.PhotRpMeanFluxError,
+		PhotRpMeanMag:       obj.PhotRpMeanMag,
 	}
 }
 

@@ -170,8 +170,15 @@ func (schema GaiaInputSchema) GetCoordinates() (float64, float64) {
 
 func (schema GaiaInputSchema) FillMetadata(dst Metadata) {
 	dst.(*Gaia).ID = schema.GetId()
-	dst.(*Gaia).Ra = sql.NullFloat64{Float64: schema.RA, Valid: true}
-	dst.(*Gaia).Dec = sql.NullFloat64{Float64: schema.Dec, Valid: true}
+	dst.(*Gaia).PhotGMeanFlux = sql.NullFloat64{Float64: schema.PhotGMeanFlux, Valid: true}
+	dst.(*Gaia).PhotGMeanFluxError = sql.NullFloat64{Float64: float64(schema.PhotGMeanFluxError), Valid: true}
+	dst.(*Gaia).PhotGMeanMag = sql.NullFloat64{Float64: float64(schema.PhotGMeanMag), Valid: true}
+	dst.(*Gaia).PhotBpMeanFlux = sql.NullFloat64{Float64: float64(schema.PhotBpMeanFlux), Valid: true}
+	dst.(*Gaia).PhotBpMeanFluxError = sql.NullFloat64{Float64: float64(schema.PhotBpMeanFluxError), Valid: true}
+	dst.(*Gaia).PhotBpMeanMag = sql.NullFloat64{Float64: float64(schema.PhotBpMeanMag), Valid: true}
+	dst.(*Gaia).PhotRpMeanFlux = sql.NullFloat64{Float64: float64(schema.PhotRpMeanFlux), Valid: true}
+	dst.(*Gaia).PhotRpMeanFluxError = sql.NullFloat64{Float64: float64(schema.PhotRpMeanFluxError), Valid: true}
+	dst.(*Gaia).PhotRpMeanMag = sql.NullFloat64{Float64: float64(schema.PhotRpMeanMag), Valid: true}
 }
 
 func (schema GaiaInputSchema) FillMastercat(dst *Mastercat, ipix int64) {
@@ -191,6 +198,27 @@ func (m InsertGaiaParams) GetId() string {
 }
 
 func (q *Queries) InsertGaiaWithoutParams(ctx context.Context, arg Gaia) error {
-	_, err := q.db.ExecContext(ctx, insertGaia, arg.ID, arg.Ra, arg.Dec)
+	_, err := q.db.ExecContext(
+		ctx,
+		insertGaia,
+		arg.ID,
+		arg.PhotGMeanFlux,
+		arg.PhotGMeanFluxError,
+		arg.PhotGMeanMag,
+		arg.PhotBpMeanFlux,
+		arg.PhotBpMeanFluxError,
+		arg.PhotBpMeanMag,
+		arg.PhotRpMeanFlux,
+		arg.PhotRpMeanFluxError,
+		arg.PhotRpMeanMag,
+	)
 	return err
+}
+
+func (m GetGaiaFromPixelsRow) GetId() string {
+	return m.ID
+}
+
+func (m GetGaiaFromPixelsRow) GetCoordinates() (float64, float64) {
+	return m.Ra, m.Dec
 }

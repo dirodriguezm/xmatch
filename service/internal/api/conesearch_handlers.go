@@ -58,7 +58,13 @@ func (api *API) conesearchBulk(c *gin.Context) {
 	}
 
 	result, err := api.conesearchService.BulkConesearch(
-		bulkRequest.Ra, bulkRequest.Dec, bulkRequest.Radius, bulkRequest.Nneighbor, bulkRequest.Catalog, api.config.BulkChunkSize, api.config.MaxBulkConcurrency,
+		bulkRequest.Ra,
+		bulkRequest.Dec,
+		bulkRequest.Radius,
+		bulkRequest.Nneighbor,
+		bulkRequest.Catalog,
+		api.config.BulkChunkSize,
+		api.config.MaxBulkConcurrency,
 	)
 	if err != nil {
 		if errors.As(err, &conesearch.ValidationError{}) {

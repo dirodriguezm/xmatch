@@ -67,6 +67,12 @@ func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalog s
 			return nil, err
 		}
 		return result, nil
+	case "gaia":
+		result, err := m.repository.GetGaia(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
 	case "vlass":
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
 	case "ztf":
@@ -84,6 +90,12 @@ func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, ca
 			return nil, err
 		}
 		return result, nil
+	case "gaia":
+		result, err := m.repository.BulkGetGaia(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
 	case "vlass":
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
 	case "ztf":
@@ -94,7 +106,7 @@ func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, ca
 }
 
 func (m *MetadataService) validateCatalog(catalog string) error {
-	allowedCatalogs := []string{"allwise", "vlass", "ztf"}
+	allowedCatalogs := []string{"allwise", "vlass", "ztf", "gaia"}
 	if !slices.Contains(allowedCatalogs, strings.ToLower(catalog)) {
 		return ValidationError{
 			Field:  "catalog",
