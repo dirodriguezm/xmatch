@@ -143,7 +143,7 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	repo.AssertExpectations(t)
 
 	require.Len(t, result, 1)
-	require.Equal(t, result.([]repository.Allwise)[0].ID, "A")
+	require.Equal(t, result[0].GetId(), "A")
 }
 
 func FuzzConesearch(f *testing.F) {

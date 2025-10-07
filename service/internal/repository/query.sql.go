@@ -67,7 +67,7 @@ func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]Allwise, e
 }
 
 const bulkGetGaia = `-- name: BulkGetGaia :many
-SELECT id, ra, dec
+SELECT id, phot_g_mean_flux, phot_g_mean_flux_error, phot_g_mean_mag, phot_bp_mean_flux, phot_bp_mean_flux_error, phot_bp_mean_mag, phot_rp_mean_flux, phot_rp_mean_flux_error, phot_rp_mean_mag
 FROM gaia
 WHERE id IN (/*SLICE:id*/?)
 `
@@ -91,7 +91,18 @@ func (q *Queries) BulkGetGaia(ctx context.Context, id []string) ([]Gaia, error) 
 	var items []Gaia
 	for rows.Next() {
 		var i Gaia
-		if err := rows.Scan(&i.ID, &i.Ra, &i.Dec); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.PhotGMeanFlux,
+			&i.PhotGMeanFluxError,
+			&i.PhotGMeanMag,
+			&i.PhotBpMeanFlux,
+			&i.PhotBpMeanFluxError,
+			&i.PhotBpMeanMag,
+			&i.PhotRpMeanFlux,
+			&i.PhotRpMeanFluxError,
+			&i.PhotRpMeanMag,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -320,7 +331,7 @@ func (q *Queries) GetCatalogs(ctx context.Context) ([]Catalog, error) {
 }
 
 const getGaia = `-- name: GetGaia :one
-SELECT id, ra, dec
+SELECT id, phot_g_mean_flux, phot_g_mean_flux_error, phot_g_mean_mag, phot_bp_mean_flux, phot_bp_mean_flux_error, phot_bp_mean_mag, phot_rp_mean_flux, phot_rp_mean_flux_error, phot_rp_mean_mag
 FROM gaia
 WHERE id = ?
 `
@@ -328,23 +339,41 @@ WHERE id = ?
 func (q *Queries) GetGaia(ctx context.Context, id string) (Gaia, error) {
 	row := q.db.QueryRowContext(ctx, getGaia, id)
 	var i Gaia
-	err := row.Scan(&i.ID, &i.Ra, &i.Dec)
+	err := row.Scan(
+		&i.ID,
+		&i.PhotGMeanFlux,
+		&i.PhotGMeanFluxError,
+		&i.PhotGMeanMag,
+		&i.PhotBpMeanFlux,
+		&i.PhotBpMeanFluxError,
+		&i.PhotBpMeanMag,
+		&i.PhotRpMeanFlux,
+		&i.PhotRpMeanFluxError,
+		&i.PhotRpMeanMag,
+	)
 	return i, err
 }
 
 const getGaiaFromPixels = `-- name: GetGaiaFromPixels :many
-SELECT gaia.id, gaia.ra, gaia.dec, mastercat.ra, mastercat.dec
+SELECT gaia.id, gaia.phot_g_mean_flux, gaia.phot_g_mean_flux_error, gaia.phot_g_mean_mag, gaia.phot_bp_mean_flux, gaia.phot_bp_mean_flux_error, gaia.phot_bp_mean_mag, gaia.phot_rp_mean_flux, gaia.phot_rp_mean_flux_error, gaia.phot_rp_mean_mag, mastercat.ra, mastercat.dec
 FROM gaia 
 JOIN mastercat ON mastercat.id = gaia.id
 WHERE mastercat.ipix IN (/*SLICE:ipix*/?)
 `
 
 type GetGaiaFromPixelsRow struct {
-	ID    string          `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
-	Ra    sql.NullFloat64 `json:"ra" parquet:"name=ra, type=DOUBLE"`
-	Dec   sql.NullFloat64 `json:"dec" parquet:"name=dec, type=DOUBLE"`
-	Ra_2  float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
-	Dec_2 float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
+	ID                  string          `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
+	PhotGMeanFlux       sql.NullFloat64 `json:"phot_g_mean_flux" parquet:"name=phot_g_mean_flux, type=DOUBLE"`
+	PhotGMeanFluxError  sql.NullFloat64 `json:"phot_g_mean_flux_error" parquet:"name=phot_g_mean_flux_error, type=DOUBLE"`
+	PhotGMeanMag        sql.NullFloat64 `json:"phot_g_mean_mag" parquet:"name=phot_g_mean_mag, type=DOUBLE"`
+	PhotBpMeanFlux      sql.NullFloat64 `json:"phot_bp_mean_flux" parquet:"name=phot_bp_mean_flux, type=DOUBLE"`
+	PhotBpMeanFluxError sql.NullFloat64 `json:"phot_bp_mean_flux_error" parquet:"name=phot_bp_mean_flux_error, type=DOUBLE"`
+	PhotBpMeanMag       sql.NullFloat64 `json:"phot_bp_mean_mag" parquet:"name=phot_bp_mean_mag, type=DOUBLE"`
+	PhotRpMeanFlux      sql.NullFloat64 `json:"phot_rp_mean_flux" parquet:"name=phot_rp_mean_flux, type=DOUBLE"`
+	PhotRpMeanFluxError sql.NullFloat64 `json:"phot_rp_mean_flux_error" parquet:"name=phot_rp_mean_flux_error, type=DOUBLE"`
+	PhotRpMeanMag       sql.NullFloat64 `json:"phot_rp_mean_mag" parquet:"name=phot_rp_mean_mag, type=DOUBLE"`
+	Ra                  float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec                 float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
 }
 
 func (q *Queries) GetGaiaFromPixels(ctx context.Context, ipix []int64) ([]GetGaiaFromPixelsRow, error) {
@@ -368,10 +397,17 @@ func (q *Queries) GetGaiaFromPixels(ctx context.Context, ipix []int64) ([]GetGai
 		var i GetGaiaFromPixelsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.PhotGMeanFlux,
+			&i.PhotGMeanFluxError,
+			&i.PhotGMeanMag,
+			&i.PhotBpMeanFlux,
+			&i.PhotBpMeanFluxError,
+			&i.PhotBpMeanMag,
+			&i.PhotRpMeanFlux,
+			&i.PhotRpMeanFluxError,
+			&i.PhotRpMeanMag,
 			&i.Ra,
 			&i.Dec,
-			&i.Ra_2,
-			&i.Dec_2,
 		); err != nil {
 			return nil, err
 		}
@@ -505,20 +541,47 @@ func (q *Queries) InsertCatalog(ctx context.Context, arg InsertCatalogParams) er
 
 const insertGaia = `-- name: InsertGaia :exec
 INSERT INTO gaia (
-	id, ra, dec
+	id, 
+  phot_g_mean_flux,
+  phot_g_mean_flux_error,
+  phot_g_mean_mag,
+  phot_bp_mean_flux,
+  phot_bp_mean_flux_error,
+  phot_bp_mean_mag,
+  phot_rp_mean_flux,
+  phot_rp_mean_flux_error,
+  phot_rp_mean_mag
 ) VALUES (
-	?, ?, ?
+	?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
 type InsertGaiaParams struct {
-	ID  string          `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
-	Ra  sql.NullFloat64 `json:"ra" parquet:"name=ra, type=DOUBLE"`
-	Dec sql.NullFloat64 `json:"dec" parquet:"name=dec, type=DOUBLE"`
+	ID                  string          `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
+	PhotGMeanFlux       sql.NullFloat64 `json:"phot_g_mean_flux" parquet:"name=phot_g_mean_flux, type=DOUBLE"`
+	PhotGMeanFluxError  sql.NullFloat64 `json:"phot_g_mean_flux_error" parquet:"name=phot_g_mean_flux_error, type=DOUBLE"`
+	PhotGMeanMag        sql.NullFloat64 `json:"phot_g_mean_mag" parquet:"name=phot_g_mean_mag, type=DOUBLE"`
+	PhotBpMeanFlux      sql.NullFloat64 `json:"phot_bp_mean_flux" parquet:"name=phot_bp_mean_flux, type=DOUBLE"`
+	PhotBpMeanFluxError sql.NullFloat64 `json:"phot_bp_mean_flux_error" parquet:"name=phot_bp_mean_flux_error, type=DOUBLE"`
+	PhotBpMeanMag       sql.NullFloat64 `json:"phot_bp_mean_mag" parquet:"name=phot_bp_mean_mag, type=DOUBLE"`
+	PhotRpMeanFlux      sql.NullFloat64 `json:"phot_rp_mean_flux" parquet:"name=phot_rp_mean_flux, type=DOUBLE"`
+	PhotRpMeanFluxError sql.NullFloat64 `json:"phot_rp_mean_flux_error" parquet:"name=phot_rp_mean_flux_error, type=DOUBLE"`
+	PhotRpMeanMag       sql.NullFloat64 `json:"phot_rp_mean_mag" parquet:"name=phot_rp_mean_mag, type=DOUBLE"`
 }
 
 func (q *Queries) InsertGaia(ctx context.Context, arg InsertGaiaParams) error {
-	_, err := q.db.ExecContext(ctx, insertGaia, arg.ID, arg.Ra, arg.Dec)
+	_, err := q.db.ExecContext(ctx, insertGaia,
+		arg.ID,
+		arg.PhotGMeanFlux,
+		arg.PhotGMeanFluxError,
+		arg.PhotGMeanMag,
+		arg.PhotBpMeanFlux,
+		arg.PhotBpMeanFluxError,
+		arg.PhotBpMeanMag,
+		arg.PhotRpMeanFlux,
+		arg.PhotRpMeanFluxError,
+		arg.PhotRpMeanMag,
+	)
 	return err
 }
 

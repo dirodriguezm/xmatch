@@ -32,9 +32,16 @@ type Catalog struct {
 }
 
 type Gaia struct {
-	ID  string          `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
-	Ra  sql.NullFloat64 `json:"ra" parquet:"name=ra, type=DOUBLE"`
-	Dec sql.NullFloat64 `json:"dec" parquet:"name=dec, type=DOUBLE"`
+	ID                  string          `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
+	PhotGMeanFlux       sql.NullFloat64 `json:"phot_g_mean_flux" parquet:"name=phot_g_mean_flux, type=DOUBLE"`
+	PhotGMeanFluxError  sql.NullFloat64 `json:"phot_g_mean_flux_error" parquet:"name=phot_g_mean_flux_error, type=DOUBLE"`
+	PhotGMeanMag        sql.NullFloat64 `json:"phot_g_mean_mag" parquet:"name=phot_g_mean_mag, type=DOUBLE"`
+	PhotBpMeanFlux      sql.NullFloat64 `json:"phot_bp_mean_flux" parquet:"name=phot_bp_mean_flux, type=DOUBLE"`
+	PhotBpMeanFluxError sql.NullFloat64 `json:"phot_bp_mean_flux_error" parquet:"name=phot_bp_mean_flux_error, type=DOUBLE"`
+	PhotBpMeanMag       sql.NullFloat64 `json:"phot_bp_mean_mag" parquet:"name=phot_bp_mean_mag, type=DOUBLE"`
+	PhotRpMeanFlux      sql.NullFloat64 `json:"phot_rp_mean_flux" parquet:"name=phot_rp_mean_flux, type=DOUBLE"`
+	PhotRpMeanFluxError sql.NullFloat64 `json:"phot_rp_mean_flux_error" parquet:"name=phot_rp_mean_flux_error, type=DOUBLE"`
+	PhotRpMeanMag       sql.NullFloat64 `json:"phot_rp_mean_mag" parquet:"name=phot_rp_mean_mag, type=DOUBLE"`
 }
 
 type Mastercat struct {

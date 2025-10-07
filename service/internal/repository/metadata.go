@@ -17,3 +17,8 @@ package repository
 type Metadata interface {
 	GetId() string
 }
+
+type MetadataWithCoordinates interface {
+	Metadata
+	GetCoordinates() (float64, float64)
+}

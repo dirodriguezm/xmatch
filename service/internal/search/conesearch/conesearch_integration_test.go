@@ -60,6 +60,8 @@ func TestMain(m *testing.M) {
 service:
   database:
     url: "file:%s?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000"
+  bulk_chunk_size: 500
+  max_bulk_concurrency: 1
 `
 	config = fmt.Sprintf(config, dbFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)
@@ -159,7 +161,7 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result.([]repository.Allwise)))
+	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result))
 
 	CleanDB(t, repo)
 }

@@ -44,9 +44,14 @@ func TestMetadata_ValidateCatalog(t *testing.T) {
 	err = m.validateCatalog("ZTF")
 	require.Nil(t, err)
 
+	err = m.validateCatalog("gaia")
+	require.Nil(t, err)
+	err = m.validateCatalog("GAIA")
+	require.Nil(t, err)
+
 	err = m.validateCatalog("invalid")
 	require.NotNil(t, err)
-	require.Equal(t, "Could not parse field catalog with value invalid: Allowed catalogs are [allwise vlass ztf]", err.Error())
+	require.Equal(t, "Could not parse field catalog with value invalid: Allowed catalogs are [allwise vlass ztf gaia]", err.Error())
 }
 
 func TestMetadata_FindByID(t *testing.T) {

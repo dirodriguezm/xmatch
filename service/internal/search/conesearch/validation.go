@@ -89,9 +89,8 @@ func ValidateNneighbor(nneighbor int) error {
 }
 
 func ValidateCatalog(catalog string) error {
-	available := []string{"vlass", "ztf", "allwise", "all"}
-	cat := strings.ToLower(catalog)
-	if !slices.Contains(available, cat) {
+	available := []string{"vlass", "ztf", "allwise", "gaia", "all"}
+	if !slices.Contains(available, strings.ToLower(catalog)) {
 		err := NewValidationError("Catalog not available", catalog, "catalog")
 		return err
 	}
@@ -117,11 +116,19 @@ func ValidateArguments(ra, dec, radius float64, nneighbor int, catalog string) e
 	return nil
 }
 
-func ValidateBulkArguments(ra, dec []float64, radius float64, nneighbor int, catalog string) error {
+func ValidateBulkArguments(
+	ra, dec []float64,
+	radius float64,
+	nneighbor int,
+	catalog string,
+) error {
 	if len(ra) != len(dec) {
 		return NewValidationError("Ra and Dec must have the same length", fmt.Sprintf("%d", len(ra)), "ra")
 	}
-	for i := 0; i < len(ra); i++ {
+	if len(ra) == 0 {
+		return NewValidationError("Ra and Dec must have at least one element", fmt.Sprintf("%d", len(ra)), "ra")
+	}
+	for i := range ra {
 		if err := ValidateRa(ra[i]); err != nil {
 			return err
 		}

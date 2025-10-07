@@ -122,6 +122,14 @@ func (m InsertAllwiseParams) GetId() string {
 	return m.ID
 }
 
+func (m GetAllwiseFromPixelsRow) GetId() string {
+	return m.ID
+}
+
+func (m GetAllwiseFromPixelsRow) GetCoordinates() (float64, float64) {
+	return m.Ra, m.Dec
+}
+
 func (q *Queries) InsertAllwiseWithoutParams(ctx context.Context, arg Allwise) error {
 	_, err := q.db.ExecContext(ctx, insertAllwise,
 		arg.ID,
