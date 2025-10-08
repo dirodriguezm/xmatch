@@ -16,6 +16,7 @@ package repository
 
 type Metadata interface {
 	GetId() string
+	GetCatalog() string
 }
 
 type MetadataWithCoordinates interface {

@@ -18,7 +18,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/gin-gonic/gin"
 )
@@ -130,39 +129,36 @@ func (api *API) conesearch(c *gin.Context) {
 		return
 	}
 
-	var result any
-	var serviceErr error
 	if getMetadata == "true" {
-		result, serviceErr = api.conesearchService.FindMetadataByConesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
-	} else {
-		result, serviceErr = api.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
-	}
-
-	if serviceErr != nil {
-		if errors.As(serviceErr, &conesearch.ValidationError{}) {
-			c.JSON(http.StatusBadRequest, serviceErr)
-		} else {
-			c.Error(serviceErr)
-			c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
+		result, err := api.conesearchService.FindMetadataByConesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
+		if err != nil {
+			handleServiceError(err, c)
+			return
 		}
-		return
+		handleServiceSuccess(result, c)
+	} else {
+		result, err := api.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
+		if err != nil {
+			handleServiceError(err, c)
+		}
+		handleServiceSuccess(result, c)
 	}
-	if isEmptyResult(result) {
+}
+
+func handleServiceError(serviceErr error, c *gin.Context) {
+	if errors.As(serviceErr, &conesearch.ValidationError{}) {
+		c.JSON(http.StatusBadRequest, serviceErr)
+	} else {
+		c.Error(serviceErr)
+		c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
+	}
+}
+
+func handleServiceSuccess[T any](result []T, c *gin.Context) {
+	if len(result) == 0 {
 		c.Writer.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	c.JSON(http.StatusOK, result)
-}
-
-func isEmptyResult(result any) bool {
-	// WARN: in this layer there should not be any references to repository, that should be done in service
-	switch result := result.(type) {
-	case []repository.Mastercat:
-		return len(result) == 0
-	case []repository.Allwise:
-		return len(result) == 0
-	default:
-		return false
-	}
 }

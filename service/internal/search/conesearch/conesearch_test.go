@@ -42,7 +42,7 @@ func TestConesearch(t *testing.T) {
 	repo.AssertExpectations(t)
 
 	require.Len(t, result, 1)
-	require.Equal(t, result[0].ID, "A")
+	require.Equal(t, result[0].Data[0].ID, "A")
 }
 
 func TestConesearch_WithRepositoryError(t *testing.T) {
@@ -82,8 +82,10 @@ func TestConesearch_WithMultipleMappers(t *testing.T) {
 	ids := make([]string, 2)
 	cats := make([]string, 2)
 	for i := range result {
-		ids[i] = result[i].ID
-		cats[i] = result[i].Cat
+		for j := range result[i].Data {
+			ids[i] = result[i].Data[j].ID
+			cats[i] = result[i].Data[j].Cat
+		}
 	}
 	require.Subset(t, ids, []string{"A", "ZTFA"})
 	require.Subset(t, cats, []string{"vlass", "ztf"})
@@ -143,7 +145,7 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	repo.AssertExpectations(t)
 
 	require.Len(t, result, 1)
-	require.Equal(t, result[0].GetId(), "A")
+	require.Equal(t, result[0].Data[0].GetId(), "A")
 }
 
 func FuzzConesearch(f *testing.F) {

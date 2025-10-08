@@ -118,6 +118,10 @@ func (a Allwise) GetId() string {
 	return a.ID
 }
 
+func (a Allwise) GetCatalog() string {
+	return "allwise"
+}
+
 func (m InsertAllwiseParams) GetId() string {
 	return m.ID
 }
@@ -128,6 +132,10 @@ func (m GetAllwiseFromPixelsRow) GetId() string {
 
 func (m GetAllwiseFromPixelsRow) GetCoordinates() (float64, float64) {
 	return m.Ra, m.Dec
+}
+
+func (m GetAllwiseFromPixelsRow) GetCatalog() string {
+	return "allwise"
 }
 
 func (q *Queries) InsertAllwiseWithoutParams(ctx context.Context, arg Allwise) error {

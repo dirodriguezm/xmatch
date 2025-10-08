@@ -105,7 +105,7 @@ func createServiceMappers(catalogs []repository.Catalog, scheme healpix.Ordering
 	return mappers, nil
 }
 
-func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, catalog string) ([]repository.Mastercat, error) {
+func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, catalog string) ([]MastercatResult, error) {
 	if err := ValidateArguments(ra, dec, radius, nneighbor, catalog); err != nil {
 		return nil, err
 	}
@@ -123,15 +123,14 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 		objects = append(objects, objs...)
 	}
 
-	objects = knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)
-	return objects, nil
+	return ResultFromMastercat(knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)), nil
 }
 
 func (c *ConesearchService) FindMetadataByConesearch(
 	ra, dec, radius float64,
 	nneighbor int,
 	catalog string,
-) ([]repository.Metadata, error) {
+) ([]MetadataResult, error) {
 	if err := ValidateArguments(ra, dec, radius, nneighbor, catalog); err != nil {
 		return nil, err
 	}
@@ -141,7 +140,7 @@ func (c *ConesearchService) FindMetadataByConesearch(
 		return nil, fmt.Errorf("could not find allwise metadata: %w", err)
 	}
 
-	return knn.NearestNeighborSearchForMetadata(objects, ra, dec, radius, nneighbor, catalog), nil
+	return ResultFromMetadata(knn.NearestNeighborSearchForMetadata(objects, ra, dec, radius, nneighbor, catalog)), nil
 }
 
 func findMetadata(

@@ -27,6 +27,7 @@ import (
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 
 	"github.com/stretchr/testify/require"
@@ -165,13 +166,13 @@ func TestConesearch_NNeighbor(t *testing.T) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)
 
-	var result []repository.Mastercat
+	var result []conesearch.MastercatResult
 	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	require.Len(t, result, 3)
+	require.Len(t, result[0].Data, 3)
 	for i := range 3 {
-		require.Equal(t, fmt.Sprintf("allwise-%d", i), result[i].ID)
+		require.Equal(t, fmt.Sprintf("allwise-%d", i), result[0].Data[i].ID)
 	}
 }
 
