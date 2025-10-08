@@ -303,9 +303,7 @@ func (c *ConesearchService) getGaiaMetadata(
 	pixelList []int64,
 ) ([]repository.MetadataWithCoordinates, error) {
 	objectsCopy := make([]repository.MetadataWithCoordinates, len(objects))
-	for _, obj := range objects {
-		objectsCopy = append(objectsCopy, obj)
-	}
+	copy(objectsCopy, objects)
 
 	gaia, err := c.repository.GetGaiaFromPixels(c.ctx, pixelList)
 	if err != nil {
@@ -322,9 +320,7 @@ func (c *ConesearchService) getAllwiseMetadata(
 	pixelList []int64,
 ) ([]repository.MetadataWithCoordinates, error) {
 	objectsCopy := make([]repository.MetadataWithCoordinates, len(objects))
-	for _, obj := range objects {
-		objectsCopy = append(objectsCopy, obj)
-	}
+	copy(objectsCopy, objects)
 
 	allwise, err := c.repository.GetAllwiseFromPixels(c.ctx, pixelList)
 	if err != nil {
