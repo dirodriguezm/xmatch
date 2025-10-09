@@ -45,8 +45,8 @@ func TestKnn(t *testing.T) {
 
 	for _, tc := range testCases {
 		result := NearestNeighborSearch(tc.objectList, 179.5928264, 14.5297050, tc.radius, 5)
-		require.Lenf(t, result, len(tc.expectedObjectIds), "Result objects are more than actual neighbors")
-		for i, res := range result {
+		require.Lenf(t, result.Data, len(tc.expectedObjectIds), "Result objects are more than actual neighbors")
+		for i, res := range result.Data {
 			require.Equal(t, res.ID, tc.expectedObjectIds[i])
 		}
 	}

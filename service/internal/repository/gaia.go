@@ -194,7 +194,7 @@ func (gaia Gaia) GetId() string {
 }
 
 func (gaia Gaia) GetCatalog() string {
-	return "gaia"
+	return "GAIA/DR3"
 }
 
 func (m InsertGaiaParams) GetId() string {
@@ -228,5 +228,5 @@ func (m GetGaiaFromPixelsRow) GetCoordinates() (float64, float64) {
 }
 
 func (m GetGaiaFromPixelsRow) GetCatalog() string {
-	return "gaia"
+	return "GAIA/DR3"
 }

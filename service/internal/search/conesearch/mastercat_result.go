@@ -1,17 +1,28 @@
 package conesearch
 
-import "github.com/dirodriguezm/xmatch/service/internal/repository"
+import (
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/knn"
+)
 
-type MastercatResult struct {
-	Catalog string                 `json:"catalog"`
-	Data    []repository.Mastercat `json:"data"`
+type MastercatExtended struct {
+	repository.Mastercat
+	Distance float64 `json:"distance"`
 }
 
-func ResultFromMastercat(objs []repository.Mastercat) []MastercatResult {
+type MastercatResult struct {
+	Catalog string              `json:"catalog"`
+	Data    []MastercatExtended `json:"data"`
+}
+
+func ResultFromKnn(objs knn.KnnResult[repository.Mastercat]) []MastercatResult {
 	result := make([]MastercatResult, 0)
-	grouped := make(map[string][]repository.Mastercat)
-	for _, m := range objs {
-		grouped[m.Cat] = append(grouped[m.Cat], m)
+	grouped := make(map[string][]MastercatExtended)
+	for i, m := range objs.Data {
+		grouped[m.Cat] = append(grouped[m.Cat], MastercatExtended{
+			Mastercat: m,
+			Distance:  objs.Distance[i],
+		})
 	}
 	for catalog, data := range grouped {
 		result = append(result, MastercatResult{Catalog: catalog, Data: data})

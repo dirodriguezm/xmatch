@@ -123,7 +123,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 		objects = append(objects, objs...)
 	}
 
-	return ResultFromMastercat(knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)), nil
+	return ResultFromKnn(knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)), nil
 }
 
 func (c *ConesearchService) FindMetadataByConesearch(
@@ -140,7 +140,7 @@ func (c *ConesearchService) FindMetadataByConesearch(
 		return nil, fmt.Errorf("could not find allwise metadata: %w", err)
 	}
 
-	return ResultFromMetadata(knn.NearestNeighborSearchForMetadata(objects, ra, dec, radius, nneighbor, catalog)), nil
+	return ResultFromKnnMetadata(knn.NearestNeighborSearchForMetadata(objects, ra, dec, radius, nneighbor, catalog)), nil
 }
 
 func findMetadata(
@@ -169,14 +169,14 @@ func (c *ConesearchService) BulkConesearch(
 	catalog string,
 	chunkSize int,
 	maxBulkConcurrency int,
-) ([]repository.Mastercat, error) {
+) ([]MastercatResult, error) {
 	if err := ValidateBulkArguments(ra, dec, radius, nneighbor, catalog); err != nil {
 		return nil, err
 	}
 
 	radius_radians := arcsecToRadians(radius)
 	numChunks := (len(ra) + chunkSize - 1) / chunkSize
-	resultsChan := make(chan []repository.Mastercat, numChunks)
+	resultsChan := make(chan knn.KnnResult[repository.Mastercat], numChunks)
 	errChan := make(chan error, numChunks)
 	var wg sync.WaitGroup
 
@@ -207,8 +207,7 @@ func (c *ConesearchService) BulkConesearch(
 						errChan <- err
 					}
 
-					objs = knn.NearestNeighborSearch(objs, chunkRa[j], chunkDec[j], radius, nneighbor)
-					resultsChan <- objs
+					resultsChan <- knn.NearestNeighborSearch(objs, chunkRa[j], chunkDec[j], radius, nneighbor)
 				}
 
 			}(chunkRa, chunkDec)
@@ -221,20 +220,22 @@ func (c *ConesearchService) BulkConesearch(
 		close(errChan)
 	}()
 
-	allObjects := make([]repository.Mastercat, 0)
+	allObjects := make([]MastercatResult, 0)
 	for result := range resultsChan {
-		allObjects = append(allObjects, result...)
+		allObjects = append(allObjects, ResultFromKnn(result)...)
 	}
 	for err := range errChan {
 		return nil, err
 	}
 
-	uniqueObjects := make([]repository.Mastercat, 0)
+	uniqueObjects := make([]MastercatResult, 0)
 	ids := utils.Set{}
-	for i := 0; i < len(allObjects); i++ {
-		if !ids.Contains(allObjects[i].ID) {
-			uniqueObjects = append(uniqueObjects, allObjects[i])
-			ids.Add(allObjects[i].ID)
+	for i := range allObjects {
+		for j := range allObjects[i].Data {
+			if !ids.Contains(allObjects[i].Data[j].ID) {
+				uniqueObjects = append(uniqueObjects, allObjects[i])
+				ids.Add(allObjects[i].Data[j].ID)
+			}
 		}
 	}
 	return uniqueObjects, nil

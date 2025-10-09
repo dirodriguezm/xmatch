@@ -124,7 +124,9 @@ func TestBulkConesearch(t *testing.T) {
 
 		require.Lenf(t, result, len(tc.expected), "test case: %v", tc)
 		for i := range result {
-			require.Contains(t, tc.expected, result[i].ID, "test case: %v", tc)
+			for j := range result[i].Data {
+				require.Contains(t, tc.expected, result[i].Data[j].ID, "test case: %v", tc)
+			}
 		}
 	}
 }
