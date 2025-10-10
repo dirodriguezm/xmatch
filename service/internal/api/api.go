@@ -19,12 +19,14 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/search/lightcurve"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 )
 
 type API struct {
 	conesearchService *conesearch.ConesearchService
 	metadataService   *metadata.MetadataService
+	lightcurveService *lightcurve.LightcurveService
 	config            *config.ServiceConfig
 	getenv            func(string) string
 }
@@ -32,6 +34,7 @@ type API struct {
 func New(
 	conesearchService *conesearch.ConesearchService,
 	metadataService *metadata.MetadataService,
+	lightcurveService *lightcurve.LightcurveService,
 	config *config.ServiceConfig,
 	getenv func(string) string,
 ) (*API, error) {
@@ -41,5 +44,8 @@ func New(
 	if metadataService == nil {
 		return nil, fmt.Errorf("MetadataService was nil while creating HttpServer")
 	}
-	return &API{conesearchService, metadataService, config, getenv}, nil
+	if lightcurveService == nil {
+		return nil, fmt.Errorf("LightcurveService was nil while creating HttpServer")
+	}
+	return &API{conesearchService, metadataService, lightcurveService, config, getenv}, nil
 }

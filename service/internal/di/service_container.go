@@ -29,6 +29,7 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/search/lightcurve"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -136,18 +137,25 @@ func BuildServiceContainer(
 		return service
 	})
 
+	ctr.Singleton(func(conesearchService *conesearch.ConesearchService) *lightcurve.LightcurveService {
+		service, err := lightcurve.New([]lightcurve.ExternalClient{}, conesearchService)
+		if err != nil {
+			panic(fmt.Errorf("Could not create LightcurveService: %w", err))
+		}
+		return service
+	})
+
 	ctr.Singleton(func(
 		conesearchService *conesearch.ConesearchService,
 		metadataService *metadata.MetadataService,
+		lightcurveService *lightcurve.LightcurveService,
 		config *config.Config,
 	) *api.API {
-		api, err := api.New(conesearchService, metadataService, config.Service, getenv)
+		api, err := api.New(conesearchService, metadataService, lightcurveService, config.Service, getenv)
 		if err != nil {
 			panic(fmt.Errorf("Could not register API: %w", err))
 		}
-		if api == nil {
-			panic("api nil while registering API")
-		}
+
 		return api
 	})
 
