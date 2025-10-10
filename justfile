@@ -52,3 +52,7 @@ build-css-watch:
 [working-directory: 'service']
 build-css:
 	tailwindcss --input ./ui/static/css/tailwind.css --output ./ui/static/css/output.css --optimize --minify
+
+[working-directory: 'service']
+mock:
+  mockery
