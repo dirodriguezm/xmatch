@@ -132,24 +132,24 @@ func (_m *MockConesearchService) EXPECT() *MockConesearchService_Expecter {
 	return &MockConesearchService_Expecter{mock: &_m.Mock}
 }
 
-// Conesearch provides a mock function for the type MockConesearchService
-func (_mock *MockConesearchService) Conesearch(f float64, f1 float64, f2 float64, n int, s string) ([]conesearch.MastercatResult, error) {
+// FindMetadataByConesearch provides a mock function for the type MockConesearchService
+func (_mock *MockConesearchService) FindMetadataByConesearch(f float64, f1 float64, f2 float64, n int, s string) ([]conesearch.MetadataResult, error) {
 	ret := _mock.Called(f, f1, f2, n, s)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Conesearch")
+		panic("no return value specified for FindMetadataByConesearch")
 	}
 
-	var r0 []conesearch.MastercatResult
+	var r0 []conesearch.MetadataResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(float64, float64, float64, int, string) ([]conesearch.MastercatResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(float64, float64, float64, int, string) ([]conesearch.MetadataResult, error)); ok {
 		return returnFunc(f, f1, f2, n, s)
 	}
-	if returnFunc, ok := ret.Get(0).(func(float64, float64, float64, int, string) []conesearch.MastercatResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(float64, float64, float64, int, string) []conesearch.MetadataResult); ok {
 		r0 = returnFunc(f, f1, f2, n, s)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]conesearch.MastercatResult)
+			r0 = ret.Get(0).([]conesearch.MetadataResult)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(float64, float64, float64, int, string) error); ok {
@@ -160,22 +160,22 @@ func (_mock *MockConesearchService) Conesearch(f float64, f1 float64, f2 float64
 	return r0, r1
 }
 
-// MockConesearchService_Conesearch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Conesearch'
-type MockConesearchService_Conesearch_Call struct {
+// MockConesearchService_FindMetadataByConesearch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindMetadataByConesearch'
+type MockConesearchService_FindMetadataByConesearch_Call struct {
 	*mock.Call
 }
 
-// Conesearch is a helper method to define mock.On call
+// FindMetadataByConesearch is a helper method to define mock.On call
 //   - f float64
 //   - f1 float64
 //   - f2 float64
 //   - n int
 //   - s string
-func (_e *MockConesearchService_Expecter) Conesearch(f interface{}, f1 interface{}, f2 interface{}, n interface{}, s interface{}) *MockConesearchService_Conesearch_Call {
-	return &MockConesearchService_Conesearch_Call{Call: _e.mock.On("Conesearch", f, f1, f2, n, s)}
+func (_e *MockConesearchService_Expecter) FindMetadataByConesearch(f interface{}, f1 interface{}, f2 interface{}, n interface{}, s interface{}) *MockConesearchService_FindMetadataByConesearch_Call {
+	return &MockConesearchService_FindMetadataByConesearch_Call{Call: _e.mock.On("FindMetadataByConesearch", f, f1, f2, n, s)}
 }
 
-func (_c *MockConesearchService_Conesearch_Call) Run(run func(f float64, f1 float64, f2 float64, n int, s string)) *MockConesearchService_Conesearch_Call {
+func (_c *MockConesearchService_FindMetadataByConesearch_Call) Run(run func(f float64, f1 float64, f2 float64, n int, s string)) *MockConesearchService_FindMetadataByConesearch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 float64
 		if args[0] != nil {
@@ -208,12 +208,12 @@ func (_c *MockConesearchService_Conesearch_Call) Run(run func(f float64, f1 floa
 	return _c
 }
 
-func (_c *MockConesearchService_Conesearch_Call) Return(mastercatResults []conesearch.MastercatResult, err error) *MockConesearchService_Conesearch_Call {
-	_c.Call.Return(mastercatResults, err)
+func (_c *MockConesearchService_FindMetadataByConesearch_Call) Return(metadataResults []conesearch.MetadataResult, err error) *MockConesearchService_FindMetadataByConesearch_Call {
+	_c.Call.Return(metadataResults, err)
 	return _c
 }
 
-func (_c *MockConesearchService_Conesearch_Call) RunAndReturn(run func(f float64, f1 float64, f2 float64, n int, s string) ([]conesearch.MastercatResult, error)) *MockConesearchService_Conesearch_Call {
+func (_c *MockConesearchService_FindMetadataByConesearch_Call) RunAndReturn(run func(f float64, f1 float64, f2 float64, n int, s string) ([]conesearch.MetadataResult, error)) *MockConesearchService_FindMetadataByConesearch_Call {
 	_c.Call.Return(run)
 	return _c
 }

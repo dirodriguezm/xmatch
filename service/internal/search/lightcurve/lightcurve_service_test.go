@@ -51,89 +51,62 @@ func (d TestDetection) GetMjd() float64 {
 	return d.MJD
 }
 
+func MockLightcurveFilter(Lightcurve, []conesearch.MetadataExtended) Lightcurve {
+	return Lightcurve{}
+}
+
 func TestGetObjectIds_Empty(t *testing.T) {
 	mockService := NewMockConesearchService(t)
-	mockService.EXPECT().Conesearch(
+	mockService.EXPECT().FindMetadataByConesearch(
 		mock.AnythingOfType("float64"),
 		mock.AnythingOfType("float64"),
 		mock.AnythingOfType("float64"),
 		1,
 		"all",
-	).Return([]conesearch.MastercatResult{}, nil)
+	).Return([]conesearch.MetadataResult{}, nil)
 
-	lightcurveService, err := New([]ExternalClient{}, mockService)
+	lightcurveService, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, mockService)
 	require.NoError(t, err)
 
-	ids, err := lightcurveService.getObjectIds(0, 0, 0, 1)
+	objs, err := lightcurveService.getObjects(0, 0, 0, 1)
 	require.NoError(t, err)
 
-	require.Equal(t, []string{}, ids)
+	require.Equal(t, []conesearch.MetadataResult{}, objs)
 }
 
 func TestGetObjectIds_NonEmpty(t *testing.T) {
 	mockService := NewMockConesearchService(t)
-	mockService.EXPECT().Conesearch(
+	mockService.EXPECT().FindMetadataByConesearch(
 		mock.AnythingOfType("float64"),
 		mock.AnythingOfType("float64"),
 		mock.AnythingOfType("float64"),
 		1,
 		"all",
-	).Return([]conesearch.MastercatResult{
+	).Return([]conesearch.MetadataResult{
 		{
 			Catalog: "allwise",
-			Data: []conesearch.MastercatExtended{
-				{
-					Mastercat: repository.Mastercat{
-						ID:   "ALLWISE1",
-						Ipix: 1,
-						Ra:   45,
-						Dec:  45,
-						Cat:  "allwise",
-					},
-					Distance: 0.5,
-				},
-			},
+			Data:    []conesearch.MetadataExtended{{Metadata: repository.Gaia{ID: "ALLWISE1"}, Distance: 0.5}},
 		},
 		{
 			Catalog: "gaia",
-			Data: []conesearch.MastercatExtended{
-				{
-					Mastercat: repository.Mastercat{
-						ID:   "GAIA1",
-						Ipix: 2,
-						Ra:   10,
-						Dec:  5,
-						Cat:  "gaia",
-					},
-					Distance: 2,
-				},
-			},
+			Data:    []conesearch.MetadataExtended{{Metadata: repository.Gaia{ID: "GAIA1"}, Distance: 0.5}},
 		},
 	}, nil)
 
-	lightcurveService, err := New([]ExternalClient{}, mockService)
+	lightcurveService, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, mockService)
 	require.NoError(t, err)
 
-	ids, err := lightcurveService.getObjectIds(0, 0, 0, 1)
+	objs, err := lightcurveService.getObjects(0, 0, 0, 1)
 	require.NoError(t, err)
 
-	require.Equal(t, []string{"ALLWISE1", "GAIA1"}, ids)
-}
-
-func TestFilterById(t *testing.T) {
-	lightcurveService, err := New([]ExternalClient{}, NewMockConesearchService(t))
-	require.NoError(t, err)
-
-	lightcurve := Lightcurve{
-		Detections: []LightcurveObject{
-			TestDetection{"1", "ALLWISE1", 1, 1, 1},
-			TestDetection{"2", "GAIA1", 1, 1, 1},
-		},
+	ids := make([]string, 0)
+	for i := range objs {
+		for j := range objs[i].Data {
+			ids = append(ids, objs[i].Data[j].GetId())
+		}
 	}
 
-	result := lightcurveService.filterById([]string{"ALLWISE1"}, lightcurve)
-
-	require.Equal(t, []LightcurveObject{TestDetection{"1", "ALLWISE1", 1, 1, 1}}, result.Detections)
+	require.Equal(t, []string{"ALLWISE1", "GAIA1"}, ids)
 }
 
 func TestMergeClientResults_NoError(t *testing.T) {
@@ -155,7 +128,7 @@ func TestMergeClientResults_NoError(t *testing.T) {
 	results <- clientResult2
 	close(results)
 
-	lightcurveService, err := New([]ExternalClient{}, NewMockConesearchService(t))
+	lightcurveService, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
 	require.NoError(t, err)
 
 	lightcurve, err := lightcurveService.mergeClientResults(results)
@@ -189,7 +162,7 @@ func TestMergeClientResults_WithError(t *testing.T) {
 	results <- clientResult3
 	close(results)
 
-	lightcurveService, err := New([]ExternalClient{}, NewMockConesearchService(t))
+	lightcurveService, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
 	require.NoError(t, err)
 
 	lightcurve, err := lightcurveService.mergeClientResults(results)
@@ -208,7 +181,7 @@ func TestMergeLightcurves(t *testing.T) {
 		Detections: []LightcurveObject{TestDetection{"2", "GAIA1", 1, 1, 1}},
 	}
 
-	service, err := New([]ExternalClient{}, NewMockConesearchService(t))
+	service, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
 	require.NoError(t, err)
 
 	result := service.mergeLightcurves([]Lightcurve{lightcurve1, lightcurve2})

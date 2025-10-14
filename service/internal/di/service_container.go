@@ -138,7 +138,7 @@ func BuildServiceContainer(
 	})
 
 	ctr.Singleton(func(conesearchService *conesearch.ConesearchService) *lightcurve.LightcurveService {
-		service, err := lightcurve.New([]lightcurve.ExternalClient{}, conesearchService)
+		service, err := lightcurve.New([]lightcurve.ExternalClient{}, []lightcurve.LightcurveFilter{}, conesearchService)
 		if err != nil {
 			panic(fmt.Errorf("Could not create LightcurveService: %w", err))
 		}

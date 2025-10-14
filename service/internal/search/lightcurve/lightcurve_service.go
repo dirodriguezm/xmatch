@@ -15,7 +15,6 @@ package lightcurve
 
 import (
 	"fmt"
-	"slices"
 	"sync"
 
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -26,8 +25,10 @@ type ExternalClient interface {
 }
 
 type ConesearchService interface {
-	Conesearch(float64, float64, float64, int, string) ([]conesearch.MastercatResult, error)
+	FindMetadataByConesearch(float64, float64, float64, int, string) ([]conesearch.MetadataResult, error)
 }
+
+type LightcurveFilter func(Lightcurve, []conesearch.MetadataExtended) Lightcurve
 
 type ClientResult struct {
 	Lightcurve Lightcurve
@@ -36,14 +37,19 @@ type ClientResult struct {
 
 type LightcurveService struct {
 	externalClients   []ExternalClient
+	lightcurveFilters []LightcurveFilter
 	conesearchService ConesearchService
 }
 
-func New(externalClients []ExternalClient, conesearchService ConesearchService) (*LightcurveService, error) {
+func New(
+	externalClients []ExternalClient,
+	lightcurveFilters []LightcurveFilter,
+	conesearchService ConesearchService,
+) (*LightcurveService, error) {
 	if conesearchService == nil {
 		return nil, fmt.Errorf("conesearchService was nil while creating LightcurveService")
 	}
-	return &LightcurveService{externalClients, conesearchService}, nil
+	return &LightcurveService{externalClients, lightcurveFilters, conesearchService}, nil
 }
 
 // GetLightcurve retrieves lightcurve data by querying multiple external clients concurrently.
@@ -72,59 +78,128 @@ func New(externalClients []ExternalClient, conesearchService ConesearchService) 
 //   - Lightcurve: Combined lightcurve data from all external clients
 //   - error: Any error encountered during the fetch operation
 func (service *LightcurveService) GetLightcurve(ra, dec, radius float64, nobjects int) (Lightcurve, error) {
+	// Step 1: Fetch external clients and conesearch data concurrently
+	clientData := make(chan ClientResult, len(service.externalClients))
+	service.fetchClientData(clientData, ra, dec, radius, nobjects)
+	metadataResult := make(chan []conesearch.MetadataResult, 1)
+	errors := make(chan error, 1)
+	service.fetchConesearchData(metadataResult, errors, ra, dec, radius, nobjects)
+
+	// Wait for all data to be fetched
+	mergedClientResult, err := service.mergeClientResults(clientData)
+	if err != nil {
+		return mergedClientResult, err
+	}
+	objectIds, objects, err := service.extractObjectIds(metadataResult, errors)
+	if err != nil {
+		return Lightcurve{}, err
+	}
+
+	// Step 2: Fetch Xwave data and apply filters concurrently
+	xwaveLightcurve := make(chan Lightcurve, 1)
+	xwaveError := make(chan error, 1)
+	service.getXwaveLightcurve(objectIds, xwaveLightcurve, xwaveError)
+	filteredOutput := make(chan Lightcurve, 1)
+	service.filterLightcurve(filteredOutput, objects, mergedClientResult)
+
+	// Wait for data to be fetched and filtered. Then merge the results.
+	select {
+	case xWaveLightcurve := <-xwaveLightcurve:
+		return service.mergeLightcurves([]Lightcurve{xWaveLightcurve, <-filteredOutput}), nil
+	case err := <-xwaveError:
+		return Lightcurve{}, fmt.Errorf("could not get x-wave lightcurve: %w", err)
+	}
+}
+
+// fetchClientData concurrently fetches lightcurve data from all external clients.
+// It spawns a goroutine for each external client and sends the results through the output channel.
+// The channel is closed once all goroutines have completed.
+//
+// Parameters:
+//   - output: Channel to send ClientResult data to
+//   - ra: Right ascension coordinate in degrees
+//   - dec: Declination coordinate in degrees
+//   - radius: Search radius in degrees
+//   - nobjects: Maximum number of objects to retrieve
+func (service *LightcurveService) fetchClientData(output chan<- ClientResult, ra, dec, radius float64, nobjects int) {
 	var wg sync.WaitGroup
-	results := make(chan ClientResult, len(service.externalClients))
 
 	for _, externalClient := range service.externalClients {
 		wg.Add(1)
 		go func(client ExternalClient) {
 			defer wg.Done()
-			results <- client.FetchLightcurve(ra, dec, radius, nobjects)
+			output <- client.FetchLightcurve(ra, dec, radius, nobjects)
 		}(externalClient)
 	}
 
-	wg.Add(1)
-	var objectIds []string
-	var conesearchError error
 	go func() {
-		defer wg.Done()
-		objectIds, conesearchError = service.getObjectIds(ra, dec, radius, nobjects)
+		wg.Wait()
+		close(output)
 	}()
-
-	wg.Wait()
-	close(results)
-
-	if conesearchError != nil {
-		return Lightcurve{}, fmt.Errorf("could not execute conesearch: %w", conesearchError)
-	}
-
-	mergedResults, err := service.mergeClientResults(results)
-	if err != nil {
-		return mergedResults, err
-	}
-
-	var xWaveLightcurve Lightcurve
-	var xWaveError error
-	wg.Add(1)
-	go func() {
-		xWaveLightcurve, xWaveError = service.getXwaveLightcurve(objectIds)
-	}()
-
-	var filteredLightcurve Lightcurve
-	wg.Add(1)
-	go func() {
-		filteredLightcurve = service.filterById(objectIds, mergedResults)
-	}()
-
-	wg.Wait()
-	if xWaveError != nil {
-		return Lightcurve{}, fmt.Errorf("could not get x-wave lightcurve: %w", xWaveError)
-	}
-
-	return service.mergeLightcurves([]Lightcurve{xWaveLightcurve, filteredLightcurve}), nil
 }
 
-// getObjectIds retrieves object IDs from the conesearch service for the given celestial coordinates.
+// fetchConesearchData concurrently fetches metadata from the conesearch service.
+// It executes the conesearch query in a goroutine and sends results through the output channel.
+// If an error occurs, it sends the error through the errors channel.
+//
+// Parameters:
+//   - output: Channel to send metadata results to
+//   - errors: Channel to send errors to
+//   - ra: Right ascension coordinate in degrees
+//   - dec: Declination coordinate in degrees
+//   - radius: Search radius in degrees
+//   - nobjects: Maximum number of objects to retrieve
+func (service *LightcurveService) fetchConesearchData(
+	output chan<- []conesearch.MetadataResult,
+	errors chan<- error,
+	ra, dec, radius float64,
+	nobjects int,
+) {
+	go func() {
+		defer close(output)
+
+		result, err := service.getObjects(ra, dec, radius, nobjects)
+		if err != nil {
+			errors <- err
+			return
+		}
+		output <- result
+	}()
+}
+
+// extractObjectIds extracts object IDs and metadata from conesearch results.
+// It waits for metadata results from the conesearch service and extracts all object IDs
+// and their corresponding metadata objects from the results.
+//
+// Parameters:
+//   - metadataResult: Channel receiving conesearch metadata results
+//   - errors: Channel receiving any errors from conesearch
+//
+// Returns:
+//   - []string: Slice of extracted object IDs
+//   - []MetadataExtended: Slice of metadata objects
+//   - error: Any error encountered during extraction
+func (service *LightcurveService) extractObjectIds(
+	metadataResult <-chan []conesearch.MetadataResult,
+	errors chan error,
+) ([]string, []conesearch.MetadataExtended, error) {
+	objectIds := make([]string, 0)
+	objects := make([]conesearch.MetadataExtended, 0)
+	select {
+	case res := <-metadataResult:
+		for i := range res {
+			for j := range res[i].Data {
+				objectIds = append(objectIds, res[i].Data[j].GetId())
+				objects = append(objects, res[i].Data[j])
+			}
+		}
+		return objectIds, objects, nil
+	case err := <-errors:
+		return nil, nil, err
+	}
+}
+
+// getObjects retrieves objects from the conesearch service for the given celestial coordinates.
 // It queries the conesearch service with the specified parameters and extracts object IDs from the results.
 //
 // Parameters:
@@ -134,20 +209,14 @@ func (service *LightcurveService) GetLightcurve(ra, dec, radius float64, nobject
 //   - neighbors: Maximum number of objects to retrieve
 //
 // Returns:
-//   - []string: Slice of object IDs found in the search area
+//   - []MetadataResult: Slice of objects indexed by catalog found in the search area
 //   - error: Any error encountered during the conesearch operation
-func (service *LightcurveService) getObjectIds(ra, dec, radius float64, neighbors int) ([]string, error) {
-	ids := make([]string, 0)
-	objects, err := service.conesearchService.Conesearch(ra, dec, radius, neighbors, "all")
+func (service *LightcurveService) getObjects(ra, dec, radius float64, neighbors int) ([]conesearch.MetadataResult, error) {
+	objects, err := service.conesearchService.FindMetadataByConesearch(ra, dec, radius, neighbors, "all")
 	if err != nil {
 		return nil, fmt.Errorf("could not execute conesearch: %w", err)
 	}
-	for _, objectsByCatalog := range objects {
-		for _, object := range objectsByCatalog.Data {
-			ids = append(ids, object.ID)
-		}
-	}
-	return ids, nil
+	return objects, nil
 }
 
 // getXwaveLightcurve retrieves lightcurve data from the Xwave service for the given object IDs.
@@ -155,46 +224,35 @@ func (service *LightcurveService) getObjectIds(ra, dec, radius float64, neighbor
 //
 // Parameters:
 //   - ids: Slice of object IDs to fetch lightcurve data for
-//
-// Returns:
-//   - Lightcurve: Lightcurve data from Xwave service
-//   - error: Any error encountered during the fetch operation
-func (service *LightcurveService) getXwaveLightcurve(_ []string) (Lightcurve, error) {
-	return Lightcurve{}, nil
+//   - result: Channel to send the result to
+//   - err: Channel to send errors to
+func (service *LightcurveService) getXwaveLightcurve(_ []string, result chan<- Lightcurve, _ chan error) {
+	go func() {
+		defer close(result)
+		result <- Lightcurve{}
+	}()
 }
 
-// filterById filters a lightcurve to include only detections, non-detections, and forced photometry
-// that belong to the specified object IDs. This is used to ensure only objects indexed by xwave
-// are returned from external clients is in the final result.
+// filterLightcurve applies all configured lightcurve filters to the input lightcurve.
+// Each filter is applied concurrently and the results are merged into a single lightcurve.
+// The filtered result is sent through the output channel.
 //
 // Parameters:
-//   - ids: Slice of object IDs to filter by
-//   - lightcurve: Lightcurve data to filter
-//
-// Returns:
-//   - Lightcurve: Filtered lightcurve containing only data for the specified object IDs
-func (service *LightcurveService) filterById(ids []string, lightcurve Lightcurve) Lightcurve {
-	newLightcurve := Lightcurve{}
+//   - output: Channel to send the filtered lightcurve to
+//   - objects: Metadata objects used for filtering
+//   - lightcurve: Input lightcurve to be filtered
+func (service *LightcurveService) filterLightcurve(output chan<- Lightcurve, objects []conesearch.MetadataExtended, lightcurve Lightcurve) {
+	go func() {
+		defer close(output)
 
-	for _, detection := range lightcurve.Detections {
-		if slices.Contains(ids, detection.GetObjectId()) {
-			newLightcurve.Detections = append(newLightcurve.Detections, detection)
+		filteredLightcurves := make([]Lightcurve, len(service.lightcurveFilters))
+
+		for i := range service.lightcurveFilters {
+			filteredLightcurves = append(filteredLightcurves, service.lightcurveFilters[i](lightcurve, objects))
 		}
-	}
 
-	for _, nonDetection := range lightcurve.NonDetections {
-		if slices.Contains(ids, nonDetection.GetObjectId()) {
-			newLightcurve.NonDetections = append(newLightcurve.NonDetections, nonDetection)
-		}
-	}
-
-	for _, forcedPhotometry := range lightcurve.ForcedPhotometry {
-		if slices.Contains(ids, forcedPhotometry.GetObjectId()) {
-			newLightcurve.ForcedPhotometry = append(newLightcurve.ForcedPhotometry, forcedPhotometry)
-		}
-	}
-
-	return newLightcurve
+		output <- service.mergeLightcurves(filteredLightcurves)
+	}()
 }
 
 // mergeClientResults merges lightcurve data from multiple external client results received through a channel.
