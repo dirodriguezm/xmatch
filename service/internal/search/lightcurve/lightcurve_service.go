@@ -28,7 +28,7 @@ type ConesearchService interface {
 	FindMetadataByConesearch(float64, float64, float64, int, string) ([]conesearch.MetadataResult, error)
 }
 
-type LightcurveFilter func(Lightcurve, []conesearch.MetadataExtended) Lightcurve
+type LightcurveFilter func(Lightcurve, []conesearch.MetadataResult) Lightcurve
 
 type ClientResult struct {
 	Lightcurve Lightcurve
@@ -48,6 +48,12 @@ func New(
 ) (*LightcurveService, error) {
 	if conesearchService == nil {
 		return nil, fmt.Errorf("conesearchService was nil while creating LightcurveService")
+	}
+	if len(externalClients) == 0 {
+		return nil, fmt.Errorf("externalClients was empty while creating LightcurveService")
+	}
+	if len(lightcurveFilters) == 0 {
+		return nil, fmt.Errorf("lightcurveFilters was empty while creating LightcurveService")
 	}
 	return &LightcurveService{externalClients, lightcurveFilters, conesearchService}, nil
 }
@@ -182,16 +188,16 @@ func (service *LightcurveService) fetchConesearchData(
 func (service *LightcurveService) extractObjectIds(
 	metadataResult <-chan []conesearch.MetadataResult,
 	errors chan error,
-) ([]string, []conesearch.MetadataExtended, error) {
+) ([]string, []conesearch.MetadataResult, error) {
 	objectIds := make([]string, 0)
-	objects := make([]conesearch.MetadataExtended, 0)
+	objects := make([]conesearch.MetadataResult, 0)
 	select {
 	case res := <-metadataResult:
 		for i := range res {
 			for j := range res[i].Data {
 				objectIds = append(objectIds, res[i].Data[j].GetId())
-				objects = append(objects, res[i].Data[j])
 			}
+			objects = append(objects, conesearch.MetadataResult{Data: res[i].Data})
 		}
 		return objectIds, objects, nil
 	case err := <-errors:
@@ -241,14 +247,14 @@ func (service *LightcurveService) getXwaveLightcurve(_ []string, result chan<- L
 //   - output: Channel to send the filtered lightcurve to
 //   - objects: Metadata objects used for filtering
 //   - lightcurve: Input lightcurve to be filtered
-func (service *LightcurveService) filterLightcurve(output chan<- Lightcurve, objects []conesearch.MetadataExtended, lightcurve Lightcurve) {
+func (service *LightcurveService) filterLightcurve(output chan<- Lightcurve, objects []conesearch.MetadataResult, lightcurve Lightcurve) {
 	go func() {
 		defer close(output)
 
 		filteredLightcurves := make([]Lightcurve, len(service.lightcurveFilters))
 
 		for i := range service.lightcurveFilters {
-			filteredLightcurves = append(filteredLightcurves, service.lightcurveFilters[i](lightcurve, objects))
+			filteredLightcurves[i] = service.lightcurveFilters[i](lightcurve, objects)
 		}
 
 		output <- service.mergeLightcurves(filteredLightcurves)

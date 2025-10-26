@@ -1,5 +1,6 @@
 CREATE TABLE allwise (
     id text not null,
+    cntr bigint not null,
     w1mpro double precision,
     w1sigmpro double precision,
     w2mpro double precision,
@@ -15,4 +16,6 @@ CREATE TABLE allwise (
     K_m_2mass double precision,
     K_msig_2mass double precision,
     PRIMARY KEY (id)
-)
+);
+
+CREATE INDEX allwise_cntr_idx ON allwise (cntr);

@@ -93,7 +93,6 @@ func run(
 		err := StartCatalogIndexer(ctx, getenv, stdout)
 		return err
 	default:
-		fmt.Printf("Unknown command: %s\n", command)
+		return fmt.Errorf("unknown command: %s", command)
 	}
-	return nil
 }

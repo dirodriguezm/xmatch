@@ -30,6 +30,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/lightcurve"
+	"github.com/dirodriguezm/xmatch/service/internal/search/lightcurve/neowise"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -138,7 +139,11 @@ func BuildServiceContainer(
 	})
 
 	ctr.Singleton(func(conesearchService *conesearch.ConesearchService) *lightcurve.LightcurveService {
-		service, err := lightcurve.New([]lightcurve.ExternalClient{}, []lightcurve.LightcurveFilter{}, conesearchService)
+		service, err := lightcurve.New(
+			[]lightcurve.ExternalClient{neowise.NewNeowiseClient()},
+			[]lightcurve.LightcurveFilter{neowise.Filter},
+			conesearchService,
+		)
 		if err != nil {
 			panic(fmt.Errorf("Could not create LightcurveService: %w", err))
 		}

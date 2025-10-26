@@ -12,7 +12,7 @@ import (
 )
 
 const bulkGetAllwise = `-- name: BulkGetAllwise :many
-SELECT id, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, j_m_2mass, j_msig_2mass, h_m_2mass, h_msig_2mass, k_m_2mass, k_msig_2mass
+SELECT id, cntr, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, j_m_2mass, j_msig_2mass, h_m_2mass, h_msig_2mass, k_m_2mass, k_msig_2mass
 FROM allwise
 WHERE id IN (/*SLICE:id*/?)
 `
@@ -38,6 +38,7 @@ func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]Allwise, e
 		var i Allwise
 		if err := rows.Scan(
 			&i.ID,
+			&i.Cntr,
 			&i.W1mpro,
 			&i.W1sigmpro,
 			&i.W2mpro,
@@ -196,7 +197,7 @@ func (q *Queries) GetAllObjects(ctx context.Context) ([]Mastercat, error) {
 }
 
 const getAllwise = `-- name: GetAllwise :one
-SELECT id, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, j_m_2mass, j_msig_2mass, h_m_2mass, h_msig_2mass, k_m_2mass, k_msig_2mass
+SELECT id, cntr, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, j_m_2mass, j_msig_2mass, h_m_2mass, h_msig_2mass, k_m_2mass, k_msig_2mass
 FROM allwise
 WHERE id = ?
 `
@@ -206,6 +207,7 @@ func (q *Queries) GetAllwise(ctx context.Context, id string) (Allwise, error) {
 	var i Allwise
 	err := row.Scan(
 		&i.ID,
+		&i.Cntr,
 		&i.W1mpro,
 		&i.W1sigmpro,
 		&i.W2mpro,
@@ -225,14 +227,15 @@ func (q *Queries) GetAllwise(ctx context.Context, id string) (Allwise, error) {
 }
 
 const getAllwiseFromPixels = `-- name: GetAllwiseFromPixels :many
-SELECT allwise.id, allwise.w1mpro, allwise.w1sigmpro, allwise.w2mpro, allwise.w2sigmpro, allwise.w3mpro, allwise.w3sigmpro, allwise.w4mpro, allwise.w4sigmpro, allwise.j_m_2mass, allwise.j_msig_2mass, allwise.h_m_2mass, allwise.h_msig_2mass, allwise.k_m_2mass, allwise.k_msig_2mass, mastercat.ra, mastercat.dec
+SELECT allwise.id, allwise.cntr, allwise.w1mpro, allwise.w1sigmpro, allwise.w2mpro, allwise.w2sigmpro, allwise.w3mpro, allwise.w3sigmpro, allwise.w4mpro, allwise.w4sigmpro, allwise.j_m_2mass, allwise.j_msig_2mass, allwise.h_m_2mass, allwise.h_msig_2mass, allwise.k_m_2mass, allwise.k_msig_2mass, mastercat.ra, mastercat.dec
 FROM allwise 
 JOIN mastercat ON mastercat.id = allwise.id
 WHERE mastercat.ipix IN (/*SLICE:ipix*/?)
 `
 
 type GetAllwiseFromPixelsRow struct {
-	ID         string          `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
+	ID         string `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
+	Cntr       int64
 	W1mpro     sql.NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE"`
 	W1sigmpro  sql.NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE"`
 	W2mpro     sql.NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE"`
@@ -272,6 +275,7 @@ func (q *Queries) GetAllwiseFromPixels(ctx context.Context, ipix []int64) ([]Get
 		var i GetAllwiseFromPixelsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Cntr,
 			&i.W1mpro,
 			&i.W1sigmpro,
 			&i.W2mpro,

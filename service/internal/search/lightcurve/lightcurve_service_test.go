@@ -51,7 +51,7 @@ func (d TestDetection) GetMjd() float64 {
 	return d.MJD
 }
 
-func MockLightcurveFilter(Lightcurve, []conesearch.MetadataExtended) Lightcurve {
+func MockLightcurveFilter(Lightcurve, []conesearch.MetadataResult) Lightcurve {
 	return Lightcurve{}
 }
 
