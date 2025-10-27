@@ -105,11 +105,11 @@ func convertToLightcurveObject(detections *utils.VOTable) ([]lightcurve.Lightcur
 
 	for i, row := range detections.Resource.Tables[0].Data.TableData.Rows {
 		if len(row.Columns) != len(detections.Resource.Tables[0].Fields) {
-			panic("number of columns in row does not match number of fields")
+			return nil, fmt.Errorf("number of columns in row does not match number of fields")
 		}
 		detection, err := detectionFromColumns(row.Columns)
 		if err != nil {
-			panic(err)
+			return nil, fmt.Errorf("could not convert row to detection: %s", err)
 		}
 		result[i] = detection
 	}

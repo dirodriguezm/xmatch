@@ -234,8 +234,8 @@ WHERE mastercat.ipix IN (/*SLICE:ipix*/?)
 `
 
 type GetAllwiseFromPixelsRow struct {
-	ID         string `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
-	Cntr       int64
+	ID         string          `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
+	Cntr       int64           `json:"cntr" parquet:"name=cntr, type=INT64"`
 	W1mpro     sql.NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE"`
 	W1sigmpro  sql.NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE"`
 	W2mpro     sql.NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE"`
@@ -480,14 +480,15 @@ func (q *Queries) GetObjectsFromCatalog(ctx context.Context, arg GetObjectsFromC
 
 const insertAllwise = `-- name: InsertAllwise :exec
 INSERT INTO allwise (
-	id, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, J_m_2mass, J_msig_2mass, H_m_2mass, H_msig_2mass, K_m_2mass, K_msig_2mass
+	id, cntr, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, J_m_2mass, J_msig_2mass, H_m_2mass, H_msig_2mass, K_m_2mass, K_msig_2mass
 ) VALUES (
-	?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+	?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
 type InsertAllwiseParams struct {
 	ID         string          `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
+	Cntr       int64           `json:"cntr" parquet:"name=cntr, type=INT64"`
 	W1mpro     sql.NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE"`
 	W1sigmpro  sql.NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE"`
 	W2mpro     sql.NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE"`
@@ -507,6 +508,7 @@ type InsertAllwiseParams struct {
 func (q *Queries) InsertAllwise(ctx context.Context, arg InsertAllwiseParams) error {
 	_, err := q.db.ExecContext(ctx, insertAllwise,
 		arg.ID,
+		arg.Cntr,
 		arg.W1mpro,
 		arg.W1sigmpro,
 		arg.W2mpro,

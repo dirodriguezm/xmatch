@@ -56,8 +56,8 @@ func NewCsvReader(src *source.Source, opts ...CsvReaderOption) (*CsvReader, erro
 	return r, nil
 }
 
-func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader, catalogName string) ([]any, error) {
-	rows := make([]any, 0)
+func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader, catalogName string) ([]repository.InputSchema, error) {
+	rows := make([]repository.InputSchema, 0)
 
 	// Read the header if not already read
 	if r.Header == nil {
@@ -83,8 +83,8 @@ func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader, catalogName string
 	return rows, nil
 }
 
-func (r *CsvReader) Read() ([]any, error) {
-	rows := make([]any, 0)
+func (r *CsvReader) Read() ([]repository.InputSchema, error) {
+	rows := make([]repository.InputSchema, 0)
 
 	eof := false
 	for !eof {
@@ -107,8 +107,8 @@ func (r *CsvReader) Read() ([]any, error) {
 	return rows, nil
 }
 
-func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader, batchSize int, catalogName string) ([]any, error) {
-	rows := make([]any, 0, batchSize)
+func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader, batchSize int, catalogName string) ([]repository.InputSchema, error) {
+	rows := make([]repository.InputSchema, 0, batchSize)
 
 	if r.Header == nil {
 		header, err := currentReader.Read()
@@ -138,10 +138,10 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader, batchSize int
 // It processes records in batches according to the BatchSize.
 // If the end of the file is reached, it retrieves the next source if available.
 // Returns the processed rows or an error, including EOF if the end of the last file is reached.
-func (r *CsvReader) ReadBatch() ([]any, error) {
+func (r *CsvReader) ReadBatch() ([]repository.InputSchema, error) {
 	// Initialize the result slice. Right now, the last batch of a file could have
 	// less than BatchSize rows. Maybe the slice could have a fixed size, but it's not too important currently.
-	rows := make([]any, 0, r.batchSize)
+	rows := make([]repository.InputSchema, 0, r.batchSize)
 
 	// Create CSV reader from file reader and read a batch
 	currentRows, err := r.ReadBatchSingleFile(r.currentReader, r.batchSize, r.src.CatalogName)

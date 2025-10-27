@@ -52,7 +52,7 @@ o3,3,3
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
 		mastercat := repository.Mastercat{}
-		row.(repository.InputSchema).FillMastercat(&mastercat, 0)
+		row.FillMastercat(&mastercat, 0)
 		receivedOids[i] = mastercat.ID
 	}
 
@@ -86,7 +86,7 @@ o3,3,3
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
 		mastercat := repository.Mastercat{}
-		row.(repository.InputSchema).FillMastercat(&mastercat, 0)
+		row.FillMastercat(&mastercat, 0)
 		receivedOids[i] = mastercat.ID
 	}
 
@@ -145,7 +145,7 @@ o4,4,4
 		require.Len(t, batch, 2)
 
 		for _, row := range batch {
-			rows = append(rows, row.(repository.InputSchema))
+			rows = append(rows, row)
 		}
 	}
 
@@ -193,7 +193,7 @@ o3,3,3
 			eof = true
 		}
 		for _, row := range batch {
-			rows = append(rows, row.(repository.InputSchema))
+			rows = append(rows, row)
 		}
 	}
 
@@ -240,7 +240,7 @@ o3,3,3
 		}
 
 		for _, row := range batch {
-			rows = append(rows, row.(repository.InputSchema))
+			rows = append(rows, row)
 		}
 	}
 

@@ -9,8 +9,8 @@ import (
 )
 
 type Allwise struct {
-	ID         string `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
-	Cntr       int64
+	ID         string          `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
+	Cntr       int64           `json:"cntr" parquet:"name=cntr, type=INT64"`
 	W1mpro     sql.NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE"`
 	W1sigmpro  sql.NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE"`
 	W2mpro     sql.NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE"`

@@ -65,7 +65,7 @@ func TestGetObjectIds_Empty(t *testing.T) {
 		"all",
 	).Return([]conesearch.MetadataResult{}, nil)
 
-	lightcurveService, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, mockService)
+	lightcurveService, err := New([]ExternalClient{NewMockExternalClient(t)}, []LightcurveFilter{MockLightcurveFilter}, mockService)
 	require.NoError(t, err)
 
 	objs, err := lightcurveService.getObjects(0, 0, 0, 1)
@@ -93,7 +93,7 @@ func TestGetObjectIds_NonEmpty(t *testing.T) {
 		},
 	}, nil)
 
-	lightcurveService, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, mockService)
+	lightcurveService, err := New([]ExternalClient{NewMockExternalClient(t)}, []LightcurveFilter{MockLightcurveFilter}, mockService)
 	require.NoError(t, err)
 
 	objs, err := lightcurveService.getObjects(0, 0, 0, 1)
@@ -128,7 +128,7 @@ func TestMergeClientResults_NoError(t *testing.T) {
 	results <- clientResult2
 	close(results)
 
-	lightcurveService, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
+	lightcurveService, err := New([]ExternalClient{NewMockExternalClient(t)}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
 	require.NoError(t, err)
 
 	lightcurve, err := lightcurveService.mergeClientResults(results)
@@ -162,7 +162,7 @@ func TestMergeClientResults_WithError(t *testing.T) {
 	results <- clientResult3
 	close(results)
 
-	lightcurveService, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
+	lightcurveService, err := New([]ExternalClient{NewMockExternalClient(t)}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
 	require.NoError(t, err)
 
 	lightcurve, err := lightcurveService.mergeClientResults(results)
@@ -181,7 +181,7 @@ func TestMergeLightcurves(t *testing.T) {
 		Detections: []LightcurveObject{TestDetection{"2", "GAIA1", 1, 1, 1}},
 	}
 
-	service, err := New([]ExternalClient{}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
+	service, err := New([]ExternalClient{NewMockExternalClient(t)}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
 	require.NoError(t, err)
 
 	result := service.mergeLightcurves([]Lightcurve{lightcurve1, lightcurve2})

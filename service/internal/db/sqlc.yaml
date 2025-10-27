@@ -10,6 +10,8 @@ sql:
         overrides:
           - column: "allwise.id"
             go_struct_tag: 'parquet:"name=source_id, type=BYTE_ARRAY" json:"id" '
+          - column: "allwise.cntr"
+            go_struct_tag: 'parquet:"name=cntr, type=INT64" json:"cntr"'
           - column: "allwise.w1mpro"
             go_struct_tag: 'parquet:"name=w1mpro, type=DOUBLE" json:"w1mpro"'
           - column: "allwise.w1sigmpro"

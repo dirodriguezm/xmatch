@@ -14,9 +14,11 @@
 
 package parquet_reader
 
-type ParquetReaderOption[T any] func(r *ParquetReader[T])
+import "github.com/dirodriguezm/xmatch/service/internal/repository"
 
-func WithParquetBatchSize[T any](size int) ParquetReaderOption[T] {
+type ParquetReaderOption[T repository.InputSchema] func(r *ParquetReader[T])
+
+func WithParquetBatchSize[T repository.InputSchema](size int) ParquetReaderOption[T] {
 	return func(r *ParquetReader[T]) {
 		if size <= 0 {
 			size = 1

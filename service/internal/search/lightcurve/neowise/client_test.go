@@ -39,9 +39,9 @@ func Test_convertToLightcurveObject(t *testing.T) {
 		{"with data", buildFakeVOTable(
 			[]string{"ra", "dec", "clon", "clat", "mjd", "w1mpro", "w1sigmpro", "w2mpro", "w2sigmpro", "cntr", "source_id", "dist", "angle"},
 			[][]string{
-				// ra, dec, clon, clat, mjd, w1mpro, w1sigmpro, w2mpro, w2sigmpro, cntr, source_id, dist, angle
-				{"1.0", "2.0", "ignore", "ignore", "3.0", "4.0", "5.0", "6.0", "7.0", "1", "id1", "ignore", "ignore"},
-				{"1.0", "2.0", "ignore", "ignore", "3.0", "4.0", "5.0", "6.0", "7.0", "2", "id2", "ignore", "ignore"},
+				// mjd, ra, dec, clon, clat, w1mpro, w1sigmpro, w2mpro, w2sigmpro, cntr, source_id, dist, angle
+				{"1.0", "2.0", "3.0", "ignore", "ignore", "4.0", "5.0", "6.0", "7.0", "1", "id1", "ignore", "ignore"},
+				{"1.0", "2.0", "3.0", "ignore", "ignore", "4.0", "5.0", "6.0", "7.0", "2", "id2", "ignore", "ignore"},
 			},
 		), []lightcurve.LightcurveObject{
 			// This is the expected parsed lightcurve from the VOTable above.
