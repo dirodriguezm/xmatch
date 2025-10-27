@@ -7,6 +7,7 @@ import (
 
 type AllwiseInputSchema struct {
 	Source_id    *string  `parquet:"name=source_id, type=BYTE_ARRAY"`
+	Cntr         *int64   `parquet:"name=cntr, type=INT64"`
 	Ra           *float64 `parquet:"name=ra, type=DOUBLE"`
 	Dec          *float64 `parquet:"name=dec, type=DOUBLE"`
 	W1mpro       *float64 `parquet:"name=w1mpro, type=DOUBLE"`
@@ -35,6 +36,7 @@ func (schema AllwiseInputSchema) GetId() string {
 
 func (schema AllwiseInputSchema) FillMetadata(dst Metadata) {
 	dst.(*Allwise).ID = *schema.Source_id
+	dst.(*Allwise).Cntr = *schema.Cntr
 	if schema.W1mpro != nil {
 		dst.(*Allwise).W1mpro = sql.NullFloat64{Float64: *schema.W1mpro, Valid: true}
 	} else {
@@ -141,6 +143,7 @@ func (m GetAllwiseFromPixelsRow) GetCatalog() string {
 func (q *Queries) InsertAllwiseWithoutParams(ctx context.Context, arg Allwise) error {
 	_, err := q.db.ExecContext(ctx, insertAllwise,
 		arg.ID,
+		arg.Cntr,
 		arg.W1mpro,
 		arg.W1sigmpro,
 		arg.W2mpro,

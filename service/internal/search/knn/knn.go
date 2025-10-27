@@ -121,6 +121,7 @@ func NearestNeighborSearchForMetadata(
 func convertToAllwise(obj repository.GetAllwiseFromPixelsRow) repository.Allwise {
 	return repository.Allwise{
 		ID:         obj.ID,
+		Cntr:       obj.Cntr,
 		W1mpro:     obj.W1mpro,
 		W1sigmpro:  obj.W1sigmpro,
 		W2mpro:     obj.W2mpro,

@@ -91,6 +91,9 @@ func NewConesearchService(options ...ConesearchOption) (*ConesearchService, erro
 }
 
 func createServiceMappers(catalogs []repository.Catalog, scheme healpix.OrderingScheme) (map[int64]*healpix.HEALPixMapper, error) {
+	if len(catalogs) == 0 {
+		return nil, fmt.Errorf("catalogs was empty while creating service mappers")
+	}
 	mappers := make(map[int64]*healpix.HEALPixMapper)
 	for i := range catalogs {
 		if _, ok := mappers[catalogs[i].Nside]; ok {
@@ -102,6 +105,11 @@ func createServiceMappers(catalogs []repository.Catalog, scheme healpix.Ordering
 		}
 		mappers[catalogs[i].Nside] = mapper
 	}
+
+	if len(mappers) == 0 {
+		return nil, fmt.Errorf("mappers was empty while creating service mappers")
+	}
+
 	return mappers, nil
 }
 

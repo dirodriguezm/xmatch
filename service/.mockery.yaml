@@ -9,3 +9,11 @@ packages:
       structname: "Mock{{.InterfaceName}}"
     interfaces:
       Repository:
+  github.com/dirodriguezm/xmatch/service/internal/search/lightcurve:
+    config:
+      dir: "{{.InterfaceDir}}"
+      filename: "mocks.go"
+      structname: "Mock{{.InterfaceName}}"
+    interfaces:
+      ExternalClient:
+      ConesearchService:

@@ -48,13 +48,13 @@ func (t TestInputSchema) GetId() string {
 	return t.Oid
 }
 
-type ReaderBuilder[T any] struct {
+type ReaderBuilder[T repository.InputSchema] struct {
 	ReaderConfig *config.ReaderConfig
 	t            *testing.T
 	Source       *source.Source
 }
 
-func AReader[T any](t *testing.T) *ReaderBuilder[T] {
+func AReader[T repository.InputSchema](t *testing.T) *ReaderBuilder[T] {
 	return &ReaderBuilder[T]{
 		t: t,
 		ReaderConfig: &config.ReaderConfig{

@@ -42,6 +42,21 @@ type Object struct {
 	Dec float64 `parquet:"name=dec, type=DOUBLE"`
 }
 
+func (o Object) GetId() string {
+	return o.Oid
+}
+
+func (o Object) GetCoordinates() (float64, float64) {
+	return o.Ra, o.Dec
+}
+
+func (o Object) FillMastercat(dst *repository.Mastercat, ipix int64) {
+	dst.ID = o.Oid
+	dst.Ra = o.Ra
+	dst.Dec = o.Dec
+}
+func (o Object) FillMetadata(dst repository.Metadata) {}
+
 func Write(t *testing.T, nrows int) string {
 	dir := t.TempDir()
 	parquetFile := filepath.Join(dir, "test.parquet")
@@ -104,8 +119,9 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	expectedOids := []string{"o0", "o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8", "o9"}
 	receivedOids := make([]string, 10)
 	for i, row := range rows {
+		fmt.Println(row)
 		mastercat := repository.Mastercat{}
-		row.(repository.InputSchema).FillMastercat(&mastercat, 0)
+		row.FillMastercat(&mastercat, 0)
 		receivedOids[i] = mastercat.ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
@@ -131,7 +147,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []any
+	var rows []repository.InputSchema
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -141,7 +157,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 
 		for _, row := range rows {
 			mastercat := repository.Mastercat{}
-			row.(repository.InputSchema).FillMastercat(&mastercat, 0)
+			row.FillMastercat(&mastercat, 0)
 			receivedOids = append(receivedOids, mastercat.ID)
 		}
 	}
@@ -169,7 +185,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []any
+	var rows []repository.InputSchema
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -179,7 +195,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 
 		for _, row := range rows {
 			mastercat := repository.Mastercat{}
-			row.(repository.InputSchema).FillMastercat(&mastercat, 0)
+			row.FillMastercat(&mastercat, 0)
 			receivedOids = append(receivedOids, mastercat.ID)
 		}
 	}
@@ -207,7 +223,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []any
+	var rows []repository.InputSchema
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -217,7 +233,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 
 		for _, row := range rows {
 			mastercat := repository.Mastercat{}
-			row.(repository.InputSchema).FillMastercat(&mastercat, 0)
+			row.FillMastercat(&mastercat, 0)
 			receivedOids = append(receivedOids, mastercat.ID)
 		}
 	}

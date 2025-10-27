@@ -41,6 +41,7 @@ func (api *API) SetupRoutes(r *gin.Engine) {
 		v1.POST("/bulk-conesearch", api.conesearchBulk)
 		v1.GET("/metadata", api.metadata)
 		v1.POST("/bulk-metadata", api.metadataBulk)
+		v1.GET("/lightcurve", api.Lightcurve)
 	}
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
