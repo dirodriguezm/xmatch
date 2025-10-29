@@ -1,5 +1,13 @@
-basePath: /v1
 definitions:
+  api.BulkMetadataRequest:
+    properties:
+      catalog:
+        type: string
+      ids:
+        items:
+          type: string
+        type: array
+    type: object
   conesearch.ValidationError:
     properties:
       errValue:
@@ -8,6 +16,18 @@ definitions:
         type: string
       reason:
         type: string
+    type: object
+  lightcurve.Lightcurve:
+    properties:
+      detections:
+        items: {}
+        type: array
+      forced_photometry:
+        items: {}
+        type: array
+      non_detections:
+        items: {}
+        type: array
     type: object
   metadata.ValidationError:
     properties:
@@ -18,12 +38,16 @@ definitions:
       value:
         type: string
     type: object
-  repository.AllwiseMetadata:
+  repository.Allwise:
     properties:
+      cntr:
+        type: integer
       h_m_2mass:
         type: number
       h_msig_2mass:
         type: number
+      id:
+        type: string
       j_m_2mass:
         type: number
       j_msig_2mass:
@@ -32,8 +56,6 @@ definitions:
         type: number
       k_msig_2mass:
         type: number
-      source_id:
-        type: string
       w1mpro:
         type: number
       w1sigmpro:
@@ -64,15 +86,8 @@ definitions:
       ra:
         type: number
     type: object
-host: localhost:8080
 info:
-  contact:
-    email: diegorodriguezmancini@gmail.com
-    name: Diego Rodriguez Mancini
-  description: API for the CrossWave Xmatch service. This service allows to search
-    for objects in a given region and to retrieve metadata from the catalogs.
-  title: CrossWave HTTP API
-  version: "1.0"
+  contact: {}
 paths:
   /bulk-conesearch:
     post:
@@ -166,6 +181,10 @@ paths:
         in: query
         name: nneighbor
         type: string
+      - description: Return metadata results
+        in: query
+        name: getMetadata
+        type: string
       produces:
       - application/json
       responses:
@@ -190,6 +209,50 @@ paths:
       summary: Search for objects in a given region
       tags:
       - conesearch
+  /lightcurve:
+    get:
+      consumes:
+      - application/json
+      description: Get lightcurve data for specified coordinates with search radius
+        and neighbor count
+      parameters:
+      - description: Right Ascension coordinate
+        in: query
+        name: ra
+        required: true
+        type: string
+      - description: Declination coordinate
+        in: query
+        name: dec
+        required: true
+        type: string
+      - description: Search radius in arcseconds
+        in: query
+        name: radius
+        required: true
+        type: string
+      - description: 'Number of neighbors to return (default: 1)'
+        in: query
+        name: nneighbor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/lightcurve.Lightcurve'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get lightcurve data for coordinates
+      tags:
+      - lightcurve
   /metadata:
     get:
       consumes:
@@ -212,7 +275,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/repository.AllwiseMetadata'
+            $ref: '#/definitions/repository.Allwise'
         "204":
           description: No Content
           schema:
@@ -226,6 +289,42 @@ paths:
           schema:
             type: string
       summary: Search for metadata by id
+      tags:
+      - metadata
+  /metadata/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Search for metadata by multiple ids in bulk
+      parameters:
+      - description: Bulk metadata request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.BulkMetadataRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Allwise'
+            type: array
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/metadata.ValidationError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Search for metadata by multiple ids
       tags:
       - metadata
 swagger: "2.0"

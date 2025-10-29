@@ -9,10 +9,7 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {
-            "name": "Diego Rodriguez Mancini",
-            "email": "diegorodriguezmancini@gmail.com"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -159,6 +156,12 @@ const docTemplate = `{
                         "description": "Number of neighbors to return",
                         "name": "nneighbor",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Return metadata results",
+                        "name": "getMetadata",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -181,6 +184,70 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/conesearch.ValidationError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/lightcurve": {
+            "get": {
+                "description": "Get lightcurve data for specified coordinates with search radius and neighbor count",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lightcurve"
+                ],
+                "summary": "Get lightcurve data for coordinates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Right Ascension coordinate",
+                        "name": "ra",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Declination coordinate",
+                        "name": "dec",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search radius in arcseconds",
+                        "name": "radius",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Number of neighbors to return (default: 1)",
+                        "name": "nneighbor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/lightcurve.Lightcurve"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
@@ -225,7 +292,62 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/repository.AllwiseMetadata"
+                            "$ref": "#/definitions/repository.Allwise"
+                        }
+                    },
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/metadata.ValidationError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/metadata/bulk": {
+            "post": {
+                "description": "Search for metadata by multiple ids in bulk",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metadata"
+                ],
+                "summary": "Search for metadata by multiple ids",
+                "parameters": [
+                    {
+                        "description": "Bulk metadata request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.BulkMetadataRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/repository.Allwise"
+                            }
                         }
                     },
                     "204": {
@@ -251,6 +373,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.BulkMetadataRequest": {
+            "type": "object",
+            "properties": {
+                "catalog": {
+                    "type": "string"
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "conesearch.ValidationError": {
             "type": "object",
             "properties": {
@@ -262,6 +398,23 @@ const docTemplate = `{
                 },
                 "reason": {
                     "type": "string"
+                }
+            }
+        },
+        "lightcurve.Lightcurve": {
+            "type": "object",
+            "properties": {
+                "detections": {
+                    "type": "array",
+                    "items": {}
+                },
+                "forced_photometry": {
+                    "type": "array",
+                    "items": {}
+                },
+                "non_detections": {
+                    "type": "array",
+                    "items": {}
                 }
             }
         },
@@ -279,14 +432,20 @@ const docTemplate = `{
                 }
             }
         },
-        "repository.AllwiseMetadata": {
+        "repository.Allwise": {
             "type": "object",
             "properties": {
+                "cntr": {
+                    "type": "integer"
+                },
                 "h_m_2mass": {
                     "type": "number"
                 },
                 "h_msig_2mass": {
                     "type": "number"
+                },
+                "id": {
+                    "type": "string"
                 },
                 "j_m_2mass": {
                     "type": "number"
@@ -299,9 +458,6 @@ const docTemplate = `{
                 },
                 "k_msig_2mass": {
                     "type": "number"
-                },
-                "source_id": {
-                    "type": "string"
                 },
                 "w1mpro": {
                     "type": "number"
@@ -354,12 +510,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
-	Host:             "localhost:8080",
-	BasePath:         "/v1",
+	Version:          "",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "CrossWave HTTP API",
-	Description:      "API for the CrossWave Xmatch service. This service allows to search for objects in a given region and to retrieve metadata from the catalogs.",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

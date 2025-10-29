@@ -18,6 +18,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	_ "github.com/dirodriguezm/xmatch/service/docs"
 	"io"
 	"log/slog"
 	"os"

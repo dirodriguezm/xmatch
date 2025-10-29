@@ -1,5 +1,8 @@
 package lightcurve
 
+// Lightcurve represents astronomical lightcurve data with detections, non-detections, and forced photometry
+//
+// swagger:model Lightcurve
 type Lightcurve struct {
 	Detections       []LightcurveObject `json:"detections"`
 	NonDetections    []LightcurveObject `json:"non_detections"`

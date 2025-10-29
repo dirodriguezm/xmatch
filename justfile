@@ -35,7 +35,7 @@ clean-db db:
 
 [working-directory: 'service']
 docs:
-	swag init --dir ./ --generalInfo ./cmd/main.go --output ./docs
+	swag init --dir ./ --generalInfo ./cmd/*.go --output ./docs
 
 export USE_LOGGER := "true"
 export ENVIRONMENT := "local"

@@ -11,20 +11,20 @@ import (
 type Allwise struct {
 	ID         string          `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
 	Cntr       int64           `json:"cntr" parquet:"name=cntr, type=INT64"`
-	W1mpro     sql.NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE"`
-	W1sigmpro  sql.NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE"`
-	W2mpro     sql.NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE"`
-	W2sigmpro  sql.NullFloat64 `json:"w2sigmpro" parquet:"name=w2sigmpro, type=DOUBLE"`
-	W3mpro     sql.NullFloat64 `json:"w3mpro" parquet:"name=w3mpro, type=DOUBLE"`
-	W3sigmpro  sql.NullFloat64 `json:"w3sigmpro" parquet:"name=w3sigmpro, type=DOUBLE"`
-	W4mpro     sql.NullFloat64 `json:"w4mpro" parquet:"name=w4mpro, type=DOUBLE"`
-	W4sigmpro  sql.NullFloat64 `json:"w4sigmpro" parquet:"name=w4sigmpro, type=DOUBLE"`
-	JM2mass    sql.NullFloat64 `json:"j_m_2mass" parquet:"name=j_m_2mass, type=DOUBLE"`
-	JMsig2mass sql.NullFloat64 `json:"j_msig_2mass" parquet:"name=j_msig_2mass, type=DOUBLE"`
-	HM2mass    sql.NullFloat64 `json:"h_m_2mass" parquet:"name=h_m_2mass, type=DOUBLE"`
-	HMsig2mass sql.NullFloat64 `json:"h_msig_2mass" parquet:"name=h_msig_2mass, type=DOUBLE"`
-	KM2mass    sql.NullFloat64 `json:"k_m_2mass" parquet:"name=k_m_2mass, type=DOUBLE"`
-	KMsig2mass sql.NullFloat64 `json:"k_msig_2mass" parquet:"name=k_msig_2mass, type=DOUBLE"`
+	W1mpro     sql.NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE" swaggertype:"primitive,number"`
+	W1sigmpro  sql.NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE" swaggertype:"primitive,number"`
+	W2mpro     sql.NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE" swaggertype:"primitive,number"`
+	W2sigmpro  sql.NullFloat64 `json:"w2sigmpro" parquet:"name=w2sigmpro, type=DOUBLE" swaggertype:"primitive,number"`
+	W3mpro     sql.NullFloat64 `json:"w3mpro" parquet:"name=w3mpro, type=DOUBLE" swaggertype:"primitive,number"`
+	W3sigmpro  sql.NullFloat64 `json:"w3sigmpro" parquet:"name=w3sigmpro, type=DOUBLE" swaggertype:"primitive,number"`
+	W4mpro     sql.NullFloat64 `json:"w4mpro" parquet:"name=w4mpro, type=DOUBLE" swaggertype:"primitive,number"`
+	W4sigmpro  sql.NullFloat64 `json:"w4sigmpro" parquet:"name=w4sigmpro, type=DOUBLE" swaggertype:"primitive,number"`
+	JM2mass    sql.NullFloat64 `json:"j_m_2mass" parquet:"name=j_m_2mass, type=DOUBLE" swaggertype:"primitive,number"`
+	JMsig2mass sql.NullFloat64 `json:"j_msig_2mass" parquet:"name=j_msig_2mass, type=DOUBLE" swaggertype:"primitive,number"`
+	HM2mass    sql.NullFloat64 `json:"h_m_2mass" parquet:"name=h_m_2mass, type=DOUBLE" swaggertype:"primitive,number"`
+	HMsig2mass sql.NullFloat64 `json:"h_msig_2mass" parquet:"name=h_msig_2mass, type=DOUBLE" swaggertype:"primitive,number"`
+	KM2mass    sql.NullFloat64 `json:"k_m_2mass" parquet:"name=k_m_2mass, type=DOUBLE" swaggertype:"primitive,number"`
+	KMsig2mass sql.NullFloat64 `json:"k_msig_2mass" parquet:"name=k_msig_2mass, type=DOUBLE" swaggertype:"primitive,number"`
 }
 
 type Catalog struct {

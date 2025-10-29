@@ -32,7 +32,7 @@ import (
 //	@Produce		json
 //	@Param			id		query		string	true	"ID to search for"
 //	@Param			catalog	query		string	true	"Catalog to search in"
-//	@Success		200		{object}	repository.AllwiseMetadata
+//	@Success		200		{object}	repository.Allwise
 //	@Success		204		{string}	string
 //	@Failure		400		{object}	metadata.ValidationError
 //	@Failure		500		{string}	string
@@ -60,6 +60,19 @@ func (api *API) metadata(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// Find metadata by multiple ids
+//
+//	@Summary		Search for metadata by multiple ids
+//	@Description	Search for metadata by multiple ids in bulk
+//	@Tags			metadata
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		BulkMetadataRequest	true	"Bulk metadata request"
+//	@Success		200		{object}	[]repository.Allwise
+//	@Success		204		{string}	string
+//	@Failure		400		{object}	metadata.ValidationError
+//	@Failure		500		{string}	string
+//	@Router			/metadata/bulk [post]
 func (api *API) metadataBulk(c *gin.Context) {
 	var bulkRequest BulkMetadataRequest
 	if err := c.ShouldBindJSON(&bulkRequest); err != nil {
