@@ -187,6 +187,10 @@ func setMjd(value string, detection Detection) (Detection, error) {
 }
 
 func setW1mpro(value string, detection Detection) (Detection, error) {
+	if value == "" {
+		return detection, nil
+	}
+
 	w1mpro, err := strconv.ParseFloat(value, 64)
 	if err != nil {
 		return detection, fmt.Errorf("could not parse W1mpro: %s", err)
@@ -196,6 +200,10 @@ func setW1mpro(value string, detection Detection) (Detection, error) {
 }
 
 func setW1sigmpro(value string, detection Detection) (Detection, error) {
+	if value == "" {
+		return detection, nil
+	}
+
 	w1sigmpro, err := strconv.ParseFloat(value, 32)
 	if err != nil {
 		return detection, fmt.Errorf("could not parse W1sigmpro: %s", err)
@@ -205,6 +213,10 @@ func setW1sigmpro(value string, detection Detection) (Detection, error) {
 }
 
 func setW2mpro(value string, detection Detection) (Detection, error) {
+	if value == "" {
+		return detection, nil
+	}
+
 	w2mpro, err := strconv.ParseFloat(value, 64)
 	if err != nil {
 		return detection, fmt.Errorf("could not parse W2mpro: %s", err)
@@ -214,6 +226,10 @@ func setW2mpro(value string, detection Detection) (Detection, error) {
 }
 
 func setW2sigmpro(value string, detection Detection) (Detection, error) {
+	if value == "" {
+		return detection, nil
+	}
+
 	w2sigmpro, err := strconv.ParseFloat(value, 32)
 	if err != nil {
 		return detection, fmt.Errorf("could not parse W2sigmpro: %s", err)
