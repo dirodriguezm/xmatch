@@ -112,13 +112,22 @@ type PartitionReaderConfig struct {
 }
 
 type ServiceConfig struct {
-	Database           *DatabaseConfig `yaml:"database"`
-	BulkChunkSize      int             `yaml:"bulk_chunk_size"`
-	MaxBulkConcurrency int             `yaml:"max_bulk_concurrency"`
+	Database                *DatabaseConfig          `yaml:"database"`
+	BulkChunkSize           int                      `yaml:"bulk_chunk_size"`
+	MaxBulkConcurrency      int                      `yaml:"max_bulk_concurrency"`
+	LightcurveServiceConfig *LightcurveServiceConfig `yaml:"lightcurve_service"`
 }
 
 type DatabaseConfig struct {
 	Url string `yaml:"url"`
+}
+
+type LightcurveServiceConfig struct {
+	NeowiseConfig *NeowiseConfig `yaml:"neowise"`
+}
+
+type NeowiseConfig struct {
+	UseCntrFilter bool `yaml:"use_cntr_filter"`
 }
 
 func Load(getEnv func(string) string) (*Config, error) {

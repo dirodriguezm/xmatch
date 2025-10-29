@@ -18,8 +18,9 @@ test-verbose:
 
 export CONFIG_PATH := env_var_or_default("CONFIG_PATH", "service/config.yaml")
 
+[working-directory: 'service']
 run application flags='' $LOG_LEVEL="debug": build
-	./service/build/main {{flags}} {{application}}
+	./build/main {{flags}} {{application}}
 
 clean-build:
 	rm -r service/build
