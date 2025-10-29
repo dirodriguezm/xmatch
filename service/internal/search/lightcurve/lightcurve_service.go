@@ -30,6 +30,10 @@ type ConesearchService interface {
 
 type LightcurveFilter func(Lightcurve, []conesearch.MetadataResult) Lightcurve
 
+func DummyLightcurveFilter(l Lightcurve, _ []conesearch.MetadataResult) Lightcurve {
+	return l
+}
+
 type ClientResult struct {
 	Lightcurve Lightcurve
 	Error      error

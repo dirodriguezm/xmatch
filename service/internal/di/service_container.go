@@ -138,10 +138,15 @@ func BuildServiceContainer(
 		return service
 	})
 
-	ctr.Singleton(func(conesearchService *conesearch.ConesearchService) *lightcurve.LightcurveService {
+	ctr.Singleton(func(conesearchService *conesearch.ConesearchService, cfg *config.Config) *lightcurve.LightcurveService {
+		lightcurveFilterSlice := []lightcurve.LightcurveFilter{lightcurve.DummyLightcurveFilter}
+		if cfg.Service.LightcurveServiceConfig != nil && cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseCntrFilter {
+			lightcurveFilterSlice = append(lightcurveFilterSlice, neowise.Filter)
+		}
+
 		service, err := lightcurve.New(
 			[]lightcurve.ExternalClient{neowise.NewNeowiseClient()},
-			[]lightcurve.LightcurveFilter{neowise.Filter},
+			lightcurveFilterSlice,
 			conesearchService,
 		)
 		if err != nil {

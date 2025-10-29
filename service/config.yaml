@@ -41,7 +41,10 @@ service:
     url: "file:dev.db"
   bulk_chunk_size: 500
   max_bulk_concurrency: 4
-  # Configuration for the preprocessor
+  lightcurve_service:
+    neowise:
+      use_cntr_filter: true
+# Configuration for the preprocessor
 preprocessor:
   source:
     # a path to the input file or files
