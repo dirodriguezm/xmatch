@@ -26,7 +26,7 @@ func TestLoadFile(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    string
-		validate func(*testing.T, *Config)
+		validate func(*testing.T, Config)
 	}{
 		{
 			name: "catalog indexer complete config",
@@ -49,23 +49,23 @@ catalog_indexer:
   indexer_writer:
     type: "sqlite"
 `,
-			validate: func(t *testing.T, cfg *Config) {
-				require.Equal(t, &DatabaseConfig{Url: "sqlite3://test.db"}, cfg.CatalogIndexer.Database)
-				require.Equal(t, &SourceConfig{
+			validate: func(t *testing.T, cfg Config) {
+				require.Equal(t, DatabaseConfig{Url: "sqlite3://test.db"}, cfg.CatalogIndexer.Database)
+				require.Equal(t, SourceConfig{
 					Url:         "file:test.csv",
 					CatalogName: "test",
 					Nside:       18,
 				}, cfg.CatalogIndexer.Source)
-				require.Equal(t, &ReaderConfig{BatchSize: 500, Type: "csv"}, cfg.CatalogIndexer.Reader)
-				require.Equal(t, &IndexerConfig{OrderingScheme: "nested"}, cfg.CatalogIndexer.Indexer)
-				require.Equal(t, &WriterConfig{Type: "sqlite"}, cfg.CatalogIndexer.IndexerWriter)
+				require.Equal(t, ReaderConfig{BatchSize: 500, Type: "csv"}, cfg.CatalogIndexer.Reader)
+				require.Equal(t, IndexerConfig{OrderingScheme: "nested"}, cfg.CatalogIndexer.Indexer)
+				require.Equal(t, WriterConfig{Type: "sqlite"}, cfg.CatalogIndexer.IndexerWriter)
 			},
 		},
 		{
 			name:  "catalog indexer with empty config",
 			input: "",
-			validate: func(t *testing.T, cfg *Config) {
-				require.Nil(t, cfg.CatalogIndexer)
+			validate: func(t *testing.T, cfg Config) {
+				require.Equal(t, CatalogIndexerConfig{}, cfg.CatalogIndexer)
 			},
 		},
 	}
@@ -175,6 +175,58 @@ func TestLoad(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.NotNil(t, cfg)
+		})
+	}
+}
+
+func Test_mergeConfig(t *testing.T) {
+	tests := []struct {
+		name          string
+		defaultConfig Config
+		customConfig  Config
+		want          Config
+		wantErr       bool
+	}{
+		{
+			"Service config",
+			Config{
+				Service: ServiceConfig{
+					Host:               "localhost:8080",
+					BasePath:           "/v1",
+					BulkChunkSize:      500,
+					MaxBulkConcurrency: 1,
+				},
+			},
+			Config{
+				Service: ServiceConfig{
+					BasePath:           "v2",
+					MaxBulkConcurrency: 2,
+				},
+			},
+			Config{
+				Service: ServiceConfig{
+					Host:               "localhost:8080",
+					BasePath:           "v2",
+					BulkChunkSize:      500,
+					MaxBulkConcurrency: 2,
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, gotErr := mergeConfig(tt.defaultConfig, tt.customConfig)
+			if gotErr != nil && !tt.wantErr {
+				t.Errorf("mergeConfig() failed: %v", gotErr)
+				return
+			}
+
+			if tt.wantErr {
+				t.Fatal("mergeConfig() succeeded unexpectedly")
+			}
+
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

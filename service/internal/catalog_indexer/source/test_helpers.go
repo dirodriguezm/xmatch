@@ -28,7 +28,7 @@ import (
 )
 
 type SourceBuilder struct {
-	SourceConfig *config.SourceConfig
+	SourceConfig config.SourceConfig
 	t            *testing.T
 }
 
@@ -37,7 +37,7 @@ func ASource(t *testing.T) *SourceBuilder {
 
 	return &SourceBuilder{
 		t: t,
-		SourceConfig: &config.SourceConfig{
+		SourceConfig: config.SourceConfig{
 			Type:        "csv",
 			CatalogName: "test",
 			Nside:       18,
@@ -48,7 +48,7 @@ func ASource(t *testing.T) *SourceBuilder {
 func (builder *SourceBuilder) WithType(t string) *SourceBuilder {
 	builder.t.Helper()
 
-	builder.SourceConfig = &config.SourceConfig{
+	builder.SourceConfig = config.SourceConfig{
 		Type:        t,
 		CatalogName: "test",
 		Nside:       18,

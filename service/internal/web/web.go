@@ -23,7 +23,7 @@ import (
 
 type Web struct {
 	getenv            func(string) string
-	config            *config.ServiceConfig
+	config            config.ServiceConfig
 	conesearchService *conesearch.ConesearchService
 	metadataService   *metadata.MetadataService
 	templateCache     map[string]*template.Template
@@ -32,7 +32,7 @@ type Web struct {
 func New(
 	conesearchService *conesearch.ConesearchService,
 	metadataService *metadata.MetadataService,
-	config *config.ServiceConfig,
+	config config.ServiceConfig,
 	getenv func(string string) string,
 ) (*Web, error) {
 	if conesearchService == nil {

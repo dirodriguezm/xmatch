@@ -30,7 +30,7 @@ type TestStruct struct {
 type ParquetWriterBuilder[T any] struct {
 	t *testing.T
 
-	cfg *config.WriterConfig
+	cfg config.WriterConfig
 	ctx context.Context
 }
 
@@ -39,7 +39,7 @@ func AWriter[T any](t *testing.T) *ParquetWriterBuilder[T] {
 
 	return &ParquetWriterBuilder[T]{
 		t:   t,
-		cfg: &config.WriterConfig{OutputFile: "test.parquet", Schema: config.TestSchema},
+		cfg: config.WriterConfig{OutputFile: "test.parquet", Schema: config.TestSchema},
 		ctx: context.Background(),
 	}
 }

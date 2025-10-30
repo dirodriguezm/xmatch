@@ -1,5 +1,3 @@
-
-//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -41,8 +39,6 @@ func EqualErr(t *testing.T, this, that error) {
 	if that.Error() != this.Error() {
 		t.Fatalf("expected %v to be equal to %v", this, that)
 	}
-
-	return
 }
 
 func NotNil(t *testing.T, object any, msgAndArgs ...any) {

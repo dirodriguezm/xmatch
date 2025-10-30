@@ -25,27 +25,27 @@ import (
 )
 
 type Config struct {
-	CatalogIndexer *CatalogIndexerConfig `yaml:"catalog_indexer"`
-	Service        *ServiceConfig        `yaml:"service"`
-	Preprocessor   *PreprocessorConfig   `yaml:"preprocessor"`
+	CatalogIndexer CatalogIndexerConfig `yaml:"catalog_indexer"`
+	Service        ServiceConfig        `yaml:"service"`
+	Preprocessor   PreprocessorConfig   `yaml:"preprocessor"`
 }
 
 type CatalogIndexerConfig struct {
-	Database       *DatabaseConfig `yaml:"database"`
-	Source         *SourceConfig   `yaml:"source"`
-	Reader         *ReaderConfig   `yaml:"reader"`
-	Indexer        *IndexerConfig  `yaml:"indexer"`
-	IndexerWriter  *WriterConfig   `yaml:"indexer_writer"`
-	MetadataWriter *WriterConfig   `yaml:"metadata_writer"`
-	ChannelSize    int             `yaml:"channel_size"`
+	Database       DatabaseConfig `yaml:"database"`
+	Source         SourceConfig   `yaml:"source"`
+	Reader         ReaderConfig   `yaml:"reader"`
+	Indexer        IndexerConfig  `yaml:"indexer"`
+	IndexerWriter  WriterConfig   `yaml:"indexer_writer"`
+	MetadataWriter WriterConfig   `yaml:"metadata_writer"`
+	ChannelSize    int            `yaml:"channel_size"`
 }
 
 type PreprocessorConfig struct {
-	Source          *SourceConfig          `yaml:"source"`
-	Reader          *ReaderConfig          `yaml:"reader"`
-	PartitionWriter *PartitionWriterConfig `yaml:"partition_writer"`
-	PartitionReader *PartitionReaderConfig `yaml:"partition_reader"`
-	ReducerWriter   *ReducerWriterConfig   `yaml:"reducer_writer"`
+	Source          SourceConfig          `yaml:"source"`
+	Reader          ReaderConfig          `yaml:"reader"`
+	PartitionWriter PartitionWriterConfig `yaml:"partition_writer"`
+	PartitionReader PartitionReaderConfig `yaml:"partition_reader"`
+	ReducerWriter   ReducerWriterConfig   `yaml:"reducer_writer"`
 }
 
 type ReducerWriterConfig struct {
@@ -112,12 +112,12 @@ type PartitionReaderConfig struct {
 }
 
 type ServiceConfig struct {
-	Host                    string                   `yaml:"host"`
-	BasePath                string                   `yaml:"base_path"`
-	Database                *DatabaseConfig          `yaml:"database"`
-	BulkChunkSize           int                      `yaml:"bulk_chunk_size"`
-	MaxBulkConcurrency      int                      `yaml:"max_bulk_concurrency"`
-	LightcurveServiceConfig *LightcurveServiceConfig `yaml:"lightcurve_service"`
+	Host                    string                  `yaml:"host"`
+	BasePath                string                  `yaml:"base_path"`
+	Database                DatabaseConfig          `yaml:"database"`
+	BulkChunkSize           int                     `yaml:"bulk_chunk_size"`
+	MaxBulkConcurrency      int                     `yaml:"max_bulk_concurrency"`
+	LightcurveServiceConfig LightcurveServiceConfig `yaml:"lightcurve_service"`
 }
 
 type DatabaseConfig struct {
@@ -125,50 +125,80 @@ type DatabaseConfig struct {
 }
 
 type LightcurveServiceConfig struct {
-	NeowiseConfig *NeowiseConfig `yaml:"neowise"`
+	NeowiseConfig NeowiseConfig `yaml:"neowise"`
 }
 
 type NeowiseConfig struct {
 	UseCntrFilter bool `yaml:"use_cntr_filter"`
 }
 
-func Load(getEnv func(string) string) (*Config, error) {
-	configPath := getEnv("CONFIG_PATH")
-	slog.Info("Loading configuration", "path", configPath)
-	if configPath == "" {
-		rootPath, err := utils.FindRootModulePath(5)
-		if err != nil {
-			return nil, err
-		}
-		locations := []string{
-			"./config.yml",
-			"./config.yaml",
-			filepath.Join(rootPath, "config.yml"),
-			filepath.Join(rootPath, "config.yaml"),
-		}
-		for _, loc := range locations {
-			if _, err := os.Stat(loc); err == nil {
-				configPath = loc
-				break
-			}
-		}
+func Load(getEnv func(string) string) (Config, error) {
+	defaultConfig, err := loadDefaultConfig()
+	if err != nil {
+		return Config{}, err
 	}
-	if configPath == "" {
-		return nil, fmt.Errorf("Could not find configuration file")
+
+	customConfigPath := getEnv("CONFIG_PATH")
+	if customConfigPath == "" {
+		return defaultConfig, nil
 	}
+
+	customConfig, err := LoadFile(customConfigPath)
+	if err != nil {
+		return Config{}, fmt.Errorf("loading custom config: %w", err)
+	}
+
+	merged, err := mergeConfig(defaultConfig, customConfig)
+	if err != nil {
+		return Config{}, fmt.Errorf("merging config: %w", err)
+	}
+
+	return merged, nil
+}
+
+func mergeConfig(defaultConfig Config, customConfig Config) (Config, error) {
+	result, err := utils.MergeStructs(defaultConfig, customConfig)
+	if err != nil {
+		return Config{}, err
+	}
+	return result, err
+}
+
+func loadDefaultConfig() (Config, error) {
+	rootPath, err := utils.FindRootModulePath(5)
+	if err != nil {
+		return Config{}, err
+	}
+	configPath, err := searchDefaultLocations(rootPath)
 	return LoadFile(configPath)
 }
 
-func LoadFile(path string) (*Config, error) {
+func searchDefaultLocations(rootPath string) (string, error) {
+	locations := []string{
+		filepath.Join(rootPath, "config.yml"),
+		filepath.Join(rootPath, "config.yaml"),
+	}
+
+	for _, loc := range locations {
+		if _, err := os.Stat(loc); err == nil {
+			return loc, nil
+		}
+	}
+
+	return "", fmt.Errorf("Could not find configuration file")
+}
+
+func LoadFile(path string) (Config, error) {
+	slog.Info("Loading configuration", "path", path)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("reading config file: %w", err)
+		return Config{}, fmt.Errorf("reading config file: %w", err)
 	}
 
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parsing config file: %w", err)
+		return Config{}, fmt.Errorf("parsing config file: %w", err)
 	}
 
-	return &cfg, nil
+	return cfg, nil
 }

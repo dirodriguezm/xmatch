@@ -62,7 +62,7 @@ func RegisterConfig(ctr container.Container, getenv func(string) string) {
 		panic(err)
 	}
 	ctr.Singleton(func() *config.Config {
-		return cfg
+		return &cfg
 	})
 }
 
@@ -100,7 +100,7 @@ func RegisterRepository(ctr container.Container) {
 
 func RegisterCatalogRegister(ctr container.Container, ctx context.Context) {
 	ctr.Singleton(func(repo conesearch.Repository, cfg *config.Config) *indexer.CatalogRegister {
-		return indexer.NewCatalogRegister(ctx, repo, *cfg.CatalogIndexer.Source)
+		return indexer.NewCatalogRegister(ctx, repo, cfg.CatalogIndexer.Source)
 	})
 }
 
@@ -121,7 +121,7 @@ func RegisterMastercatWriter(ctr container.Container, ctx context.Context) {
 		repo conesearch.Repository,
 		src *source.Source,
 	) *actor.Actor {
-		if cfg.CatalogIndexer.IndexerWriter == nil {
+		if cfg.CatalogIndexer.IndexerWriter.Type == "" {
 			panic("Indexer writer not configured")
 		}
 		switch cfg.CatalogIndexer.IndexerWriter.Type {
@@ -160,7 +160,7 @@ func RegisterMetadataWriter(ctr container.Container, ctx context.Context) {
 		repo conesearch.Repository,
 		src *source.Source,
 	) *actor.Actor {
-		if cfg.CatalogIndexer.MetadataWriter == nil {
+		if cfg.CatalogIndexer.MetadataWriter.Type == "" {
 			slog.Info("Skipping registration for metadata writer. MetadataWriter not configured")
 			return nil
 		}

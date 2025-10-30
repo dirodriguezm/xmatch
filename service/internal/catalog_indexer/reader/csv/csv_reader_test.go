@@ -31,7 +31,7 @@ o2,2,2
 o3,3,3
 `
 
-	source, err := source.NewSource(&config.SourceConfig{
+	source, err := source.NewSource(config.SourceConfig{
 		Url:         "buffer:" + csv,
 		Type:        "csv",
 		CatalogName: "test",
@@ -65,7 +65,7 @@ o2,2,2
 o3,3,3
 `
 
-	source, err := source.NewSource(&config.SourceConfig{
+	source, err := source.NewSource(config.SourceConfig{
 		Url:         "buffer:" + csv,
 		Type:        "csv",
 		CatalogName: "test",

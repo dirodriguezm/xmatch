@@ -28,7 +28,7 @@ import (
 
 func ReaderFactory(
 	src *source.Source,
-	cfg *config.ReaderConfig,
+	cfg config.ReaderConfig,
 ) (reader.Reader, error) {
 	if cfg.BatchSize <= 0 {
 		return nil, fmt.Errorf("Batch size must be greater than 0")
@@ -50,7 +50,7 @@ func ReaderFactory(
 	}
 }
 
-func parquetFactory(src *source.Source, cfg *config.ReaderConfig) (reader.Reader, error) {
+func parquetFactory(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
 	switch strings.ToLower(src.CatalogName) {
 	case "allwise":
 		return parquet_reader.NewParquetReader(

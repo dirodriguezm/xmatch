@@ -96,7 +96,7 @@ func Write(t *testing.T, nrows int) string {
 
 func TestReadParquet_read_all_file(t *testing.T) {
 	filePath := Write(t, 10)
-	source, err := source.NewSource(&config.SourceConfig{
+	source, err := source.NewSource(config.SourceConfig{
 		Url:         "file:" + filePath,
 		Type:        "parquet",
 		CatalogName: "test",
@@ -129,7 +129,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 
 func TestReadParquet_read_batch_single_file(t *testing.T) {
 	filePath := Write(t, 10)
-	source, err := source.NewSource(&config.SourceConfig{
+	source, err := source.NewSource(config.SourceConfig{
 		Url:         "file:" + filePath,
 		Type:        "parquet",
 		CatalogName: "test",
@@ -167,7 +167,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 
 func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	filePath := Write(t, 7)
-	source, err := source.NewSource(&config.SourceConfig{
+	source, err := source.NewSource(config.SourceConfig{
 		Url:         "file:" + filePath,
 		Type:        "parquet",
 		CatalogName: "test",
@@ -205,7 +205,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 
 func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	filePath := Write(t, 2)
-	source, err := source.NewSource(&config.SourceConfig{
+	source, err := source.NewSource(config.SourceConfig{
 		Url:         "file:" + filePath,
 		Type:        "parquet",
 		CatalogName: "test",

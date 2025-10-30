@@ -45,7 +45,7 @@ func StartCatalogIndexer(
 
 	// initialize metadata writer
 	var metadataWriter *actor.Actor
-	if cfg.CatalogIndexer.MetadataWriter != nil && cfg.CatalogIndexer.Source.Metadata {
+	if cfg.CatalogIndexer.Source.Metadata {
 		err := ctr.NamedResolve(&metadataWriter, "metadata_writer")
 		if err != nil {
 			return err
@@ -63,7 +63,7 @@ func StartCatalogIndexer(
 
 	// initialize metadata indexer
 	var metadataIndexer *actor.Actor
-	if cfg.CatalogIndexer.Source.Metadata && cfg.CatalogIndexer.MetadataWriter != nil {
+	if cfg.CatalogIndexer.Source.Metadata {
 		err := ctr.NamedResolve(&metadataIndexer, "metadata_indexer")
 		if err != nil {
 			return err
@@ -87,7 +87,7 @@ func StartCatalogIndexer(
 	reader.Read()
 	mastercatIndexer.Stop()
 	mastercatWriter.Stop()
-	if cfg.CatalogIndexer.MetadataWriter != nil && cfg.CatalogIndexer.Source.Metadata {
+	if cfg.CatalogIndexer.Source.Metadata {
 		metadataIndexer.Stop()
 		metadataWriter.Stop()
 	}

@@ -30,7 +30,7 @@ type Indexer struct {
 	mapper *healpix.HEALPixMapper
 }
 
-func New(src *source.Source, cfg *config.IndexerConfig) (*Indexer, error) {
+func New(src *source.Source, cfg config.IndexerConfig) (*Indexer, error) {
 	slog.Debug("Creating new Mastercat Indexer")
 	orderingScheme := healpix.Ring
 	if strings.ToLower(cfg.OrderingScheme) == "nested" {

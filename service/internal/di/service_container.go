@@ -58,7 +58,7 @@ func BuildServiceContainer(
 		if cfg.Service.MaxBulkConcurrency <= 0 {
 			panic("Config: MaxBulkConcurrency must be greater than 0")
 		}
-		return cfg
+		return &cfg
 	})
 
 	ctr.Singleton(func() *slog.Logger {
@@ -140,7 +140,7 @@ func BuildServiceContainer(
 
 	ctr.Singleton(func(conesearchService *conesearch.ConesearchService, cfg *config.Config) *lightcurve.LightcurveService {
 		lightcurveFilterSlice := []lightcurve.LightcurveFilter{lightcurve.DummyLightcurveFilter}
-		if cfg.Service.LightcurveServiceConfig != nil && cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseCntrFilter {
+		if cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseCntrFilter {
 			lightcurveFilterSlice = append(lightcurveFilterSlice, neowise.Filter)
 		}
 

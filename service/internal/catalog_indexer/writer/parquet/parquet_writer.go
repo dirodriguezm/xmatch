@@ -32,7 +32,7 @@ type ParquetWriter[T any] struct {
 	pfile         *os.File
 }
 
-func New[T any](cfg *config.WriterConfig, ctx context.Context) (*ParquetWriter[T], error) {
+func New[T any](cfg config.WriterConfig, ctx context.Context) (*ParquetWriter[T], error) {
 	slog.Debug("Creating new ParquetWriter")
 
 	file, err := os.Create(cfg.OutputFile)

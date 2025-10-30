@@ -27,7 +27,7 @@ type API struct {
 	conesearchService *conesearch.ConesearchService
 	metadataService   *metadata.MetadataService
 	lightcurveService *lightcurve.LightcurveService
-	config            *config.ServiceConfig
+	config            config.ServiceConfig
 	getenv            func(string) string
 }
 
@@ -35,7 +35,7 @@ func New(
 	conesearchService *conesearch.ConesearchService,
 	metadataService *metadata.MetadataService,
 	lightcurveService *lightcurve.LightcurveService,
-	config *config.ServiceConfig,
+	config config.ServiceConfig,
 	getenv func(string) string,
 ) (*API, error) {
 	if conesearchService == nil {
