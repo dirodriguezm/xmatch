@@ -51,6 +51,7 @@ func (api *API) Lightcurve(c *gin.Context) {
 	if err != nil {
 		c.Error(err)
 		c.JSON(http.StatusInternalServerError, "Could not fetch lightcurve")
+		return
 	}
 
 	c.JSON(http.StatusOK, lightcurve)

@@ -17,6 +17,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/dirodriguezm/xmatch/service/docs"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -30,6 +31,9 @@ func (api *API) SetupRoutes(r *gin.Engine) {
 	if api.getenv("USE_LOGGER") != "" {
 		r.Use(gin.Logger())
 	}
+
+	docs.SwaggerInfo.Host = api.config.Host
+	docs.SwaggerInfo.BasePath = api.config.BasePath
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
