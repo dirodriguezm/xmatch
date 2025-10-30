@@ -188,6 +188,7 @@ func setMjd(value string, detection Detection) (Detection, error) {
 
 func setW1mpro(value string, detection Detection) (Detection, error) {
 	if value == "" {
+		detection.W1mpro = -999
 		return detection, nil
 	}
 
@@ -201,6 +202,7 @@ func setW1mpro(value string, detection Detection) (Detection, error) {
 
 func setW1sigmpro(value string, detection Detection) (Detection, error) {
 	if value == "" {
+		detection.W1sigmpro = -999
 		return detection, nil
 	}
 
@@ -214,6 +216,7 @@ func setW1sigmpro(value string, detection Detection) (Detection, error) {
 
 func setW2mpro(value string, detection Detection) (Detection, error) {
 	if value == "" {
+		detection.W2mpro = -999
 		return detection, nil
 	}
 
@@ -227,6 +230,7 @@ func setW2mpro(value string, detection Detection) (Detection, error) {
 
 func setW2sigmpro(value string, detection Detection) (Detection, error) {
 	if value == "" {
+		detection.W2sigmpro = -999
 		return detection, nil
 	}
 
@@ -239,6 +243,10 @@ func setW2sigmpro(value string, detection Detection) (Detection, error) {
 }
 
 func setCntr(value string, detection Detection) (Detection, error) {
+	if value == "" {
+		detection.Cntr = -999
+		return detection, nil
+	}
 	cntr, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return detection, fmt.Errorf("could not parse CNTR: %s", err)

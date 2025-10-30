@@ -112,6 +112,8 @@ type PartitionReaderConfig struct {
 }
 
 type ServiceConfig struct {
+	Host                    string                   `yaml:"host"`
+	BasePath                string                   `yaml:"base_path"`
 	Database                *DatabaseConfig          `yaml:"database"`
 	BulkChunkSize           int                      `yaml:"bulk_chunk_size"`
 	MaxBulkConcurrency      int                      `yaml:"max_bulk_concurrency"`

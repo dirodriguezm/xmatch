@@ -39,6 +39,8 @@ service:
   database:
     # a path to the SQLite database file
     url: "file:dev.db"
+  host: "localhost:8080"
+  base_path: "/v1"
   bulk_chunk_size: 500
   max_bulk_concurrency: 4
   lightcurve_service:
