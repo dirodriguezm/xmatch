@@ -96,6 +96,7 @@ func (src *Source) Next() (io.ReadCloser, error) {
 		return nil, io.EOF
 	}
 	slog.Info("Reading source", "current", src.CurrentSource+1, "total", len(src.Sources))
+	slog.Info("Current source is", "source", src.Sources[src.CurrentSource])
 
 	// In memory source from the source string itself
 	if strings.HasPrefix(src.Sources[src.CurrentSource], "buffer:") {

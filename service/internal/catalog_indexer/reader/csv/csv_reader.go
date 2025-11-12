@@ -35,6 +35,7 @@ type CsvReader struct {
 	currentReader     *csv.Reader
 	src               *source.Source
 	batchSize         int
+	opts              []CsvReaderOption
 }
 
 func NewCsvReader(src *source.Source, opts ...CsvReaderOption) (*CsvReader, error) {
@@ -47,6 +48,7 @@ func NewCsvReader(src *source.Source, opts ...CsvReaderOption) (*CsvReader, erro
 		currentReader:     csv.NewReader(currentFileReader),
 		currentFileReader: currentFileReader,
 		src:               src,
+		opts:              opts,
 	}
 
 	for _, opt := range opts {
@@ -160,7 +162,10 @@ func (r *CsvReader) ReadBatch() ([]repository.InputSchema, error) {
 			return rows, nextErr // This error can potentially be EOF, handled by the caller.
 		}
 		r.currentReader = csv.NewReader(ioReader)
-
+		// We need to apply the options again, since the reader was reset
+		for _, opt := range r.opts {
+			opt(r)
+		}
 		return rows, nil
 	}
 
@@ -212,7 +217,7 @@ func fillStructFromStrings(s any, values []string) error {
 	t := v.Type()
 
 	if len(values) < v.NumField() {
-		return fmt.Errorf("not enough values: got %d, need %d", len(values), v.NumField())
+		return fmt.Errorf("not enough values: got %d, need %d\nvalues: %s", len(values), v.NumField(), values)
 	}
 
 	for i := 0; i < v.NumField(); i++ {
