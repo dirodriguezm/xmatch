@@ -103,6 +103,8 @@ func (r *CsvReader) Read() ([]repository.InputSchema, error) {
 			return nil, fmt.Errorf("Could not get next source: %w", err)
 		}
 
+		r.currentFileReader.Close()
+		r.currentFileReader = ioReader
 		r.currentReader = csv.NewReader(ioReader)
 	}
 
@@ -161,6 +163,9 @@ func (r *CsvReader) ReadBatch() ([]repository.InputSchema, error) {
 		if nextErr != nil {
 			return rows, nextErr // This error can potentially be EOF, handled by the caller.
 		}
+
+		r.currentFileReader.Close()
+		r.currentFileReader = ioReader
 		r.currentReader = csv.NewReader(ioReader)
 		// We need to apply the options again, since the reader was reset
 		for _, opt := range r.opts {

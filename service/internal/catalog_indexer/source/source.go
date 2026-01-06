@@ -116,7 +116,7 @@ func (src *Source) Next() (io.ReadCloser, error) {
 }
 
 func validateSourceType(stype string) bool {
-	allowedTypes := []string{"csv", "parquet"}
+	allowedTypes := []string{"csv", "parquet", "fits"}
 	return slices.Contains(allowedTypes, stype)
 }
 
