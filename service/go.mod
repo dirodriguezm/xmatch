@@ -3,12 +3,12 @@ module github.com/dirodriguezm/xmatch/service
 go 1.24.0
 
 require (
+	codeberg.org/astrogo/fitsio v0.4.0
 	github.com/BurntSushi/toml v1.5.0
 	github.com/charmbracelet/log v0.4.2
 	github.com/dirodriguezm/healpix v0.0.0-20241017225944-6b9a84e4353c
 	github.com/gin-gonic/gin v1.10.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.0
-	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
