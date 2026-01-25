@@ -24,7 +24,9 @@ import (
 )
 
 func TestStart(t *testing.T) {
-	indexer := Indexer{}
+	indexer := Indexer{
+		fillMetadata: repository.FillAllwiseMetadata,
+	}
 	result := make([]actor.Message, 0)
 	ctx := t.Context()
 	testActor := actor.New(1, func(a *actor.Actor, m actor.Message) {
@@ -38,9 +40,8 @@ func TestStart(t *testing.T) {
 	rows := make([]any, 10)
 	for i := range 10 {
 		id := "test" + strconv.Itoa(i)
-		rows[i] = repository.AllwiseInputSchema{
-			Source_id: &id,
-		}
+		cntr := int64(i)
+		rows[i] = repository.AllwiseInputSchema{Source_id: &id, Cntr: &cntr}
 	}
 	indexerActor.Send(actor.Message{Rows: rows, Error: nil})
 

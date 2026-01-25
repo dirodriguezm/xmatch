@@ -30,17 +30,19 @@ type TestSchema struct {
 	Cat string
 }
 
-// implement the interface
-func (t TestSchema) FillMastercat(dst *repository.Mastercat, ipix int64) {
-	dst.ID = t.ID
-	dst.Ra = t.Ra
-	dst.Dec = t.Dec
-	dst.Cat = t.Cat
-	dst.Ipix = ipix
+func FillMastercat(schema repository.InputSchema, ipix int64) repository.Mastercat {
+	return repository.Mastercat{
+		ID:   schema.GetId(),
+		Ipix: ipix,
+		Ra:   schema.(TestSchema).Ra,
+		Dec:  schema.(TestSchema).Dec,
+		Cat:  "test",
+	}
 }
 
-// implement the interface
-func (t TestSchema) FillMetadata(dst repository.Metadata) {}
+func FillMetadata(schema repository.InputSchema) repository.Metadata {
+	return nil
+}
 
 func (t TestSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
@@ -55,7 +57,7 @@ func TestIndexActor(t *testing.T) {
 	rows[0] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
 	rows[1] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
 
-	indexer, err := New(config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
+	indexer, err := New(config.IndexerConfig{OrderingScheme: "nested", Nside: 18}, FillMastercat)
 	require.NoError(t, err)
 	ctx := t.Context()
 

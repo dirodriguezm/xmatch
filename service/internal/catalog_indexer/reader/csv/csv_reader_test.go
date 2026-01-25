@@ -51,8 +51,9 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
+		mastercat := repository.Mastercat{
+			ID: row.GetId(),
+		}
 		receivedOids[i] = mastercat.ID
 	}
 
@@ -85,8 +86,9 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
+		mastercat := repository.Mastercat{
+			ID: row.GetId(),
+		}
 		receivedOids[i] = mastercat.ID
 	}
 
@@ -153,8 +155,9 @@ o4,4,4
 	expectedOids := []string{"o1", "o2", "o3", "o4"}
 	receivedOids := make([]string, 4)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
+		mastercat := repository.Mastercat{
+			ID: row.GetId(),
+		}
 		receivedOids[i] = mastercat.ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
@@ -201,8 +204,9 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
+		mastercat := repository.Mastercat{
+			ID: row.GetId(),
+		}
 		receivedOids[i] = mastercat.ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
@@ -249,8 +253,9 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
+		mastercat := repository.Mastercat{
+			ID: row.GetId(),
+		}
 		receivedOids[i] = mastercat.ID
 	}
 

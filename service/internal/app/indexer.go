@@ -110,7 +110,15 @@ func MetadataWriter(ctx context.Context, cfg config.Config, repo conesearch.Repo
 }
 
 func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) (*actor.Actor, error) {
-	ind, err := mastercat_indexer.New(cfg.Indexer)
+	var fillMastercat func(repository.InputSchema, int64) repository.Mastercat
+	switch cfg.Source.CatalogName {
+	case "allwise":
+		fillMastercat = repository.FillAllwiseMastercat
+	default:
+		panic("Catalog not supported")
+	}
+
+	ind, err := mastercat_indexer.New(cfg.Indexer, fillMastercat)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +126,14 @@ func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) (*ac
 }
 
 func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) *actor.Actor {
-	ind := metadata.New(cfg.Source.CatalogName)
+	var fillMetadata func(repository.InputSchema) repository.Metadata
+	switch cfg.Source.CatalogName {
+	case "allwise":
+		fillMetadata = repository.FillAllwiseMetadata
+	default:
+		panic("Catalog not supported")
+	}
+	ind := metadata.New(fillMetadata)
 	return actor.New(cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, nil)
 }
 

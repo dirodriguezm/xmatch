@@ -16,18 +16,17 @@ package metadata
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Indexer struct {
-	catalog string
+	fillMetadata func(repository.InputSchema) repository.Metadata
 }
 
-func New(catalog string) *Indexer {
-	return &Indexer{catalog: strings.ToLower(catalog)}
+func New(fillMetadata func(repository.InputSchema) repository.Metadata) *Indexer {
+	return &Indexer{fillMetadata: fillMetadata}
 }
 
 func (ind *Indexer) Index(a *actor.Actor, msg actor.Message) {
@@ -38,28 +37,16 @@ func (ind *Indexer) Index(a *actor.Actor, msg actor.Message) {
 		return
 	}
 
-	outputBatch := getOutputBatch(ind.catalog, msg.Rows)
+	outputBatch := ind.getOutputBatch(msg.Rows)
 
 	slog.Debug("Metadata Indexer Sending Message", "len", len(outputBatch))
 	a.Broadcast(actor.Message{Rows: outputBatch, Error: nil})
 }
 
-func getOutputBatch(catalog string, rows []any) []any {
+func (ind *Indexer) getOutputBatch(rows []any) []any {
 	outputBatch := make([]any, len(rows))
-
-	switch catalog {
-	case "gaia":
-		for i := range rows {
-			var obj repository.Gaia
-			rows[i].(repository.InputSchema).FillMetadata(&obj)
-			outputBatch[i] = obj
-		}
-	case "allwise":
-		for i := range rows {
-			var obj repository.Allwise
-			rows[i].(repository.InputSchema).FillMetadata(&obj)
-			outputBatch[i] = obj
-		}
+	for i := range rows {
+		outputBatch[i] = ind.fillMetadata(rows[i].(repository.InputSchema))
 	}
 	return outputBatch
 }

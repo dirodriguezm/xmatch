@@ -25,10 +25,11 @@ import (
 )
 
 type Indexer struct {
-	mapper *healpix.HEALPixMapper
+	mapper        *healpix.HEALPixMapper
+	fillMastercat func(repository.InputSchema, int64) repository.Mastercat
 }
 
-func New(cfg config.IndexerConfig) (*Indexer, error) {
+func New(cfg config.IndexerConfig, fillMastercat func(repository.InputSchema, int64) repository.Mastercat) (*Indexer, error) {
 	slog.Debug("Creating new Mastercat Indexer")
 	orderingScheme := healpix.Ring
 	if strings.ToLower(cfg.OrderingScheme) == "nested" {
@@ -39,7 +40,8 @@ func New(cfg config.IndexerConfig) (*Indexer, error) {
 		return nil, err
 	}
 	return &Indexer{
-		mapper: mapper,
+		mapper:        mapper,
+		fillMastercat: fillMastercat,
 	}, nil
 }
 
@@ -57,9 +59,7 @@ func (ind Indexer) Index(a *actor.Actor, msg actor.Message) {
 		ra, dec := msg.Rows[i].(repository.InputSchema).GetCoordinates()
 		point := healpix.RADec(ra, dec)
 		ipix := ind.mapper.PixelAt(point)
-		mastercat := repository.Mastercat{}
-		msg.Rows[i].(repository.InputSchema).FillMastercat(&mastercat, ipix)
-		outputBatch[i] = mastercat
+		outputBatch[i] = ind.fillMastercat(msg.Rows[i].(repository.InputSchema), ipix)
 	}
 
 	slog.Debug("Mastercat Indexer sending message", "len", len(outputBatch))
