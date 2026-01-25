@@ -19,7 +19,6 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
@@ -31,13 +30,11 @@ type Reader interface {
 
 type SourceReader struct {
 	Reader
-	Src       *source.Source
 	BatchSize int
 	Receivers []*actor.Actor
 }
 
 func (r *SourceReader) Read() {
-	slog.Debug("Starting Reader", "catalog", r.Src.CatalogName, "nside", r.Src.Nside, "numreaders", len(r.Src.Sources))
 	eof := false
 	for !eof {
 		rows, err := r.ReadBatch()

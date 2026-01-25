@@ -15,32 +15,27 @@
 package parquet_writer_test
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
+	"github.com/dirodriguezm/xmatch/service/internal/app"
 	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/di"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/golobby/container/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/reader"
 )
 
-var ctr container.Container
+var cfg config.Config
 
 func TestMain(m *testing.M) {
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "parquet_writer_integration_test_*")
 	if err != nil {
-		slog.Error("could not make temp dir")
 		panic(err)
 	}
 	configPath := filepath.Join(tmpDir, "config.yaml")
@@ -60,12 +55,12 @@ catalog_indexer:
   indexer_writer:
     type: "parquet"
     output_file: "%s"
+    schema: 1
 `
 	outputFile := filepath.Join(tmpDir, "test.parquet")
 	config = fmt.Sprintf(config, outputFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)
 	if err != nil {
-		slog.Error("could not write config file")
 		panic(err)
 	}
 
@@ -79,11 +74,11 @@ catalog_indexer:
 			return ""
 		}
 	}
-	ctx := context.Background()
-	stdout := &strings.Builder{}
 
-	// build DI container
-	ctr = di.BuildIndexerContainer(ctx, getenv, stdout)
+	cfg, err = app.Config(getenv)
+	if err != nil {
+		panic(err)
+	}
 
 	m.Run()
 	os.Remove(configPath)
@@ -92,22 +87,13 @@ catalog_indexer:
 }
 
 func TestWrite(t *testing.T) {
-	oids := []string{"oid1", "oid2"}
-	ras := []float64{1, 2}
-	decs := []float64{1, 2}
-	ipixs := []int64{1, 2}
-	cat := "vlass"
-
-	// check the parquet file
-	var cfg *config.Config
-	err := ctr.Resolve(&cfg)
+	writer, err := parquet_writer.New[repository.Mastercat](cfg.CatalogIndexer.IndexerWriter, t.Context())
 	require.NoError(t, err)
 
-	writer, err := parquet_writer.New[repository.Mastercat](cfg.CatalogIndexer.IndexerWriter, t.Context())
 	writer.Write(nil, actor.Message{
 		Rows: []any{
-			repository.Mastercat{ID: oids[0], Ipix: ipixs[0], Ra: ras[0], Dec: decs[0], Cat: cat},
-			repository.Mastercat{ID: oids[1], Ipix: ipixs[1], Ra: ras[1], Dec: decs[1], Cat: cat},
+			repository.Mastercat{ID: "oid1", Ipix: 1, Ra: 1, Dec: 1, Cat: "vlass"},
+			repository.Mastercat{ID: "oid2", Ipix: 2, Ra: 2, Dec: 2, Cat: "vlass"},
 		},
 		Error: nil,
 	})

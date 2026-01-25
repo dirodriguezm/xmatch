@@ -20,24 +20,22 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
+	"github.com/dirodriguezm/xmatch/service/internal/app"
 	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
-	"github.com/dirodriguezm/xmatch/service/internal/di"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/golobby/container/v3"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
 )
 
-var ctr container.Container
+var repo conesearch.Repository
 
 func TestMain(m *testing.M) {
 	depth := 5
@@ -93,11 +91,15 @@ catalog_indexer:
 			return ""
 		}
 	}
-	ctx := context.Background()
-	stdout := &strings.Builder{}
 
-	// build DI container
-	ctr = di.BuildIndexerContainer(ctx, getenv, stdout)
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		panic(err)
+	}
+	repo, err = app.Repository(cfg)
+	if err != nil {
+		panic(err)
+	}
 
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
@@ -117,9 +119,6 @@ catalog_indexer:
 }
 
 func TestReceive(t *testing.T) {
-	var repo conesearch.Repository
-	err := ctr.Resolve(&repo)
-	require.NoError(t, err)
 	ctx := context.Background()
 	w := sqlite_writer.New(repo, ctx, "mastercat")
 

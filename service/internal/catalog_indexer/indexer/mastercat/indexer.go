@@ -20,28 +20,25 @@ import (
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Indexer struct {
-	source *source.Source
 	mapper *healpix.HEALPixMapper
 }
 
-func New(src *source.Source, cfg config.IndexerConfig) (*Indexer, error) {
+func New(cfg config.IndexerConfig) (*Indexer, error) {
 	slog.Debug("Creating new Mastercat Indexer")
 	orderingScheme := healpix.Ring
 	if strings.ToLower(cfg.OrderingScheme) == "nested" {
 		orderingScheme = healpix.Nest
 	}
-	mapper, err := healpix.NewHEALPixMapper(src.Nside, orderingScheme)
+	mapper, err := healpix.NewHEALPixMapper(cfg.Nside, orderingScheme)
 	if err != nil {
 		return nil, err
 	}
 	return &Indexer{
-		source: src,
 		mapper: mapper,
 	}, nil
 }

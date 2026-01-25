@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
@@ -56,14 +55,7 @@ func TestIndexActor(t *testing.T) {
 	rows[0] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
 	rows[1] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
 
-	src, err := source.NewSource(config.SourceConfig{
-		Url:         "buffer:",
-		Type:        "csv",
-		CatalogName: "catalog",
-	})
-	require.NoError(t, err)
-
-	indexer, err := New(src, config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
+	indexer, err := New(config.IndexerConfig{OrderingScheme: "nested", Nside: 18})
 	require.NoError(t, err)
 	ctx := t.Context()
 
