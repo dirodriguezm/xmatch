@@ -83,7 +83,7 @@ type TestSchema struct {
 	Dec float64
 }
 
-func (t *TestSchema) FillMastercat(ipix int64) repository.Mastercat {
+func (t TestSchema) FillMastercat(ipix int64) repository.Mastercat {
 	return repository.Mastercat{
 		ID:   t.Oid,
 		Ra:   t.Ra,
@@ -93,14 +93,14 @@ func (t *TestSchema) FillMastercat(ipix int64) repository.Mastercat {
 	}
 }
 
-func (t *TestSchema) FillMetadata() repository.Metadata {
+func (t TestSchema) FillMetadata() repository.Metadata {
 	return nil
 }
 
-func (t *TestSchema) GetCoordinates() (float64, float64) {
+func (t TestSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
 }
 
-func (t *TestSchema) GetId() string {
+func (t TestSchema) GetId() string {
 	return t.Oid
 }

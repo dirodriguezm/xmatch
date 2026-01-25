@@ -14,12 +14,12 @@ func TestActor(t *testing.T) {
 		}
 	}
 	ctx := t.Context()
-	actor2 := New(10, handler2, nil, nil, ctx)
+	actor2 := New("test", 10, handler2, nil, nil, ctx)
 
 	handler1 := func(a *Actor, msg Message) {
 		a.Broadcast(msg)
 	}
-	actor1 := New(10, handler1, nil, []*Actor{actor2}, ctx)
+	actor1 := New("test", 10, handler1, nil, []*Actor{actor2}, ctx)
 
 	actor2.Start()
 	actor1.Start()

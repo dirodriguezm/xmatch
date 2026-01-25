@@ -64,10 +64,10 @@ func MastercatWriter(ctx context.Context, cfg config.Config, repo conesearch.Rep
 		if err != nil {
 			return nil, err
 		}
-		return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
+		return actor.New("mastercat writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	case "sqlite":
 		w := sqlite_writer.New(repo, ctx, repo.BulkInsertObject)
-		return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
+		return actor.New("mastercat writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	default:
 		return nil, fmt.Errorf("Writer type not allowed")
 	}
@@ -89,15 +89,15 @@ func MetadataWriter(ctx context.Context, cfg config.Config, repo conesearch.Repo
 		if err != nil {
 			return nil, err
 		}
-		return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
+		return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	case "sqlite":
 		switch strings.ToLower(cfg.CatalogIndexer.Source.CatalogName) {
 		case ALLWISE:
 			w := sqlite_writer.New(repo, ctx, repo.BulkInsertAllwise)
-			return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
+			return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 		case GAIA:
 			w := sqlite_writer.New(repo, ctx, repo.BulkInsertGaia)
-			return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
+			return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 		default:
 			return nil, fmt.Errorf("Unknown catalog %s", cfg.CatalogIndexer.Source.CatalogName)
 		}
@@ -106,7 +106,7 @@ func MetadataWriter(ctx context.Context, cfg config.Config, repo conesearch.Repo
 	}
 }
 
-func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) (*actor.Actor, error) {
+func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context) (*actor.Actor, error) {
 	fillMastercat := func(schema repository.InputSchema, ipix int64) repository.Mastercat {
 		switch cfg.Source.CatalogName {
 		case ALLWISE:
@@ -122,10 +122,10 @@ func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) (*ac
 	if err != nil {
 		return nil, err
 	}
-	return actor.New(cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, nil), nil
+	return actor.New("mastercat indexer", cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, ctx), nil
 }
 
-func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) *actor.Actor {
+func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context) *actor.Actor {
 	fillMetadata := func(schema repository.InputSchema) repository.Metadata {
 		switch cfg.Source.CatalogName {
 		case ALLWISE:
@@ -137,7 +137,7 @@ func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) *acto
 		}
 	}
 	ind := metadata.New(fillMetadata)
-	return actor.New(cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, nil)
+	return actor.New("metadata indexer", cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, ctx)
 }
 
 func Reader(

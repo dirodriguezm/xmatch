@@ -16,10 +16,12 @@ type Actor struct {
 	stopper   Stopper
 	receivers []*Actor
 	ctx       context.Context
+	name      string
 }
 
-func New(bufferSize int, handler Handler, stopper Stopper, receivers []*Actor, ctx context.Context) *Actor {
+func New(name string, bufferSize int, handler Handler, stopper Stopper, receivers []*Actor, ctx context.Context) *Actor {
 	return &Actor{
+		name:      name,
 		ch:        make(chan Message, bufferSize),
 		wg:        &sync.WaitGroup{},
 		handler:   handler,
@@ -32,7 +34,13 @@ func New(bufferSize int, handler Handler, stopper Stopper, receivers []*Actor, c
 func (a *Actor) Start() {
 	a.wg.Add(1)
 	go func() {
-		defer a.wg.Done()
+		defer func() {
+			a.wg.Done()
+			if err := recover(); err != nil {
+				slog.Error("Actor panicked", "name", a.name)
+				panic(err)
+			}
+		}()
 		for {
 			select {
 			case <-a.ctx.Done():

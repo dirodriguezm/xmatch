@@ -33,10 +33,10 @@ func TestStart(t *testing.T) {
 	}
 	result := make([]actor.Message, 0)
 	ctx := t.Context()
-	testActor := actor.New(1, func(a *actor.Actor, m actor.Message) {
+	testActor := actor.New("receiver", 1, func(a *actor.Actor, m actor.Message) {
 		result = append(result, m)
 	}, nil, nil, ctx)
-	indexerActor := actor.New(1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
+	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
 
 	testActor.Start()
 	indexerActor.Start()

@@ -68,6 +68,7 @@ func TestIndexActor(t *testing.T) {
 
 	results := make([]any, 0)
 	receiver := actor.New(
+		"receiver",
 		2,
 		func(a *actor.Actor, m actor.Message) {
 			results = append(results, m.Rows...)
@@ -76,7 +77,7 @@ func TestIndexActor(t *testing.T) {
 		nil,
 		ctx,
 	)
-	a := actor.New(2, indexer.Index, nil, []*actor.Actor{receiver}, ctx)
+	a := actor.New("mastercat indexer", 2, indexer.Index, nil, []*actor.Actor{receiver}, ctx)
 
 	receiver.Start()
 	a.Start()

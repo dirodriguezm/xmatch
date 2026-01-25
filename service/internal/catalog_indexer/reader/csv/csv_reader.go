@@ -192,21 +192,21 @@ func (r *CsvReader) createInputSchema(catalogName string, record []string) repos
 		if err != nil {
 			panic(err)
 		}
-		return &schema
+		return schema
 	case "gaia":
 		schema := repository.GaiaInputSchema{}
 		err := fillStructFromStrings(&schema, record)
 		if err != nil {
 			panic(err)
 		}
-		return &schema
+		return schema
 	default:
 		schema := TestSchema{}
 		err := fillStructFromStrings(&schema, record)
 		if err != nil {
 			panic(err)
 		}
-		return &schema
+		return schema
 	}
 }
 

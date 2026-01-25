@@ -51,7 +51,7 @@ func StartCatalogIndexer(
 	}
 
 	// initialize indexer
-	mastercatIndexer, err := app.MastercatIndexer(cfg.CatalogIndexer, mastercatWriter)
+	mastercatIndexer, err := app.MastercatIndexer(cfg.CatalogIndexer, mastercatWriter, ctx)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func StartCatalogIndexer(
 	// initialize metadata indexer
 	var metadataIndexer *actor.Actor
 	if cfg.CatalogIndexer.Source.Metadata {
-		metadataIndexer = app.MetadataIndexer(cfg.CatalogIndexer, metadataWriter)
+		metadataIndexer = app.MetadataIndexer(cfg.CatalogIndexer, metadataWriter, ctx)
 		metadataIndexer.Start()
 	}
 
