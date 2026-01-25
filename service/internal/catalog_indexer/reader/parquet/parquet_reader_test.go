@@ -50,12 +50,18 @@ func (o Object) GetCoordinates() (float64, float64) {
 	return o.Ra, o.Dec
 }
 
-func (o Object) FillMastercat(dst *repository.Mastercat, ipix int64) {
-	dst.ID = o.Oid
-	dst.Ra = o.Ra
-	dst.Dec = o.Dec
+func (o Object) FillMastercat(ipix int64) repository.Mastercat {
+	return repository.Mastercat{
+		ID:   o.Oid,
+		Ra:   o.Ra,
+		Dec:  o.Dec,
+		Ipix: ipix,
+		Cat:  "test",
+	}
 }
-func (o Object) FillMetadata(dst repository.Metadata) {}
+func (o Object) FillMetadata() repository.Metadata {
+	return nil
+}
 
 func Write(t *testing.T, nrows int) string {
 	dir := t.TempDir()

@@ -44,7 +44,7 @@ func TestReceive_Mastercat(t *testing.T) {
 		[]any{mastercat},
 	).Return(nil)
 
-	w := New(repo, context.Background(), "mastercat")
+	w := New(repo, context.Background(), repo.BulkInsertObject)
 	w.Write(nil, actor.Message{Rows: []any{mastercat}, Error: nil})
 
 	repo.AssertExpectations(t)
@@ -68,7 +68,7 @@ func TestReceive_Allwise(t *testing.T) {
 		[]any{allwise},
 	).Return(nil)
 
-	w := New(repo, context.Background(), "allwise")
+	w := New(repo, context.Background(), repo.BulkInsertAllwise)
 	w.Write(nil, actor.Message{Rows: []any{allwise}, Error: nil})
 
 	repo.AssertExpectations(t)

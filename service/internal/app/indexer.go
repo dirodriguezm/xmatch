@@ -21,6 +21,9 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 )
 
+const ALLWISE = "allwise"
+const GAIA = "gaia"
+
 func Config(getenv func(string) string) (config.Config, error) {
 	return config.Load(getenv)
 }
@@ -57,14 +60,13 @@ func Source(cfg config.SourceConfig) (*source.Source, error) {
 func MastercatWriter(ctx context.Context, cfg config.Config, repo conesearch.Repository, src *source.Source) (*actor.Actor, error) {
 	switch cfg.CatalogIndexer.IndexerWriter.Type {
 	case "parquet":
-		cfg.CatalogIndexer.IndexerWriter.Schema = config.MastercatSchema
 		w, err := parquet_writer.New[repository.Mastercat](cfg.CatalogIndexer.IndexerWriter, ctx)
 		if err != nil {
 			return nil, err
 		}
 		return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	case "sqlite":
-		w := sqlite_writer.New(repo, ctx, "mastercat")
+		w := sqlite_writer.New(repo, ctx, repo.BulkInsertObject)
 		return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	default:
 		return nil, fmt.Errorf("Writer type not allowed")
@@ -76,33 +78,28 @@ func MetadataWriter(ctx context.Context, cfg config.Config, repo conesearch.Repo
 	case "parquet":
 		var w writer.Writer
 		var err error
-		switch cfg.CatalogIndexer.MetadataWriter.Schema {
-		case config.AllwiseSchema:
+		switch strings.ToLower(cfg.CatalogIndexer.Source.CatalogName) {
+		case ALLWISE:
 			w, err = parquet_writer.New[repository.Allwise](cfg.CatalogIndexer.MetadataWriter, ctx)
-		case config.VlassSchema:
-			w, err = parquet_writer.New[repository.VlassObjectSchema](cfg.CatalogIndexer.MetadataWriter, ctx)
-		case config.GaiaSchema:
+		case GAIA:
 			w, err = parquet_writer.New[repository.Gaia](cfg.CatalogIndexer.MetadataWriter, ctx)
 		default:
-			err = fmt.Errorf("Unknown schema %v", cfg.CatalogIndexer.MetadataWriter.Schema)
+			err = fmt.Errorf("Unknown catalog %s", cfg.CatalogIndexer.Source.CatalogName)
 		}
 		if err != nil {
 			return nil, err
 		}
 		return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	case "sqlite":
-		switch cfg.CatalogIndexer.MetadataWriter.Schema {
-		case config.AllwiseSchema:
-			w := sqlite_writer.New(repo, ctx, "allwise")
+		switch strings.ToLower(cfg.CatalogIndexer.Source.CatalogName) {
+		case ALLWISE:
+			w := sqlite_writer.New(repo, ctx, repo.BulkInsertAllwise)
 			return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-		case config.VlassSchema:
-			w := sqlite_writer.New(repo, ctx, "vlass")
-			return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-		case config.GaiaSchema:
-			w := sqlite_writer.New(repo, ctx, "gaia")
+		case GAIA:
+			w := sqlite_writer.New(repo, ctx, repo.BulkInsertGaia)
 			return actor.New(cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 		default:
-			return nil, fmt.Errorf("Unknown schema %v", cfg.CatalogIndexer.MetadataWriter.Schema)
+			return nil, fmt.Errorf("Unknown catalog %s", cfg.CatalogIndexer.Source.CatalogName)
 		}
 	default:
 		return nil, fmt.Errorf("Unknown Metadata Writer Type: %s", cfg.CatalogIndexer.MetadataWriter.Type)
@@ -110,12 +107,15 @@ func MetadataWriter(ctx context.Context, cfg config.Config, repo conesearch.Repo
 }
 
 func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) (*actor.Actor, error) {
-	var fillMastercat func(repository.InputSchema, int64) repository.Mastercat
-	switch cfg.Source.CatalogName {
-	case "allwise":
-		fillMastercat = repository.FillAllwiseMastercat
-	default:
-		panic("Catalog not supported")
+	fillMastercat := func(schema repository.InputSchema, ipix int64) repository.Mastercat {
+		switch cfg.Source.CatalogName {
+		case ALLWISE:
+			return repository.AllwiseInputSchema.FillMastercat(schema.(repository.AllwiseInputSchema), ipix)
+		case GAIA:
+			return repository.GaiaInputSchema.FillMastercat(schema.(repository.GaiaInputSchema), ipix)
+		default:
+			panic("Catalog not supported")
+		}
 	}
 
 	ind, err := mastercat_indexer.New(cfg.Indexer, fillMastercat)
@@ -126,12 +126,15 @@ func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) (*ac
 }
 
 func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor) *actor.Actor {
-	var fillMetadata func(repository.InputSchema) repository.Metadata
-	switch cfg.Source.CatalogName {
-	case "allwise":
-		fillMetadata = repository.FillAllwiseMetadata
-	default:
-		panic("Catalog not supported")
+	fillMetadata := func(schema repository.InputSchema) repository.Metadata {
+		switch cfg.Source.CatalogName {
+		case ALLWISE:
+			return repository.AllwiseInputSchema.FillMetadata(schema.(repository.AllwiseInputSchema))
+		case GAIA:
+			return repository.GaiaInputSchema.FillMetadata(schema.(repository.GaiaInputSchema))
+		default:
+			panic("Catalog not supported")
+		}
 	}
 	ind := metadata.New(fillMetadata)
 	return actor.New(cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, nil)

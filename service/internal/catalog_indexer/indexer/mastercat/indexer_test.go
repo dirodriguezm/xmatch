@@ -30,17 +30,18 @@ type TestSchema struct {
 	Cat string
 }
 
-func FillMastercat(schema repository.InputSchema, ipix int64) repository.Mastercat {
+func (schema TestSchema) FillMastercat(ipix int64) repository.Mastercat {
+	ra, dec := schema.GetCoordinates()
 	return repository.Mastercat{
 		ID:   schema.GetId(),
 		Ipix: ipix,
-		Ra:   schema.(TestSchema).Ra,
-		Dec:  schema.(TestSchema).Dec,
+		Ra:   ra,
+		Dec:  dec,
 		Cat:  "test",
 	}
 }
 
-func FillMetadata(schema repository.InputSchema) repository.Metadata {
+func (t TestSchema) FillMetadata() repository.Metadata {
 	return nil
 }
 
@@ -52,12 +53,16 @@ func (t TestSchema) GetId() string {
 	return t.ID
 }
 
+var fillMastercat = func(schema repository.InputSchema, ipix int64) repository.Mastercat {
+	return schema.(TestSchema).FillMastercat(ipix)
+}
+
 func TestIndexActor(t *testing.T) {
 	rows := make([]any, 2)
 	rows[0] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
 	rows[1] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
 
-	indexer, err := New(config.IndexerConfig{OrderingScheme: "nested", Nside: 18}, FillMastercat)
+	indexer, err := New(config.IndexerConfig{OrderingScheme: "nested", Nside: 18}, fillMastercat)
 	require.NoError(t, err)
 	ctx := t.Context()
 

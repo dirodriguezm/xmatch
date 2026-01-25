@@ -23,9 +23,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var fillMetadata = func(schema repository.InputSchema) repository.Metadata {
+	return schema.(repository.AllwiseInputSchema).FillMetadata()
+}
+
 func TestStart(t *testing.T) {
 	indexer := Indexer{
-		fillMetadata: repository.FillAllwiseMetadata,
+		fillMetadata: fillMetadata,
 	}
 	result := make([]actor.Message, 0)
 	ctx := t.Context()
