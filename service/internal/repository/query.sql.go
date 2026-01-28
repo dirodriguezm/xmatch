@@ -67,6 +67,43 @@ func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]Allwise, e
 	return items, nil
 }
 
+const bulkGetErosita = `-- name: BulkGetErosita :many
+SELECT id, mjd, ml_flux_1 FROM erosita WHERE id IN (/*SLICE:id*/?)
+`
+
+func (q *Queries) BulkGetErosita(ctx context.Context, id []string) ([]Erosita, error) {
+	query := bulkGetErosita
+	var queryParams []interface{}
+	if len(id) > 0 {
+		for _, v := range id {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:id*/?", strings.Repeat(",?", len(id))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:id*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Erosita
+	for rows.Next() {
+		var i Erosita
+		if err := rows.Scan(&i.ID, &i.Mjd, &i.MlFlux1); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const bulkGetGaia = `-- name: BulkGetGaia :many
 SELECT id, phot_g_mean_flux, phot_g_mean_flux_error, phot_g_mean_mag, phot_bp_mean_flux, phot_bp_mean_flux_error, phot_bp_mean_mag, phot_rp_mean_flux, phot_rp_mean_flux_error, phot_rp_mean_mag
 FROM gaia
@@ -334,6 +371,71 @@ func (q *Queries) GetCatalogs(ctx context.Context) ([]Catalog, error) {
 	return items, nil
 }
 
+const getErosita = `-- name: GetErosita :one
+SELECT id, mjd, ml_flux_1 FROM erosita WHERE id = ?
+`
+
+func (q *Queries) GetErosita(ctx context.Context, id string) (Erosita, error) {
+	row := q.db.QueryRowContext(ctx, getErosita, id)
+	var i Erosita
+	err := row.Scan(&i.ID, &i.Mjd, &i.MlFlux1)
+	return i, err
+}
+
+const getErositaFromPixels = `-- name: GetErositaFromPixels :many
+SELECT erosita.id, erosita.mjd, erosita.ml_flux_1, mastercat.ra, mastercat.dec
+FROM erosita 
+JOIN mastercat ON mastercat.id = erosita.id
+WHERE mastercat.ipix IN (/*SLICE:ipix*/?)
+`
+
+type GetErositaFromPixelsRow struct {
+	ID      string          `json:"id" parquet:"name=IAUNAME, type=BYTE_ARRAY"`
+	Mjd     sql.NullFloat64 `json:"mjd" parquet:"name=MJD, type=DOUBLE"`
+	MlFlux1 sql.NullFloat64 `json:"ml_flux_1" parquet:"name=ML_FLUX_1, type=DOUBLE"`
+	Ra      float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec     float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
+}
+
+func (q *Queries) GetErositaFromPixels(ctx context.Context, ipix []int64) ([]GetErositaFromPixelsRow, error) {
+	query := getErositaFromPixels
+	var queryParams []interface{}
+	if len(ipix) > 0 {
+		for _, v := range ipix {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ipix*/?", strings.Repeat(",?", len(ipix))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ipix*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetErositaFromPixelsRow
+	for rows.Next() {
+		var i GetErositaFromPixelsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Mjd,
+			&i.MlFlux1,
+			&i.Ra,
+			&i.Dec,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getGaia = `-- name: GetGaia :one
 SELECT id, phot_g_mean_flux, phot_g_mean_flux_error, phot_g_mean_mag, phot_bp_mean_flux, phot_bp_mean_flux_error, phot_bp_mean_mag, phot_rp_mean_flux, phot_rp_mean_flux_error, phot_rp_mean_mag
 FROM gaia
@@ -545,6 +647,21 @@ func (q *Queries) InsertCatalog(ctx context.Context, arg InsertCatalogParams) er
 	return err
 }
 
+const insertErosita = `-- name: InsertErosita :exec
+INSERT INTO erosita (id, mjd, ml_flux_1) VALUES (?, ?, ?)
+`
+
+type InsertErositaParams struct {
+	ID      string          `json:"id" parquet:"name=IAUNAME, type=BYTE_ARRAY"`
+	Mjd     sql.NullFloat64 `json:"mjd" parquet:"name=MJD, type=DOUBLE"`
+	MlFlux1 sql.NullFloat64 `json:"ml_flux_1" parquet:"name=ML_FLUX_1, type=DOUBLE"`
+}
+
+func (q *Queries) InsertErosita(ctx context.Context, arg InsertErositaParams) error {
+	_, err := q.db.ExecContext(ctx, insertErosita, arg.ID, arg.Mjd, arg.MlFlux1)
+	return err
+}
+
 const insertGaia = `-- name: InsertGaia :exec
 INSERT INTO gaia (
 	id, 
@@ -633,6 +750,15 @@ DELETE FROM catalogs
 
 func (q *Queries) RemoveAllCatalogs(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, removeAllCatalogs)
+	return err
+}
+
+const removeAllErosita = `-- name: RemoveAllErosita :exec
+DELETE FROM erosita
+`
+
+func (q *Queries) RemoveAllErosita(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, removeAllErosita)
 	return err
 }
 

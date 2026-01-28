@@ -49,6 +49,11 @@ type Repository interface {
 	BulkGetGaia(context.Context, []string) ([]repository.Gaia, error)
 	GetAllwiseFromPixels(context.Context, []int64) ([]repository.GetAllwiseFromPixelsRow, error)
 	GetGaiaFromPixels(context.Context, []int64) ([]repository.GetGaiaFromPixelsRow, error)
+	InsertErositaWithoutParams(context.Context, repository.Erosita) error
+	GetErosita(context.Context, string) (repository.Erosita, error)
+	BulkInsertErosita(context.Context, *sql.DB, []any) error
+	BulkGetErosita(context.Context, []string) ([]repository.Erosita, error)
+	GetErositaFromPixels(context.Context, []int64) ([]repository.GetErositaFromPixelsRow, error)
 }
 
 type ConesearchService struct {

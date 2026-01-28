@@ -66,3 +66,19 @@ func (q *Queries) BulkInsertGaia(ctx context.Context, db *sql.DB, arg []any) err
 	}
 	return tx.Commit()
 }
+
+func (q *Queries) BulkInsertErosita(ctx context.Context, db *sql.DB, arg []any) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	qtx := q.WithTx(tx)
+	for i := range arg {
+		err = qtx.InsertErositaWithoutParams(ctx, arg[i].(Erosita))
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}

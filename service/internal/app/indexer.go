@@ -23,6 +23,7 @@ import (
 
 const ALLWISE = "allwise"
 const GAIA = "gaia"
+const EROSITA = "erosita"
 
 func Config(getenv func(string) string) (config.Config, error) {
 	return config.Load(getenv)
@@ -83,6 +84,8 @@ func MetadataWriter(ctx context.Context, cfg config.Config, repo conesearch.Repo
 			w, err = parquet_writer.New[repository.Allwise](cfg.CatalogIndexer.MetadataWriter, ctx)
 		case GAIA:
 			w, err = parquet_writer.New[repository.Gaia](cfg.CatalogIndexer.MetadataWriter, ctx)
+		case EROSITA:
+			w, err = parquet_writer.New[repository.Erosita](cfg.CatalogIndexer.MetadataWriter, ctx)
 		default:
 			err = fmt.Errorf("Unknown catalog %s", cfg.CatalogIndexer.Source.CatalogName)
 		}
@@ -97,6 +100,9 @@ func MetadataWriter(ctx context.Context, cfg config.Config, repo conesearch.Repo
 			return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 		case GAIA:
 			w := sqlite_writer.New(repo, ctx, repo.BulkInsertGaia)
+			return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
+		case EROSITA:
+			w := sqlite_writer.New(repo, ctx, repo.BulkInsertErosita)
 			return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 		default:
 			return nil, fmt.Errorf("Unknown catalog %s", cfg.CatalogIndexer.Source.CatalogName)
@@ -113,6 +119,8 @@ func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx 
 			return repository.AllwiseInputSchema.FillMastercat(schema.(repository.AllwiseInputSchema), ipix)
 		case GAIA:
 			return repository.GaiaInputSchema.FillMastercat(schema.(repository.GaiaInputSchema), ipix)
+		case EROSITA:
+			return repository.ErositaInputSchema.FillMastercat(schema.(repository.ErositaInputSchema), ipix)
 		default:
 			panic("Catalog not supported")
 		}
@@ -132,6 +140,8 @@ func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx c
 			return repository.AllwiseInputSchema.FillMetadata(schema.(repository.AllwiseInputSchema))
 		case GAIA:
 			return repository.GaiaInputSchema.FillMetadata(schema.(repository.GaiaInputSchema))
+		case EROSITA:
+			return repository.ErositaInputSchema.FillMetadata(schema.(repository.ErositaInputSchema))
 		default:
 			panic("Catalog not supported")
 		}

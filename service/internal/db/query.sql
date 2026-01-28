@@ -97,3 +97,21 @@ SELECT gaia.*, mastercat.ra, mastercat.dec
 FROM gaia 
 JOIN mastercat ON mastercat.id = gaia.id
 WHERE mastercat.ipix IN (sqlc.slice(ipix));
+
+-- name: InsertErosita :exec
+INSERT INTO erosita (id, mjd, ml_flux_1) VALUES (?, ?, ?);
+
+-- name: GetErosita :one
+SELECT * FROM erosita WHERE id = ?;
+
+-- name: BulkGetErosita :many
+SELECT * FROM erosita WHERE id IN (sqlc.slice(id));
+
+-- name: RemoveAllErosita :exec
+DELETE FROM erosita;
+
+-- name: GetErositaFromPixels :many
+SELECT erosita.*, mastercat.ra, mastercat.dec
+FROM erosita 
+JOIN mastercat ON mastercat.id = erosita.id
+WHERE mastercat.ipix IN (sqlc.slice(ipix));
