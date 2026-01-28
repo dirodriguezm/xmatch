@@ -70,7 +70,14 @@ sql:
             go_struct_tag: 'parquet:"name=phot_rp_mean_flux_error, type=DOUBLE" json:"phot_rp_mean_flux_error"'
           - column: "gaia.phot_rp_mean_mag"
             go_struct_tag: 'parquet:"name=phot_rp_mean_mag, type=DOUBLE" json:"phot_rp_mean_mag"'
+          - column: "erosita.id"
+            go_struct_tag: 'parquet:"name=IAUNAME, type=BYTE_ARRAY" json:"id"'
+          - column: "erosita.mjd"
+            go_struct_tag: 'parquet:"name=MJD, type=DOUBLE" json:"mjd"'
+          - column: "erosita.ml_flux_1"
+            go_struct_tag: 'parquet:"name=ML_FLUX_1, type=DOUBLE" json:"ml_flux_1"'
 overrides:
   go:
     rename:
       gaium: Gaia
+      erositum: Erosita
