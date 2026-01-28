@@ -34,85 +34,99 @@ func (schema AllwiseInputSchema) GetId() string {
 	return *schema.Source_id
 }
 
-func (schema AllwiseInputSchema) FillMetadata(dst Metadata) {
-	dst.(*Allwise).ID = *schema.Source_id
-	dst.(*Allwise).Cntr = *schema.Cntr
+func (schema AllwiseInputSchema) FillMetadata() Metadata {
+	allwise := &Allwise{
+		ID:   *schema.Source_id,
+		Cntr: *schema.Cntr,
+	}
 	if schema.W1mpro != nil {
-		dst.(*Allwise).W1mpro = sql.NullFloat64{Float64: *schema.W1mpro, Valid: true}
+		allwise.W1mpro = sql.NullFloat64{Float64: *schema.W1mpro, Valid: true}
 	} else {
-		dst.(*Allwise).W1mpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.W1mpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.W1sigmpro != nil {
-		dst.(*Allwise).W1sigmpro = sql.NullFloat64{Float64: *schema.W1sigmpro, Valid: true}
+		allwise.W1sigmpro = sql.NullFloat64{Float64: *schema.W1sigmpro, Valid: true}
 	} else {
-		dst.(*Allwise).W1sigmpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.W1sigmpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.W2mpro != nil {
-		dst.(*Allwise).W2mpro = sql.NullFloat64{Float64: *schema.W2mpro, Valid: true}
+		allwise.W2mpro = sql.NullFloat64{Float64: *schema.W2mpro, Valid: true}
 	} else {
-		dst.(*Allwise).W2mpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.W2mpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.W2sigmpro != nil {
-		dst.(*Allwise).W2sigmpro = sql.NullFloat64{Float64: *schema.W2sigmpro, Valid: true}
+		allwise.W2sigmpro = sql.NullFloat64{Float64: *schema.W2sigmpro, Valid: true}
 	} else {
-		dst.(*Allwise).W2sigmpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.W2sigmpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.W3mpro != nil {
-		dst.(*Allwise).W3mpro = sql.NullFloat64{Float64: *schema.W3mpro, Valid: true}
+		allwise.W3mpro = sql.NullFloat64{Float64: *schema.W3mpro, Valid: true}
 	} else {
-		dst.(*Allwise).W3mpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.W3mpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.W3sigmpro != nil {
-		dst.(*Allwise).W3sigmpro = sql.NullFloat64{Float64: *schema.W3sigmpro, Valid: true}
+		allwise.W3sigmpro = sql.NullFloat64{Float64: *schema.W3sigmpro, Valid: true}
 	} else {
-		dst.(*Allwise).W3sigmpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.W3sigmpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.W4mpro != nil {
-		dst.(*Allwise).W4mpro = sql.NullFloat64{Float64: *schema.W4mpro, Valid: true}
+		allwise.W4mpro = sql.NullFloat64{Float64: *schema.W4mpro, Valid: true}
 	} else {
-		dst.(*Allwise).W4mpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.W4mpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.W4sigmpro != nil {
-		dst.(*Allwise).W4sigmpro = sql.NullFloat64{Float64: *schema.W4sigmpro, Valid: true}
+		allwise.W4sigmpro = sql.NullFloat64{Float64: *schema.W4sigmpro, Valid: true}
 	} else {
-		dst.(*Allwise).W4sigmpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.W4sigmpro = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.J_m_2mass != nil {
-		dst.(*Allwise).JM2mass = sql.NullFloat64{Float64: *schema.J_m_2mass, Valid: true}
+		allwise.JM2mass = sql.NullFloat64{Float64: *schema.J_m_2mass, Valid: true}
 	} else {
-		dst.(*Allwise).JM2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.JM2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.J_msig_2mass != nil {
-		dst.(*Allwise).JMsig2mass = sql.NullFloat64{Float64: *schema.J_msig_2mass, Valid: true}
+		allwise.JMsig2mass = sql.NullFloat64{Float64: *schema.J_msig_2mass, Valid: true}
 	} else {
-		dst.(*Allwise).JMsig2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.JMsig2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.H_m_2mass != nil {
-		dst.(*Allwise).HM2mass = sql.NullFloat64{Float64: *schema.H_m_2mass, Valid: true}
+		allwise.HM2mass = sql.NullFloat64{Float64: *schema.H_m_2mass, Valid: true}
 	} else {
-		dst.(*Allwise).HM2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.HM2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.H_msig_2mass != nil {
-		dst.(*Allwise).HMsig2mass = sql.NullFloat64{Float64: *schema.H_msig_2mass, Valid: true}
+		allwise.HMsig2mass = sql.NullFloat64{Float64: *schema.H_msig_2mass, Valid: true}
 	} else {
-		dst.(*Allwise).HMsig2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.HMsig2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
 	}
 
 	if schema.K_m_2mass != nil {
-		dst.(*Allwise).KM2mass = sql.NullFloat64{Float64: *schema.K_m_2mass, Valid: true}
+		allwise.KM2mass = sql.NullFloat64{Float64: *schema.K_m_2mass, Valid: true}
 	} else {
-		dst.(*Allwise).KM2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
+		allwise.KM2mass = sql.NullFloat64{Float64: -9999.0, Valid: false}
+	}
+
+	return allwise
+}
+
+func (schema AllwiseInputSchema) FillMastercat(ipix int64) Mastercat {
+	return Mastercat{
+		ID:   *schema.Source_id,
+		Ipix: ipix,
+		Ra:   *schema.Ra,
+		Dec:  *schema.Dec,
+		Cat:  "allwise",
 	}
 }
 

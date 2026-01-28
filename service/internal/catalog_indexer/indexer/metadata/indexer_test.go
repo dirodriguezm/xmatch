@@ -23,14 +23,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var fillMetadata = func(schema repository.InputSchema) repository.Metadata {
+	return schema.(repository.AllwiseInputSchema).FillMetadata()
+}
+
 func TestStart(t *testing.T) {
-	indexer := Indexer{}
+	indexer := Indexer{
+		fillMetadata: fillMetadata,
+	}
 	result := make([]actor.Message, 0)
 	ctx := t.Context()
-	testActor := actor.New(1, func(a *actor.Actor, m actor.Message) {
+	testActor := actor.New("receiver", 1, func(a *actor.Actor, m actor.Message) {
 		result = append(result, m)
 	}, nil, nil, ctx)
-	indexerActor := actor.New(1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
+	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
 
 	testActor.Start()
 	indexerActor.Start()
@@ -38,9 +44,8 @@ func TestStart(t *testing.T) {
 	rows := make([]any, 10)
 	for i := range 10 {
 		id := "test" + strconv.Itoa(i)
-		rows[i] = repository.AllwiseInputSchema{
-			Source_id: &id,
-		}
+		cntr := int64(i)
+		rows[i] = repository.AllwiseInputSchema{Source_id: &id, Cntr: &cntr}
 	}
 	indexerActor.Send(actor.Message{Rows: rows, Error: nil})
 

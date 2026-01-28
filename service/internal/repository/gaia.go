@@ -168,25 +168,30 @@ func (schema GaiaInputSchema) GetCoordinates() (float64, float64) {
 	return schema.RA, schema.Dec
 }
 
-func (schema GaiaInputSchema) FillMetadata(dst Metadata) {
-	dst.(*Gaia).ID = schema.GetId()
-	dst.(*Gaia).PhotGMeanFlux = sql.NullFloat64{Float64: schema.PhotGMeanFlux, Valid: true}
-	dst.(*Gaia).PhotGMeanFluxError = sql.NullFloat64{Float64: float64(schema.PhotGMeanFluxError), Valid: true}
-	dst.(*Gaia).PhotGMeanMag = sql.NullFloat64{Float64: float64(schema.PhotGMeanMag), Valid: true}
-	dst.(*Gaia).PhotBpMeanFlux = sql.NullFloat64{Float64: float64(schema.PhotBpMeanFlux), Valid: true}
-	dst.(*Gaia).PhotBpMeanFluxError = sql.NullFloat64{Float64: float64(schema.PhotBpMeanFluxError), Valid: true}
-	dst.(*Gaia).PhotBpMeanMag = sql.NullFloat64{Float64: float64(schema.PhotBpMeanMag), Valid: true}
-	dst.(*Gaia).PhotRpMeanFlux = sql.NullFloat64{Float64: float64(schema.PhotRpMeanFlux), Valid: true}
-	dst.(*Gaia).PhotRpMeanFluxError = sql.NullFloat64{Float64: float64(schema.PhotRpMeanFluxError), Valid: true}
-	dst.(*Gaia).PhotRpMeanMag = sql.NullFloat64{Float64: float64(schema.PhotRpMeanMag), Valid: true}
+func (schema GaiaInputSchema) FillMetadata() Metadata {
+	return Gaia{
+		ID:                  schema.GetId(),
+		PhotGMeanFlux:       sql.NullFloat64{Float64: schema.PhotGMeanFlux, Valid: true},
+		PhotGMeanFluxError:  sql.NullFloat64{Float64: float64(schema.PhotGMeanFluxError), Valid: true},
+		PhotGMeanMag:        sql.NullFloat64{Float64: float64(schema.PhotGMeanMag), Valid: true},
+		PhotBpMeanFlux:      sql.NullFloat64{Float64: schema.PhotBpMeanFlux, Valid: true},
+		PhotBpMeanFluxError: sql.NullFloat64{Float64: float64(schema.PhotBpMeanFluxError), Valid: true},
+		PhotBpMeanMag:       sql.NullFloat64{Float64: float64(schema.PhotBpMeanMag), Valid: true},
+		PhotRpMeanFlux:      sql.NullFloat64{Float64: schema.PhotRpMeanFlux, Valid: true},
+		PhotRpMeanFluxError: sql.NullFloat64{Float64: float64(schema.PhotRpMeanFluxError), Valid: true},
+		PhotRpMeanMag:       sql.NullFloat64{Float64: float64(schema.PhotRpMeanMag), Valid: true},
+	}
 }
 
-func (schema GaiaInputSchema) FillMastercat(dst *Mastercat, ipix int64) {
-	dst.ID = schema.GetId()
-	dst.Ra = schema.RA
-	dst.Dec = schema.Dec
-	dst.Cat = "gaia"
-	dst.Ipix = ipix
+func (schema GaiaInputSchema) FillMastercat(ipix int64) Mastercat {
+	ra, dec := schema.GetCoordinates()
+	return Mastercat{
+		ID:   schema.GetId(),
+		Ipix: ipix,
+		Ra:   ra,
+		Dec:  dec,
+		Cat:  "gaia",
+	}
 }
 
 func (gaia Gaia) GetId() string {

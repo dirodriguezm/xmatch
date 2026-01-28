@@ -100,17 +100,11 @@ func NearestNeighborSearchForMetadata(
 			continue
 		}
 		result.Distance = append(result.Distance, dist)
-		switch strings.ToLower(obj.(knnObject).catalog) {
-		case "allwise":
+		switch m := obj.(knnObject).MetadataObj; m.(type) {
+		case repository.GetAllwiseFromPixelsRow:
 			result.Data = append(result.Data, convertToAllwise(obj.(knnObject).MetadataObj.(repository.GetAllwiseFromPixelsRow)))
-		case "gaia":
+		case repository.GetGaiaFromPixelsRow:
 			result.Data = append(result.Data, convertToGaia(obj.(knnObject).MetadataObj.(repository.GetGaiaFromPixelsRow)))
-		case "all":
-			if metadataObj, ok := obj.(knnObject).MetadataObj.(repository.GetAllwiseFromPixelsRow); ok {
-				result.Data = append(result.Data, convertToAllwise(metadataObj))
-			} else if metadataObj, ok := obj.(knnObject).MetadataObj.(repository.GetGaiaFromPixelsRow); ok {
-				result.Data = append(result.Data, convertToGaia(metadataObj))
-			}
 		default:
 			panic("Unknown catalog to KNN Search for Metadata")
 		}

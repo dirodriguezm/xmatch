@@ -1,8 +1,8 @@
 package repository
 
 type InputSchema interface {
-	FillMastercat(dst *Mastercat, ipix int64)
-	FillMetadata(dst Metadata)
+	FillMastercat(ipix int64) Mastercat
+	FillMetadata() Metadata
 	GetCoordinates() (float64, float64)
 	GetId() string
 }

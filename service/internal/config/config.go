@@ -41,11 +41,9 @@ type CatalogIndexerConfig struct {
 }
 
 type PreprocessorConfig struct {
-	Source          SourceConfig          `yaml:"source"`
-	Reader          ReaderConfig          `yaml:"reader"`
-	PartitionWriter PartitionWriterConfig `yaml:"partition_writer"`
-	PartitionReader PartitionReaderConfig `yaml:"partition_reader"`
-	ReducerWriter   ReducerWriterConfig   `yaml:"reducer_writer"`
+	Source        SourceConfig        `yaml:"source"`
+	Reader        ReaderConfig        `yaml:"reader"`
+	ReducerWriter ReducerWriterConfig `yaml:"reducer_writer"`
 }
 
 type ReducerWriterConfig struct {
@@ -76,39 +74,11 @@ type IndexerConfig struct {
 	Nside          int    `yaml:"nside"`
 }
 
-type ParquetSchema int
-
-const (
-	AllwiseSchema ParquetSchema = iota
-	MastercatSchema
-	TestSchema
-	VlassSchema
-	GaiaSchema
-)
-
 type WriterConfig struct {
 	Type string `yaml:"type"`
 
 	// parquet config
-	OutputFile string        `yaml:"output_file"`
-	Schema     ParquetSchema `yaml:"schema"`
-}
-
-type PartitionWriterConfig struct {
-	Schema      ParquetSchema
-	MaxFileSize int `yaml:"max_file_size"`
-
-	// filesystem config
-	NumPartitions   int    `yaml:"num_partitions"`
-	PartitionLevels int    `yaml:"partition_levels"`
-	BaseDir         string `yaml:"base_dir"`
-
-	// In Memory Store config
-	InMemoryMaxPartitionSize int `yaml:"in_memory_max_partition_size"`
-}
-
-type PartitionReaderConfig struct {
-	NumWorkers int `yaml:"num_workers"`
+	OutputFile string `yaml:"output_file"`
 }
 
 type ServiceConfig struct {

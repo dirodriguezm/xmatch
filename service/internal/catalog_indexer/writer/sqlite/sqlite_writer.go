@@ -19,7 +19,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -27,15 +26,23 @@ import (
 
 type SqliteWriter struct {
 	repository conesearch.Repository
+	bulkInsert func(context.Context, *sql.DB, []any) error
 	ctx        context.Context
 	db         *sql.DB
-	table      string
 }
 
-func New(repo conesearch.Repository, ctx context.Context, table string) *SqliteWriter {
+func New(
+	repo conesearch.Repository,
+	ctx context.Context,
+	bulkInsert func(context.Context, *sql.DB, []any) error,
+) *SqliteWriter {
 	slog.Debug("Creating new SqliteWriter")
-	w := &SqliteWriter{repository: repo, ctx: ctx, db: repo.GetDbInstance(), table: table}
-	return w
+	return &SqliteWriter{
+		repository: repo,
+		ctx:        ctx,
+		db:         repo.GetDbInstance(),
+		bulkInsert: bulkInsert,
+	}
 }
 
 func (w *SqliteWriter) Write(a *actor.Actor, msg actor.Message) {
@@ -46,35 +53,20 @@ func (w *SqliteWriter) Write(a *actor.Actor, msg actor.Message) {
 		}
 	}()
 
-	slog.Debug("SqliteWriter received message", "table", w.table)
+	slog.Debug("SqliteWriter received message", "insert into", w.bulkInsert)
 	if msg.Error != nil {
 		slog.Error("SqliteWriter received error")
 		panic(fmt.Errorf("SqliteWriter received error: %w", msg.Error))
 	}
 
-	var err error
-	switch strings.ToLower(w.table) {
-	case "mastercat":
-		slog.Debug("SqliteWriter Writing Mastercat", "len", len(msg.Rows))
-		err = w.repository.BulkInsertObject(w.ctx, w.db, msg.Rows)
-	case "allwise":
-		slog.Debug("SqliteWriter Writing Allwise", "len", len(msg.Rows))
-		err = w.repository.BulkInsertAllwise(w.ctx, w.db, msg.Rows)
-	case "gaia":
-		slog.Debug("SqliteWriter Writing Gaia", "len", len(msg.Rows))
-		err = w.repository.BulkInsertGaia(w.ctx, w.db, msg.Rows)
-	default:
-		err = fmt.Errorf("Table %s not supported", w.table)
-	}
-
+	err := w.bulkInsert(w.ctx, w.db, msg.Rows)
 	if err != nil {
-		slog.Error("SqliteWriter could not write objects to database")
-		panic(err)
+		panic(fmt.Errorf("SqliteWriter could not write objects to database: %w", err))
 	}
 }
 
 func (w *SqliteWriter) Stop(a *actor.Actor) {
-	slog.Debug("Stopping SqliteWriter", "table", w.table)
+	slog.Debug("Stopping SqliteWriter", "insert into", w.bulkInsert)
 	err := w.db.Close()
 	if err != nil {
 		panic(err)

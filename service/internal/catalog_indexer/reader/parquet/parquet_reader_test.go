@@ -50,12 +50,18 @@ func (o Object) GetCoordinates() (float64, float64) {
 	return o.Ra, o.Dec
 }
 
-func (o Object) FillMastercat(dst *repository.Mastercat, ipix int64) {
-	dst.ID = o.Oid
-	dst.Ra = o.Ra
-	dst.Dec = o.Dec
+func (o Object) FillMastercat(ipix int64) repository.Mastercat {
+	return repository.Mastercat{
+		ID:   o.Oid,
+		Ra:   o.Ra,
+		Dec:  o.Dec,
+		Ipix: ipix,
+		Cat:  "test",
+	}
 }
-func (o Object) FillMetadata(dst repository.Metadata) {}
+func (o Object) FillMetadata() repository.Metadata {
+	return nil
+}
 
 func Write(t *testing.T, nrows int) string {
 	dir := t.TempDir()
@@ -119,9 +125,9 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	expectedOids := []string{"o0", "o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8", "o9"}
 	receivedOids := make([]string, 10)
 	for i, row := range rows {
-		fmt.Println(row)
-		mastercat := repository.Mastercat{}
-		row.FillMastercat(&mastercat, 0)
+		mastercat := repository.Mastercat{
+			ID: row.GetId(),
+		}
 		receivedOids[i] = mastercat.ID
 	}
 	require.Equal(t, expectedOids, receivedOids)
@@ -156,8 +162,9 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			mastercat := repository.Mastercat{}
-			row.FillMastercat(&mastercat, 0)
+			mastercat := repository.Mastercat{
+				ID: row.GetId(),
+			}
 			receivedOids = append(receivedOids, mastercat.ID)
 		}
 	}
@@ -194,8 +201,9 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			mastercat := repository.Mastercat{}
-			row.FillMastercat(&mastercat, 0)
+			mastercat := repository.Mastercat{
+				ID: row.GetId(),
+			}
 			receivedOids = append(receivedOids, mastercat.ID)
 		}
 	}
@@ -232,8 +240,9 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			mastercat := repository.Mastercat{}
-			row.FillMastercat(&mastercat, 0)
+			mastercat := repository.Mastercat{
+				ID: row.GetId(),
+			}
 			receivedOids = append(receivedOids, mastercat.ID)
 		}
 	}

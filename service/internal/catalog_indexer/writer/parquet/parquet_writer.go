@@ -23,7 +23,6 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	pwriter "github.com/xitongsys/parquet-go/writer"
 )
 
@@ -35,23 +34,11 @@ type ParquetWriter[T any] struct {
 func New[T any](cfg config.WriterConfig, ctx context.Context) (*ParquetWriter[T], error) {
 	slog.Debug("Creating new ParquetWriter")
 
+	schema := new(T)
+
 	file, err := os.Create(cfg.OutputFile)
 	if err != nil {
 		return nil, fmt.Errorf("ParquetWriter could not create file %s\n%w", cfg.OutputFile, err)
-	}
-
-	var schema any
-	switch cfg.Schema {
-	case config.AllwiseSchema:
-		schema = new(repository.Allwise)
-	case config.MastercatSchema:
-		schema = new(repository.Mastercat)
-	case config.VlassSchema:
-		schema = new(repository.VlassObjectSchema)
-	case config.TestSchema:
-		schema = new(TestStruct)
-	default:
-		return nil, fmt.Errorf("Schema %v not supported", cfg.Schema)
 	}
 
 	parquetWriter, err := pwriter.NewParquetWriterFromWriter(file, schema, 1)

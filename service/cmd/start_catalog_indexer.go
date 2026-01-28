@@ -7,10 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
-	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/di"
+	"github.com/dirodriguezm/xmatch/service/internal/app"
 )
 
 func StartCatalogIndexer(
@@ -19,43 +16,42 @@ func StartCatalogIndexer(
 	stdout io.Writer,
 ) error {
 	slog.Info("Starting catalog indexer")
-	ctr := di.BuildIndexerContainer(ctx, getenv, stdout)
 
-	var cfg *config.Config
-	err := ctr.Resolve(&cfg)
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		return err
+	}
+
+	// database
+	repo, err := app.Repository(cfg)
 	if err != nil {
 		return err
 	}
 
 	// update catalogs table
-	var catalogRegister *indexer.CatalogRegister
-	err = ctr.Resolve(&catalogRegister)
+	catalogRegister := app.CatalogRegister(ctx, repo, cfg.CatalogIndexer.Source)
+	catalogRegister.RegisterCatalog()
+
+	src, err := app.Source(cfg.CatalogIndexer.Source)
 	if err != nil {
 		return err
 	}
-	catalogRegister.RegisterCatalog()
 
 	// initialize mastercatWriter
-	var mastercatWriter *actor.Actor
-	err = ctr.NamedResolve(&mastercatWriter, "mastercat_writer")
+	mastercatWriter, err := app.MastercatWriter(ctx, cfg, repo, src)
 	if err != nil {
 		return err
 	}
 	mastercatWriter.Start()
 
 	// initialize metadata writer
-	var metadataWriter *actor.Actor
+	metadataWriter, err := app.MetadataWriter(ctx, cfg, repo, src)
 	if cfg.CatalogIndexer.Source.Metadata {
-		err := ctr.NamedResolve(&metadataWriter, "metadata_writer")
-		if err != nil {
-			return err
-		}
 		metadataWriter.Start()
 	}
 
 	// initialize indexer
-	var mastercatIndexer *actor.Actor
-	err = ctr.NamedResolve(&mastercatIndexer, "mastercat_indexer")
+	mastercatIndexer, err := app.MastercatIndexer(cfg.CatalogIndexer, mastercatWriter, ctx)
 	if err != nil {
 		return err
 	}
@@ -64,27 +60,21 @@ func StartCatalogIndexer(
 	// initialize metadata indexer
 	var metadataIndexer *actor.Actor
 	if cfg.CatalogIndexer.Source.Metadata {
-		err := ctr.NamedResolve(&metadataIndexer, "metadata_indexer")
-		if err != nil {
-			return err
-		}
+		metadataIndexer = app.MetadataIndexer(cfg.CatalogIndexer, metadataWriter, ctx)
 		metadataIndexer.Start()
 	}
 
 	// initialize reader
-	var reader *reader.SourceReader
-	err = ctr.Resolve(&reader)
-	if err != nil {
-		return fmt.Errorf("Could not resolve reader: %w", err)
-	}
-	defer func() {
-		err := reader.Close()
+	sourceReader, err := app.Reader(src, cfg.CatalogIndexer.Reader, cfg.CatalogIndexer.Source, mastercatIndexer, metadataIndexer)
+	defer func() error {
+		err := sourceReader.Close()
 		if err != nil {
-			panic(fmt.Errorf("Error closing reader: %w", err))
+			return fmt.Errorf("Error closing reader: %w", err)
 		}
+		return err
 	}()
 
-	reader.Read()
+	sourceReader.Read()
 	mastercatIndexer.Stop()
 	mastercatWriter.Stop()
 	if cfg.CatalogIndexer.Source.Metadata {

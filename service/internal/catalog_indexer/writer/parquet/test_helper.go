@@ -39,7 +39,7 @@ func AWriter[T any](t *testing.T) *ParquetWriterBuilder[T] {
 
 	return &ParquetWriterBuilder[T]{
 		t:   t,
-		cfg: config.WriterConfig{OutputFile: "test.parquet", Schema: config.TestSchema},
+		cfg: config.WriterConfig{OutputFile: "test.parquet"},
 		ctx: context.Background(),
 	}
 }

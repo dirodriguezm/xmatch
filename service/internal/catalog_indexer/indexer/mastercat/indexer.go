@@ -20,29 +20,28 @@ import (
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Indexer struct {
-	source *source.Source
-	mapper *healpix.HEALPixMapper
+	mapper        *healpix.HEALPixMapper
+	fillMastercat func(repository.InputSchema, int64) repository.Mastercat
 }
 
-func New(src *source.Source, cfg config.IndexerConfig) (*Indexer, error) {
+func New(cfg config.IndexerConfig, fillMastercat func(repository.InputSchema, int64) repository.Mastercat) (*Indexer, error) {
 	slog.Debug("Creating new Mastercat Indexer")
 	orderingScheme := healpix.Ring
 	if strings.ToLower(cfg.OrderingScheme) == "nested" {
 		orderingScheme = healpix.Nest
 	}
-	mapper, err := healpix.NewHEALPixMapper(src.Nside, orderingScheme)
+	mapper, err := healpix.NewHEALPixMapper(cfg.Nside, orderingScheme)
 	if err != nil {
 		return nil, err
 	}
 	return &Indexer{
-		source: src,
-		mapper: mapper,
+		mapper:        mapper,
+		fillMastercat: fillMastercat,
 	}, nil
 }
 
@@ -60,9 +59,7 @@ func (ind Indexer) Index(a *actor.Actor, msg actor.Message) {
 		ra, dec := msg.Rows[i].(repository.InputSchema).GetCoordinates()
 		point := healpix.RADec(ra, dec)
 		ipix := ind.mapper.PixelAt(point)
-		mastercat := repository.Mastercat{}
-		msg.Rows[i].(repository.InputSchema).FillMastercat(&mastercat, ipix)
-		outputBatch[i] = mastercat
+		outputBatch[i] = ind.fillMastercat(msg.Rows[i].(repository.InputSchema), ipix)
 	}
 
 	slog.Debug("Mastercat Indexer sending message", "len", len(outputBatch))

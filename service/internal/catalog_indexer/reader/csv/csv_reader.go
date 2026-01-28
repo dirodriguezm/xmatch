@@ -192,28 +192,21 @@ func (r *CsvReader) createInputSchema(catalogName string, record []string) repos
 		if err != nil {
 			panic(err)
 		}
-		return &schema
-	case "vlass":
-		schema := repository.VlassInputSchema{}
-		err := fillStructFromStrings(&schema, record)
-		if err != nil {
-			panic(err)
-		}
-		return &schema
+		return schema
 	case "gaia":
 		schema := repository.GaiaInputSchema{}
 		err := fillStructFromStrings(&schema, record)
 		if err != nil {
 			panic(err)
 		}
-		return &schema
+		return schema
 	default:
 		schema := TestSchema{}
 		err := fillStructFromStrings(&schema, record)
 		if err != nil {
 			panic(err)
 		}
-		return &schema
+		return schema
 	}
 }
 
@@ -225,7 +218,7 @@ func fillStructFromStrings(s any, values []string) error {
 		return fmt.Errorf("not enough values: got %d, need %d\nvalues: %s", len(values), v.NumField(), values)
 	}
 
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := v.Field(i)
 		if !field.CanSet() {
 			continue

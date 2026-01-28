@@ -231,15 +231,19 @@ type TestSchema struct {
 	Dec float64
 }
 
-func (t TestSchema) FillMastercat(dst *repository.Mastercat, ipix int64) {
-	dst.ID = t.Oid
-	dst.Ra = t.Ra
-	dst.Dec = t.Dec
-	dst.Cat = "test"
-	dst.Ipix = ipix
+func (t TestSchema) FillMastercat(ipix int64) repository.Mastercat {
+	return repository.Mastercat{
+		ID:   t.Oid,
+		Ipix: ipix,
+		Ra:   t.Ra,
+		Dec:  t.Dec,
+		Cat:  "test",
+	}
 }
 
-func (t TestSchema) FillMetadata(dst repository.Metadata) {}
+func (t TestSchema) FillMetadata() repository.Metadata {
+	return nil
+}
 
 func (t TestSchema) GetCoordinates() (float64, float64) {
 	return t.Ra, t.Dec
