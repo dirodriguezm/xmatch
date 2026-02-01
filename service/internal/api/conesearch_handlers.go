@@ -24,22 +24,18 @@ import (
 
 // Search for objects in a given region using multiple coordinates
 //
-//	@Summary		Search for objects in a given region using multiple coordinates
-//	@Description	Search for objects in a given region using list of ra, dec and a single radius
+//	@Summary		Bulk cone search for objects
+//	@Description	Search for objects in a given region using multiple RA/Dec coordinates and a single radius.
+//	@Description	All coordinate pairs are searched in parallel for optimal performance.
+//	@ID				bulk-conesearch
 //	@Tags			conesearch
 //	@Accept			json
 //	@Produce		json
-//
-//	@Param			ra			body		[]float64	true	"Right ascension in degrees"
-//	@Param			dec			body		[]float64	true	"Declination in degrees"
-//	@Param			radius		body		float64		true	"Radius in degrees"
-//	@Param			catalog		body		string		false	"Catalog to search in"
-//	@Param			nneighbor	body		int			false	"Number of neighbors to return"
-//
-//	@Success		200			{array}		repository.Mastercat
-//	@Success		204			{string}	string
-//	@Failure		400			{object}	conesearch.ValidationError
-//	@Failure		500			{string}	string
+//	@Param			request		body		BulkConesearchRequest	true	"Bulk conesearch request with arrays of coordinates"
+//	@Success		200			{array}		repository.Mastercat	"Found objects"
+//	@Success		204			{string}	string					"No objects found"
+//	@Failure		400			{object}	conesearch.ValidationError	"Invalid parameters"
+//	@Failure		500			{string}	string					"Internal server error"
 //	@Router			/bulk-conesearch [post]
 func (api *API) conesearchBulk(c *gin.Context) {
 	var bulkRequest BulkConesearchRequest
@@ -84,22 +80,24 @@ func (api *API) conesearchBulk(c *gin.Context) {
 
 // Search for objects in a given region
 //
-//		@Summary		Search for objects in a given region
-//		@Description	Search for objects in a given region using ra, dec and radius
-//		@Tags			conesearch
-//		@Accept			json
-//		@Produce		json
-//		@Param			ra			query		string	true	"Right ascension in degrees"
-//		@Param			dec			query		string	true	"Declination in degrees"
-//		@Param			radius		query		string	true	"Radius in degrees"
-//		@Param			catalog		query		string	false	"Catalog to search in"
-//		@Param			nneighbor	query		string	false	"Number of neighbors to return"
-//	 @Param			getMetadata	query		string	false	"Return metadata results"
-//		@Success		200			{array}		repository.Mastercat
-//		@Success		204			{string}	string
-//		@Failure		400			{object}	conesearch.ValidationError
-//		@Failure		500			{string}	string
-//		@Router			/conesearch [get]
+//	@Summary		Cone search for objects
+//	@Description	Search for astronomical objects within a specified radius of given celestial coordinates (RA/Dec).
+//	@Description	Returns matching objects from the specified catalog.
+//	@ID				conesearch
+//	@Tags			conesearch
+//	@Accept			json
+//	@Produce		json
+//	@Param			ra			query		number	true	"Right Ascension (J2000) in degrees"			minimum(0) maximum(360) example(180.5)
+//	@Param			dec			query		number	true	"Declination (J2000) in degrees"				minimum(-90) maximum(90) example(-45.0)
+//	@Param			radius		query		number	true	"Search radius in degrees"						minimum(0) example(0.01)
+//	@Param			catalog		query		string	false	"Catalog to search in"							default(all)
+//	@Param			nneighbor	query		integer	false	"Maximum number of neighbors to return"			default(1) minimum(1)
+//	@Param			getMetadata	query		boolean	false	"Include full metadata in response"				default(false)
+//	@Success		200			{array}		repository.Mastercat	"Found objects"
+//	@Success		204			{string}	string					"No objects found"
+//	@Failure		400			{object}	conesearch.ValidationError	"Invalid parameters"
+//	@Failure		500			{string}	string					"Internal server error"
+//	@Router			/conesearch [get]
 func (api *API) conesearch(c *gin.Context) {
 	ra := c.Query("ra")
 	dec := c.Query("dec")

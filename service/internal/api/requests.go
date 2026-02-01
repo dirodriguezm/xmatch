@@ -14,15 +14,24 @@
 
 package api
 
+// BulkConesearchRequest represents a bulk cone search query with multiple coordinates
 type BulkConesearchRequest struct {
-	Ra        []float64 `json:"ra"`
-	Dec       []float64 `json:"dec"`
-	Radius    float64   `json:"radius"`
-	Catalog   string    `json:"catalog"`
-	Nneighbor int       `json:"nneighbor"`
+	// Right ascension values in degrees (0-360)
+	Ra []float64 `json:"ra" example:"180.5,181.2"`
+	// Declination values in degrees (-90 to 90)
+	Dec []float64 `json:"dec" example:"-45.0,-45.5"`
+	// Search radius in degrees
+	Radius float64 `json:"radius" example:"0.01"`
+	// Catalog name to search in (default: all)
+	Catalog string `json:"catalog" example:"allwise"`
+	// Number of neighbors to return per coordinate (default: 1)
+	Nneighbor int `json:"nneighbor" example:"1"`
 }
 
+// BulkMetadataRequest represents a bulk metadata query with multiple object IDs
 type BulkMetadataRequest struct {
-	Ids     []string `json:"ids"`
-	Catalog string   `json:"catalog"`
+	// List of object identifiers to search for
+	Ids []string `json:"ids" example:"id1,id2"`
+	// Catalog to search in
+	Catalog string `json:"catalog" example:"allwise"`
 }
