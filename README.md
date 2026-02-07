@@ -1,10 +1,10 @@
-# CrossWave Xmatch
+# XWave Xmatch
 
 API for astronomical cross-matching and catalog queries developed by [ALeRCE](https://alerce.science).
 
 ## Overview
 
-CrossWave provides fast cone search and metadata retrieval across multiple astronomical catalogs. The service is optimized for high-throughput queries using HEALPix spatial indexing.
+XWave provides fast cone search and metadata retrieval across multiple astronomical catalogs. The service is optimized for high-throughput queries using HEALPix spatial indexing.
 
 ### Key Features
 
