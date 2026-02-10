@@ -1,6 +1,6 @@
 # CrossWave Xmatch
 
-API for astronomical cross-matching and catalog queries developed by [ALeRCE](https://alerce.science).
+API for astronomical cross-matching and catalog queries.
 
 ## Overview
 
@@ -47,11 +47,6 @@ All validation errors return a JSON object with the following structure:
   "value": "400.0"
 }
 ```
-
-### Rate Limits
-
-- Bulk endpoints accept up to **1000 coordinates** per request
-- Results are processed in parallel for optimal performance
 
 ## API Reference (Swagger)
 

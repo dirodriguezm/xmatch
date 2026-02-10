@@ -1,4 +1,4 @@
-API for astronomical cross-matching and catalog queries developed by [ALeRCE](https://alerce.science).
+API for astronomical cross-matching and catalog queries.
 
 ## Overview
 
@@ -26,7 +26,10 @@ All coordinates use the **J2000 equatorial coordinate system**:
 | Catalog | Description |
 |---------|-------------|
 | `all` | Search across all available catalogs |
-| `allwise` | WISE All-Sky Data Release |
+| `allwise` | (WISE All-Sky)[https://irsa.ipac.caltech.edu/data/WISE/docs/release/All-Sky/expsup/sec2_2.html] Data Release |
+| `gaia` | (Gaia)[https://www.cosmos.esa.int/web/gaia/release] Data Release|
+| `erosita` | (eROSITA)[https://erosita.mpe.mpg.de/] (WIP) Data Release|
+
 
 ## Response Codes
 
@@ -91,8 +94,3 @@ All validation errors return a JSON object with the following structure:
   "value": "400.0"
 }
 ```
-
-## Rate Limits
-
-- Bulk endpoints accept up to **1000 coordinates** per request
-- Results are processed in parallel for optimal performance
