@@ -16,9 +16,12 @@ CrossWave provides fast cone search and metadata retrieval across multiple astro
 ## Prerequisites
 
 - [Nix](https://nixos.org/) with flakes enabled (used via [devenv](https://devenv.sh/) for reproducible development)
-- [Go](https://go.dev/) 1.24+
-- [just](https://github.com/casey/just) command runner
-- [swag](https://github.com/swaggo/swag) for Swagger docs generation (`go install github.com/swaggo/swag/cmd/swag@latest`)
+
+The Nix devenv shell provides all other dependencies automatically (Go 1.24, `just`, HEALPix C++ libraries, etc.). The only additional tool you need to install manually is [swag](https://github.com/swaggo/swag) for Swagger docs generation:
+
+```bash
+go install github.com/swaggo/swag/cmd/swag@latest
+```
 
 ## Getting Started
 
