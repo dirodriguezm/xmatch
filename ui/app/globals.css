@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+/* Dark theme CSS variables */
+:root {
+  --background: #0a0a0a;
+  --foreground: #e6e6e6;
+  --surface: #141414;
+  --surface-elevated: #1f1f1f;
+  --border: #303030;
+  --primary: #1677ff;
+  --success: #52c41a;
+  --warning: #faad14;
+  --error: #ff4d4f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-success: var(--success);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Force dark mode */
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    var(--font-geist-sans),
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+
+/* Ant Design Layout overrides for seamless integration */
+.ant-layout {
+  background: var(--background) !important;
+}
+
+.ant-layout-sider {
+  background: var(--surface) !important;
+}
+
+.ant-layout-header {
+  background: var(--surface) !important;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
+/* Sidebar section styling */
+.sidebar-section {
+  padding: 20px;
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* Sidebar collapsible sections */
+.sidebar-collapse {
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-collapse .ant-collapse-header {
+  padding: 16px 20px !important;
+  background: transparent !important;
+}
+
+.sidebar-collapse .ant-collapse-content-box {
+  padding: 0 20px 20px 20px !important;
+}
+
+/* Catalog checkbox styling */
+.catalog-checkbox .ant-checkbox {
+  top: 0;
+}
+
+.catalog-checkbox:hover {
+  background: var(--surface-elevated);
+  margin: -4px -8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Status bar styling */
+.status-bar {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 8px 16px;
+}
