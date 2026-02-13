@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <defs>
+    <!-- Wave gradients -->
     <linearGradient id="wave1" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#6366f1"/>
       <stop offset="100%" stop-color="#8b5cf6"/>
@@ -8,31 +9,134 @@
       <stop offset="0%" stop-color="#06b6d4"/>
       <stop offset="100%" stop-color="#3b82f6"/>
     </linearGradient>
+
+    <!-- Subtle nebula glow -->
+    <radialGradient id="nebulaCore" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.15"/>
+      <stop offset="60%" stop-color="#1e1b4b" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Galaxy gradient -->
+    <radialGradient id="galaxyCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="40%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#b45309" stop-opacity="0.6"/>
+    </radialGradient>
+
+    <!-- Comet tail -->
+    <linearGradient id="cometTail" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="30%" stop-color="#67e8f9"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Center glow -->
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="50%" stop-color="#c7d2fe" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Star glow -->
+    <filter id="starGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="0.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
 
-  <!-- Background -->
+  <!-- ========== LAYER 1: DEEP BACKGROUND ========== -->
   <circle cx="32" cy="32" r="30" fill="#0f172a"/>
 
-  <!-- Crossing wave 1 -->
+  <!-- Subtle central nebula atmosphere -->
+  <circle cx="32" cy="32" r="28" fill="url(#nebulaCore)"/>
+
+  <!-- Distant tiny stars (creates depth) -->
+  <g opacity="0.45">
+    <circle cx="9" cy="18" r="0.35" fill="#fff"/>
+    <circle cx="55" cy="24" r="0.3" fill="#fff"/>
+    <circle cx="14" cy="50" r="0.3" fill="#fff"/>
+    <circle cx="50" cy="52" r="0.25" fill="#fff"/>
+    <circle cx="24" cy="9" r="0.3" fill="#fff"/>
+    <circle cx="44" cy="55" r="0.25" fill="#fff"/>
+    <circle cx="57" cy="40" r="0.25" fill="#fff"/>
+    <circle cx="7" cy="38" r="0.3" fill="#fff"/>
+  </g>
+
+  <!-- ========== LAYER 2: ASTRONOMICAL OBJECTS ========== -->
+
+  <!-- Spiral Galaxy (top-left quadrant) -->
+  <g transform="translate(16, 14) rotate(25)">
+    <ellipse cx="0" cy="0" rx="4.5" ry="2" fill="url(#galaxyCore)" opacity="0.9"/>
+    <!-- Spiral arm hints -->
+    <path d="M 1 -0.5 Q 4 -3, 6 -1.5" stroke="#fcd34d" stroke-width="0.5" fill="none" opacity="0.6"/>
+    <path d="M -1 0.5 Q -4 3, -6 1.5" stroke="#f59e0b" stroke-width="0.5" fill="none" opacity="0.6"/>
+  </g>
+
+  <!-- Ringed Planet (bottom-right, pulled inward) -->
+  <g transform="translate(46, 46)">
+    <!-- Back ring arc (behind planet - top half of ellipse) -->
+    <path d="M -5 0 A 5 1.3 0 0 1 5 0" stroke="#c4b5fd" stroke-width="0.8" fill="none" opacity="0.6"/>
+    <!-- Planet body -->
+    <circle cx="0" cy="0" r="2.8" fill="#7c3aed"/>
+    <ellipse cx="-0.7" cy="-0.4" rx="2" ry="1.8" fill="#a78bfa" opacity="0.3"/>
+    <!-- Front ring arc (in front of planet - bottom half of ellipse) -->
+    <path d="M 5 0 A 5 1.3 0 0 1 -5 0" stroke="#e9d5ff" stroke-width="0.9" fill="none" opacity="0.8"/>
+  </g>
+
+  <!-- Comet (top-right, adds diagonal movement) -->
+  <g transform="translate(52, 18) rotate(210)">
+    <ellipse cx="0" cy="0" rx="1.2" ry="0.8" fill="#fff" filter="url(#starGlow)"/>
+    <path d="M 1 0 Q 5 0.3, 12 1" stroke="url(#cometTail)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+    <path d="M 0.8 -0.3 Q 4 -0.8, 9 -0.5" stroke="url(#cometTail)" stroke-width="0.6" fill="none" opacity="0.5"/>
+  </g>
+
+  <!-- ========== LAYER 3: CROSSING WAVES (FOCAL POINT) ========== -->
+
+  <!-- Wave 1 (purple/indigo) -->
   <path d="M 10 42 Q 21 32, 32 42 Q 43 52, 54 22"
         stroke="url(#wave1)"
-        stroke-width="5"
+        stroke-width="4"
         stroke-linecap="round"
         fill="none"/>
 
-  <!-- Crossing wave 2 -->
+  <!-- Wave 2 (cyan/blue) -->
   <path d="M 10 22 Q 21 52, 32 22 Q 43 -8, 54 42"
         stroke="url(#wave2)"
-        stroke-width="5"
+        stroke-width="4"
         stroke-linecap="round"
         fill="none"/>
 
-  <!-- Center point -->
-  <circle cx="32" cy="32" r="3" fill="#fff"/>
+  <!-- ========== LAYER 4: ACCENT STARS (minimal, balanced) ========== -->
 
-  <!-- Stars -->
-  <circle cx="18" cy="16" r="1.5" fill="#fbbf24"/>
-  <circle cx="48" cy="18" r="1.2" fill="#f472b6"/>
-  <circle cx="46" cy="48" r="1.5" fill="#34d399"/>
-  <circle cx="16" cy="46" r="1" fill="#60a5fa"/>
+  <!-- Pink star (left side - simple glow, no rays) -->
+  <g transform="translate(10, 32)" filter="url(#starGlow)">
+    <circle cx="0" cy="0" r="1.5" fill="#f472b6"/>
+    <circle cx="0" cy="0" r="0.7" fill="#fdf2f8"/>
+  </g>
+
+  <!-- Golden star (right side, balances pink) -->
+  <g transform="translate(54, 36)" filter="url(#starGlow)">
+    <circle cx="0" cy="0" r="1.3" fill="#fbbf24"/>
+    <circle cx="0" cy="0" r="0.6" fill="#fef3c7"/>
+  </g>
+
+  <!-- Blue star (bottom-left) -->
+  <g transform="translate(22, 52)" filter="url(#starGlow)">
+    <circle cx="0" cy="0" r="1" fill="#3b82f6"/>
+    <circle cx="0" cy="0" r="0.45" fill="#dbeafe"/>
+  </g>
+
+  <!-- ========== LAYER 5: CENTER CROSSMATCH POINT ========== -->
+
+  <!-- Outer glow -->
+  <circle cx="32" cy="32" r="6" fill="url(#centerGlow)" opacity="0.8"/>
+  <!-- Mid ring -->
+  <circle cx="32" cy="32" r="3" fill="#fff" opacity="0.3"/>
+  <!-- Core -->
+  <circle cx="32" cy="32" r="2" fill="#fff"/>
+  <circle cx="32" cy="32" r="0.8" fill="#a5b4fc"/>
 </svg>

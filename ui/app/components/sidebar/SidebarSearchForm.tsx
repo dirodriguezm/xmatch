@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  AimOutlined,
-  FilterOutlined,
-  HomeOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
+import { AimOutlined, FilterOutlined, SearchOutlined } from "@ant-design/icons";
 import {
   Button,
   Checkbox,
@@ -45,18 +40,8 @@ const catalogOptions: CatalogOption[] = [
 
 export function SidebarSearchForm() {
   const { state, dispatch } = useCrossmatchState();
-  const {
-    ra,
-    dec,
-    radius,
-    unit,
-    setRa,
-    setDec,
-    setRadius,
-    setUnit,
-    setSearchParams,
-    isValid,
-  } = useSearchParams();
+  const { ra, dec, radius, unit, setRa, setDec, setRadius, setUnit, isValid } =
+    useSearchParams();
   const [selectedCatalogs, setSelectedCatalogs] = useState<string[]>(
     catalogOptions.map((c) => c.value)
   );
@@ -67,11 +52,6 @@ export function SidebarSearchForm() {
     setTimeout(() => {
       dispatch({ type: "SET_RESULTS_STATE", payload: "success" });
     }, 1500);
-  };
-
-  const handleNewSearch = () => {
-    setSearchParams({ ra: null, dec: null, radius: null, unit: null });
-    dispatch({ type: "RESET" });
   };
 
   const handleCatalogChange = (catalog: string, checked: boolean) => {
@@ -200,18 +180,6 @@ export function SidebarSearchForm() {
             },
           ]}
         />
-      </div>
-
-      {/* New Search Button - Fixed at bottom */}
-      <div className="p-4 px-5 border-t border-border bg-surface">
-        <Button
-          block
-          icon={<HomeOutlined />}
-          onClick={handleNewSearch}
-          size="large"
-        >
-          New Search
-        </Button>
       </div>
     </div>
   );

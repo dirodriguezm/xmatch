@@ -2,6 +2,7 @@
 
 import type { TableProps } from "antd";
 import { Table, Tag } from "antd";
+import { useRouter } from "next/navigation";
 
 // Example data type - adjust based on actual API response
 export interface CrossmatchResult {
@@ -219,6 +220,8 @@ export function ResultsTable({
   data = sampleData,
   loading = false,
 }: ResultsTableProps) {
+  const router = useRouter();
+
   return (
     <Table
       columns={columns}
@@ -233,6 +236,12 @@ export function ResultsTable({
       }}
       scroll={{ x: 800 }}
       size="small"
+      onRow={(record) => ({
+        onClick: () =>
+          router.push(`/object/${encodeURIComponent(record.objectId)}`),
+        className: "cursor-pointer",
+      })}
+      rowClassName="hover:bg-surface-elevated transition-colors"
     />
   );
 }

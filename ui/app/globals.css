@@ -115,3 +115,36 @@ body {
   border-top: 1px solid var(--border);
   padding: 8px 16px;
 }
+
+/* Aladin Lite dark theme integration */
+.aladin-container {
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.aladin-container .aladin-fov,
+.aladin-container .aladin-location {
+  background: var(--surface-elevated) !important;
+  color: var(--foreground) !important;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.aladin-container .aladin-layersControl-container,
+.aladin-container .aladin-fullscreenControl,
+.aladin-container .aladin-zoomControl {
+  background: var(--surface-elevated) !important;
+}
+
+.aladin-container button {
+  background: var(--surface-elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+.aladin-container button:hover {
+  background: var(--border) !important;
+}
