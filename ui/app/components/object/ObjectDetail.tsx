@@ -5,7 +5,6 @@ import {
   EnvironmentOutlined,
   QuestionCircleOutlined,
   StarOutlined,
-  SwapOutlined,
   TagOutlined,
 } from "@ant-design/icons";
 import {
@@ -13,189 +12,188 @@ import {
   Button,
   Card,
   Col,
-  Descriptions,
-  Empty,
+  Collapse,
   Flex,
   Row,
   Space,
-  Table,
-  Tag,
   Tooltip,
   Typography,
 } from "antd";
 
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
+import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
+import {
+  buildAladinUrl,
+  buildSimbadUrl,
+  buildVizierUrl,
+} from "@/app/lib/utils/urls";
 
 import { AladinViewer } from "./AladinViewer";
 
-const { Title, Text } = Typography;
+const { Text, Title } = Typography;
 
 interface ObjectDetailProps {
   object: CrossmatchResult;
 }
 
-const catalogColors: Record<string, string> = {
-  "GAIA DR3": "blue",
-  SIMBAD: "green",
-  "2MASS": "orange",
-  WISE: "purple",
-  AllWISE: "purple",
-};
+// Convert decimal degrees to sexagesimal
+function toHMS(ra: number): string {
+  const hours = ra / 15;
+  const h = Math.floor(hours);
+  const m = Math.floor((hours - h) * 60);
+  const s = ((hours - h) * 60 - m) * 60;
+  return `${h.toString().padStart(2, "0")}h ${m.toString().padStart(2, "0")}m ${s.toFixed(2)}s`;
+}
 
-// Photometry bands configuration
-const photometryBands = [
-  { band: "G", survey: "Gaia", wavelength: "0.64 μm" },
-  { band: "BP", survey: "Gaia", wavelength: "0.51 μm" },
-  { band: "RP", survey: "Gaia", wavelength: "0.78 μm" },
-  { band: "J", survey: "2MASS", wavelength: "1.24 μm" },
-  { band: "H", survey: "2MASS", wavelength: "1.66 μm" },
-  { band: "K", survey: "2MASS", wavelength: "2.16 μm" },
-  { band: "W1", survey: "WISE", wavelength: "3.4 μm" },
-  { band: "W2", survey: "WISE", wavelength: "4.6 μm" },
-  { band: "W3", survey: "WISE", wavelength: "12 μm" },
-  { band: "W4", survey: "WISE", wavelength: "22 μm" },
-];
+function toDMS(dec: number): string {
+  const sign = dec >= 0 ? "+" : "-";
+  const absDec = Math.abs(dec);
+  const d = Math.floor(absDec);
+  const m = Math.floor((absDec - d) * 60);
+  const s = ((absDec - d) * 60 - m) * 60;
+  return `${sign}${d}° ${m.toString().padStart(2, "0")}′ ${s.toFixed(2)}″`;
+}
 
 export function ObjectDetail({ object }: ObjectDetailProps) {
   const { message } = App.useApp();
+  const simbadUrl = buildSimbadUrl(object.ra, object.dec);
+  const vizierUrl = buildVizierUrl(object.ra, object.dec);
+  const aladinUrl = buildAladinUrl(object.ra, object.dec);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     message.success(`${label} copied to clipboard`);
   };
 
-  const formatCoordinate = (value: number, decimals = 6) =>
-    value.toFixed(decimals);
-
-  // Convert decimal degrees to sexagesimal
-  const toHMS = (ra: number) => {
-    const hours = ra / 15;
-    const h = Math.floor(hours);
-    const m = Math.floor((hours - h) * 60);
-    const s = ((hours - h) * 60 - m) * 60;
-    return `${h}h ${m}m ${s.toFixed(2)}s`;
-  };
-
-  const toDMS = (dec: number) => {
-    const sign = dec >= 0 ? "+" : "-";
-    const absDec = Math.abs(dec);
-    const d = Math.floor(absDec);
-    const m = Math.floor((absDec - d) * 60);
-    const s = ((absDec - d) * 60 - m) * 60;
-    return `${sign}${d}° ${m}′ ${s.toFixed(2)}″`;
-  };
-
-  const simbadUrl = `https://simbad.cds.unistra.fr/simbad/sim-coo?Coord=${object.ra}+${object.dec}&Radius=2&Radius.unit=arcsec`;
-  const vizierUrl = `https://vizier.cds.unistra.fr/viz-bin/VizieR?-c=${object.ra}+${object.dec}&-c.rs=2`;
-  const aladinUrl = `https://aladin.cds.unistra.fr/AladinLite/?target=${object.ra}+${object.dec}&fov=0.1`;
-
-  // Mock photometry data - only G mag available from current data
-  const photometryData = photometryBands.map((band) => ({
-    key: band.band,
+  // Build photometry data
+  const photometryData = PHOTOMETRY_BANDS.map((band) => ({
     band: band.band,
     survey: band.survey,
-    wavelength: band.wavelength,
     mag: band.band === "G" && object.gMag !== undefined ? object.gMag : null,
-    error: band.band === "G" && object.gMag !== undefined ? 0.01 : null,
   }));
 
-  const photometryColumns = [
+  const collapseItems = [
     {
-      title: "Band",
-      dataIndex: "band",
-      key: "band",
-      width: 60,
-      render: (value: string, record: { survey: string }) => (
-        <Tooltip title={record.survey}>
-          <Text strong>{value}</Text>
-        </Tooltip>
+      key: "photometry",
+      label: (
+        <Space>
+          <StarOutlined />
+          <span>Photometry</span>
+          <Text type="secondary" className="text-xs">
+            ({photometryData.filter((p) => p.mag !== null).length} bands)
+          </Text>
+        </Space>
+      ),
+      children: (
+        <Flex wrap="wrap" gap={8}>
+          {photometryData.map((p) => (
+            <Tooltip key={p.band} title={p.survey}>
+              <div
+                className={`text-center px-3 py-2 rounded border ${
+                  p.mag !== null
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-surface"
+                }`}
+              >
+                <Text
+                  strong
+                  className={p.mag === null ? "text-border" : undefined}
+                >
+                  {p.band}
+                </Text>
+                <div
+                  className={`font-mono text-sm ${p.mag === null ? "text-border" : ""}`}
+                >
+                  {p.mag !== null ? p.mag.toFixed(2) : "—"}
+                </div>
+              </div>
+            </Tooltip>
+          ))}
+        </Flex>
       ),
     },
     {
-      title: "λ",
-      dataIndex: "wavelength",
-      key: "wavelength",
-      width: 80,
-      render: (value: string) => (
-        <Text type="secondary" className="text-xs">
-          {value}
-        </Text>
+      key: "external",
+      label: (
+        <Space>
+          <TagOutlined />
+          <span>External Catalogs</span>
+        </Space>
       ),
-    },
-    {
-      title: "Mag",
-      dataIndex: "mag",
-      key: "mag",
-      width: 70,
-      align: "right" as const,
-      render: (value: number | null) => (
-        <Text className={`font-mono ${value === null ? "text-border" : ""}`}>
-          {value !== null ? value.toFixed(2) : "—"}
-        </Text>
-      ),
-    },
-    {
-      title: "Error",
-      dataIndex: "error",
-      key: "error",
-      width: 70,
-      align: "right" as const,
-      render: (value: number | null) => (
-        <Text className={`font-mono ${value === null ? "text-border" : ""}`}>
-          {value !== null ? `±${value.toFixed(3)}` : "—"}
-        </Text>
+      children: (
+        <Space wrap>
+          <Button
+            href={simbadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<TagOutlined />}
+            size="small"
+          >
+            SIMBAD
+          </Button>
+          <Button
+            href={vizierUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<TagOutlined />}
+            size="small"
+          >
+            VizieR
+          </Button>
+          <Button
+            href={aladinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<EnvironmentOutlined />}
+            size="small"
+          >
+            Aladin Lite
+          </Button>
+        </Space>
       ),
     },
   ];
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <Flex vertical gap={24}>
-        {/* Header Section with Sky Image */}
-        <Row gutter={24}>
-          {/* Sky Viewer */}
-          <Col xs={24} sm={8} md={6}>
-            <Card
-              className="bg-surface h-full"
-              styles={{ body: { padding: 0 } }}
-            >
-              <AladinViewer
-                center={{ ra: object.ra, dec: object.dec }}
-                fov={0.9}
-                height={200}
-              />
-            </Card>
-          </Col>
-
-          {/* Object Info */}
-          <Col xs={24} sm={16} md={18}>
-            <Flex vertical gap={16} className="h-full justify-between">
-              {/* Title and Tags */}
+      {/* Main two-column layout */}
+      <Row gutter={[24, 24]} className="mb-6">
+        {/* Left: Object Info */}
+        <Col xs={24} md={14}>
+          <Card className="bg-surface h-full" size="small">
+            <Flex vertical gap={16}>
+              {/* Object Name */}
               <div>
-                <Flex align="center" gap={12} wrap="wrap">
-                  <Title level={2} className="!m-0 !mb-1">
-                    {object.objectId}
-                  </Title>
-                  <Tag color={catalogColors[object.catalog] || "default"}>
-                    {object.catalog}
-                  </Tag>
-                </Flex>
-                <Flex align="center" gap={8} className="mt-2">
+                <Title level={3} className="!m-0 !mb-2">
+                  {object.objectId}
+                </Title>
+                <Flex align="center" gap={8}>
                   <QuestionCircleOutlined className="text-border" />
-                  <Text type="secondary">
-                    Unknown type (classification unavailable)
-                  </Text>
+                  <Text type="secondary">Unknown type</Text>
+                  {object.gMag !== undefined && (
+                    <>
+                      <Text type="secondary">•</Text>
+                      <Text>
+                        G ={" "}
+                        <span className="font-mono">
+                          {object.gMag.toFixed(2)}
+                        </span>{" "}
+                        mag
+                      </Text>
+                    </>
+                  )}
                 </Flex>
               </div>
 
               {/* Coordinates */}
-              <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
-                <Descriptions.Item label="RA">
-                  <Space>
-                    <Text className="font-mono">
-                      {formatCoordinate(object.ra)}°
-                    </Text>
-                    <Text type="secondary" className="font-mono text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Text type="secondary" className="text-xs block mb-1">
+                    Right Ascension
+                  </Text>
+                  <Flex align="center" gap={8}>
+                    <Text className="font-mono">{object.ra.toFixed(6)}°</Text>
+                    <Text type="secondary" className="text-xs">
                       ({toHMS(object.ra)})
                     </Text>
                     <Button
@@ -203,17 +201,18 @@ export function ObjectDetail({ object }: ObjectDetailProps) {
                       size="small"
                       icon={<CopyOutlined />}
                       onClick={() =>
-                        copyToClipboard(formatCoordinate(object.ra), "RA")
+                        copyToClipboard(object.ra.toFixed(6), "RA")
                       }
                     />
-                  </Space>
-                </Descriptions.Item>
-                <Descriptions.Item label="Dec">
-                  <Space>
-                    <Text className="font-mono">
-                      {formatCoordinate(object.dec)}°
-                    </Text>
-                    <Text type="secondary" className="font-mono text-xs">
+                  </Flex>
+                </div>
+                <div>
+                  <Text type="secondary" className="text-xs block mb-1">
+                    Declination
+                  </Text>
+                  <Flex align="center" gap={8}>
+                    <Text className="font-mono">{object.dec.toFixed(6)}°</Text>
+                    <Text type="secondary" className="text-xs">
                       ({toDMS(object.dec)})
                     </Text>
                     <Button
@@ -221,25 +220,19 @@ export function ObjectDetail({ object }: ObjectDetailProps) {
                       size="small"
                       icon={<CopyOutlined />}
                       onClick={() =>
-                        copyToClipboard(formatCoordinate(object.dec), "Dec")
+                        copyToClipboard(object.dec.toFixed(6), "Dec")
                       }
                     />
-                  </Space>
-                </Descriptions.Item>
-                <Descriptions.Item label="Angular Distance">
-                  <Text className="font-mono">
-                    {object.angularDistance.toFixed(3)} arcsec
-                  </Text>
-                </Descriptions.Item>
-              </Descriptions>
+                  </Flex>
+                </div>
+              </div>
 
-              {/* External Links */}
+              {/* Quick Links */}
               <Space wrap>
                 <Button
                   href={simbadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  icon={<TagOutlined />}
                   size="small"
                 >
                   SIMBAD
@@ -248,7 +241,6 @@ export function ObjectDetail({ object }: ObjectDetailProps) {
                   href={vizierUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  icon={<TagOutlined />}
                   size="small"
                 >
                   VizieR
@@ -257,90 +249,42 @@ export function ObjectDetail({ object }: ObjectDetailProps) {
                   href={aladinUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  icon={<EnvironmentOutlined />}
                   size="small"
                 >
-                  Aladin Lite
+                  Aladin
                 </Button>
               </Space>
             </Flex>
-          </Col>
-        </Row>
+          </Card>
+        </Col>
 
-        {/* Photometry and Astrometry Row */}
-        <Row gutter={24}>
-          {/* Photometry */}
-          <Col xs={24} md={14}>
-            <Card
-              title={
-                <Space>
-                  <StarOutlined />
-                  <span>Photometry</span>
-                </Space>
-              }
-              className="bg-surface"
-              size="small"
-            >
-              <Table
-                dataSource={photometryData}
-                columns={photometryColumns}
-                pagination={false}
-                size="small"
-                scroll={{ x: 280 }}
-              />
-            </Card>
-          </Col>
-
-          {/* Astrometry */}
-          <Col xs={24} md={10}>
-            <Card
-              title={
-                <Space>
-                  <EnvironmentOutlined />
-                  <span>Astrometry</span>
-                </Space>
-              }
-              className="bg-surface h-full"
-              size="small"
-            >
-              <Descriptions column={1} size="small">
-                <Descriptions.Item label="Proper Motion (RA)">
-                  <Text className="font-mono text-border">— mas/yr</Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Proper Motion (Dec)">
-                  <Text className="font-mono text-border">— mas/yr</Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Parallax">
-                  <Text className="font-mono text-border">— mas</Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Radial Velocity">
-                  <Text className="font-mono text-border">— km/s</Text>
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* Cross-Identifications */}
-        <Card
-          title={
-            <Space>
-              <SwapOutlined />
-              <span>Cross-Identifications</span>
-            </Space>
-          }
-          className="bg-surface"
-          size="small"
-        >
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <Text type="secondary">No cross-identifications available</Text>
+        {/* Right: Aladin Viewer */}
+        <Col xs={24} md={10}>
+          <Card
+            className="bg-surface h-full"
+            styles={{ body: { padding: 0 } }}
+            title={
+              <Space>
+                <EnvironmentOutlined />
+                <span>Sky View</span>
+              </Space>
             }
-            styles={{ image: { height: 40 } }}
-          />
-        </Card>
-      </Flex>
+          >
+            <AladinViewer
+              center={{ ra: object.ra, dec: object.dec }}
+              fov={0.9}
+              height={280}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Collapsible sections */}
+      <Collapse
+        items={collapseItems}
+        defaultActiveKey={["photometry"]}
+        className="bg-surface"
+      />
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { Empty, Spin, Typography } from "antd";
 import type { EChartsOption } from "echarts";
 import dynamic from "next/dynamic";
 
+import { getBandColor } from "@/app/lib/constants/bands";
+import { calculateAxisBounds } from "@/app/lib/utils/data";
 import type { components } from "@/types/xwave-api";
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
@@ -28,17 +30,6 @@ interface DetectionPoint {
   band?: string;
   [key: string]: unknown;
 }
-
-// Band colors for different filters
-const bandColors: Record<string, string> = {
-  g: "#52c41a", // green
-  r: "#ff4d4f", // red
-  i: "#722ed1", // purple
-  z: "#fa8c16", // orange
-  "1": "#52c41a", // ZTF g
-  "2": "#ff4d4f", // ZTF r
-  "3": "#722ed1", // ZTF i
-};
 
 function parseDetections(detections: unknown[]): DetectionPoint[] {
   return detections.map((d) => {
@@ -123,7 +114,7 @@ export function LightCurveChart({
       data: points.map((p) => [p[0], p[1]]),
       symbolSize: 6,
       itemStyle: {
-        color: bandColors[band] || "#1890ff",
+        color: getBandColor(band),
       },
     })
   );
@@ -135,13 +126,9 @@ export function LightCurveChart({
   const allMag = detections
     .filter((d) => d.mag !== undefined)
     .map((d) => d.mag!);
-  const mjdMin = Math.min(...allMjd);
-  const mjdMax = Math.max(...allMjd);
-  const magMin = Math.min(...allMag);
-  const magMax = Math.max(...allMag);
 
-  const mjdPadding = (mjdMax - mjdMin) * 0.05 || 1;
-  const magPadding = (magMax - magMin) * 0.1 || 0.1;
+  const mjdBounds = calculateAxisBounds(allMjd, 0.05, 1);
+  const magBounds = calculateAxisBounds(allMag, 0.1, 0.1);
 
   const option: EChartsOption = {
     backgroundColor: "transparent",
@@ -156,8 +143,8 @@ export function LightCurveChart({
       name: "MJD",
       nameLocation: "middle",
       nameGap: 30,
-      min: mjdMin - mjdPadding,
-      max: mjdMax + mjdPadding,
+      min: mjdBounds.min,
+      max: mjdBounds.max,
       axisLabel: {
         formatter: (value: number) => value.toFixed(0),
       },
@@ -170,8 +157,8 @@ export function LightCurveChart({
       nameLocation: "middle",
       nameGap: 40,
       inverse: true, // Brighter = lower magnitude
-      min: magMin - magPadding,
-      max: magMax + magPadding,
+      min: magBounds.min,
+      max: magBounds.max,
       axisLabel: {
         formatter: (value: number) => value.toFixed(1),
       },

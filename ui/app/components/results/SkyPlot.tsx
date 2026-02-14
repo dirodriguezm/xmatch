@@ -3,6 +3,8 @@
 import type { EChartsOption } from "echarts";
 import dynamic from "next/dynamic";
 
+import { calculateAxisBounds } from "@/app/lib/utils/data";
+
 import { CrossmatchResult } from "./ResultsTable";
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
@@ -19,17 +21,11 @@ export function SkyPlot({ data }: SkyPlotProps) {
     item.catalog,
   ]);
 
-  // Calculate data bounds with padding
+  // Calculate data bounds with 10% padding
   const raValues = data.map((d) => d.ra);
   const decValues = data.map((d) => d.dec);
-  const raMin = Math.min(...raValues);
-  const raMax = Math.max(...raValues);
-  const decMin = Math.min(...decValues);
-  const decMax = Math.max(...decValues);
-
-  // Add 10% padding around data range
-  const raPadding = (raMax - raMin) * 0.1 || 0.001;
-  const decPadding = (decMax - decMin) * 0.1 || 0.001;
+  const raBounds = calculateAxisBounds(raValues, 0.1, 0.001);
+  const decBounds = calculateAxisBounds(decValues, 0.1, 0.001);
 
   const option: EChartsOption = {
     backgroundColor: "transparent",
@@ -39,8 +35,8 @@ export function SkyPlot({ data }: SkyPlotProps) {
       name: "RA (deg)",
       nameLocation: "middle",
       nameGap: 30,
-      min: raMin - raPadding,
-      max: raMax + raPadding,
+      min: raBounds.min,
+      max: raBounds.max,
       axisLabel: {
         formatter: (value: number) => value.toFixed(4),
       },
@@ -50,8 +46,8 @@ export function SkyPlot({ data }: SkyPlotProps) {
       name: "DEC (deg)",
       nameLocation: "middle",
       nameGap: 50,
-      min: decMin - decPadding,
-      max: decMax + decPadding,
+      min: decBounds.min,
+      max: decBounds.max,
       axisLabel: {
         formatter: (value: number) => value.toFixed(4),
       },

@@ -4,6 +4,8 @@ import type { TableProps } from "antd";
 import { Table, Tag } from "antd";
 import { useRouter } from "next/navigation";
 
+import { getCatalogColor } from "@/app/lib/constants/catalogs";
+
 // Example data type - adjust based on actual API response
 export interface CrossmatchResult {
   key: string;
@@ -19,19 +21,6 @@ export interface ResultsTableProps {
   data?: CrossmatchResult[];
   loading?: boolean;
 }
-
-// Catalog color mapping
-const catalogColors: Record<string, string> = {
-  "GAIA DR3": "#1890ff",
-  SIMBAD: "#52c41a",
-  "2MASS": "#fa8c16",
-  WISE: "#722ed1",
-  AllWISE: "#722ed1",
-};
-
-const getCatalogColor = (catalog: string): string => {
-  return catalogColors[catalog] || "#8c8c8c";
-};
 
 const columns: TableProps<CrossmatchResult>["columns"] = [
   {

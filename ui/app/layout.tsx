@@ -16,7 +16,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "XWave",
+  title: {
+    default: "XWave",
+    template: "XWave | %s",
+  },
   description: "Astronomical cross-matching application",
   icons: {
     icon: "/xwave-icon.svg",

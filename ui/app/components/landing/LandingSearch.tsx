@@ -18,6 +18,7 @@ import { useState } from "react";
 
 import { Logo } from "@/app/components/common";
 import { parseCoordinates, resolveObjectName } from "@/app/lib/api/sesame";
+import { getCatalogOptions } from "@/app/lib/constants/catalogs";
 
 const { Title, Text } = Typography;
 
@@ -27,18 +28,11 @@ const unitOptions = [
   { value: "deg", label: "deg" },
 ];
 
-interface CatalogOption {
-  value: string;
-  label: string;
-  color: string;
-}
-
-const catalogOptions: CatalogOption[] = [
-  { value: "gaia_dr3", label: "GAIA DR3", color: "#1890ff" },
-  { value: "simbad", label: "SIMBAD", color: "#52c41a" },
-  { value: "2mass", label: "2MASS", color: "#fa8c16" },
-  { value: "wise", label: "WISE", color: "#722ed1" },
-];
+const catalogOptions = getCatalogOptions().map((c) => ({
+  value: c.id,
+  label: c.label,
+  color: c.color,
+}));
 
 interface QuickExample {
   name: string;

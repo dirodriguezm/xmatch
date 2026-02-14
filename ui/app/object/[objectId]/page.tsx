@@ -3,7 +3,7 @@
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { Button, Empty, Layout } from "antd";
 import Link from "next/link";
-import { use } from "react";
+import { use, useEffect, useRef } from "react";
 
 import { AppHeader } from "@/app/components/layout";
 import { ObjectDetail } from "@/app/components/object";
@@ -18,6 +18,28 @@ interface ObjectPageProps {
 export default function ObjectPage({ params }: ObjectPageProps) {
   const { objectId } = use(params);
   const decodedObjectId = decodeURIComponent(objectId);
+  const titleSet = useRef(false);
+
+  useEffect(() => {
+    const title = `XWave | ${decodedObjectId}`;
+    document.title = title;
+    titleSet.current = true;
+
+    // Keep checking and restoring the title if something changes it
+    const interval = setInterval(() => {
+      if (document.title !== title) {
+        document.title = title;
+      }
+    }, 100);
+
+    // Clean up after a short time once the page is stable
+    const cleanup = setTimeout(() => clearInterval(interval), 2000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(cleanup);
+    };
+  }, [decodedObjectId]);
 
   // Find the object in sample data (in real implementation, this would fetch from API)
   const object = sampleData.find((item) => item.objectId === decodedObjectId);
