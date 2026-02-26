@@ -68,7 +68,7 @@ func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]Allwise, e
 }
 
 const bulkGetErosita = `-- name: BulkGetErosita :many
-SELECT id, mjd, ml_flux_1 FROM erosita WHERE id IN (/*SLICE:id*/?)
+SELECT id, detuid, skytile, id_src, uid, uid_hard, id_cluster, ra, dec, ra_lowerr, ra_uperr, dec_lowerr, dec_uperr, pos_err, mjd, mjd_min, mjd_max, ext, ext_err, ext_like, det_like_0, ml_cts_1, ml_cts_err_1, ml_rate_1, ml_rate_err_1, ml_flux_1, ml_flux_err_1, ml_bkg_1, ml_exp_1, ape_bkg_1, ape_radius_1, ape_pois_1, det_like_p1, ml_cts_p1, ml_cts_err_p1, ml_rate_p1, ml_rate_err_p1, ml_flux_p1, ml_flux_err_p1, ml_bkg_p1, ml_exp_p1, ape_bkg_p1, ape_radius_p1, ape_pois_p1, det_like_p2, ml_cts_p2, ml_cts_err_p2, ml_rate_p2, ml_rate_err_p2, ml_flux_p2, ml_flux_err_p2, ml_bkg_p2, ml_exp_p2, ape_bkg_p2, ape_radius_p2, ape_pois_p2, det_like_p3, ml_cts_p3, ml_cts_err_p3, ml_rate_p3, ml_rate_err_p3, ml_flux_p3, ml_flux_err_p3, ml_bkg_p3, ml_exp_p3, ape_bkg_p3, ape_radius_p3, ape_pois_p3, det_like_p4, ml_cts_p4, ml_cts_err_p4, ml_rate_p4, ml_rate_err_p4, ml_flux_p4, ml_flux_err_p4, ml_bkg_p4, ml_exp_p4, ape_bkg_p4, ape_radius_p4, ape_pois_p4, det_like_p5, ml_cts_p5, ml_cts_err_p5, ml_rate_p5, ml_rate_err_p5, ml_flux_p5, ml_flux_err_p5, ml_bkg_p5, ml_exp_p5, ape_bkg_p5, ape_radius_p5, ape_pois_p5, det_like_p6, ml_cts_p6, ml_cts_err_p6, ml_rate_p6, ml_rate_err_p6, ml_flux_p6, ml_flux_err_p6, ml_bkg_p6, ml_exp_p6, ape_bkg_p6, ape_radius_p6, ape_pois_p6, flag_sp_snr, flag_sp_bps, flag_sp_scl, flag_sp_lga, flag_sp_gc_cons, flag_no_radec_err, flag_no_ext_err, flag_no_cts_err, flag_opt FROM erosita WHERE id IN (/*SLICE:id*/?)
 `
 
 func (q *Queries) BulkGetErosita(ctx context.Context, id []string) ([]Erosita, error) {
@@ -90,7 +90,121 @@ func (q *Queries) BulkGetErosita(ctx context.Context, id []string) ([]Erosita, e
 	var items []Erosita
 	for rows.Next() {
 		var i Erosita
-		if err := rows.Scan(&i.ID, &i.Mjd, &i.MlFlux1); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Detuid,
+			&i.Skytile,
+			&i.IDSrc,
+			&i.Uid,
+			&i.UidHard,
+			&i.IDCluster,
+			&i.Ra,
+			&i.Dec,
+			&i.RaLowerr,
+			&i.RaUperr,
+			&i.DecLowerr,
+			&i.DecUperr,
+			&i.PosErr,
+			&i.Mjd,
+			&i.MjdMin,
+			&i.MjdMax,
+			&i.Ext,
+			&i.ExtErr,
+			&i.ExtLike,
+			&i.DetLike0,
+			&i.MlCts1,
+			&i.MlCtsErr1,
+			&i.MlRate1,
+			&i.MlRateErr1,
+			&i.MlFlux1,
+			&i.MlFluxErr1,
+			&i.MlBkg1,
+			&i.MlExp1,
+			&i.ApeBkg1,
+			&i.ApeRadius1,
+			&i.ApePois1,
+			&i.DetLikeP1,
+			&i.MlCtsP1,
+			&i.MlCtsErrP1,
+			&i.MlRateP1,
+			&i.MlRateErrP1,
+			&i.MlFluxP1,
+			&i.MlFluxErrP1,
+			&i.MlBkgP1,
+			&i.MlExpP1,
+			&i.ApeBkgP1,
+			&i.ApeRadiusP1,
+			&i.ApePoisP1,
+			&i.DetLikeP2,
+			&i.MlCtsP2,
+			&i.MlCtsErrP2,
+			&i.MlRateP2,
+			&i.MlRateErrP2,
+			&i.MlFluxP2,
+			&i.MlFluxErrP2,
+			&i.MlBkgP2,
+			&i.MlExpP2,
+			&i.ApeBkgP2,
+			&i.ApeRadiusP2,
+			&i.ApePoisP2,
+			&i.DetLikeP3,
+			&i.MlCtsP3,
+			&i.MlCtsErrP3,
+			&i.MlRateP3,
+			&i.MlRateErrP3,
+			&i.MlFluxP3,
+			&i.MlFluxErrP3,
+			&i.MlBkgP3,
+			&i.MlExpP3,
+			&i.ApeBkgP3,
+			&i.ApeRadiusP3,
+			&i.ApePoisP3,
+			&i.DetLikeP4,
+			&i.MlCtsP4,
+			&i.MlCtsErrP4,
+			&i.MlRateP4,
+			&i.MlRateErrP4,
+			&i.MlFluxP4,
+			&i.MlFluxErrP4,
+			&i.MlBkgP4,
+			&i.MlExpP4,
+			&i.ApeBkgP4,
+			&i.ApeRadiusP4,
+			&i.ApePoisP4,
+			&i.DetLikeP5,
+			&i.MlCtsP5,
+			&i.MlCtsErrP5,
+			&i.MlRateP5,
+			&i.MlRateErrP5,
+			&i.MlFluxP5,
+			&i.MlFluxErrP5,
+			&i.MlBkgP5,
+			&i.MlExpP5,
+			&i.ApeBkgP5,
+			&i.ApeRadiusP5,
+			&i.ApePoisP5,
+			&i.DetLikeP6,
+			&i.MlCtsP6,
+			&i.MlCtsErrP6,
+			&i.MlRateP6,
+			&i.MlRateErrP6,
+			&i.MlFluxP6,
+			&i.MlFluxErrP6,
+			&i.MlBkgP6,
+			&i.MlExpP6,
+			&i.ApeBkgP6,
+			&i.ApeRadiusP6,
+			&i.ApePoisP6,
+			&i.FlagSpSnr,
+			&i.FlagSpBps,
+			&i.FlagSpScl,
+			&i.FlagSpLga,
+			&i.FlagSpGcCons,
+			&i.FlagNoRadecErr,
+			&i.FlagNoExtErr,
+			&i.FlagNoCtsErr,
+			&i.FlagOpt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -372,29 +486,253 @@ func (q *Queries) GetCatalogs(ctx context.Context) ([]Catalog, error) {
 }
 
 const getErosita = `-- name: GetErosita :one
-SELECT id, mjd, ml_flux_1 FROM erosita WHERE id = ?
+SELECT id, detuid, skytile, id_src, uid, uid_hard, id_cluster, ra, dec, ra_lowerr, ra_uperr, dec_lowerr, dec_uperr, pos_err, mjd, mjd_min, mjd_max, ext, ext_err, ext_like, det_like_0, ml_cts_1, ml_cts_err_1, ml_rate_1, ml_rate_err_1, ml_flux_1, ml_flux_err_1, ml_bkg_1, ml_exp_1, ape_bkg_1, ape_radius_1, ape_pois_1, det_like_p1, ml_cts_p1, ml_cts_err_p1, ml_rate_p1, ml_rate_err_p1, ml_flux_p1, ml_flux_err_p1, ml_bkg_p1, ml_exp_p1, ape_bkg_p1, ape_radius_p1, ape_pois_p1, det_like_p2, ml_cts_p2, ml_cts_err_p2, ml_rate_p2, ml_rate_err_p2, ml_flux_p2, ml_flux_err_p2, ml_bkg_p2, ml_exp_p2, ape_bkg_p2, ape_radius_p2, ape_pois_p2, det_like_p3, ml_cts_p3, ml_cts_err_p3, ml_rate_p3, ml_rate_err_p3, ml_flux_p3, ml_flux_err_p3, ml_bkg_p3, ml_exp_p3, ape_bkg_p3, ape_radius_p3, ape_pois_p3, det_like_p4, ml_cts_p4, ml_cts_err_p4, ml_rate_p4, ml_rate_err_p4, ml_flux_p4, ml_flux_err_p4, ml_bkg_p4, ml_exp_p4, ape_bkg_p4, ape_radius_p4, ape_pois_p4, det_like_p5, ml_cts_p5, ml_cts_err_p5, ml_rate_p5, ml_rate_err_p5, ml_flux_p5, ml_flux_err_p5, ml_bkg_p5, ml_exp_p5, ape_bkg_p5, ape_radius_p5, ape_pois_p5, det_like_p6, ml_cts_p6, ml_cts_err_p6, ml_rate_p6, ml_rate_err_p6, ml_flux_p6, ml_flux_err_p6, ml_bkg_p6, ml_exp_p6, ape_bkg_p6, ape_radius_p6, ape_pois_p6, flag_sp_snr, flag_sp_bps, flag_sp_scl, flag_sp_lga, flag_sp_gc_cons, flag_no_radec_err, flag_no_ext_err, flag_no_cts_err, flag_opt FROM erosita WHERE id = ?
 `
 
 func (q *Queries) GetErosita(ctx context.Context, id string) (Erosita, error) {
 	row := q.db.QueryRowContext(ctx, getErosita, id)
 	var i Erosita
-	err := row.Scan(&i.ID, &i.Mjd, &i.MlFlux1)
+	err := row.Scan(
+		&i.ID,
+		&i.Detuid,
+		&i.Skytile,
+		&i.IDSrc,
+		&i.Uid,
+		&i.UidHard,
+		&i.IDCluster,
+		&i.Ra,
+		&i.Dec,
+		&i.RaLowerr,
+		&i.RaUperr,
+		&i.DecLowerr,
+		&i.DecUperr,
+		&i.PosErr,
+		&i.Mjd,
+		&i.MjdMin,
+		&i.MjdMax,
+		&i.Ext,
+		&i.ExtErr,
+		&i.ExtLike,
+		&i.DetLike0,
+		&i.MlCts1,
+		&i.MlCtsErr1,
+		&i.MlRate1,
+		&i.MlRateErr1,
+		&i.MlFlux1,
+		&i.MlFluxErr1,
+		&i.MlBkg1,
+		&i.MlExp1,
+		&i.ApeBkg1,
+		&i.ApeRadius1,
+		&i.ApePois1,
+		&i.DetLikeP1,
+		&i.MlCtsP1,
+		&i.MlCtsErrP1,
+		&i.MlRateP1,
+		&i.MlRateErrP1,
+		&i.MlFluxP1,
+		&i.MlFluxErrP1,
+		&i.MlBkgP1,
+		&i.MlExpP1,
+		&i.ApeBkgP1,
+		&i.ApeRadiusP1,
+		&i.ApePoisP1,
+		&i.DetLikeP2,
+		&i.MlCtsP2,
+		&i.MlCtsErrP2,
+		&i.MlRateP2,
+		&i.MlRateErrP2,
+		&i.MlFluxP2,
+		&i.MlFluxErrP2,
+		&i.MlBkgP2,
+		&i.MlExpP2,
+		&i.ApeBkgP2,
+		&i.ApeRadiusP2,
+		&i.ApePoisP2,
+		&i.DetLikeP3,
+		&i.MlCtsP3,
+		&i.MlCtsErrP3,
+		&i.MlRateP3,
+		&i.MlRateErrP3,
+		&i.MlFluxP3,
+		&i.MlFluxErrP3,
+		&i.MlBkgP3,
+		&i.MlExpP3,
+		&i.ApeBkgP3,
+		&i.ApeRadiusP3,
+		&i.ApePoisP3,
+		&i.DetLikeP4,
+		&i.MlCtsP4,
+		&i.MlCtsErrP4,
+		&i.MlRateP4,
+		&i.MlRateErrP4,
+		&i.MlFluxP4,
+		&i.MlFluxErrP4,
+		&i.MlBkgP4,
+		&i.MlExpP4,
+		&i.ApeBkgP4,
+		&i.ApeRadiusP4,
+		&i.ApePoisP4,
+		&i.DetLikeP5,
+		&i.MlCtsP5,
+		&i.MlCtsErrP5,
+		&i.MlRateP5,
+		&i.MlRateErrP5,
+		&i.MlFluxP5,
+		&i.MlFluxErrP5,
+		&i.MlBkgP5,
+		&i.MlExpP5,
+		&i.ApeBkgP5,
+		&i.ApeRadiusP5,
+		&i.ApePoisP5,
+		&i.DetLikeP6,
+		&i.MlCtsP6,
+		&i.MlCtsErrP6,
+		&i.MlRateP6,
+		&i.MlRateErrP6,
+		&i.MlFluxP6,
+		&i.MlFluxErrP6,
+		&i.MlBkgP6,
+		&i.MlExpP6,
+		&i.ApeBkgP6,
+		&i.ApeRadiusP6,
+		&i.ApePoisP6,
+		&i.FlagSpSnr,
+		&i.FlagSpBps,
+		&i.FlagSpScl,
+		&i.FlagSpLga,
+		&i.FlagSpGcCons,
+		&i.FlagNoRadecErr,
+		&i.FlagNoExtErr,
+		&i.FlagNoCtsErr,
+		&i.FlagOpt,
+	)
 	return i, err
 }
 
 const getErositaFromPixels = `-- name: GetErositaFromPixels :many
-SELECT erosita.id, erosita.mjd, erosita.ml_flux_1, mastercat.ra, mastercat.dec
+SELECT erosita.id, erosita.detuid, erosita.skytile, erosita.id_src, erosita.uid, erosita.uid_hard, erosita.id_cluster, erosita.ra, erosita.dec, erosita.ra_lowerr, erosita.ra_uperr, erosita.dec_lowerr, erosita.dec_uperr, erosita.pos_err, erosita.mjd, erosita.mjd_min, erosita.mjd_max, erosita.ext, erosita.ext_err, erosita.ext_like, erosita.det_like_0, erosita.ml_cts_1, erosita.ml_cts_err_1, erosita.ml_rate_1, erosita.ml_rate_err_1, erosita.ml_flux_1, erosita.ml_flux_err_1, erosita.ml_bkg_1, erosita.ml_exp_1, erosita.ape_bkg_1, erosita.ape_radius_1, erosita.ape_pois_1, erosita.det_like_p1, erosita.ml_cts_p1, erosita.ml_cts_err_p1, erosita.ml_rate_p1, erosita.ml_rate_err_p1, erosita.ml_flux_p1, erosita.ml_flux_err_p1, erosita.ml_bkg_p1, erosita.ml_exp_p1, erosita.ape_bkg_p1, erosita.ape_radius_p1, erosita.ape_pois_p1, erosita.det_like_p2, erosita.ml_cts_p2, erosita.ml_cts_err_p2, erosita.ml_rate_p2, erosita.ml_rate_err_p2, erosita.ml_flux_p2, erosita.ml_flux_err_p2, erosita.ml_bkg_p2, erosita.ml_exp_p2, erosita.ape_bkg_p2, erosita.ape_radius_p2, erosita.ape_pois_p2, erosita.det_like_p3, erosita.ml_cts_p3, erosita.ml_cts_err_p3, erosita.ml_rate_p3, erosita.ml_rate_err_p3, erosita.ml_flux_p3, erosita.ml_flux_err_p3, erosita.ml_bkg_p3, erosita.ml_exp_p3, erosita.ape_bkg_p3, erosita.ape_radius_p3, erosita.ape_pois_p3, erosita.det_like_p4, erosita.ml_cts_p4, erosita.ml_cts_err_p4, erosita.ml_rate_p4, erosita.ml_rate_err_p4, erosita.ml_flux_p4, erosita.ml_flux_err_p4, erosita.ml_bkg_p4, erosita.ml_exp_p4, erosita.ape_bkg_p4, erosita.ape_radius_p4, erosita.ape_pois_p4, erosita.det_like_p5, erosita.ml_cts_p5, erosita.ml_cts_err_p5, erosita.ml_rate_p5, erosita.ml_rate_err_p5, erosita.ml_flux_p5, erosita.ml_flux_err_p5, erosita.ml_bkg_p5, erosita.ml_exp_p5, erosita.ape_bkg_p5, erosita.ape_radius_p5, erosita.ape_pois_p5, erosita.det_like_p6, erosita.ml_cts_p6, erosita.ml_cts_err_p6, erosita.ml_rate_p6, erosita.ml_rate_err_p6, erosita.ml_flux_p6, erosita.ml_flux_err_p6, erosita.ml_bkg_p6, erosita.ml_exp_p6, erosita.ape_bkg_p6, erosita.ape_radius_p6, erosita.ape_pois_p6, erosita.flag_sp_snr, erosita.flag_sp_bps, erosita.flag_sp_scl, erosita.flag_sp_lga, erosita.flag_sp_gc_cons, erosita.flag_no_radec_err, erosita.flag_no_ext_err, erosita.flag_no_cts_err, erosita.flag_opt, mastercat.ra, mastercat.dec
 FROM erosita 
 JOIN mastercat ON mastercat.id = erosita.id
 WHERE mastercat.ipix IN (/*SLICE:ipix*/?)
 `
 
 type GetErositaFromPixelsRow struct {
-	ID      string          `json:"id" parquet:"name=IAUNAME, type=BYTE_ARRAY"`
-	Mjd     sql.NullFloat64 `json:"mjd" parquet:"name=MJD, type=DOUBLE"`
-	MlFlux1 sql.NullFloat64 `json:"ml_flux_1" parquet:"name=ML_FLUX_1, type=DOUBLE"`
-	Ra      float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
-	Dec     float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
+	ID             string          `json:"id" parquet:"name=IAUNAME, type=BYTE_ARRAY"`
+	Detuid         sql.NullString  `parquet:"name=DETUID, type=BYTE_ARRAY"`
+	Skytile        sql.NullInt64   `parquet:"name=SKYTILE, type=INT32"`
+	IDSrc          sql.NullInt64   `parquet:"name=ID_SRC, type=INT32"`
+	Uid            sql.NullInt64   `parquet:"name=UID, type=INT64"`
+	UidHard        sql.NullInt64   `parquet:"name=UID_Hard, type=INT64"`
+	IDCluster      sql.NullInt64   `parquet:"name=ID_CLUSTER, type=INT32"`
+	Ra             sql.NullFloat64 `parquet:"name=RA, type=DOUBLE"`
+	Dec            sql.NullFloat64 `parquet:"name=DEC, type=DOUBLE"`
+	RaLowerr       sql.NullFloat64 `parquet:"name=RA_LOWERR, type=FLOAT"`
+	RaUperr        sql.NullFloat64 `parquet:"name=RA_UPERR, type=FLOAT"`
+	DecLowerr      sql.NullFloat64 `parquet:"name=DEC_LOWERR, type=FLOAT"`
+	DecUperr       sql.NullFloat64 `parquet:"name=DEC_UPERR, type=FLOAT"`
+	PosErr         sql.NullFloat64 `parquet:"name=POS_ERR, type=FLOAT"`
+	Mjd            sql.NullFloat64 `json:"mjd" parquet:"name=MJD, type=FLOAT"`
+	MjdMin         sql.NullFloat64 `parquet:"name=MJD_MIN, type=FLOAT"`
+	MjdMax         sql.NullFloat64 `parquet:"name=MJD_MAX, type=FLOAT"`
+	Ext            sql.NullFloat64 `parquet:"name=EXT, type=FLOAT"`
+	ExtErr         sql.NullFloat64 `parquet:"name=EXT_ERR, type=FLOAT"`
+	ExtLike        sql.NullFloat64 `parquet:"name=EXT_LIKE, type=FLOAT"`
+	DetLike0       sql.NullFloat64 `parquet:"name=DET_LIKE_0, type=FLOAT"`
+	MlCts1         sql.NullFloat64 `parquet:"name=ML_CTS_1, type=FLOAT"`
+	MlCtsErr1      sql.NullFloat64 `parquet:"name=ML_CTS_ERR_1, type=FLOAT"`
+	MlRate1        sql.NullFloat64 `parquet:"name=ML_RATE_1, type=FLOAT"`
+	MlRateErr1     sql.NullFloat64 `parquet:"name=ML_RATE_ERR_1, type=FLOAT"`
+	MlFlux1        sql.NullFloat64 `json:"ml_flux_1" parquet:"name=ML_FLUX_1, type=FLOAT"`
+	MlFluxErr1     sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_1, type=FLOAT"`
+	MlBkg1         sql.NullFloat64 `parquet:"name=ML_BKG_1, type=FLOAT"`
+	MlExp1         sql.NullFloat64 `parquet:"name=ML_EXP_1, type=FLOAT"`
+	ApeBkg1        sql.NullFloat64 `parquet:"name=APE_BKG_1, type=FLOAT"`
+	ApeRadius1     sql.NullFloat64 `parquet:"name=APE_RADIUS_1, type=FLOAT"`
+	ApePois1       sql.NullFloat64 `parquet:"name=APE_POIS_1, type=FLOAT"`
+	DetLikeP1      sql.NullFloat64 `parquet:"name=DET_LIKE_P1, type=FLOAT"`
+	MlCtsP1        sql.NullFloat64 `parquet:"name=ML_CTS_P1, type=FLOAT"`
+	MlCtsErrP1     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P1, type=FLOAT"`
+	MlRateP1       sql.NullFloat64 `parquet:"name=ML_RATE_P1, type=FLOAT"`
+	MlRateErrP1    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P1, type=FLOAT"`
+	MlFluxP1       sql.NullFloat64 `parquet:"name=ML_FLUX_P1, type=FLOAT"`
+	MlFluxErrP1    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P1, type=FLOAT"`
+	MlBkgP1        sql.NullFloat64 `parquet:"name=ML_BKG_P1, type=FLOAT"`
+	MlExpP1        sql.NullFloat64 `parquet:"name=ML_EXP_P1, type=FLOAT"`
+	ApeBkgP1       sql.NullFloat64 `parquet:"name=APE_BKG_P1, type=FLOAT"`
+	ApeRadiusP1    sql.NullFloat64 `parquet:"name=APE_RADIUS_P1, type=FLOAT"`
+	ApePoisP1      sql.NullFloat64 `parquet:"name=APE_POIS_P1, type=FLOAT"`
+	DetLikeP2      sql.NullFloat64 `parquet:"name=DET_LIKE_P2, type=FLOAT"`
+	MlCtsP2        sql.NullFloat64 `parquet:"name=ML_CTS_P2, type=FLOAT"`
+	MlCtsErrP2     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P2, type=FLOAT"`
+	MlRateP2       sql.NullFloat64 `parquet:"name=ML_RATE_P2, type=FLOAT"`
+	MlRateErrP2    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P2, type=FLOAT"`
+	MlFluxP2       sql.NullFloat64 `parquet:"name=ML_FLUX_P2, type=FLOAT"`
+	MlFluxErrP2    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P2, type=FLOAT"`
+	MlBkgP2        sql.NullFloat64 `parquet:"name=ML_BKG_P2, type=FLOAT"`
+	MlExpP2        sql.NullFloat64 `parquet:"name=ML_EXP_P2, type=FLOAT"`
+	ApeBkgP2       sql.NullFloat64 `parquet:"name=APE_BKG_P2, type=FLOAT"`
+	ApeRadiusP2    sql.NullFloat64 `parquet:"name=APE_RADIUS_P2, type=FLOAT"`
+	ApePoisP2      sql.NullFloat64 `parquet:"name=APE_POIS_P2, type=FLOAT"`
+	DetLikeP3      sql.NullFloat64 `parquet:"name=DET_LIKE_P3, type=FLOAT"`
+	MlCtsP3        sql.NullFloat64 `parquet:"name=ML_CTS_P3, type=FLOAT"`
+	MlCtsErrP3     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P3, type=FLOAT"`
+	MlRateP3       sql.NullFloat64 `parquet:"name=ML_RATE_P3, type=FLOAT"`
+	MlRateErrP3    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P3, type=FLOAT"`
+	MlFluxP3       sql.NullFloat64 `parquet:"name=ML_FLUX_P3, type=FLOAT"`
+	MlFluxErrP3    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P3, type=FLOAT"`
+	MlBkgP3        sql.NullFloat64 `parquet:"name=ML_BKG_P3, type=FLOAT"`
+	MlExpP3        sql.NullFloat64 `parquet:"name=ML_EXP_P3, type=FLOAT"`
+	ApeBkgP3       sql.NullFloat64 `parquet:"name=APE_BKG_P3, type=FLOAT"`
+	ApeRadiusP3    sql.NullFloat64 `parquet:"name=APE_RADIUS_P3, type=FLOAT"`
+	ApePoisP3      sql.NullFloat64 `parquet:"name=APE_POIS_P3, type=FLOAT"`
+	DetLikeP4      sql.NullFloat64 `parquet:"name=DET_LIKE_P4, type=FLOAT"`
+	MlCtsP4        sql.NullFloat64 `parquet:"name=ML_CTS_P4, type=FLOAT"`
+	MlCtsErrP4     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P4, type=FLOAT"`
+	MlRateP4       sql.NullFloat64 `parquet:"name=ML_RATE_P4, type=FLOAT"`
+	MlRateErrP4    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P4, type=FLOAT"`
+	MlFluxP4       sql.NullFloat64 `parquet:"name=ML_FLUX_P4, type=FLOAT"`
+	MlFluxErrP4    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P4, type=FLOAT"`
+	MlBkgP4        sql.NullFloat64 `parquet:"name=ML_BKG_P4, type=FLOAT"`
+	MlExpP4        sql.NullFloat64 `parquet:"name=ML_EXP_P4, type=FLOAT"`
+	ApeBkgP4       sql.NullFloat64 `parquet:"name=APE_BKG_P4, type=FLOAT"`
+	ApeRadiusP4    sql.NullFloat64 `parquet:"name=APE_RADIUS_P4, type=FLOAT"`
+	ApePoisP4      sql.NullFloat64 `parquet:"name=APE_POIS_P4, type=FLOAT"`
+	DetLikeP5      sql.NullFloat64 `parquet:"name=DET_LIKE_P5, type=FLOAT"`
+	MlCtsP5        sql.NullFloat64 `parquet:"name=ML_CTS_P5, type=FLOAT"`
+	MlCtsErrP5     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P5, type=FLOAT"`
+	MlRateP5       sql.NullFloat64 `parquet:"name=ML_RATE_P5, type=FLOAT"`
+	MlRateErrP5    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P5, type=FLOAT"`
+	MlFluxP5       sql.NullFloat64 `parquet:"name=ML_FLUX_P5, type=FLOAT"`
+	MlFluxErrP5    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P5, type=FLOAT"`
+	MlBkgP5        sql.NullFloat64 `parquet:"name=ML_BKG_P5, type=FLOAT"`
+	MlExpP5        sql.NullFloat64 `parquet:"name=ML_EXP_P5, type=FLOAT"`
+	ApeBkgP5       sql.NullFloat64 `parquet:"name=APE_BKG_P5, type=FLOAT"`
+	ApeRadiusP5    sql.NullFloat64 `parquet:"name=APE_RADIUS_P5, type=FLOAT"`
+	ApePoisP5      sql.NullFloat64 `parquet:"name=APE_POIS_P5, type=FLOAT"`
+	DetLikeP6      sql.NullFloat64 `parquet:"name=DET_LIKE_P6, type=FLOAT"`
+	MlCtsP6        sql.NullFloat64 `parquet:"name=ML_CTS_P6, type=FLOAT"`
+	MlCtsErrP6     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P6, type=FLOAT"`
+	MlRateP6       sql.NullFloat64 `parquet:"name=ML_RATE_P6, type=FLOAT"`
+	MlRateErrP6    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P6, type=FLOAT"`
+	MlFluxP6       sql.NullFloat64 `parquet:"name=ML_FLUX_P6, type=FLOAT"`
+	MlFluxErrP6    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P6, type=FLOAT"`
+	MlBkgP6        sql.NullFloat64 `parquet:"name=ML_BKG_P6, type=FLOAT"`
+	MlExpP6        sql.NullFloat64 `parquet:"name=ML_EXP_P6, type=FLOAT"`
+	ApeBkgP6       sql.NullFloat64 `parquet:"name=APE_BKG_P6, type=FLOAT"`
+	ApeRadiusP6    sql.NullFloat64 `parquet:"name=APE_RADIUS_P6, type=FLOAT"`
+	ApePoisP6      sql.NullFloat64 `parquet:"name=APE_POIS_P6, type=FLOAT"`
+	FlagSpSnr      sql.NullInt64   `parquet:"name=FLAG_SP_SNR, type=INT32"`
+	FlagSpBps      sql.NullInt64   `parquet:"name=FLAG_SP_BPS, type=INT32"`
+	FlagSpScl      sql.NullInt64   `parquet:"name=FLAG_SP_SCL, type=INT32"`
+	FlagSpLga      sql.NullInt64   `parquet:"name=FLAG_SP_LGA, type=INT32"`
+	FlagSpGcCons   sql.NullInt64   `parquet:"name=FLAG_SP_GC_CONS, type=INT32"`
+	FlagNoRadecErr sql.NullInt64   `parquet:"name=FLAG_NO_RADEC_ERR, type=INT32"`
+	FlagNoExtErr   sql.NullInt64   `parquet:"name=FLAG_NO_EXT_ERR, type=INT32"`
+	FlagNoCtsErr   sql.NullInt64   `parquet:"name=FLAG_NO_CTS_ERR, type=INT32"`
+	FlagOpt        sql.NullInt64   `parquet:"name=FLAG_OPT, type=INT32"`
+	Ra_2           float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec_2          float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
 }
 
 func (q *Queries) GetErositaFromPixels(ctx context.Context, ipix []int64) ([]GetErositaFromPixelsRow, error) {
@@ -418,10 +756,120 @@ func (q *Queries) GetErositaFromPixels(ctx context.Context, ipix []int64) ([]Get
 		var i GetErositaFromPixelsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Mjd,
-			&i.MlFlux1,
+			&i.Detuid,
+			&i.Skytile,
+			&i.IDSrc,
+			&i.Uid,
+			&i.UidHard,
+			&i.IDCluster,
 			&i.Ra,
 			&i.Dec,
+			&i.RaLowerr,
+			&i.RaUperr,
+			&i.DecLowerr,
+			&i.DecUperr,
+			&i.PosErr,
+			&i.Mjd,
+			&i.MjdMin,
+			&i.MjdMax,
+			&i.Ext,
+			&i.ExtErr,
+			&i.ExtLike,
+			&i.DetLike0,
+			&i.MlCts1,
+			&i.MlCtsErr1,
+			&i.MlRate1,
+			&i.MlRateErr1,
+			&i.MlFlux1,
+			&i.MlFluxErr1,
+			&i.MlBkg1,
+			&i.MlExp1,
+			&i.ApeBkg1,
+			&i.ApeRadius1,
+			&i.ApePois1,
+			&i.DetLikeP1,
+			&i.MlCtsP1,
+			&i.MlCtsErrP1,
+			&i.MlRateP1,
+			&i.MlRateErrP1,
+			&i.MlFluxP1,
+			&i.MlFluxErrP1,
+			&i.MlBkgP1,
+			&i.MlExpP1,
+			&i.ApeBkgP1,
+			&i.ApeRadiusP1,
+			&i.ApePoisP1,
+			&i.DetLikeP2,
+			&i.MlCtsP2,
+			&i.MlCtsErrP2,
+			&i.MlRateP2,
+			&i.MlRateErrP2,
+			&i.MlFluxP2,
+			&i.MlFluxErrP2,
+			&i.MlBkgP2,
+			&i.MlExpP2,
+			&i.ApeBkgP2,
+			&i.ApeRadiusP2,
+			&i.ApePoisP2,
+			&i.DetLikeP3,
+			&i.MlCtsP3,
+			&i.MlCtsErrP3,
+			&i.MlRateP3,
+			&i.MlRateErrP3,
+			&i.MlFluxP3,
+			&i.MlFluxErrP3,
+			&i.MlBkgP3,
+			&i.MlExpP3,
+			&i.ApeBkgP3,
+			&i.ApeRadiusP3,
+			&i.ApePoisP3,
+			&i.DetLikeP4,
+			&i.MlCtsP4,
+			&i.MlCtsErrP4,
+			&i.MlRateP4,
+			&i.MlRateErrP4,
+			&i.MlFluxP4,
+			&i.MlFluxErrP4,
+			&i.MlBkgP4,
+			&i.MlExpP4,
+			&i.ApeBkgP4,
+			&i.ApeRadiusP4,
+			&i.ApePoisP4,
+			&i.DetLikeP5,
+			&i.MlCtsP5,
+			&i.MlCtsErrP5,
+			&i.MlRateP5,
+			&i.MlRateErrP5,
+			&i.MlFluxP5,
+			&i.MlFluxErrP5,
+			&i.MlBkgP5,
+			&i.MlExpP5,
+			&i.ApeBkgP5,
+			&i.ApeRadiusP5,
+			&i.ApePoisP5,
+			&i.DetLikeP6,
+			&i.MlCtsP6,
+			&i.MlCtsErrP6,
+			&i.MlRateP6,
+			&i.MlRateErrP6,
+			&i.MlFluxP6,
+			&i.MlFluxErrP6,
+			&i.MlBkgP6,
+			&i.MlExpP6,
+			&i.ApeBkgP6,
+			&i.ApeRadiusP6,
+			&i.ApePoisP6,
+			&i.FlagSpSnr,
+			&i.FlagSpBps,
+			&i.FlagSpScl,
+			&i.FlagSpLga,
+			&i.FlagSpGcCons,
+			&i.FlagNoRadecErr,
+			&i.FlagNoExtErr,
+			&i.FlagNoCtsErr,
+			&i.FlagOpt,
+			&i.Ra_2,
+			&i.Dec_2,
 		); err != nil {
 			return nil, err
 		}
@@ -648,17 +1096,265 @@ func (q *Queries) InsertCatalog(ctx context.Context, arg InsertCatalogParams) er
 }
 
 const insertErosita = `-- name: InsertErosita :exec
-INSERT INTO erosita (id, mjd, ml_flux_1) VALUES (?, ?, ?)
+INSERT INTO erosita (
+    id, detuid, skytile, id_src, uid, uid_hard, id_cluster,
+    ra, dec, ra_lowerr, ra_uperr, dec_lowerr, dec_uperr, pos_err,
+    mjd, mjd_min, mjd_max, ext, ext_err, ext_like, det_like_0,
+    ml_cts_1, ml_cts_err_1, ml_rate_1, ml_rate_err_1, ml_flux_1, ml_flux_err_1, ml_bkg_1, ml_exp_1, ape_bkg_1, ape_radius_1, ape_pois_1,
+    det_like_p1, ml_cts_p1, ml_cts_err_p1, ml_rate_p1, ml_rate_err_p1, ml_flux_p1, ml_flux_err_p1, ml_bkg_p1, ml_exp_p1, ape_bkg_p1, ape_radius_p1, ape_pois_p1,
+    det_like_p2, ml_cts_p2, ml_cts_err_p2, ml_rate_p2, ml_rate_err_p2, ml_flux_p2, ml_flux_err_p2, ml_bkg_p2, ml_exp_p2, ape_bkg_p2, ape_radius_p2, ape_pois_p2,
+    det_like_p3, ml_cts_p3, ml_cts_err_p3, ml_rate_p3, ml_rate_err_p3, ml_flux_p3, ml_flux_err_p3, ml_bkg_p3, ml_exp_p3, ape_bkg_p3, ape_radius_p3, ape_pois_p3,
+    det_like_p4, ml_cts_p4, ml_cts_err_p4, ml_rate_p4, ml_rate_err_p4, ml_flux_p4, ml_flux_err_p4, ml_bkg_p4, ml_exp_p4, ape_bkg_p4, ape_radius_p4, ape_pois_p4,
+    det_like_p5, ml_cts_p5, ml_cts_err_p5, ml_rate_p5, ml_rate_err_p5, ml_flux_p5, ml_flux_err_p5, ml_bkg_p5, ml_exp_p5, ape_bkg_p5, ape_radius_p5, ape_pois_p5,
+    det_like_p6, ml_cts_p6, ml_cts_err_p6, ml_rate_p6, ml_rate_err_p6, ml_flux_p6, ml_flux_err_p6, ml_bkg_p6, ml_exp_p6, ape_bkg_p6, ape_radius_p6, ape_pois_p6,
+    flag_sp_snr, flag_sp_bps, flag_sp_scl, flag_sp_lga, flag_sp_gc_cons, flag_no_radec_err, flag_no_ext_err, flag_no_cts_err, flag_opt
+) VALUES (
+    ?1, ?2, ?3, ?4, ?5, ?6, ?7,
+    ?8, ?9, ?10, ?11, ?12, ?13, ?14,
+    ?15, ?16, ?17, ?18, ?19, ?20, ?21,
+    ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32,
+    ?33, ?34, ?35, ?36, ?37, ?38, ?39, ?40, ?41, ?42, ?43, ?44,
+    ?45, ?46, ?47, ?48, ?49, ?50, ?51, ?52, ?53, ?54, ?55, ?56,
+    ?57, ?58, ?59, ?60, ?61, ?62, ?63, ?64, ?65, ?66, ?67, ?68,
+    ?69, ?70, ?71, ?72, ?73, ?74, ?75, ?76, ?77, ?78, ?79, ?80,
+    ?81, ?82, ?83, ?84, ?85, ?86, ?87, ?88, ?89, ?90, ?91, ?92,
+    ?93, ?94, ?95, ?96, ?97, ?98, ?99, ?100, ?101, ?102, ?103, ?104,
+    ?105, ?106, ?107, ?108, ?109, ?110, ?111, ?112, ?113
+)
 `
 
 type InsertErositaParams struct {
-	ID      string          `json:"id" parquet:"name=IAUNAME, type=BYTE_ARRAY"`
-	Mjd     sql.NullFloat64 `json:"mjd" parquet:"name=MJD, type=DOUBLE"`
-	MlFlux1 sql.NullFloat64 `json:"ml_flux_1" parquet:"name=ML_FLUX_1, type=DOUBLE"`
+	ID             string          `json:"id" parquet:"name=IAUNAME, type=BYTE_ARRAY"`
+	Detuid         sql.NullString  `parquet:"name=DETUID, type=BYTE_ARRAY"`
+	Skytile        sql.NullInt64   `parquet:"name=SKYTILE, type=INT32"`
+	IDSrc          sql.NullInt64   `parquet:"name=ID_SRC, type=INT32"`
+	Uid            sql.NullInt64   `parquet:"name=UID, type=INT64"`
+	UidHard        sql.NullInt64   `parquet:"name=UID_Hard, type=INT64"`
+	IDCluster      sql.NullInt64   `parquet:"name=ID_CLUSTER, type=INT32"`
+	Ra             sql.NullFloat64 `parquet:"name=RA, type=DOUBLE"`
+	Dec            sql.NullFloat64 `parquet:"name=DEC, type=DOUBLE"`
+	RaLowerr       sql.NullFloat64 `parquet:"name=RA_LOWERR, type=FLOAT"`
+	RaUperr        sql.NullFloat64 `parquet:"name=RA_UPERR, type=FLOAT"`
+	DecLowerr      sql.NullFloat64 `parquet:"name=DEC_LOWERR, type=FLOAT"`
+	DecUperr       sql.NullFloat64 `parquet:"name=DEC_UPERR, type=FLOAT"`
+	PosErr         sql.NullFloat64 `parquet:"name=POS_ERR, type=FLOAT"`
+	Mjd            sql.NullFloat64 `json:"mjd" parquet:"name=MJD, type=FLOAT"`
+	MjdMin         sql.NullFloat64 `parquet:"name=MJD_MIN, type=FLOAT"`
+	MjdMax         sql.NullFloat64 `parquet:"name=MJD_MAX, type=FLOAT"`
+	Ext            sql.NullFloat64 `parquet:"name=EXT, type=FLOAT"`
+	ExtErr         sql.NullFloat64 `parquet:"name=EXT_ERR, type=FLOAT"`
+	ExtLike        sql.NullFloat64 `parquet:"name=EXT_LIKE, type=FLOAT"`
+	DetLike0       sql.NullFloat64 `parquet:"name=DET_LIKE_0, type=FLOAT"`
+	MlCts1         sql.NullFloat64 `parquet:"name=ML_CTS_1, type=FLOAT"`
+	MlCtsErr1      sql.NullFloat64 `parquet:"name=ML_CTS_ERR_1, type=FLOAT"`
+	MlRate1        sql.NullFloat64 `parquet:"name=ML_RATE_1, type=FLOAT"`
+	MlRateErr1     sql.NullFloat64 `parquet:"name=ML_RATE_ERR_1, type=FLOAT"`
+	MlFlux1        sql.NullFloat64 `json:"ml_flux_1" parquet:"name=ML_FLUX_1, type=FLOAT"`
+	MlFluxErr1     sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_1, type=FLOAT"`
+	MlBkg1         sql.NullFloat64 `parquet:"name=ML_BKG_1, type=FLOAT"`
+	MlExp1         sql.NullFloat64 `parquet:"name=ML_EXP_1, type=FLOAT"`
+	ApeBkg1        sql.NullFloat64 `parquet:"name=APE_BKG_1, type=FLOAT"`
+	ApeRadius1     sql.NullFloat64 `parquet:"name=APE_RADIUS_1, type=FLOAT"`
+	ApePois1       sql.NullFloat64 `parquet:"name=APE_POIS_1, type=FLOAT"`
+	DetLikeP1      sql.NullFloat64 `parquet:"name=DET_LIKE_P1, type=FLOAT"`
+	MlCtsP1        sql.NullFloat64 `parquet:"name=ML_CTS_P1, type=FLOAT"`
+	MlCtsErrP1     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P1, type=FLOAT"`
+	MlRateP1       sql.NullFloat64 `parquet:"name=ML_RATE_P1, type=FLOAT"`
+	MlRateErrP1    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P1, type=FLOAT"`
+	MlFluxP1       sql.NullFloat64 `parquet:"name=ML_FLUX_P1, type=FLOAT"`
+	MlFluxErrP1    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P1, type=FLOAT"`
+	MlBkgP1        sql.NullFloat64 `parquet:"name=ML_BKG_P1, type=FLOAT"`
+	MlExpP1        sql.NullFloat64 `parquet:"name=ML_EXP_P1, type=FLOAT"`
+	ApeBkgP1       sql.NullFloat64 `parquet:"name=APE_BKG_P1, type=FLOAT"`
+	ApeRadiusP1    sql.NullFloat64 `parquet:"name=APE_RADIUS_P1, type=FLOAT"`
+	ApePoisP1      sql.NullFloat64 `parquet:"name=APE_POIS_P1, type=FLOAT"`
+	DetLikeP2      sql.NullFloat64 `parquet:"name=DET_LIKE_P2, type=FLOAT"`
+	MlCtsP2        sql.NullFloat64 `parquet:"name=ML_CTS_P2, type=FLOAT"`
+	MlCtsErrP2     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P2, type=FLOAT"`
+	MlRateP2       sql.NullFloat64 `parquet:"name=ML_RATE_P2, type=FLOAT"`
+	MlRateErrP2    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P2, type=FLOAT"`
+	MlFluxP2       sql.NullFloat64 `parquet:"name=ML_FLUX_P2, type=FLOAT"`
+	MlFluxErrP2    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P2, type=FLOAT"`
+	MlBkgP2        sql.NullFloat64 `parquet:"name=ML_BKG_P2, type=FLOAT"`
+	MlExpP2        sql.NullFloat64 `parquet:"name=ML_EXP_P2, type=FLOAT"`
+	ApeBkgP2       sql.NullFloat64 `parquet:"name=APE_BKG_P2, type=FLOAT"`
+	ApeRadiusP2    sql.NullFloat64 `parquet:"name=APE_RADIUS_P2, type=FLOAT"`
+	ApePoisP2      sql.NullFloat64 `parquet:"name=APE_POIS_P2, type=FLOAT"`
+	DetLikeP3      sql.NullFloat64 `parquet:"name=DET_LIKE_P3, type=FLOAT"`
+	MlCtsP3        sql.NullFloat64 `parquet:"name=ML_CTS_P3, type=FLOAT"`
+	MlCtsErrP3     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P3, type=FLOAT"`
+	MlRateP3       sql.NullFloat64 `parquet:"name=ML_RATE_P3, type=FLOAT"`
+	MlRateErrP3    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P3, type=FLOAT"`
+	MlFluxP3       sql.NullFloat64 `parquet:"name=ML_FLUX_P3, type=FLOAT"`
+	MlFluxErrP3    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P3, type=FLOAT"`
+	MlBkgP3        sql.NullFloat64 `parquet:"name=ML_BKG_P3, type=FLOAT"`
+	MlExpP3        sql.NullFloat64 `parquet:"name=ML_EXP_P3, type=FLOAT"`
+	ApeBkgP3       sql.NullFloat64 `parquet:"name=APE_BKG_P3, type=FLOAT"`
+	ApeRadiusP3    sql.NullFloat64 `parquet:"name=APE_RADIUS_P3, type=FLOAT"`
+	ApePoisP3      sql.NullFloat64 `parquet:"name=APE_POIS_P3, type=FLOAT"`
+	DetLikeP4      sql.NullFloat64 `parquet:"name=DET_LIKE_P4, type=FLOAT"`
+	MlCtsP4        sql.NullFloat64 `parquet:"name=ML_CTS_P4, type=FLOAT"`
+	MlCtsErrP4     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P4, type=FLOAT"`
+	MlRateP4       sql.NullFloat64 `parquet:"name=ML_RATE_P4, type=FLOAT"`
+	MlRateErrP4    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P4, type=FLOAT"`
+	MlFluxP4       sql.NullFloat64 `parquet:"name=ML_FLUX_P4, type=FLOAT"`
+	MlFluxErrP4    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P4, type=FLOAT"`
+	MlBkgP4        sql.NullFloat64 `parquet:"name=ML_BKG_P4, type=FLOAT"`
+	MlExpP4        sql.NullFloat64 `parquet:"name=ML_EXP_P4, type=FLOAT"`
+	ApeBkgP4       sql.NullFloat64 `parquet:"name=APE_BKG_P4, type=FLOAT"`
+	ApeRadiusP4    sql.NullFloat64 `parquet:"name=APE_RADIUS_P4, type=FLOAT"`
+	ApePoisP4      sql.NullFloat64 `parquet:"name=APE_POIS_P4, type=FLOAT"`
+	DetLikeP5      sql.NullFloat64 `parquet:"name=DET_LIKE_P5, type=FLOAT"`
+	MlCtsP5        sql.NullFloat64 `parquet:"name=ML_CTS_P5, type=FLOAT"`
+	MlCtsErrP5     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P5, type=FLOAT"`
+	MlRateP5       sql.NullFloat64 `parquet:"name=ML_RATE_P5, type=FLOAT"`
+	MlRateErrP5    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P5, type=FLOAT"`
+	MlFluxP5       sql.NullFloat64 `parquet:"name=ML_FLUX_P5, type=FLOAT"`
+	MlFluxErrP5    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P5, type=FLOAT"`
+	MlBkgP5        sql.NullFloat64 `parquet:"name=ML_BKG_P5, type=FLOAT"`
+	MlExpP5        sql.NullFloat64 `parquet:"name=ML_EXP_P5, type=FLOAT"`
+	ApeBkgP5       sql.NullFloat64 `parquet:"name=APE_BKG_P5, type=FLOAT"`
+	ApeRadiusP5    sql.NullFloat64 `parquet:"name=APE_RADIUS_P5, type=FLOAT"`
+	ApePoisP5      sql.NullFloat64 `parquet:"name=APE_POIS_P5, type=FLOAT"`
+	DetLikeP6      sql.NullFloat64 `parquet:"name=DET_LIKE_P6, type=FLOAT"`
+	MlCtsP6        sql.NullFloat64 `parquet:"name=ML_CTS_P6, type=FLOAT"`
+	MlCtsErrP6     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P6, type=FLOAT"`
+	MlRateP6       sql.NullFloat64 `parquet:"name=ML_RATE_P6, type=FLOAT"`
+	MlRateErrP6    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P6, type=FLOAT"`
+	MlFluxP6       sql.NullFloat64 `parquet:"name=ML_FLUX_P6, type=FLOAT"`
+	MlFluxErrP6    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P6, type=FLOAT"`
+	MlBkgP6        sql.NullFloat64 `parquet:"name=ML_BKG_P6, type=FLOAT"`
+	MlExpP6        sql.NullFloat64 `parquet:"name=ML_EXP_P6, type=FLOAT"`
+	ApeBkgP6       sql.NullFloat64 `parquet:"name=APE_BKG_P6, type=FLOAT"`
+	ApeRadiusP6    sql.NullFloat64 `parquet:"name=APE_RADIUS_P6, type=FLOAT"`
+	ApePoisP6      sql.NullFloat64 `parquet:"name=APE_POIS_P6, type=FLOAT"`
+	FlagSpSnr      sql.NullInt64   `parquet:"name=FLAG_SP_SNR, type=INT32"`
+	FlagSpBps      sql.NullInt64   `parquet:"name=FLAG_SP_BPS, type=INT32"`
+	FlagSpScl      sql.NullInt64   `parquet:"name=FLAG_SP_SCL, type=INT32"`
+	FlagSpLga      sql.NullInt64   `parquet:"name=FLAG_SP_LGA, type=INT32"`
+	FlagSpGcCons   sql.NullInt64   `parquet:"name=FLAG_SP_GC_CONS, type=INT32"`
+	FlagNoRadecErr sql.NullInt64   `parquet:"name=FLAG_NO_RADEC_ERR, type=INT32"`
+	FlagNoExtErr   sql.NullInt64   `parquet:"name=FLAG_NO_EXT_ERR, type=INT32"`
+	FlagNoCtsErr   sql.NullInt64   `parquet:"name=FLAG_NO_CTS_ERR, type=INT32"`
+	FlagOpt        sql.NullInt64   `parquet:"name=FLAG_OPT, type=INT32"`
 }
 
 func (q *Queries) InsertErosita(ctx context.Context, arg InsertErositaParams) error {
-	_, err := q.db.ExecContext(ctx, insertErosita, arg.ID, arg.Mjd, arg.MlFlux1)
+	_, err := q.db.ExecContext(ctx, insertErosita,
+		arg.ID,
+		arg.Detuid,
+		arg.Skytile,
+		arg.IDSrc,
+		arg.Uid,
+		arg.UidHard,
+		arg.IDCluster,
+		arg.Ra,
+		arg.Dec,
+		arg.RaLowerr,
+		arg.RaUperr,
+		arg.DecLowerr,
+		arg.DecUperr,
+		arg.PosErr,
+		arg.Mjd,
+		arg.MjdMin,
+		arg.MjdMax,
+		arg.Ext,
+		arg.ExtErr,
+		arg.ExtLike,
+		arg.DetLike0,
+		arg.MlCts1,
+		arg.MlCtsErr1,
+		arg.MlRate1,
+		arg.MlRateErr1,
+		arg.MlFlux1,
+		arg.MlFluxErr1,
+		arg.MlBkg1,
+		arg.MlExp1,
+		arg.ApeBkg1,
+		arg.ApeRadius1,
+		arg.ApePois1,
+		arg.DetLikeP1,
+		arg.MlCtsP1,
+		arg.MlCtsErrP1,
+		arg.MlRateP1,
+		arg.MlRateErrP1,
+		arg.MlFluxP1,
+		arg.MlFluxErrP1,
+		arg.MlBkgP1,
+		arg.MlExpP1,
+		arg.ApeBkgP1,
+		arg.ApeRadiusP1,
+		arg.ApePoisP1,
+		arg.DetLikeP2,
+		arg.MlCtsP2,
+		arg.MlCtsErrP2,
+		arg.MlRateP2,
+		arg.MlRateErrP2,
+		arg.MlFluxP2,
+		arg.MlFluxErrP2,
+		arg.MlBkgP2,
+		arg.MlExpP2,
+		arg.ApeBkgP2,
+		arg.ApeRadiusP2,
+		arg.ApePoisP2,
+		arg.DetLikeP3,
+		arg.MlCtsP3,
+		arg.MlCtsErrP3,
+		arg.MlRateP3,
+		arg.MlRateErrP3,
+		arg.MlFluxP3,
+		arg.MlFluxErrP3,
+		arg.MlBkgP3,
+		arg.MlExpP3,
+		arg.ApeBkgP3,
+		arg.ApeRadiusP3,
+		arg.ApePoisP3,
+		arg.DetLikeP4,
+		arg.MlCtsP4,
+		arg.MlCtsErrP4,
+		arg.MlRateP4,
+		arg.MlRateErrP4,
+		arg.MlFluxP4,
+		arg.MlFluxErrP4,
+		arg.MlBkgP4,
+		arg.MlExpP4,
+		arg.ApeBkgP4,
+		arg.ApeRadiusP4,
+		arg.ApePoisP4,
+		arg.DetLikeP5,
+		arg.MlCtsP5,
+		arg.MlCtsErrP5,
+		arg.MlRateP5,
+		arg.MlRateErrP5,
+		arg.MlFluxP5,
+		arg.MlFluxErrP5,
+		arg.MlBkgP5,
+		arg.MlExpP5,
+		arg.ApeBkgP5,
+		arg.ApeRadiusP5,
+		arg.ApePoisP5,
+		arg.DetLikeP6,
+		arg.MlCtsP6,
+		arg.MlCtsErrP6,
+		arg.MlRateP6,
+		arg.MlRateErrP6,
+		arg.MlFluxP6,
+		arg.MlFluxErrP6,
+		arg.MlBkgP6,
+		arg.MlExpP6,
+		arg.ApeBkgP6,
+		arg.ApeRadiusP6,
+		arg.ApePoisP6,
+		arg.FlagSpSnr,
+		arg.FlagSpBps,
+		arg.FlagSpScl,
+		arg.FlagSpLga,
+		arg.FlagSpGcCons,
+		arg.FlagNoRadecErr,
+		arg.FlagNoExtErr,
+		arg.FlagNoCtsErr,
+		arg.FlagOpt,
+	)
 	return err
 }
 
