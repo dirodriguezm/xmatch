@@ -20,6 +20,7 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	csv_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/csv"
+	fits_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/fits"
 	parquet_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
@@ -45,6 +46,8 @@ func ReaderFactory(
 		)
 	case "parquet":
 		return parquetFactory(src, cfg)
+	case "fits":
+		return fitsFactory(src, cfg)
 	default:
 		return nil, fmt.Errorf("Reader type not allowed")
 	}
@@ -65,4 +68,12 @@ func parquetFactory(src *source.Source, cfg config.ReaderConfig) (reader.Reader,
 	default:
 		return nil, fmt.Errorf("Schema not found for catalog %s", src.CatalogName)
 	}
+}
+
+func fitsFactory(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
+	fitsReader, err := fits_reader.NewFitsReader(src, fits_reader.WithBatchSize(cfg.BatchSize))
+	if err != nil {
+		return nil, err
+	}
+	return &fitsReader, nil
 }

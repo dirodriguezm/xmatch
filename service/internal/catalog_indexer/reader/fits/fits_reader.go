@@ -164,6 +164,13 @@ func (r *FitsReader) createInputSchema(name string, rowIterator *fitsio.Rows) re
 			panic(err)
 		}
 		return schema
+	case "erosita":
+		schema := repository.ErositaInputSchema{}
+		err := rowIterator.Scan(&schema)
+		if err != nil {
+			panic(err)
+		}
+		return schema
 	default:
 		schema := TestSchema{}
 		err := rowIterator.Scan(&schema)

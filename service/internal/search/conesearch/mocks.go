@@ -107,6 +107,74 @@ func (_c *MockRepository_BulkGetAllwise_Call) RunAndReturn(run func(context1 con
 	return _c
 }
 
+// BulkGetErosita provides a mock function for the type MockRepository
+func (_mock *MockRepository) BulkGetErosita(context1 context.Context, strings []string) ([]repository.Erosita, error) {
+	ret := _mock.Called(context1, strings)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BulkGetErosita")
+	}
+
+	var r0 []repository.Erosita
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) ([]repository.Erosita, error)); ok {
+		return returnFunc(context1, strings)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) []repository.Erosita); ok {
+		r0 = returnFunc(context1, strings)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]repository.Erosita)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = returnFunc(context1, strings)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRepository_BulkGetErosita_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BulkGetErosita'
+type MockRepository_BulkGetErosita_Call struct {
+	*mock.Call
+}
+
+// BulkGetErosita is a helper method to define mock.On call
+//   - context1 context.Context
+//   - strings []string
+func (_e *MockRepository_Expecter) BulkGetErosita(context1 interface{}, strings interface{}) *MockRepository_BulkGetErosita_Call {
+	return &MockRepository_BulkGetErosita_Call{Call: _e.mock.On("BulkGetErosita", context1, strings)}
+}
+
+func (_c *MockRepository_BulkGetErosita_Call) Run(run func(context1 context.Context, strings []string)) *MockRepository_BulkGetErosita_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []string
+		if args[1] != nil {
+			arg1 = args[1].([]string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_BulkGetErosita_Call) Return(erositas []repository.Erosita, err error) *MockRepository_BulkGetErosita_Call {
+	_c.Call.Return(erositas, err)
+	return _c
+}
+
+func (_c *MockRepository_BulkGetErosita_Call) RunAndReturn(run func(context1 context.Context, strings []string) ([]repository.Erosita, error)) *MockRepository_BulkGetErosita_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // BulkGetGaia provides a mock function for the type MockRepository
 func (_mock *MockRepository) BulkGetGaia(context1 context.Context, strings []string) ([]repository.Gaia, error) {
 	ret := _mock.Called(context1, strings)
@@ -234,6 +302,69 @@ func (_c *MockRepository_BulkInsertAllwise_Call) Return(err error) *MockReposito
 }
 
 func (_c *MockRepository_BulkInsertAllwise_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, vs []any) error) *MockRepository_BulkInsertAllwise_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BulkInsertErosita provides a mock function for the type MockRepository
+func (_mock *MockRepository) BulkInsertErosita(context1 context.Context, dB *sql.DB, vs []any) error {
+	ret := _mock.Called(context1, dB, vs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BulkInsertErosita")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []any) error); ok {
+		r0 = returnFunc(context1, dB, vs)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRepository_BulkInsertErosita_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BulkInsertErosita'
+type MockRepository_BulkInsertErosita_Call struct {
+	*mock.Call
+}
+
+// BulkInsertErosita is a helper method to define mock.On call
+//   - context1 context.Context
+//   - dB *sql.DB
+//   - vs []any
+func (_e *MockRepository_Expecter) BulkInsertErosita(context1 interface{}, dB interface{}, vs interface{}) *MockRepository_BulkInsertErosita_Call {
+	return &MockRepository_BulkInsertErosita_Call{Call: _e.mock.On("BulkInsertErosita", context1, dB, vs)}
+}
+
+func (_c *MockRepository_BulkInsertErosita_Call) Run(run func(context1 context.Context, dB *sql.DB, vs []any)) *MockRepository_BulkInsertErosita_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *sql.DB
+		if args[1] != nil {
+			arg1 = args[1].(*sql.DB)
+		}
+		var arg2 []any
+		if args[2] != nil {
+			arg2 = args[2].([]any)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_BulkInsertErosita_Call) Return(err error) *MockRepository_BulkInsertErosita_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRepository_BulkInsertErosita_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, vs []any) error) *MockRepository_BulkInsertErosita_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -736,6 +867,140 @@ func (_c *MockRepository_GetDbInstance_Call) RunAndReturn(run func() *sql.DB) *M
 	return _c
 }
 
+// GetErosita provides a mock function for the type MockRepository
+func (_mock *MockRepository) GetErosita(context1 context.Context, s string) (repository.Erosita, error) {
+	ret := _mock.Called(context1, s)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetErosita")
+	}
+
+	var r0 repository.Erosita
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (repository.Erosita, error)); ok {
+		return returnFunc(context1, s)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) repository.Erosita); ok {
+		r0 = returnFunc(context1, s)
+	} else {
+		r0 = ret.Get(0).(repository.Erosita)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(context1, s)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRepository_GetErosita_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetErosita'
+type MockRepository_GetErosita_Call struct {
+	*mock.Call
+}
+
+// GetErosita is a helper method to define mock.On call
+//   - context1 context.Context
+//   - s string
+func (_e *MockRepository_Expecter) GetErosita(context1 interface{}, s interface{}) *MockRepository_GetErosita_Call {
+	return &MockRepository_GetErosita_Call{Call: _e.mock.On("GetErosita", context1, s)}
+}
+
+func (_c *MockRepository_GetErosita_Call) Run(run func(context1 context.Context, s string)) *MockRepository_GetErosita_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_GetErosita_Call) Return(erosita repository.Erosita, err error) *MockRepository_GetErosita_Call {
+	_c.Call.Return(erosita, err)
+	return _c
+}
+
+func (_c *MockRepository_GetErosita_Call) RunAndReturn(run func(context1 context.Context, s string) (repository.Erosita, error)) *MockRepository_GetErosita_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetErositaFromPixels provides a mock function for the type MockRepository
+func (_mock *MockRepository) GetErositaFromPixels(context1 context.Context, int64s []int64) ([]repository.GetErositaFromPixelsRow, error) {
+	ret := _mock.Called(context1, int64s)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetErositaFromPixels")
+	}
+
+	var r0 []repository.GetErositaFromPixelsRow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []int64) ([]repository.GetErositaFromPixelsRow, error)); ok {
+		return returnFunc(context1, int64s)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []int64) []repository.GetErositaFromPixelsRow); ok {
+		r0 = returnFunc(context1, int64s)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]repository.GetErositaFromPixelsRow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []int64) error); ok {
+		r1 = returnFunc(context1, int64s)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRepository_GetErositaFromPixels_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetErositaFromPixels'
+type MockRepository_GetErositaFromPixels_Call struct {
+	*mock.Call
+}
+
+// GetErositaFromPixels is a helper method to define mock.On call
+//   - context1 context.Context
+//   - int64s []int64
+func (_e *MockRepository_Expecter) GetErositaFromPixels(context1 interface{}, int64s interface{}) *MockRepository_GetErositaFromPixels_Call {
+	return &MockRepository_GetErositaFromPixels_Call{Call: _e.mock.On("GetErositaFromPixels", context1, int64s)}
+}
+
+func (_c *MockRepository_GetErositaFromPixels_Call) Run(run func(context1 context.Context, int64s []int64)) *MockRepository_GetErositaFromPixels_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []int64
+		if args[1] != nil {
+			arg1 = args[1].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_GetErositaFromPixels_Call) Return(getErositaFromPixelsRows []repository.GetErositaFromPixelsRow, err error) *MockRepository_GetErositaFromPixels_Call {
+	_c.Call.Return(getErositaFromPixelsRows, err)
+	return _c
+}
+
+func (_c *MockRepository_GetErositaFromPixels_Call) RunAndReturn(run func(context1 context.Context, int64s []int64) ([]repository.GetErositaFromPixelsRow, error)) *MockRepository_GetErositaFromPixels_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetGaia provides a mock function for the type MockRepository
 func (_mock *MockRepository) GetGaia(context1 context.Context, s string) (repository.Gaia, error) {
 	ret := _mock.Called(context1, s)
@@ -980,6 +1245,63 @@ func (_c *MockRepository_InsertCatalog_Call) Return(err error) *MockRepository_I
 }
 
 func (_c *MockRepository_InsertCatalog_Call) RunAndReturn(run func(context1 context.Context, insertCatalogParams repository.InsertCatalogParams) error) *MockRepository_InsertCatalog_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// InsertErositaWithoutParams provides a mock function for the type MockRepository
+func (_mock *MockRepository) InsertErositaWithoutParams(context1 context.Context, erosita repository.Erosita) error {
+	ret := _mock.Called(context1, erosita)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InsertErositaWithoutParams")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.Erosita) error); ok {
+		r0 = returnFunc(context1, erosita)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRepository_InsertErositaWithoutParams_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertErositaWithoutParams'
+type MockRepository_InsertErositaWithoutParams_Call struct {
+	*mock.Call
+}
+
+// InsertErositaWithoutParams is a helper method to define mock.On call
+//   - context1 context.Context
+//   - erosita repository.Erosita
+func (_e *MockRepository_Expecter) InsertErositaWithoutParams(context1 interface{}, erosita interface{}) *MockRepository_InsertErositaWithoutParams_Call {
+	return &MockRepository_InsertErositaWithoutParams_Call{Call: _e.mock.On("InsertErositaWithoutParams", context1, erosita)}
+}
+
+func (_c *MockRepository_InsertErositaWithoutParams_Call) Run(run func(context1 context.Context, erosita repository.Erosita)) *MockRepository_InsertErositaWithoutParams_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 repository.Erosita
+		if args[1] != nil {
+			arg1 = args[1].(repository.Erosita)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_InsertErositaWithoutParams_Call) Return(err error) *MockRepository_InsertErositaWithoutParams_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRepository_InsertErositaWithoutParams_Call) RunAndReturn(run func(context1 context.Context, erosita repository.Erosita) error) *MockRepository_InsertErositaWithoutParams_Call {
 	_c.Call.Return(run)
 	return _c
 }
