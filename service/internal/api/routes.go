@@ -18,6 +18,7 @@ import (
 	"net/http"
 
 	"github.com/dirodriguezm/xmatch/service/docs"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -28,6 +29,15 @@ func (api *API) SetupRoutes(r *gin.Engine) {
 		panic("api: gin engine cannot be nil")
 	}
 	r.Use(gin.Recovery())
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{
+			"http://localhost:3000",
+			"https://xwave-rho.vercel.app",
+		},
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		AllowCredentials: true,
+	}))
 	if api.getenv("USE_LOGGER") != "" {
 		r.Use(gin.Logger())
 	}
