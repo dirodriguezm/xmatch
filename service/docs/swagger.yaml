@@ -1,9 +1,47 @@
+basePath: /v1
 definitions:
+  api.BulkConesearchRequest:
+    properties:
+      catalog:
+        description: 'Catalog name to search in (default: all)'
+        example: allwise
+        type: string
+      dec:
+        description: Declination values in degrees (-90 to 90)
+        example:
+        - -45
+        - -45.5
+        items:
+          type: number
+        type: array
+      nneighbor:
+        description: 'Number of neighbors to return per coordinate (default: 1)'
+        example: 1
+        type: integer
+      ra:
+        description: Right ascension values in degrees (0-360)
+        example:
+        - 180.5
+        - 181.2
+        items:
+          type: number
+        type: array
+      radius:
+        description: Search radius in degrees
+        example: 0.01
+        type: number
+    type: object
   api.BulkMetadataRequest:
     properties:
       catalog:
+        description: Catalog to search in
+        example: allwise
         type: string
       ids:
+        description: List of object identifiers to search for
+        example:
+        - id1
+        - id2
         items:
           type: string
         type: array
@@ -86,218 +124,168 @@ definitions:
       ra:
         type: number
     type: object
+externalDocs:
+  description: ALeRCE Documentation
+  url: https://alerce.science
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    email: diegorodriguezmancini@gmail.com
+    name: Diego Rodriguez Mancini
+  description: |
+    API for astronomical cross-matching and catalog queries developed by [ALeRCE](https://alerce.science).
+
+    ## Overview
+
+    CrossWave provides fast cone search and metadata retrieval across multiple astronomical catalogs. The service is optimized for high-throughput queries using HEALPix spatial indexing.
+
+    ### Key Features
+
+    - **Cone Search**: Find objects within a radius of given celestial coordinates
+    - **Bulk Operations**: Process multiple queries in a single request
+    - **Metadata Retrieval**: Get detailed catalog information for specific objects
+    - **Lightcurves**: Retrieve time-series photometry data
+
+    ## Coordinates
+
+    All coordinates use the **J2000 equatorial coordinate system**:
+
+    | Parameter | Range | Unit | Description |
+    |-----------|-------|------|-------------|
+    | `ra` | 0 to 360 | degrees | Right Ascension |
+    | `dec` | -90 to +90 | degrees | Declination |
+    | `radius` | > 0 | degrees | Search radius |
+
+    ## Available Catalogs
+
+    | Catalog | Description |
+    |---------|-------------|
+    | `all` | Search across all available catalogs |
+    | `allwise` | WISE All-Sky Data Release |
+
+    ## Response Codes
+
+    | Code | Description |
+    |------|-------------|
+    | `200` | Success - results found |
+    | `204` | Success - no results found |
+    | `400` | Bad Request - invalid parameters |
+    | `500` | Internal Server Error |
+
+    ## Example Usage
+
+    ### Single Cone Search
+
+    Search for objects within 0.01 degrees of RA=180.5, Dec=-45.0:
+
+    ```
+    GET /v1/conesearch?ra=180.5&dec=-45.0&radius=0.01&catalog=allwise
+    ```
+
+    ### Bulk Cone Search
+
+    Search multiple positions in a single request:
+
+    ```json
+    POST /v1/bulk-conesearch
+    Content-Type: application/json
+
+    {
+      "ra": [180.5, 181.2, 182.0],
+      "dec": [-45.0, -45.5, -46.0],
+      "radius": 0.01,
+      "catalog": "allwise",
+      "nneighbor": 1
+    }
+    ```
+
+    ### Get Metadata by ID
+
+    Retrieve detailed catalog data for a specific object:
+
+    ```
+    GET /v1/metadata?id=J120000.00-450000.0&catalog=allwise
+    ```
+
+    ### Get Lightcurve
+
+    Retrieve time-series photometry for coordinates:
+
+    ```
+    GET /v1/lightcurve?ra=180.5&dec=-45.0&radius=0.01
+    ```
+
+    ## Error Handling
+
+    All validation errors return a JSON object with the following structure:
+
+    ```json
+    {
+      "field": "ra",
+      "reason": "value out of range",
+      "value": "400.0"
+    }
+    ```
+
+    ## Rate Limits
+
+    - Bulk endpoints accept up to **1000 coordinates** per request
+    - Results are processed in parallel for optimal performance
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: CrossWave HTTP API
+  version: "1.0"
 paths:
   /bulk-conesearch:
     post:
       consumes:
       - application/json
-      description: Search for objects in a given region using list of ra, dec and
-        a single radius
+      description: |-
+        Search for objects in a given region using multiple RA/Dec coordinates and a single radius.
+        All coordinate pairs are searched in parallel for optimal performance.
+      operationId: bulk-conesearch
       parameters:
-      - description: Right ascension in degrees
+      - description: Bulk conesearch request with arrays of coordinates
         in: body
-        name: ra
+        name: request
         required: true
         schema:
-          items:
-            type: number
-          type: array
-      - description: Declination in degrees
-        in: body
-        name: dec
-        required: true
-        schema:
-          items:
-            type: number
-          type: array
-      - description: Radius in degrees
-        in: body
-        name: radius
-        required: true
-        schema:
-          type: number
-      - description: Catalog to search in
-        in: body
-        name: catalog
-        schema:
-          type: string
-      - description: Number of neighbors to return
-        in: body
-        name: nneighbor
-        schema:
-          type: integer
+          $ref: '#/definitions/api.BulkConesearchRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Found objects
           schema:
             items:
               $ref: '#/definitions/repository.Mastercat'
             type: array
         "204":
-          description: No Content
+          description: No objects found
           schema:
             type: string
         "400":
-          description: Bad Request
+          description: Invalid parameters
           schema:
             $ref: '#/definitions/conesearch.ValidationError'
         "500":
-          description: Internal Server Error
+          description: Internal server error
           schema:
             type: string
-      summary: Search for objects in a given region using multiple coordinates
+      summary: Bulk cone search for objects
       tags:
       - conesearch
-  /conesearch:
-    get:
-      consumes:
-      - application/json
-      description: Search for objects in a given region using ra, dec and radius
-      parameters:
-      - description: Right ascension in degrees
-        in: query
-        name: ra
-        required: true
-        type: string
-      - description: Declination in degrees
-        in: query
-        name: dec
-        required: true
-        type: string
-      - description: Radius in degrees
-        in: query
-        name: radius
-        required: true
-        type: string
-      - description: Catalog to search in
-        in: query
-        name: catalog
-        type: string
-      - description: Number of neighbors to return
-        in: query
-        name: nneighbor
-        type: string
-      - description: Return metadata results
-        in: query
-        name: getMetadata
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/repository.Mastercat'
-            type: array
-        "204":
-          description: No Content
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/conesearch.ValidationError'
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Search for objects in a given region
-      tags:
-      - conesearch
-  /lightcurve:
-    get:
-      consumes:
-      - application/json
-      description: Get lightcurve data for specified coordinates with search radius
-        and neighbor count
-      parameters:
-      - description: Right Ascension coordinate
-        in: query
-        name: ra
-        required: true
-        type: string
-      - description: Declination coordinate
-        in: query
-        name: dec
-        required: true
-        type: string
-      - description: Search radius in arcseconds
-        in: query
-        name: radius
-        required: true
-        type: string
-      - description: 'Number of neighbors to return (default: 1)'
-        in: query
-        name: nneighbor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/lightcurve.Lightcurve'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get lightcurve data for coordinates
-      tags:
-      - lightcurve
-  /metadata:
-    get:
-      consumes:
-      - application/json
-      description: Search for metadata by id
-      parameters:
-      - description: ID to search for
-        in: query
-        name: id
-        required: true
-        type: string
-      - description: Catalog to search in
-        in: query
-        name: catalog
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/repository.Allwise'
-        "204":
-          description: No Content
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/metadata.ValidationError'
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Search for metadata by id
-      tags:
-      - metadata
-  /metadata/bulk:
+  /bulk-metadata:
     post:
       consumes:
       - application/json
-      description: Search for metadata by multiple ids in bulk
+      description: |-
+        Retrieve detailed catalog metadata for multiple astronomical objects by their identifiers.
+        All IDs are queried in parallel for optimal performance.
+      operationId: bulk-metadata
       parameters:
-      - description: Bulk metadata request
+      - description: Bulk metadata request with list of object IDs
         in: body
         name: request
         required: true
@@ -307,24 +295,201 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Objects metadata
           schema:
             items:
               $ref: '#/definitions/repository.Allwise'
             type: array
         "204":
-          description: No Content
+          description: No objects found
           schema:
             type: string
         "400":
-          description: Bad Request
+          description: Invalid parameters
           schema:
             $ref: '#/definitions/metadata.ValidationError'
         "500":
-          description: Internal Server Error
+          description: Internal server error
           schema:
             type: string
-      summary: Search for metadata by multiple ids
+      summary: Bulk get metadata by object IDs
+      tags:
+      - metadata
+  /conesearch:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Search for astronomical objects within a specified radius of given celestial coordinates (RA/Dec).
+        Returns matching objects from the specified catalog.
+      operationId: conesearch
+      parameters:
+      - description: Right Ascension (J2000) in degrees
+        example: 180.5
+        in: query
+        maximum: 360
+        minimum: 0
+        name: ra
+        required: true
+        type: number
+      - description: Declination (J2000) in degrees
+        example: -45
+        in: query
+        maximum: 90
+        minimum: -90
+        name: dec
+        required: true
+        type: number
+      - description: Search radius in degrees
+        example: 0.01
+        in: query
+        minimum: 0
+        name: radius
+        required: true
+        type: number
+      - default: all
+        description: Catalog to search in
+        in: query
+        name: catalog
+        type: string
+      - default: 1
+        description: Maximum number of neighbors to return
+        in: query
+        minimum: 1
+        name: nneighbor
+        type: integer
+      - default: false
+        description: Include full metadata in response
+        in: query
+        name: getMetadata
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found objects
+          schema:
+            items:
+              $ref: '#/definitions/repository.Mastercat'
+            type: array
+        "204":
+          description: No objects found
+          schema:
+            type: string
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/conesearch.ValidationError'
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Cone search for objects
+      tags:
+      - conesearch
+  /lightcurve:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Retrieve time-series photometry data (lightcurve) for astronomical objects at the specified coordinates.
+        Returns detections, non-detections, and forced photometry measurements.
+      operationId: lightcurve
+      parameters:
+      - description: Right Ascension (J2000) in degrees
+        example: 180.5
+        in: query
+        maximum: 360
+        minimum: 0
+        name: ra
+        required: true
+        type: number
+      - description: Declination (J2000) in degrees
+        example: -45
+        in: query
+        maximum: 90
+        minimum: -90
+        name: dec
+        required: true
+        type: number
+      - description: Search radius in arcseconds
+        example: 5
+        in: query
+        minimum: 0
+        name: radius
+        required: true
+        type: number
+      - default: 1
+        description: Number of neighbors to return
+        in: query
+        minimum: 1
+        name: nneighbor
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lightcurve data
+          schema:
+            $ref: '#/definitions/lightcurve.Lightcurve'
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get lightcurve data
+      tags:
+      - lightcurve
+  /metadata:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve detailed catalog metadata for a specific astronomical
+        object by its identifier.
+      operationId: metadata
+      parameters:
+      - description: Object identifier
+        example: J120000.00-450000.0
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Catalog to search in
+        example: allwise
+        in: query
+        name: catalog
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Object metadata
+          schema:
+            $ref: '#/definitions/repository.Allwise'
+        "204":
+          description: Object not found
+          schema:
+            type: string
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/metadata.ValidationError'
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get metadata by object ID
       tags:
       - metadata
 swagger: "2.0"
+tags:
+- description: Search for astronomical objects by celestial coordinates (RA/Dec)
+  name: conesearch
+- description: Retrieve detailed catalog information for specific objects
+  name: metadata
+- description: Get time-series photometry data for objects
+  name: lightcurve
