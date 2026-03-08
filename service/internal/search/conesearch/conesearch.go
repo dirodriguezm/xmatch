@@ -39,20 +39,20 @@ type Repository interface {
 	InsertCatalog(context.Context, repository.InsertCatalogParams) error
 	GetDbInstance() *sql.DB
 	InsertAllwiseWithoutParams(context.Context, repository.Allwise) error
-	GetAllwise(context.Context, string) (repository.Allwise, error)
-	GetGaia(context.Context, string) (repository.Gaia, error)
+	GetAllwise(context.Context, string) (repository.GetAllwiseRow, error)
+	GetGaia(context.Context, string) (repository.GetGaiaRow, error)
 	BulkInsertAllwise(context.Context, *sql.DB, []any) error
 	BulkInsertGaia(context.Context, *sql.DB, []any) error
 	BulkInsertObject(context.Context, *sql.DB, []any) error
 	RemoveAllObjects(context.Context) error
-	BulkGetAllwise(context.Context, []string) ([]repository.Allwise, error)
-	BulkGetGaia(context.Context, []string) ([]repository.Gaia, error)
+	BulkGetAllwise(context.Context, []string) ([]repository.BulkGetAllwiseRow, error)
+	BulkGetGaia(context.Context, []string) ([]repository.BulkGetGaiaRow, error)
 	GetAllwiseFromPixels(context.Context, []int64) ([]repository.GetAllwiseFromPixelsRow, error)
 	GetGaiaFromPixels(context.Context, []int64) ([]repository.GetGaiaFromPixelsRow, error)
 	InsertErositaWithoutParams(context.Context, repository.Erosita) error
-	GetErosita(context.Context, string) (repository.Erosita, error)
+	GetErosita(context.Context, string) (repository.GetErositaRow, error)
 	BulkInsertErosita(context.Context, *sql.DB, []any) error
-	BulkGetErosita(context.Context, []string) ([]repository.Erosita, error)
+	BulkGetErosita(context.Context, []string) ([]repository.BulkGetErositaRow, error)
 	GetErositaFromPixels(context.Context, []int64) ([]repository.GetErositaFromPixelsRow, error)
 }
 

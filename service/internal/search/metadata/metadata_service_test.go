@@ -51,12 +51,12 @@ func TestMetadata_ValidateCatalog(t *testing.T) {
 
 	err = m.validateCatalog("invalid")
 	require.NotNil(t, err)
-	require.Equal(t, "Could not parse field catalog with value invalid: Allowed catalogs are [allwise vlass ztf gaia]", err.Error())
+	require.Equal(t, "Could not parse field catalog with value invalid: Allowed catalogs are [allwise vlass ztf gaia erosita]", err.Error())
 }
 
 func TestMetadata_FindByID(t *testing.T) {
 	repo := &conesearch.MockRepository{}
-	repo.On("GetAllwise", mock.Anything, "allwise1").Return(repository.Allwise{ID: "allwise1"}, nil)
+	repo.On("GetAllwise", mock.Anything, "allwise1").Return(repository.GetAllwiseRow{ID: "allwise1", Ra: 12.34, Dec: 56.78}, nil)
 
 	m := &MetadataService{
 		repository: repo,
@@ -65,12 +65,12 @@ func TestMetadata_FindByID(t *testing.T) {
 	result, err := m.FindByID(context.Background(), "allwise1", "allwise")
 	require.Nil(t, err)
 	repo.AssertExpectations(t)
-	require.Equal(t, "allwise1", result.(repository.Allwise).ID)
+	require.Equal(t, "allwise1", result.(repository.GetAllwiseRow).ID)
 }
 
 func TestMetadata_BulkFindByID(t *testing.T) {
 	repo := &conesearch.MockRepository{}
-	repo.On("BulkGetAllwise", mock.Anything, []string{"allwise1", "allwise2"}).Return([]repository.Allwise{{ID: "allwise1"}, {ID: "allwise2"}}, nil)
+	repo.On("BulkGetAllwise", mock.Anything, []string{"allwise1", "allwise2"}).Return([]repository.BulkGetAllwiseRow{{ID: "allwise1", Ra: 12.34, Dec: 56.78}, {ID: "allwise2", Ra: 23.45, Dec: 67.89}}, nil)
 
 	m := &MetadataService{
 		repository: repo,
@@ -80,8 +80,8 @@ func TestMetadata_BulkFindByID(t *testing.T) {
 	require.Nil(t, err)
 	repo.AssertExpectations(t)
 	expectedIds := []string{"allwise1", "allwise2"}
-	for i := 0; i < len(result.([]repository.Allwise)); i++ {
-		require.Equal(t, expectedIds[i], result.([]repository.Allwise)[i].ID)
+	for i := 0; i < len(result.([]repository.BulkGetAllwiseRow)); i++ {
+		require.Equal(t, expectedIds[i], result.([]repository.BulkGetAllwiseRow)[i].ID)
 	}
 }
 
@@ -90,7 +90,7 @@ func TestMetadata_Bulk_EmptyResult(t *testing.T) {
 
 	repo.
 		On("GetAllwise", mock.Anything, "allwise1").
-		Return(repository.Allwise{}, sql.ErrNoRows) // sql.ErrNoRows is returned when no rows are found
+		Return(repository.GetAllwiseRow{}, sql.ErrNoRows) // sql.ErrNoRows is returned when no rows are found
 
 	m := &MetadataService{
 		repository: repo,
@@ -107,7 +107,7 @@ func TestMetadata_SomeDBError(t *testing.T) {
 
 	repo.
 		On("GetAllwise", mock.Anything, "allwise1").
-		Return(repository.Allwise{}, fmt.Errorf("db error"))
+		Return(repository.GetAllwiseRow{}, fmt.Errorf("db error"))
 
 	m := &MetadataService{
 		repository: repo,

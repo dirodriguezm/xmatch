@@ -39,14 +39,16 @@ INSERT INTO allwise (
 );
 
 -- name: GetAllwise :one
-SELECT *
-FROM allwise
-WHERE id = ?;
+SELECT allwise.*, mastercat.ra, mastercat.dec
+FROM allwise 
+JOIN mastercat ON mastercat.id = allwise.id
+WHERE allwise.id = ?;
 
 -- name: BulkGetAllwise :many
-SELECT *
-FROM allwise
-WHERE id IN (sqlc.slice(id));
+SELECT allwise.*, mastercat.ra, mastercat.dec
+FROM allwise 
+JOIN mastercat ON mastercat.id = allwise.id
+WHERE allwise.id IN (sqlc.slice(id));
 
 -- name: RemoveAllObjects :exec
 DELETE FROM mastercat;
@@ -80,14 +82,16 @@ INSERT INTO gaia (
 );
 
 -- name: GetGaia :one
-SELECT *
-FROM gaia
-WHERE id = ?;
+SELECT gaia.*, mastercat.ra, mastercat.dec
+FROM gaia 
+JOIN mastercat ON mastercat.id = gaia.id
+WHERE gaia.id = ?;
 
 -- name: BulkGetGaia :many
-SELECT *
-FROM gaia
-WHERE id IN (sqlc.slice(id));
+SELECT gaia.*, mastercat.ra, mastercat.dec
+FROM gaia 
+JOIN mastercat ON mastercat.id = gaia.id
+WHERE gaia.id IN (sqlc.slice(id));
 
 -- name: RemoveAllGaia :exec
 DELETE FROM gaia;
@@ -126,10 +130,16 @@ INSERT INTO erosita (
 );
 
 -- name: GetErosita :one
-SELECT * FROM erosita WHERE id = ?;
+SELECT erosita.*, mastercat.ra, mastercat.dec
+FROM erosita 
+JOIN mastercat ON mastercat.id = erosita.id
+WHERE erosita.id = ?;
 
 -- name: BulkGetErosita :many
-SELECT * FROM erosita WHERE id IN (sqlc.slice(id));
+SELECT erosita.*, mastercat.ra, mastercat.dec
+FROM erosita 
+JOIN mastercat ON mastercat.id = erosita.id
+WHERE erosita.id IN (sqlc.slice(id));
 
 -- name: RemoveAllErosita :exec
 DELETE FROM erosita;

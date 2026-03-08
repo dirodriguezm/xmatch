@@ -40,23 +40,23 @@ func (_m *MockRepository) EXPECT() *MockRepository_Expecter {
 }
 
 // BulkGetAllwise provides a mock function for the type MockRepository
-func (_mock *MockRepository) BulkGetAllwise(context1 context.Context, strings []string) ([]repository.Allwise, error) {
+func (_mock *MockRepository) BulkGetAllwise(context1 context.Context, strings []string) ([]repository.BulkGetAllwiseRow, error) {
 	ret := _mock.Called(context1, strings)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BulkGetAllwise")
 	}
 
-	var r0 []repository.Allwise
+	var r0 []repository.BulkGetAllwiseRow
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) ([]repository.Allwise, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) ([]repository.BulkGetAllwiseRow, error)); ok {
 		return returnFunc(context1, strings)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) []repository.Allwise); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) []repository.BulkGetAllwiseRow); ok {
 		r0 = returnFunc(context1, strings)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]repository.Allwise)
+			r0 = ret.Get(0).([]repository.BulkGetAllwiseRow)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, []string) error); ok {
@@ -97,34 +97,34 @@ func (_c *MockRepository_BulkGetAllwise_Call) Run(run func(context1 context.Cont
 	return _c
 }
 
-func (_c *MockRepository_BulkGetAllwise_Call) Return(allwises []repository.Allwise, err error) *MockRepository_BulkGetAllwise_Call {
-	_c.Call.Return(allwises, err)
+func (_c *MockRepository_BulkGetAllwise_Call) Return(bulkGetAllwiseRows []repository.BulkGetAllwiseRow, err error) *MockRepository_BulkGetAllwise_Call {
+	_c.Call.Return(bulkGetAllwiseRows, err)
 	return _c
 }
 
-func (_c *MockRepository_BulkGetAllwise_Call) RunAndReturn(run func(context1 context.Context, strings []string) ([]repository.Allwise, error)) *MockRepository_BulkGetAllwise_Call {
+func (_c *MockRepository_BulkGetAllwise_Call) RunAndReturn(run func(context1 context.Context, strings []string) ([]repository.BulkGetAllwiseRow, error)) *MockRepository_BulkGetAllwise_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // BulkGetErosita provides a mock function for the type MockRepository
-func (_mock *MockRepository) BulkGetErosita(context1 context.Context, strings []string) ([]repository.Erosita, error) {
+func (_mock *MockRepository) BulkGetErosita(context1 context.Context, strings []string) ([]repository.BulkGetErositaRow, error) {
 	ret := _mock.Called(context1, strings)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BulkGetErosita")
 	}
 
-	var r0 []repository.Erosita
+	var r0 []repository.BulkGetErositaRow
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) ([]repository.Erosita, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) ([]repository.BulkGetErositaRow, error)); ok {
 		return returnFunc(context1, strings)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) []repository.Erosita); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) []repository.BulkGetErositaRow); ok {
 		r0 = returnFunc(context1, strings)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]repository.Erosita)
+			r0 = ret.Get(0).([]repository.BulkGetErositaRow)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, []string) error); ok {
@@ -165,34 +165,34 @@ func (_c *MockRepository_BulkGetErosita_Call) Run(run func(context1 context.Cont
 	return _c
 }
 
-func (_c *MockRepository_BulkGetErosita_Call) Return(erositas []repository.Erosita, err error) *MockRepository_BulkGetErosita_Call {
-	_c.Call.Return(erositas, err)
+func (_c *MockRepository_BulkGetErosita_Call) Return(bulkGetErositaRows []repository.BulkGetErositaRow, err error) *MockRepository_BulkGetErosita_Call {
+	_c.Call.Return(bulkGetErositaRows, err)
 	return _c
 }
 
-func (_c *MockRepository_BulkGetErosita_Call) RunAndReturn(run func(context1 context.Context, strings []string) ([]repository.Erosita, error)) *MockRepository_BulkGetErosita_Call {
+func (_c *MockRepository_BulkGetErosita_Call) RunAndReturn(run func(context1 context.Context, strings []string) ([]repository.BulkGetErositaRow, error)) *MockRepository_BulkGetErosita_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // BulkGetGaia provides a mock function for the type MockRepository
-func (_mock *MockRepository) BulkGetGaia(context1 context.Context, strings []string) ([]repository.Gaia, error) {
+func (_mock *MockRepository) BulkGetGaia(context1 context.Context, strings []string) ([]repository.BulkGetGaiaRow, error) {
 	ret := _mock.Called(context1, strings)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BulkGetGaia")
 	}
 
-	var r0 []repository.Gaia
+	var r0 []repository.BulkGetGaiaRow
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) ([]repository.Gaia, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) ([]repository.BulkGetGaiaRow, error)); ok {
 		return returnFunc(context1, strings)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) []repository.Gaia); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) []repository.BulkGetGaiaRow); ok {
 		r0 = returnFunc(context1, strings)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]repository.Gaia)
+			r0 = ret.Get(0).([]repository.BulkGetGaiaRow)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, []string) error); ok {
@@ -233,12 +233,12 @@ func (_c *MockRepository_BulkGetGaia_Call) Run(run func(context1 context.Context
 	return _c
 }
 
-func (_c *MockRepository_BulkGetGaia_Call) Return(gaias []repository.Gaia, err error) *MockRepository_BulkGetGaia_Call {
-	_c.Call.Return(gaias, err)
+func (_c *MockRepository_BulkGetGaia_Call) Return(bulkGetGaiaRows []repository.BulkGetGaiaRow, err error) *MockRepository_BulkGetGaia_Call {
+	_c.Call.Return(bulkGetGaiaRows, err)
 	return _c
 }
 
-func (_c *MockRepository_BulkGetGaia_Call) RunAndReturn(run func(context1 context.Context, strings []string) ([]repository.Gaia, error)) *MockRepository_BulkGetGaia_Call {
+func (_c *MockRepository_BulkGetGaia_Call) RunAndReturn(run func(context1 context.Context, strings []string) ([]repository.BulkGetGaiaRow, error)) *MockRepository_BulkGetGaia_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -626,22 +626,22 @@ func (_c *MockRepository_GetAllObjects_Call) RunAndReturn(run func(context1 cont
 }
 
 // GetAllwise provides a mock function for the type MockRepository
-func (_mock *MockRepository) GetAllwise(context1 context.Context, s string) (repository.Allwise, error) {
+func (_mock *MockRepository) GetAllwise(context1 context.Context, s string) (repository.GetAllwiseRow, error) {
 	ret := _mock.Called(context1, s)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAllwise")
 	}
 
-	var r0 repository.Allwise
+	var r0 repository.GetAllwiseRow
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (repository.Allwise, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (repository.GetAllwiseRow, error)); ok {
 		return returnFunc(context1, s)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) repository.Allwise); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) repository.GetAllwiseRow); ok {
 		r0 = returnFunc(context1, s)
 	} else {
-		r0 = ret.Get(0).(repository.Allwise)
+		r0 = ret.Get(0).(repository.GetAllwiseRow)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(context1, s)
@@ -681,12 +681,12 @@ func (_c *MockRepository_GetAllwise_Call) Run(run func(context1 context.Context,
 	return _c
 }
 
-func (_c *MockRepository_GetAllwise_Call) Return(allwise repository.Allwise, err error) *MockRepository_GetAllwise_Call {
-	_c.Call.Return(allwise, err)
+func (_c *MockRepository_GetAllwise_Call) Return(getAllwiseRow repository.GetAllwiseRow, err error) *MockRepository_GetAllwise_Call {
+	_c.Call.Return(getAllwiseRow, err)
 	return _c
 }
 
-func (_c *MockRepository_GetAllwise_Call) RunAndReturn(run func(context1 context.Context, s string) (repository.Allwise, error)) *MockRepository_GetAllwise_Call {
+func (_c *MockRepository_GetAllwise_Call) RunAndReturn(run func(context1 context.Context, s string) (repository.GetAllwiseRow, error)) *MockRepository_GetAllwise_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -868,22 +868,22 @@ func (_c *MockRepository_GetDbInstance_Call) RunAndReturn(run func() *sql.DB) *M
 }
 
 // GetErosita provides a mock function for the type MockRepository
-func (_mock *MockRepository) GetErosita(context1 context.Context, s string) (repository.Erosita, error) {
+func (_mock *MockRepository) GetErosita(context1 context.Context, s string) (repository.GetErositaRow, error) {
 	ret := _mock.Called(context1, s)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetErosita")
 	}
 
-	var r0 repository.Erosita
+	var r0 repository.GetErositaRow
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (repository.Erosita, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (repository.GetErositaRow, error)); ok {
 		return returnFunc(context1, s)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) repository.Erosita); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) repository.GetErositaRow); ok {
 		r0 = returnFunc(context1, s)
 	} else {
-		r0 = ret.Get(0).(repository.Erosita)
+		r0 = ret.Get(0).(repository.GetErositaRow)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(context1, s)
@@ -923,12 +923,12 @@ func (_c *MockRepository_GetErosita_Call) Run(run func(context1 context.Context,
 	return _c
 }
 
-func (_c *MockRepository_GetErosita_Call) Return(erosita repository.Erosita, err error) *MockRepository_GetErosita_Call {
-	_c.Call.Return(erosita, err)
+func (_c *MockRepository_GetErosita_Call) Return(getErositaRow repository.GetErositaRow, err error) *MockRepository_GetErosita_Call {
+	_c.Call.Return(getErositaRow, err)
 	return _c
 }
 
-func (_c *MockRepository_GetErosita_Call) RunAndReturn(run func(context1 context.Context, s string) (repository.Erosita, error)) *MockRepository_GetErosita_Call {
+func (_c *MockRepository_GetErosita_Call) RunAndReturn(run func(context1 context.Context, s string) (repository.GetErositaRow, error)) *MockRepository_GetErosita_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1002,22 +1002,22 @@ func (_c *MockRepository_GetErositaFromPixels_Call) RunAndReturn(run func(contex
 }
 
 // GetGaia provides a mock function for the type MockRepository
-func (_mock *MockRepository) GetGaia(context1 context.Context, s string) (repository.Gaia, error) {
+func (_mock *MockRepository) GetGaia(context1 context.Context, s string) (repository.GetGaiaRow, error) {
 	ret := _mock.Called(context1, s)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetGaia")
 	}
 
-	var r0 repository.Gaia
+	var r0 repository.GetGaiaRow
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (repository.Gaia, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (repository.GetGaiaRow, error)); ok {
 		return returnFunc(context1, s)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) repository.Gaia); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) repository.GetGaiaRow); ok {
 		r0 = returnFunc(context1, s)
 	} else {
-		r0 = ret.Get(0).(repository.Gaia)
+		r0 = ret.Get(0).(repository.GetGaiaRow)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(context1, s)
@@ -1057,12 +1057,12 @@ func (_c *MockRepository_GetGaia_Call) Run(run func(context1 context.Context, s 
 	return _c
 }
 
-func (_c *MockRepository_GetGaia_Call) Return(gaia repository.Gaia, err error) *MockRepository_GetGaia_Call {
-	_c.Call.Return(gaia, err)
+func (_c *MockRepository_GetGaia_Call) Return(getGaiaRow repository.GetGaiaRow, err error) *MockRepository_GetGaia_Call {
+	_c.Call.Return(getGaiaRow, err)
 	return _c
 }
 
-func (_c *MockRepository_GetGaia_Call) RunAndReturn(run func(context1 context.Context, s string) (repository.Gaia, error)) *MockRepository_GetGaia_Call {
+func (_c *MockRepository_GetGaia_Call) RunAndReturn(run func(context1 context.Context, s string) (repository.GetGaiaRow, error)) *MockRepository_GetGaia_Call {
 	_c.Call.Return(run)
 	return _c
 }
