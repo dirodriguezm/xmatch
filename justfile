@@ -5,7 +5,7 @@ migrate db:
 	migrate -database sqlite3://{{db}}.db -path service/internal/db/migrations up
 
 [working-directory: 'service']
-build: build-css
+build:
 	go build -o build/main cmd/*.go
 
 [working-directory: 'service']
@@ -46,13 +46,7 @@ export LOG_LEVEL := "debug"
 live-server:
 	air 
 
-[working-directory: 'service']
-build-css-watch:
-	tailwindcss --input ./ui/static/css/tailwind.css --output ./ui/static/css/output.css --watch --optimize --minify
 
-[working-directory: 'service']
-build-css:
-	tailwindcss --input ./ui/static/css/tailwind.css --output ./ui/static/css/output.css --optimize --minify
 
 [working-directory: 'service']
 mock:

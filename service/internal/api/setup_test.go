@@ -16,7 +16,7 @@ package api_test
 
 import (
 	"context"
-	"database/sql"
+
 	"fmt"
 	"log/slog"
 	"os"
@@ -24,31 +24,46 @@ import (
 	"strings"
 	"testing"
 
-	api "github.com/dirodriguezm/xmatch/service/internal/api"
-	"github.com/dirodriguezm/xmatch/service/internal/di"
+	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/golobby/container/v3"
 )
 
 var router *gin.Engine
-var ctr container.Container
+var configPath string
 
 func beforeTest(t *testing.T) {
 	// clear database
-	var db *sql.DB
-	ctr.Resolve(&db)
-
-	_, err := db.Exec("DELETE FROM mastercat;")
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+	cfg, err := app.Config(getenv)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("loading config: %v", err)
 	}
 
-	_, err = db.Exec("DELETE FROM allwise;")
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("creating database connection: %v", err)
 	}
+	defer func() { _ = db.Close() }()
+
+	// Try to delete from tables, but don't fail if they don't exist yet
+	// The tables are created in TestMain via migrations
+	_, _ = db.Exec("DELETE FROM mastercat;")
+	_, _ = db.Exec("DELETE FROM allwise;")
 }
 
 func TestMain(m *testing.M) {
@@ -69,11 +84,11 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(fmt.Errorf("could not make temp dir: %w", err))
 	}
-	configPath := filepath.Join(tmpDir, "config.yaml")
+	configPath = filepath.Join(tmpDir, "config.yaml")
 	config := `
 service:
   database:
-    url: "file:%s"
+    url: "file:%s?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000"
   bulk_chunk_size: 1
   max_bulk_concurrency: 1
 `
@@ -110,22 +125,56 @@ service:
 		panic(err)
 	}
 
-	ctr = di.BuildServiceContainer(ctx, getenv, stdout)
-
-	// initialize server
-	var api *api.API
-	err = ctr.Resolve(&api)
+	cfg, err := app.Config(getenv)
 	if err != nil {
-		panic(fmt.Errorf("could not resolve server: %w", err))
+		panic(fmt.Errorf("loading config: %w", err))
 	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		panic(fmt.Errorf("creating database connection: %w", err))
+	}
+
+	repo := app.ServiceRepository(db)
+
+	conesearchService, err := app.ConesearchService(repo)
+	if err != nil {
+		_ = db.Close()
+		panic(fmt.Errorf("creating conesearch service: %w", err))
+	}
+
+	metadataService, err := app.MetadataService(repo)
+	if err != nil {
+		_ = db.Close()
+		panic(fmt.Errorf("creating metadata service: %w", err))
+	}
+
+	lightcurveService, err := app.LightcurveService(cfg, conesearchService)
+	if err != nil {
+		_ = db.Close()
+		panic(fmt.Errorf("creating lightcurve service: %w", err))
+	}
+
+	api, err := app.API(conesearchService, metadataService, lightcurveService, cfg.Service, getenv)
+	if err != nil {
+		_ = db.Close()
+		panic(fmt.Errorf("creating API: %w", err))
+	}
+
 	router = gin.New()
 	api.SetupRoutes(router)
 
 	// run tests
-	m.Run()
+	code := m.Run()
 
 	// cleanup
-	os.Remove(configPath)
-	os.Remove(dbFile)
-	os.Remove(tmpDir)
+	_ = db.Close()
+	_ = os.Remove(configPath)
+	_ = os.Remove(dbFile)
+	_ = os.Remove(tmpDir)
+
+	os.Exit(code)
 }

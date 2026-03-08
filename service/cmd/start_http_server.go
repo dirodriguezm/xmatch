@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 
-	"github.com/dirodriguezm/xmatch/service/internal/api"
-	"github.com/dirodriguezm/xmatch/service/internal/di"
-	"github.com/dirodriguezm/xmatch/service/internal/web"
+	"github.com/dirodriguezm/xmatch/service/internal/app"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,25 +23,52 @@ func StartHttpServer(
 	getenv func(string) string,
 	stdout io.Writer,
 ) error {
-	ctr := di.BuildServiceContainer(ctx, getenv, stdout)
-	var api *api.API
-	var web *web.Web
-	ctr.Resolve(&api)
-	ctr.Resolve(&web)
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		return fmt.Errorf("creating database connection: %w", err)
+	}
+	defer db.Close()
+
+	repo := app.ServiceRepository(db)
+
+	conesearchService, err := app.ConesearchService(repo)
+	if err != nil {
+		return fmt.Errorf("creating conesearch service: %w", err)
+	}
+
+	metadataService, err := app.MetadataService(repo)
+	if err != nil {
+		return fmt.Errorf("creating metadata service: %w", err)
+	}
+
+	lightcurveService, err := app.LightcurveService(cfg, conesearchService)
+	if err != nil {
+		return fmt.Errorf("creating lightcurve service: %w", err)
+	}
+
+	api, err := app.API(conesearchService, metadataService, lightcurveService, cfg.Service, getenv)
+	if err != nil {
+		return fmt.Errorf("creating API: %w", err)
+	}
 
 	r := gin.New()
-	r.Use(gin.Recovery())
 	if getenv("USE_LOGGER") != "" {
 		r.Use(func(c *gin.Context) {
 			slog.Info("request", "method", c.Request.Method, "path", c.Request.URL.Path)
 			c.Next()
 		})
 	}
-	r.SetTrustedProxies([]string{"localhost"})
 
 	api.SetupRoutes(r)
-	web.SetupRoutes(r)
 
-	err := r.Run()
+	err = r.Run()
 	return err
 }
