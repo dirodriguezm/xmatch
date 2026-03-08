@@ -16,13 +16,16 @@ package api_test
 
 import (
 	"bytes"
-	"database/sql"
+
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/stretchr/testify/require"
@@ -31,8 +34,31 @@ import (
 func TestMetadata_FindByID(t *testing.T) {
 	beforeTest(t)
 
-	var db *sql.DB
-	ctr.Resolve(&db)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
 	test_helpers.InsertAllwiseMastercat(10, db)
 	test_helpers.InsertAllwiseMetadata(10, db)
 
@@ -72,8 +98,31 @@ func TestMetadata_Validation(t *testing.T) {
 func TestMetadata_BulkFindByID(t *testing.T) {
 	beforeTest(t)
 
-	var db *sql.DB
-	ctr.Resolve(&db)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
 	test_helpers.InsertAllwiseMastercat(10, db)
 	test_helpers.InsertAllwiseMetadata(10, db)
 

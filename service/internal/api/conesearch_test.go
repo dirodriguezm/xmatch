@@ -17,15 +17,18 @@ package api_test
 import (
 	"bytes"
 	"context"
-	"database/sql"
+
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
@@ -92,9 +95,32 @@ func TestConesearch(t *testing.T) {
 	beforeTest(t)
 
 	// insert allwise mastercat
-	var db *sql.DB
-	ctr.Resolve(&db)
-	err := test_helpers.InsertAllwiseMastercat(100, db)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	err = test_helpers.InsertAllwiseMastercat(100, db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,9 +154,32 @@ func TestConesearch_NNeighbor(t *testing.T) {
 	beforeTest(t)
 
 	// insert allwise mastercat
-	var db *sql.DB
-	ctr.Resolve(&db)
-	err := test_helpers.InsertAllwiseMastercat(1, db)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	err = test_helpers.InsertAllwiseMastercat(1, db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,9 +229,32 @@ func TestBulkConesearch(t *testing.T) {
 	beforeTest(t)
 
 	// insert allwise mastercat
-	var db *sql.DB
-	ctr.Resolve(&db)
-	err := test_helpers.InsertAllwiseMastercat(100, db)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	err = test_helpers.InsertAllwiseMastercat(100, db)
 	if err != nil {
 		t.Fatal(err)
 	}

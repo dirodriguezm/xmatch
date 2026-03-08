@@ -23,12 +23,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/di"
+	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
-	"github.com/golobby/container/v3"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -37,7 +36,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var ctr container.Container
+var configPath string
+var dbFile string
 
 func TestMain(m *testing.M) {
 	rootPath, err := utils.FindRootModulePath(5)
@@ -46,24 +46,30 @@ func TestMain(m *testing.M) {
 	}
 
 	// remove test database, ignore errors
-	dbFile := filepath.Join(rootPath, "test.db")
+	dbFile = filepath.Join(rootPath, "test.db")
 	os.Remove(dbFile)
 
-	// create a config file
-	tmpDir, err := os.MkdirTemp("", "server_test_*")
+	// create temporary directory for config
+	tmpDir, err := os.MkdirTemp("", "xmatch-test-*")
 	if err != nil {
-		slog.Error("could not make temp dir")
 		panic(err)
 	}
-	configPath := filepath.Join(tmpDir, "config.yaml")
-	config := `
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// create config file
+	configPath = filepath.Join(tmpDir, "config.yaml")
+	config := fmt.Sprintf(`
 service:
   database:
     url: "file:%s?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000"
+  host: "localhost:8080"
+  base_path: "/v1"
   bulk_chunk_size: 500
   max_bulk_concurrency: 1
-`
-	config = fmt.Sprintf(config, dbFile)
+  lightcurve_service:
+    neowise:
+      use_cntr_filter: true
+`, dbFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)
 	if err != nil {
 		panic(fmt.Errorf("could not write config file: %w", err))
@@ -79,6 +85,23 @@ service:
 		panic(fmt.Errorf("Error during migrations: %w", err))
 	}
 
+	err = test_helpers.RegisterCatalogsInDB(context.Background(), dbFile)
+	if err != nil {
+		panic(fmt.Errorf("registering catalogs: %w", err))
+	}
+
+	// run tests
+	code := m.Run()
+
+	// cleanup
+	os.Remove(configPath)
+	os.Remove(dbFile)
+	os.Remove(tmpDir)
+
+	os.Exit(code)
+}
+
+func TestConesearch(t *testing.T) {
 	getenv := func(key string) string {
 		switch key {
 		case "LOG_LEVEL":
@@ -89,41 +112,37 @@ service:
 			return ""
 		}
 	}
-	ctx := context.Background()
 	stdout := &strings.Builder{}
 
-	test_helpers.RegisterCatalogsInDB(ctx, dbFile)
-
-	// build DI container
-	ctr = di.BuildServiceContainer(ctx, getenv, stdout)
-
-	// run tests
-	m.Run()
-
-	// cleanup
-	os.Remove(configPath)
-	os.Remove(dbFile)
-	os.Remove(tmpDir)
-}
-
-func TestConesearch(t *testing.T) {
-	var service *conesearch.ConesearchService
-	err := ctr.Resolve(&service)
+	cfg, err := app.Config(getenv)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	repo := app.ServiceRepository(db)
+
+	service, err := app.ConesearchService(repo)
+	if err != nil {
+		t.Fatalf("creating conesearch service: %v", err)
 	}
 
 	objects := []repository.Mastercat{
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	var repo conesearch.Repository
-	err = ctr.Resolve(&repo)
-	if err != nil {
-		t.Error(err)
-	}
 	for _, obj := range objects {
-		repo.InsertMastercat(context.Background(), obj)
+		err = repo.InsertMastercat(context.Background(), obj)
+		if err != nil {
+			t.Fatalf("inserting object: %v", err)
+		}
 	}
 
 	result, err := service.Conesearch(0, 0, 1, 10, "all")
@@ -136,25 +155,52 @@ func TestConesearch(t *testing.T) {
 }
 
 func TestConesearch_WithMetadata(t *testing.T) {
-	var service *conesearch.ConesearchService
-	err := ctr.Resolve(&service)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	repo := app.ServiceRepository(db)
+
+	service, err := app.ConesearchService(repo)
+	if err != nil {
+		t.Fatalf("creating conesearch service: %v", err)
 	}
 
 	objects := []repository.Mastercat{
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	var repo conesearch.Repository
-	err = ctr.Resolve(&repo)
-	if err != nil {
-		t.Error(err)
-	}
 	for _, obj := range objects {
 		ctx := context.Background()
-		repo.InsertMastercat(ctx, obj)
-		repo.InsertAllwiseWithoutParams(ctx, repository.Allwise{ID: obj.ID})
+		err = repo.InsertMastercat(ctx, obj)
+		if err != nil {
+			t.Fatalf("inserting mastercat: %v", err)
+		}
+		err = repo.InsertAllwiseWithoutParams(ctx, repository.Allwise{ID: obj.ID})
+		if err != nil {
+			t.Fatalf("inserting allwise: %v", err)
+		}
 	}
 
 	result, err := service.FindMetadataByConesearch(0, 0, 1, 10, "allwise")
@@ -167,11 +213,36 @@ func TestConesearch_WithMetadata(t *testing.T) {
 }
 
 func TestBulkConesearch(t *testing.T) {
-	// initialize service
-	var service *conesearch.ConesearchService
-	err := ctr.Resolve(&service)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	repo := app.ServiceRepository(db)
+
+	service, err := app.ConesearchService(repo)
+	if err != nil {
+		t.Fatalf("creating conesearch service: %v", err)
 	}
 
 	// insert objects
@@ -179,13 +250,11 @@ func TestBulkConesearch(t *testing.T) {
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	var repo conesearch.Repository
-	err = ctr.Resolve(&repo)
-	if err != nil {
-		t.Error(err)
-	}
 	for _, obj := range objects {
-		repo.InsertMastercat(context.Background(), obj)
+		err = repo.InsertMastercat(context.Background(), obj)
+		if err != nil {
+			t.Fatalf("inserting object: %v", err)
+		}
 	}
 
 	// set up test cases

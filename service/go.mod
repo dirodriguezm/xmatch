@@ -70,7 +70,6 @@ require (
 	github.com/go-playground/validator/v10 v10.26.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/golang-migrate/migrate/v4 v4.18.1
-	github.com/golobby/container/v3 v3.3.2
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/kyroy/kdtree v0.0.0-20200419114247-70830f883f1d
