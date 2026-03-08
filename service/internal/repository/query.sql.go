@@ -12,12 +12,34 @@ import (
 )
 
 const bulkGetAllwise = `-- name: BulkGetAllwise :many
-SELECT id, cntr, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, j_m_2mass, j_msig_2mass, h_m_2mass, h_msig_2mass, k_m_2mass, k_msig_2mass
-FROM allwise
-WHERE id IN (/*SLICE:id*/?)
+SELECT allwise.id, allwise.cntr, allwise.w1mpro, allwise.w1sigmpro, allwise.w2mpro, allwise.w2sigmpro, allwise.w3mpro, allwise.w3sigmpro, allwise.w4mpro, allwise.w4sigmpro, allwise.j_m_2mass, allwise.j_msig_2mass, allwise.h_m_2mass, allwise.h_msig_2mass, allwise.k_m_2mass, allwise.k_msig_2mass, mastercat.ra, mastercat.dec
+FROM allwise 
+JOIN mastercat ON mastercat.id = allwise.id
+WHERE allwise.id IN (/*SLICE:id*/?)
 `
 
-func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]Allwise, error) {
+type BulkGetAllwiseRow struct {
+	ID         string          `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
+	Cntr       int64           `json:"cntr" parquet:"name=cntr, type=INT64"`
+	W1mpro     sql.NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE"`
+	W1sigmpro  sql.NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE"`
+	W2mpro     sql.NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE"`
+	W2sigmpro  sql.NullFloat64 `json:"w2sigmpro" parquet:"name=w2sigmpro, type=DOUBLE"`
+	W3mpro     sql.NullFloat64 `json:"w3mpro" parquet:"name=w3mpro, type=DOUBLE"`
+	W3sigmpro  sql.NullFloat64 `json:"w3sigmpro" parquet:"name=w3sigmpro, type=DOUBLE"`
+	W4mpro     sql.NullFloat64 `json:"w4mpro" parquet:"name=w4mpro, type=DOUBLE"`
+	W4sigmpro  sql.NullFloat64 `json:"w4sigmpro" parquet:"name=w4sigmpro, type=DOUBLE"`
+	JM2mass    sql.NullFloat64 `json:"j_m_2mass" parquet:"name=j_m_2mass, type=DOUBLE"`
+	JMsig2mass sql.NullFloat64 `json:"j_msig_2mass" parquet:"name=j_msig_2mass, type=DOUBLE"`
+	HM2mass    sql.NullFloat64 `json:"h_m_2mass" parquet:"name=h_m_2mass, type=DOUBLE"`
+	HMsig2mass sql.NullFloat64 `json:"h_msig_2mass" parquet:"name=h_msig_2mass, type=DOUBLE"`
+	KM2mass    sql.NullFloat64 `json:"k_m_2mass" parquet:"name=k_m_2mass, type=DOUBLE"`
+	KMsig2mass sql.NullFloat64 `json:"k_msig_2mass" parquet:"name=k_msig_2mass, type=DOUBLE"`
+	Ra         float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec        float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
+}
+
+func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]BulkGetAllwiseRow, error) {
 	query := bulkGetAllwise
 	var queryParams []interface{}
 	if len(id) > 0 {
@@ -33,9 +55,9 @@ func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]Allwise, e
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Allwise
+	var items []BulkGetAllwiseRow
 	for rows.Next() {
-		var i Allwise
+		var i BulkGetAllwiseRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Cntr,
@@ -53,6 +75,8 @@ func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]Allwise, e
 			&i.HMsig2mass,
 			&i.KM2mass,
 			&i.KMsig2mass,
+			&i.Ra,
+			&i.Dec,
 		); err != nil {
 			return nil, err
 		}
@@ -68,10 +92,131 @@ func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]Allwise, e
 }
 
 const bulkGetErosita = `-- name: BulkGetErosita :many
-SELECT id, detuid, skytile, id_src, uid, uid_hard, id_cluster, ra, dec, ra_lowerr, ra_uperr, dec_lowerr, dec_uperr, pos_err, mjd, mjd_min, mjd_max, ext, ext_err, ext_like, det_like_0, ml_cts_1, ml_cts_err_1, ml_rate_1, ml_rate_err_1, ml_flux_1, ml_flux_err_1, ml_bkg_1, ml_exp_1, ape_bkg_1, ape_radius_1, ape_pois_1, det_like_p1, ml_cts_p1, ml_cts_err_p1, ml_rate_p1, ml_rate_err_p1, ml_flux_p1, ml_flux_err_p1, ml_bkg_p1, ml_exp_p1, ape_bkg_p1, ape_radius_p1, ape_pois_p1, det_like_p2, ml_cts_p2, ml_cts_err_p2, ml_rate_p2, ml_rate_err_p2, ml_flux_p2, ml_flux_err_p2, ml_bkg_p2, ml_exp_p2, ape_bkg_p2, ape_radius_p2, ape_pois_p2, det_like_p3, ml_cts_p3, ml_cts_err_p3, ml_rate_p3, ml_rate_err_p3, ml_flux_p3, ml_flux_err_p3, ml_bkg_p3, ml_exp_p3, ape_bkg_p3, ape_radius_p3, ape_pois_p3, det_like_p4, ml_cts_p4, ml_cts_err_p4, ml_rate_p4, ml_rate_err_p4, ml_flux_p4, ml_flux_err_p4, ml_bkg_p4, ml_exp_p4, ape_bkg_p4, ape_radius_p4, ape_pois_p4, det_like_p5, ml_cts_p5, ml_cts_err_p5, ml_rate_p5, ml_rate_err_p5, ml_flux_p5, ml_flux_err_p5, ml_bkg_p5, ml_exp_p5, ape_bkg_p5, ape_radius_p5, ape_pois_p5, det_like_p6, ml_cts_p6, ml_cts_err_p6, ml_rate_p6, ml_rate_err_p6, ml_flux_p6, ml_flux_err_p6, ml_bkg_p6, ml_exp_p6, ape_bkg_p6, ape_radius_p6, ape_pois_p6, flag_sp_snr, flag_sp_bps, flag_sp_scl, flag_sp_lga, flag_sp_gc_cons, flag_no_radec_err, flag_no_ext_err, flag_no_cts_err, flag_opt FROM erosita WHERE id IN (/*SLICE:id*/?)
+SELECT erosita.id, erosita.detuid, erosita.skytile, erosita.id_src, erosita.uid, erosita.uid_hard, erosita.id_cluster, erosita.ra, erosita.dec, erosita.ra_lowerr, erosita.ra_uperr, erosita.dec_lowerr, erosita.dec_uperr, erosita.pos_err, erosita.mjd, erosita.mjd_min, erosita.mjd_max, erosita.ext, erosita.ext_err, erosita.ext_like, erosita.det_like_0, erosita.ml_cts_1, erosita.ml_cts_err_1, erosita.ml_rate_1, erosita.ml_rate_err_1, erosita.ml_flux_1, erosita.ml_flux_err_1, erosita.ml_bkg_1, erosita.ml_exp_1, erosita.ape_bkg_1, erosita.ape_radius_1, erosita.ape_pois_1, erosita.det_like_p1, erosita.ml_cts_p1, erosita.ml_cts_err_p1, erosita.ml_rate_p1, erosita.ml_rate_err_p1, erosita.ml_flux_p1, erosita.ml_flux_err_p1, erosita.ml_bkg_p1, erosita.ml_exp_p1, erosita.ape_bkg_p1, erosita.ape_radius_p1, erosita.ape_pois_p1, erosita.det_like_p2, erosita.ml_cts_p2, erosita.ml_cts_err_p2, erosita.ml_rate_p2, erosita.ml_rate_err_p2, erosita.ml_flux_p2, erosita.ml_flux_err_p2, erosita.ml_bkg_p2, erosita.ml_exp_p2, erosita.ape_bkg_p2, erosita.ape_radius_p2, erosita.ape_pois_p2, erosita.det_like_p3, erosita.ml_cts_p3, erosita.ml_cts_err_p3, erosita.ml_rate_p3, erosita.ml_rate_err_p3, erosita.ml_flux_p3, erosita.ml_flux_err_p3, erosita.ml_bkg_p3, erosita.ml_exp_p3, erosita.ape_bkg_p3, erosita.ape_radius_p3, erosita.ape_pois_p3, erosita.det_like_p4, erosita.ml_cts_p4, erosita.ml_cts_err_p4, erosita.ml_rate_p4, erosita.ml_rate_err_p4, erosita.ml_flux_p4, erosita.ml_flux_err_p4, erosita.ml_bkg_p4, erosita.ml_exp_p4, erosita.ape_bkg_p4, erosita.ape_radius_p4, erosita.ape_pois_p4, erosita.det_like_p5, erosita.ml_cts_p5, erosita.ml_cts_err_p5, erosita.ml_rate_p5, erosita.ml_rate_err_p5, erosita.ml_flux_p5, erosita.ml_flux_err_p5, erosita.ml_bkg_p5, erosita.ml_exp_p5, erosita.ape_bkg_p5, erosita.ape_radius_p5, erosita.ape_pois_p5, erosita.det_like_p6, erosita.ml_cts_p6, erosita.ml_cts_err_p6, erosita.ml_rate_p6, erosita.ml_rate_err_p6, erosita.ml_flux_p6, erosita.ml_flux_err_p6, erosita.ml_bkg_p6, erosita.ml_exp_p6, erosita.ape_bkg_p6, erosita.ape_radius_p6, erosita.ape_pois_p6, erosita.flag_sp_snr, erosita.flag_sp_bps, erosita.flag_sp_scl, erosita.flag_sp_lga, erosita.flag_sp_gc_cons, erosita.flag_no_radec_err, erosita.flag_no_ext_err, erosita.flag_no_cts_err, erosita.flag_opt, mastercat.ra, mastercat.dec
+FROM erosita 
+JOIN mastercat ON mastercat.id = erosita.id
+WHERE erosita.id IN (/*SLICE:id*/?)
 `
 
-func (q *Queries) BulkGetErosita(ctx context.Context, id []string) ([]Erosita, error) {
+type BulkGetErositaRow struct {
+	ID             string          `json:"id" parquet:"name=IAUNAME, type=BYTE_ARRAY"`
+	Detuid         sql.NullString  `parquet:"name=DETUID, type=BYTE_ARRAY"`
+	Skytile        sql.NullInt64   `parquet:"name=SKYTILE, type=INT32"`
+	IDSrc          sql.NullInt64   `parquet:"name=ID_SRC, type=INT32"`
+	Uid            sql.NullInt64   `parquet:"name=UID, type=INT64"`
+	UidHard        sql.NullInt64   `parquet:"name=UID_Hard, type=INT64"`
+	IDCluster      sql.NullInt64   `parquet:"name=ID_CLUSTER, type=INT32"`
+	Ra             sql.NullFloat64 `parquet:"name=RA, type=DOUBLE"`
+	Dec            sql.NullFloat64 `parquet:"name=DEC, type=DOUBLE"`
+	RaLowerr       sql.NullFloat64 `parquet:"name=RA_LOWERR, type=FLOAT"`
+	RaUperr        sql.NullFloat64 `parquet:"name=RA_UPERR, type=FLOAT"`
+	DecLowerr      sql.NullFloat64 `parquet:"name=DEC_LOWERR, type=FLOAT"`
+	DecUperr       sql.NullFloat64 `parquet:"name=DEC_UPERR, type=FLOAT"`
+	PosErr         sql.NullFloat64 `parquet:"name=POS_ERR, type=FLOAT"`
+	Mjd            sql.NullFloat64 `json:"mjd" parquet:"name=MJD, type=FLOAT"`
+	MjdMin         sql.NullFloat64 `parquet:"name=MJD_MIN, type=FLOAT"`
+	MjdMax         sql.NullFloat64 `parquet:"name=MJD_MAX, type=FLOAT"`
+	Ext            sql.NullFloat64 `parquet:"name=EXT, type=FLOAT"`
+	ExtErr         sql.NullFloat64 `parquet:"name=EXT_ERR, type=FLOAT"`
+	ExtLike        sql.NullFloat64 `parquet:"name=EXT_LIKE, type=FLOAT"`
+	DetLike0       sql.NullFloat64 `parquet:"name=DET_LIKE_0, type=FLOAT"`
+	MlCts1         sql.NullFloat64 `parquet:"name=ML_CTS_1, type=FLOAT"`
+	MlCtsErr1      sql.NullFloat64 `parquet:"name=ML_CTS_ERR_1, type=FLOAT"`
+	MlRate1        sql.NullFloat64 `parquet:"name=ML_RATE_1, type=FLOAT"`
+	MlRateErr1     sql.NullFloat64 `parquet:"name=ML_RATE_ERR_1, type=FLOAT"`
+	MlFlux1        sql.NullFloat64 `json:"ml_flux_1" parquet:"name=ML_FLUX_1, type=FLOAT"`
+	MlFluxErr1     sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_1, type=FLOAT"`
+	MlBkg1         sql.NullFloat64 `parquet:"name=ML_BKG_1, type=FLOAT"`
+	MlExp1         sql.NullFloat64 `parquet:"name=ML_EXP_1, type=FLOAT"`
+	ApeBkg1        sql.NullFloat64 `parquet:"name=APE_BKG_1, type=FLOAT"`
+	ApeRadius1     sql.NullFloat64 `parquet:"name=APE_RADIUS_1, type=FLOAT"`
+	ApePois1       sql.NullFloat64 `parquet:"name=APE_POIS_1, type=FLOAT"`
+	DetLikeP1      sql.NullFloat64 `parquet:"name=DET_LIKE_P1, type=FLOAT"`
+	MlCtsP1        sql.NullFloat64 `parquet:"name=ML_CTS_P1, type=FLOAT"`
+	MlCtsErrP1     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P1, type=FLOAT"`
+	MlRateP1       sql.NullFloat64 `parquet:"name=ML_RATE_P1, type=FLOAT"`
+	MlRateErrP1    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P1, type=FLOAT"`
+	MlFluxP1       sql.NullFloat64 `parquet:"name=ML_FLUX_P1, type=FLOAT"`
+	MlFluxErrP1    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P1, type=FLOAT"`
+	MlBkgP1        sql.NullFloat64 `parquet:"name=ML_BKG_P1, type=FLOAT"`
+	MlExpP1        sql.NullFloat64 `parquet:"name=ML_EXP_P1, type=FLOAT"`
+	ApeBkgP1       sql.NullFloat64 `parquet:"name=APE_BKG_P1, type=FLOAT"`
+	ApeRadiusP1    sql.NullFloat64 `parquet:"name=APE_RADIUS_P1, type=FLOAT"`
+	ApePoisP1      sql.NullFloat64 `parquet:"name=APE_POIS_P1, type=FLOAT"`
+	DetLikeP2      sql.NullFloat64 `parquet:"name=DET_LIKE_P2, type=FLOAT"`
+	MlCtsP2        sql.NullFloat64 `parquet:"name=ML_CTS_P2, type=FLOAT"`
+	MlCtsErrP2     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P2, type=FLOAT"`
+	MlRateP2       sql.NullFloat64 `parquet:"name=ML_RATE_P2, type=FLOAT"`
+	MlRateErrP2    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P2, type=FLOAT"`
+	MlFluxP2       sql.NullFloat64 `parquet:"name=ML_FLUX_P2, type=FLOAT"`
+	MlFluxErrP2    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P2, type=FLOAT"`
+	MlBkgP2        sql.NullFloat64 `parquet:"name=ML_BKG_P2, type=FLOAT"`
+	MlExpP2        sql.NullFloat64 `parquet:"name=ML_EXP_P2, type=FLOAT"`
+	ApeBkgP2       sql.NullFloat64 `parquet:"name=APE_BKG_P2, type=FLOAT"`
+	ApeRadiusP2    sql.NullFloat64 `parquet:"name=APE_RADIUS_P2, type=FLOAT"`
+	ApePoisP2      sql.NullFloat64 `parquet:"name=APE_POIS_P2, type=FLOAT"`
+	DetLikeP3      sql.NullFloat64 `parquet:"name=DET_LIKE_P3, type=FLOAT"`
+	MlCtsP3        sql.NullFloat64 `parquet:"name=ML_CTS_P3, type=FLOAT"`
+	MlCtsErrP3     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P3, type=FLOAT"`
+	MlRateP3       sql.NullFloat64 `parquet:"name=ML_RATE_P3, type=FLOAT"`
+	MlRateErrP3    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P3, type=FLOAT"`
+	MlFluxP3       sql.NullFloat64 `parquet:"name=ML_FLUX_P3, type=FLOAT"`
+	MlFluxErrP3    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P3, type=FLOAT"`
+	MlBkgP3        sql.NullFloat64 `parquet:"name=ML_BKG_P3, type=FLOAT"`
+	MlExpP3        sql.NullFloat64 `parquet:"name=ML_EXP_P3, type=FLOAT"`
+	ApeBkgP3       sql.NullFloat64 `parquet:"name=APE_BKG_P3, type=FLOAT"`
+	ApeRadiusP3    sql.NullFloat64 `parquet:"name=APE_RADIUS_P3, type=FLOAT"`
+	ApePoisP3      sql.NullFloat64 `parquet:"name=APE_POIS_P3, type=FLOAT"`
+	DetLikeP4      sql.NullFloat64 `parquet:"name=DET_LIKE_P4, type=FLOAT"`
+	MlCtsP4        sql.NullFloat64 `parquet:"name=ML_CTS_P4, type=FLOAT"`
+	MlCtsErrP4     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P4, type=FLOAT"`
+	MlRateP4       sql.NullFloat64 `parquet:"name=ML_RATE_P4, type=FLOAT"`
+	MlRateErrP4    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P4, type=FLOAT"`
+	MlFluxP4       sql.NullFloat64 `parquet:"name=ML_FLUX_P4, type=FLOAT"`
+	MlFluxErrP4    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P4, type=FLOAT"`
+	MlBkgP4        sql.NullFloat64 `parquet:"name=ML_BKG_P4, type=FLOAT"`
+	MlExpP4        sql.NullFloat64 `parquet:"name=ML_EXP_P4, type=FLOAT"`
+	ApeBkgP4       sql.NullFloat64 `parquet:"name=APE_BKG_P4, type=FLOAT"`
+	ApeRadiusP4    sql.NullFloat64 `parquet:"name=APE_RADIUS_P4, type=FLOAT"`
+	ApePoisP4      sql.NullFloat64 `parquet:"name=APE_POIS_P4, type=FLOAT"`
+	DetLikeP5      sql.NullFloat64 `parquet:"name=DET_LIKE_P5, type=FLOAT"`
+	MlCtsP5        sql.NullFloat64 `parquet:"name=ML_CTS_P5, type=FLOAT"`
+	MlCtsErrP5     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P5, type=FLOAT"`
+	MlRateP5       sql.NullFloat64 `parquet:"name=ML_RATE_P5, type=FLOAT"`
+	MlRateErrP5    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P5, type=FLOAT"`
+	MlFluxP5       sql.NullFloat64 `parquet:"name=ML_FLUX_P5, type=FLOAT"`
+	MlFluxErrP5    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P5, type=FLOAT"`
+	MlBkgP5        sql.NullFloat64 `parquet:"name=ML_BKG_P5, type=FLOAT"`
+	MlExpP5        sql.NullFloat64 `parquet:"name=ML_EXP_P5, type=FLOAT"`
+	ApeBkgP5       sql.NullFloat64 `parquet:"name=APE_BKG_P5, type=FLOAT"`
+	ApeRadiusP5    sql.NullFloat64 `parquet:"name=APE_RADIUS_P5, type=FLOAT"`
+	ApePoisP5      sql.NullFloat64 `parquet:"name=APE_POIS_P5, type=FLOAT"`
+	DetLikeP6      sql.NullFloat64 `parquet:"name=DET_LIKE_P6, type=FLOAT"`
+	MlCtsP6        sql.NullFloat64 `parquet:"name=ML_CTS_P6, type=FLOAT"`
+	MlCtsErrP6     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P6, type=FLOAT"`
+	MlRateP6       sql.NullFloat64 `parquet:"name=ML_RATE_P6, type=FLOAT"`
+	MlRateErrP6    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P6, type=FLOAT"`
+	MlFluxP6       sql.NullFloat64 `parquet:"name=ML_FLUX_P6, type=FLOAT"`
+	MlFluxErrP6    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P6, type=FLOAT"`
+	MlBkgP6        sql.NullFloat64 `parquet:"name=ML_BKG_P6, type=FLOAT"`
+	MlExpP6        sql.NullFloat64 `parquet:"name=ML_EXP_P6, type=FLOAT"`
+	ApeBkgP6       sql.NullFloat64 `parquet:"name=APE_BKG_P6, type=FLOAT"`
+	ApeRadiusP6    sql.NullFloat64 `parquet:"name=APE_RADIUS_P6, type=FLOAT"`
+	ApePoisP6      sql.NullFloat64 `parquet:"name=APE_POIS_P6, type=FLOAT"`
+	FlagSpSnr      sql.NullInt64   `parquet:"name=FLAG_SP_SNR, type=INT32"`
+	FlagSpBps      sql.NullInt64   `parquet:"name=FLAG_SP_BPS, type=INT32"`
+	FlagSpScl      sql.NullInt64   `parquet:"name=FLAG_SP_SCL, type=INT32"`
+	FlagSpLga      sql.NullInt64   `parquet:"name=FLAG_SP_LGA, type=INT32"`
+	FlagSpGcCons   sql.NullInt64   `parquet:"name=FLAG_SP_GC_CONS, type=INT32"`
+	FlagNoRadecErr sql.NullInt64   `parquet:"name=FLAG_NO_RADEC_ERR, type=INT32"`
+	FlagNoExtErr   sql.NullInt64   `parquet:"name=FLAG_NO_EXT_ERR, type=INT32"`
+	FlagNoCtsErr   sql.NullInt64   `parquet:"name=FLAG_NO_CTS_ERR, type=INT32"`
+	FlagOpt        sql.NullInt64   `parquet:"name=FLAG_OPT, type=INT32"`
+	Ra_2           float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec_2          float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
+}
+
+func (q *Queries) BulkGetErosita(ctx context.Context, id []string) ([]BulkGetErositaRow, error) {
 	query := bulkGetErosita
 	var queryParams []interface{}
 	if len(id) > 0 {
@@ -87,9 +232,9 @@ func (q *Queries) BulkGetErosita(ctx context.Context, id []string) ([]Erosita, e
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Erosita
+	var items []BulkGetErositaRow
 	for rows.Next() {
-		var i Erosita
+		var i BulkGetErositaRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Detuid,
@@ -204,6 +349,8 @@ func (q *Queries) BulkGetErosita(ctx context.Context, id []string) ([]Erosita, e
 			&i.FlagNoExtErr,
 			&i.FlagNoCtsErr,
 			&i.FlagOpt,
+			&i.Ra_2,
+			&i.Dec_2,
 		); err != nil {
 			return nil, err
 		}
@@ -219,12 +366,28 @@ func (q *Queries) BulkGetErosita(ctx context.Context, id []string) ([]Erosita, e
 }
 
 const bulkGetGaia = `-- name: BulkGetGaia :many
-SELECT id, phot_g_mean_flux, phot_g_mean_flux_error, phot_g_mean_mag, phot_bp_mean_flux, phot_bp_mean_flux_error, phot_bp_mean_mag, phot_rp_mean_flux, phot_rp_mean_flux_error, phot_rp_mean_mag
-FROM gaia
-WHERE id IN (/*SLICE:id*/?)
+SELECT gaia.id, gaia.phot_g_mean_flux, gaia.phot_g_mean_flux_error, gaia.phot_g_mean_mag, gaia.phot_bp_mean_flux, gaia.phot_bp_mean_flux_error, gaia.phot_bp_mean_mag, gaia.phot_rp_mean_flux, gaia.phot_rp_mean_flux_error, gaia.phot_rp_mean_mag, mastercat.ra, mastercat.dec
+FROM gaia 
+JOIN mastercat ON mastercat.id = gaia.id
+WHERE gaia.id IN (/*SLICE:id*/?)
 `
 
-func (q *Queries) BulkGetGaia(ctx context.Context, id []string) ([]Gaia, error) {
+type BulkGetGaiaRow struct {
+	ID                  string          `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
+	PhotGMeanFlux       sql.NullFloat64 `json:"phot_g_mean_flux" parquet:"name=phot_g_mean_flux, type=DOUBLE"`
+	PhotGMeanFluxError  sql.NullFloat64 `json:"phot_g_mean_flux_error" parquet:"name=phot_g_mean_flux_error, type=DOUBLE"`
+	PhotGMeanMag        sql.NullFloat64 `json:"phot_g_mean_mag" parquet:"name=phot_g_mean_mag, type=DOUBLE"`
+	PhotBpMeanFlux      sql.NullFloat64 `json:"phot_bp_mean_flux" parquet:"name=phot_bp_mean_flux, type=DOUBLE"`
+	PhotBpMeanFluxError sql.NullFloat64 `json:"phot_bp_mean_flux_error" parquet:"name=phot_bp_mean_flux_error, type=DOUBLE"`
+	PhotBpMeanMag       sql.NullFloat64 `json:"phot_bp_mean_mag" parquet:"name=phot_bp_mean_mag, type=DOUBLE"`
+	PhotRpMeanFlux      sql.NullFloat64 `json:"phot_rp_mean_flux" parquet:"name=phot_rp_mean_flux, type=DOUBLE"`
+	PhotRpMeanFluxError sql.NullFloat64 `json:"phot_rp_mean_flux_error" parquet:"name=phot_rp_mean_flux_error, type=DOUBLE"`
+	PhotRpMeanMag       sql.NullFloat64 `json:"phot_rp_mean_mag" parquet:"name=phot_rp_mean_mag, type=DOUBLE"`
+	Ra                  float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec                 float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
+}
+
+func (q *Queries) BulkGetGaia(ctx context.Context, id []string) ([]BulkGetGaiaRow, error) {
 	query := bulkGetGaia
 	var queryParams []interface{}
 	if len(id) > 0 {
@@ -240,9 +403,9 @@ func (q *Queries) BulkGetGaia(ctx context.Context, id []string) ([]Gaia, error) 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Gaia
+	var items []BulkGetGaiaRow
 	for rows.Next() {
-		var i Gaia
+		var i BulkGetGaiaRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.PhotGMeanFlux,
@@ -254,6 +417,8 @@ func (q *Queries) BulkGetGaia(ctx context.Context, id []string) ([]Gaia, error) 
 			&i.PhotRpMeanFlux,
 			&i.PhotRpMeanFluxError,
 			&i.PhotRpMeanMag,
+			&i.Ra,
+			&i.Dec,
 		); err != nil {
 			return nil, err
 		}
@@ -348,14 +513,36 @@ func (q *Queries) GetAllObjects(ctx context.Context) ([]Mastercat, error) {
 }
 
 const getAllwise = `-- name: GetAllwise :one
-SELECT id, cntr, w1mpro, w1sigmpro, w2mpro, w2sigmpro, w3mpro, w3sigmpro, w4mpro, w4sigmpro, j_m_2mass, j_msig_2mass, h_m_2mass, h_msig_2mass, k_m_2mass, k_msig_2mass
-FROM allwise
-WHERE id = ?
+SELECT allwise.id, allwise.cntr, allwise.w1mpro, allwise.w1sigmpro, allwise.w2mpro, allwise.w2sigmpro, allwise.w3mpro, allwise.w3sigmpro, allwise.w4mpro, allwise.w4sigmpro, allwise.j_m_2mass, allwise.j_msig_2mass, allwise.h_m_2mass, allwise.h_msig_2mass, allwise.k_m_2mass, allwise.k_msig_2mass, mastercat.ra, mastercat.dec
+FROM allwise 
+JOIN mastercat ON mastercat.id = allwise.id
+WHERE allwise.id = ?
 `
 
-func (q *Queries) GetAllwise(ctx context.Context, id string) (Allwise, error) {
+type GetAllwiseRow struct {
+	ID         string          `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
+	Cntr       int64           `json:"cntr" parquet:"name=cntr, type=INT64"`
+	W1mpro     sql.NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE"`
+	W1sigmpro  sql.NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE"`
+	W2mpro     sql.NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE"`
+	W2sigmpro  sql.NullFloat64 `json:"w2sigmpro" parquet:"name=w2sigmpro, type=DOUBLE"`
+	W3mpro     sql.NullFloat64 `json:"w3mpro" parquet:"name=w3mpro, type=DOUBLE"`
+	W3sigmpro  sql.NullFloat64 `json:"w3sigmpro" parquet:"name=w3sigmpro, type=DOUBLE"`
+	W4mpro     sql.NullFloat64 `json:"w4mpro" parquet:"name=w4mpro, type=DOUBLE"`
+	W4sigmpro  sql.NullFloat64 `json:"w4sigmpro" parquet:"name=w4sigmpro, type=DOUBLE"`
+	JM2mass    sql.NullFloat64 `json:"j_m_2mass" parquet:"name=j_m_2mass, type=DOUBLE"`
+	JMsig2mass sql.NullFloat64 `json:"j_msig_2mass" parquet:"name=j_msig_2mass, type=DOUBLE"`
+	HM2mass    sql.NullFloat64 `json:"h_m_2mass" parquet:"name=h_m_2mass, type=DOUBLE"`
+	HMsig2mass sql.NullFloat64 `json:"h_msig_2mass" parquet:"name=h_msig_2mass, type=DOUBLE"`
+	KM2mass    sql.NullFloat64 `json:"k_m_2mass" parquet:"name=k_m_2mass, type=DOUBLE"`
+	KMsig2mass sql.NullFloat64 `json:"k_msig_2mass" parquet:"name=k_msig_2mass, type=DOUBLE"`
+	Ra         float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec        float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
+}
+
+func (q *Queries) GetAllwise(ctx context.Context, id string) (GetAllwiseRow, error) {
 	row := q.db.QueryRowContext(ctx, getAllwise, id)
-	var i Allwise
+	var i GetAllwiseRow
 	err := row.Scan(
 		&i.ID,
 		&i.Cntr,
@@ -373,6 +560,8 @@ func (q *Queries) GetAllwise(ctx context.Context, id string) (Allwise, error) {
 		&i.HMsig2mass,
 		&i.KM2mass,
 		&i.KMsig2mass,
+		&i.Ra,
+		&i.Dec,
 	)
 	return i, err
 }
@@ -486,12 +675,133 @@ func (q *Queries) GetCatalogs(ctx context.Context) ([]Catalog, error) {
 }
 
 const getErosita = `-- name: GetErosita :one
-SELECT id, detuid, skytile, id_src, uid, uid_hard, id_cluster, ra, dec, ra_lowerr, ra_uperr, dec_lowerr, dec_uperr, pos_err, mjd, mjd_min, mjd_max, ext, ext_err, ext_like, det_like_0, ml_cts_1, ml_cts_err_1, ml_rate_1, ml_rate_err_1, ml_flux_1, ml_flux_err_1, ml_bkg_1, ml_exp_1, ape_bkg_1, ape_radius_1, ape_pois_1, det_like_p1, ml_cts_p1, ml_cts_err_p1, ml_rate_p1, ml_rate_err_p1, ml_flux_p1, ml_flux_err_p1, ml_bkg_p1, ml_exp_p1, ape_bkg_p1, ape_radius_p1, ape_pois_p1, det_like_p2, ml_cts_p2, ml_cts_err_p2, ml_rate_p2, ml_rate_err_p2, ml_flux_p2, ml_flux_err_p2, ml_bkg_p2, ml_exp_p2, ape_bkg_p2, ape_radius_p2, ape_pois_p2, det_like_p3, ml_cts_p3, ml_cts_err_p3, ml_rate_p3, ml_rate_err_p3, ml_flux_p3, ml_flux_err_p3, ml_bkg_p3, ml_exp_p3, ape_bkg_p3, ape_radius_p3, ape_pois_p3, det_like_p4, ml_cts_p4, ml_cts_err_p4, ml_rate_p4, ml_rate_err_p4, ml_flux_p4, ml_flux_err_p4, ml_bkg_p4, ml_exp_p4, ape_bkg_p4, ape_radius_p4, ape_pois_p4, det_like_p5, ml_cts_p5, ml_cts_err_p5, ml_rate_p5, ml_rate_err_p5, ml_flux_p5, ml_flux_err_p5, ml_bkg_p5, ml_exp_p5, ape_bkg_p5, ape_radius_p5, ape_pois_p5, det_like_p6, ml_cts_p6, ml_cts_err_p6, ml_rate_p6, ml_rate_err_p6, ml_flux_p6, ml_flux_err_p6, ml_bkg_p6, ml_exp_p6, ape_bkg_p6, ape_radius_p6, ape_pois_p6, flag_sp_snr, flag_sp_bps, flag_sp_scl, flag_sp_lga, flag_sp_gc_cons, flag_no_radec_err, flag_no_ext_err, flag_no_cts_err, flag_opt FROM erosita WHERE id = ?
+SELECT erosita.id, erosita.detuid, erosita.skytile, erosita.id_src, erosita.uid, erosita.uid_hard, erosita.id_cluster, erosita.ra, erosita.dec, erosita.ra_lowerr, erosita.ra_uperr, erosita.dec_lowerr, erosita.dec_uperr, erosita.pos_err, erosita.mjd, erosita.mjd_min, erosita.mjd_max, erosita.ext, erosita.ext_err, erosita.ext_like, erosita.det_like_0, erosita.ml_cts_1, erosita.ml_cts_err_1, erosita.ml_rate_1, erosita.ml_rate_err_1, erosita.ml_flux_1, erosita.ml_flux_err_1, erosita.ml_bkg_1, erosita.ml_exp_1, erosita.ape_bkg_1, erosita.ape_radius_1, erosita.ape_pois_1, erosita.det_like_p1, erosita.ml_cts_p1, erosita.ml_cts_err_p1, erosita.ml_rate_p1, erosita.ml_rate_err_p1, erosita.ml_flux_p1, erosita.ml_flux_err_p1, erosita.ml_bkg_p1, erosita.ml_exp_p1, erosita.ape_bkg_p1, erosita.ape_radius_p1, erosita.ape_pois_p1, erosita.det_like_p2, erosita.ml_cts_p2, erosita.ml_cts_err_p2, erosita.ml_rate_p2, erosita.ml_rate_err_p2, erosita.ml_flux_p2, erosita.ml_flux_err_p2, erosita.ml_bkg_p2, erosita.ml_exp_p2, erosita.ape_bkg_p2, erosita.ape_radius_p2, erosita.ape_pois_p2, erosita.det_like_p3, erosita.ml_cts_p3, erosita.ml_cts_err_p3, erosita.ml_rate_p3, erosita.ml_rate_err_p3, erosita.ml_flux_p3, erosita.ml_flux_err_p3, erosita.ml_bkg_p3, erosita.ml_exp_p3, erosita.ape_bkg_p3, erosita.ape_radius_p3, erosita.ape_pois_p3, erosita.det_like_p4, erosita.ml_cts_p4, erosita.ml_cts_err_p4, erosita.ml_rate_p4, erosita.ml_rate_err_p4, erosita.ml_flux_p4, erosita.ml_flux_err_p4, erosita.ml_bkg_p4, erosita.ml_exp_p4, erosita.ape_bkg_p4, erosita.ape_radius_p4, erosita.ape_pois_p4, erosita.det_like_p5, erosita.ml_cts_p5, erosita.ml_cts_err_p5, erosita.ml_rate_p5, erosita.ml_rate_err_p5, erosita.ml_flux_p5, erosita.ml_flux_err_p5, erosita.ml_bkg_p5, erosita.ml_exp_p5, erosita.ape_bkg_p5, erosita.ape_radius_p5, erosita.ape_pois_p5, erosita.det_like_p6, erosita.ml_cts_p6, erosita.ml_cts_err_p6, erosita.ml_rate_p6, erosita.ml_rate_err_p6, erosita.ml_flux_p6, erosita.ml_flux_err_p6, erosita.ml_bkg_p6, erosita.ml_exp_p6, erosita.ape_bkg_p6, erosita.ape_radius_p6, erosita.ape_pois_p6, erosita.flag_sp_snr, erosita.flag_sp_bps, erosita.flag_sp_scl, erosita.flag_sp_lga, erosita.flag_sp_gc_cons, erosita.flag_no_radec_err, erosita.flag_no_ext_err, erosita.flag_no_cts_err, erosita.flag_opt, mastercat.ra, mastercat.dec
+FROM erosita 
+JOIN mastercat ON mastercat.id = erosita.id
+WHERE erosita.id = ?
 `
 
-func (q *Queries) GetErosita(ctx context.Context, id string) (Erosita, error) {
+type GetErositaRow struct {
+	ID             string          `json:"id" parquet:"name=IAUNAME, type=BYTE_ARRAY"`
+	Detuid         sql.NullString  `parquet:"name=DETUID, type=BYTE_ARRAY"`
+	Skytile        sql.NullInt64   `parquet:"name=SKYTILE, type=INT32"`
+	IDSrc          sql.NullInt64   `parquet:"name=ID_SRC, type=INT32"`
+	Uid            sql.NullInt64   `parquet:"name=UID, type=INT64"`
+	UidHard        sql.NullInt64   `parquet:"name=UID_Hard, type=INT64"`
+	IDCluster      sql.NullInt64   `parquet:"name=ID_CLUSTER, type=INT32"`
+	Ra             sql.NullFloat64 `parquet:"name=RA, type=DOUBLE"`
+	Dec            sql.NullFloat64 `parquet:"name=DEC, type=DOUBLE"`
+	RaLowerr       sql.NullFloat64 `parquet:"name=RA_LOWERR, type=FLOAT"`
+	RaUperr        sql.NullFloat64 `parquet:"name=RA_UPERR, type=FLOAT"`
+	DecLowerr      sql.NullFloat64 `parquet:"name=DEC_LOWERR, type=FLOAT"`
+	DecUperr       sql.NullFloat64 `parquet:"name=DEC_UPERR, type=FLOAT"`
+	PosErr         sql.NullFloat64 `parquet:"name=POS_ERR, type=FLOAT"`
+	Mjd            sql.NullFloat64 `json:"mjd" parquet:"name=MJD, type=FLOAT"`
+	MjdMin         sql.NullFloat64 `parquet:"name=MJD_MIN, type=FLOAT"`
+	MjdMax         sql.NullFloat64 `parquet:"name=MJD_MAX, type=FLOAT"`
+	Ext            sql.NullFloat64 `parquet:"name=EXT, type=FLOAT"`
+	ExtErr         sql.NullFloat64 `parquet:"name=EXT_ERR, type=FLOAT"`
+	ExtLike        sql.NullFloat64 `parquet:"name=EXT_LIKE, type=FLOAT"`
+	DetLike0       sql.NullFloat64 `parquet:"name=DET_LIKE_0, type=FLOAT"`
+	MlCts1         sql.NullFloat64 `parquet:"name=ML_CTS_1, type=FLOAT"`
+	MlCtsErr1      sql.NullFloat64 `parquet:"name=ML_CTS_ERR_1, type=FLOAT"`
+	MlRate1        sql.NullFloat64 `parquet:"name=ML_RATE_1, type=FLOAT"`
+	MlRateErr1     sql.NullFloat64 `parquet:"name=ML_RATE_ERR_1, type=FLOAT"`
+	MlFlux1        sql.NullFloat64 `json:"ml_flux_1" parquet:"name=ML_FLUX_1, type=FLOAT"`
+	MlFluxErr1     sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_1, type=FLOAT"`
+	MlBkg1         sql.NullFloat64 `parquet:"name=ML_BKG_1, type=FLOAT"`
+	MlExp1         sql.NullFloat64 `parquet:"name=ML_EXP_1, type=FLOAT"`
+	ApeBkg1        sql.NullFloat64 `parquet:"name=APE_BKG_1, type=FLOAT"`
+	ApeRadius1     sql.NullFloat64 `parquet:"name=APE_RADIUS_1, type=FLOAT"`
+	ApePois1       sql.NullFloat64 `parquet:"name=APE_POIS_1, type=FLOAT"`
+	DetLikeP1      sql.NullFloat64 `parquet:"name=DET_LIKE_P1, type=FLOAT"`
+	MlCtsP1        sql.NullFloat64 `parquet:"name=ML_CTS_P1, type=FLOAT"`
+	MlCtsErrP1     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P1, type=FLOAT"`
+	MlRateP1       sql.NullFloat64 `parquet:"name=ML_RATE_P1, type=FLOAT"`
+	MlRateErrP1    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P1, type=FLOAT"`
+	MlFluxP1       sql.NullFloat64 `parquet:"name=ML_FLUX_P1, type=FLOAT"`
+	MlFluxErrP1    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P1, type=FLOAT"`
+	MlBkgP1        sql.NullFloat64 `parquet:"name=ML_BKG_P1, type=FLOAT"`
+	MlExpP1        sql.NullFloat64 `parquet:"name=ML_EXP_P1, type=FLOAT"`
+	ApeBkgP1       sql.NullFloat64 `parquet:"name=APE_BKG_P1, type=FLOAT"`
+	ApeRadiusP1    sql.NullFloat64 `parquet:"name=APE_RADIUS_P1, type=FLOAT"`
+	ApePoisP1      sql.NullFloat64 `parquet:"name=APE_POIS_P1, type=FLOAT"`
+	DetLikeP2      sql.NullFloat64 `parquet:"name=DET_LIKE_P2, type=FLOAT"`
+	MlCtsP2        sql.NullFloat64 `parquet:"name=ML_CTS_P2, type=FLOAT"`
+	MlCtsErrP2     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P2, type=FLOAT"`
+	MlRateP2       sql.NullFloat64 `parquet:"name=ML_RATE_P2, type=FLOAT"`
+	MlRateErrP2    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P2, type=FLOAT"`
+	MlFluxP2       sql.NullFloat64 `parquet:"name=ML_FLUX_P2, type=FLOAT"`
+	MlFluxErrP2    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P2, type=FLOAT"`
+	MlBkgP2        sql.NullFloat64 `parquet:"name=ML_BKG_P2, type=FLOAT"`
+	MlExpP2        sql.NullFloat64 `parquet:"name=ML_EXP_P2, type=FLOAT"`
+	ApeBkgP2       sql.NullFloat64 `parquet:"name=APE_BKG_P2, type=FLOAT"`
+	ApeRadiusP2    sql.NullFloat64 `parquet:"name=APE_RADIUS_P2, type=FLOAT"`
+	ApePoisP2      sql.NullFloat64 `parquet:"name=APE_POIS_P2, type=FLOAT"`
+	DetLikeP3      sql.NullFloat64 `parquet:"name=DET_LIKE_P3, type=FLOAT"`
+	MlCtsP3        sql.NullFloat64 `parquet:"name=ML_CTS_P3, type=FLOAT"`
+	MlCtsErrP3     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P3, type=FLOAT"`
+	MlRateP3       sql.NullFloat64 `parquet:"name=ML_RATE_P3, type=FLOAT"`
+	MlRateErrP3    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P3, type=FLOAT"`
+	MlFluxP3       sql.NullFloat64 `parquet:"name=ML_FLUX_P3, type=FLOAT"`
+	MlFluxErrP3    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P3, type=FLOAT"`
+	MlBkgP3        sql.NullFloat64 `parquet:"name=ML_BKG_P3, type=FLOAT"`
+	MlExpP3        sql.NullFloat64 `parquet:"name=ML_EXP_P3, type=FLOAT"`
+	ApeBkgP3       sql.NullFloat64 `parquet:"name=APE_BKG_P3, type=FLOAT"`
+	ApeRadiusP3    sql.NullFloat64 `parquet:"name=APE_RADIUS_P3, type=FLOAT"`
+	ApePoisP3      sql.NullFloat64 `parquet:"name=APE_POIS_P3, type=FLOAT"`
+	DetLikeP4      sql.NullFloat64 `parquet:"name=DET_LIKE_P4, type=FLOAT"`
+	MlCtsP4        sql.NullFloat64 `parquet:"name=ML_CTS_P4, type=FLOAT"`
+	MlCtsErrP4     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P4, type=FLOAT"`
+	MlRateP4       sql.NullFloat64 `parquet:"name=ML_RATE_P4, type=FLOAT"`
+	MlRateErrP4    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P4, type=FLOAT"`
+	MlFluxP4       sql.NullFloat64 `parquet:"name=ML_FLUX_P4, type=FLOAT"`
+	MlFluxErrP4    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P4, type=FLOAT"`
+	MlBkgP4        sql.NullFloat64 `parquet:"name=ML_BKG_P4, type=FLOAT"`
+	MlExpP4        sql.NullFloat64 `parquet:"name=ML_EXP_P4, type=FLOAT"`
+	ApeBkgP4       sql.NullFloat64 `parquet:"name=APE_BKG_P4, type=FLOAT"`
+	ApeRadiusP4    sql.NullFloat64 `parquet:"name=APE_RADIUS_P4, type=FLOAT"`
+	ApePoisP4      sql.NullFloat64 `parquet:"name=APE_POIS_P4, type=FLOAT"`
+	DetLikeP5      sql.NullFloat64 `parquet:"name=DET_LIKE_P5, type=FLOAT"`
+	MlCtsP5        sql.NullFloat64 `parquet:"name=ML_CTS_P5, type=FLOAT"`
+	MlCtsErrP5     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P5, type=FLOAT"`
+	MlRateP5       sql.NullFloat64 `parquet:"name=ML_RATE_P5, type=FLOAT"`
+	MlRateErrP5    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P5, type=FLOAT"`
+	MlFluxP5       sql.NullFloat64 `parquet:"name=ML_FLUX_P5, type=FLOAT"`
+	MlFluxErrP5    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P5, type=FLOAT"`
+	MlBkgP5        sql.NullFloat64 `parquet:"name=ML_BKG_P5, type=FLOAT"`
+	MlExpP5        sql.NullFloat64 `parquet:"name=ML_EXP_P5, type=FLOAT"`
+	ApeBkgP5       sql.NullFloat64 `parquet:"name=APE_BKG_P5, type=FLOAT"`
+	ApeRadiusP5    sql.NullFloat64 `parquet:"name=APE_RADIUS_P5, type=FLOAT"`
+	ApePoisP5      sql.NullFloat64 `parquet:"name=APE_POIS_P5, type=FLOAT"`
+	DetLikeP6      sql.NullFloat64 `parquet:"name=DET_LIKE_P6, type=FLOAT"`
+	MlCtsP6        sql.NullFloat64 `parquet:"name=ML_CTS_P6, type=FLOAT"`
+	MlCtsErrP6     sql.NullFloat64 `parquet:"name=ML_CTS_ERR_P6, type=FLOAT"`
+	MlRateP6       sql.NullFloat64 `parquet:"name=ML_RATE_P6, type=FLOAT"`
+	MlRateErrP6    sql.NullFloat64 `parquet:"name=ML_RATE_ERR_P6, type=FLOAT"`
+	MlFluxP6       sql.NullFloat64 `parquet:"name=ML_FLUX_P6, type=FLOAT"`
+	MlFluxErrP6    sql.NullFloat64 `parquet:"name=ML_FLUX_ERR_P6, type=FLOAT"`
+	MlBkgP6        sql.NullFloat64 `parquet:"name=ML_BKG_P6, type=FLOAT"`
+	MlExpP6        sql.NullFloat64 `parquet:"name=ML_EXP_P6, type=FLOAT"`
+	ApeBkgP6       sql.NullFloat64 `parquet:"name=APE_BKG_P6, type=FLOAT"`
+	ApeRadiusP6    sql.NullFloat64 `parquet:"name=APE_RADIUS_P6, type=FLOAT"`
+	ApePoisP6      sql.NullFloat64 `parquet:"name=APE_POIS_P6, type=FLOAT"`
+	FlagSpSnr      sql.NullInt64   `parquet:"name=FLAG_SP_SNR, type=INT32"`
+	FlagSpBps      sql.NullInt64   `parquet:"name=FLAG_SP_BPS, type=INT32"`
+	FlagSpScl      sql.NullInt64   `parquet:"name=FLAG_SP_SCL, type=INT32"`
+	FlagSpLga      sql.NullInt64   `parquet:"name=FLAG_SP_LGA, type=INT32"`
+	FlagSpGcCons   sql.NullInt64   `parquet:"name=FLAG_SP_GC_CONS, type=INT32"`
+	FlagNoRadecErr sql.NullInt64   `parquet:"name=FLAG_NO_RADEC_ERR, type=INT32"`
+	FlagNoExtErr   sql.NullInt64   `parquet:"name=FLAG_NO_EXT_ERR, type=INT32"`
+	FlagNoCtsErr   sql.NullInt64   `parquet:"name=FLAG_NO_CTS_ERR, type=INT32"`
+	FlagOpt        sql.NullInt64   `parquet:"name=FLAG_OPT, type=INT32"`
+	Ra_2           float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec_2          float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
+}
+
+func (q *Queries) GetErosita(ctx context.Context, id string) (GetErositaRow, error) {
 	row := q.db.QueryRowContext(ctx, getErosita, id)
-	var i Erosita
+	var i GetErositaRow
 	err := row.Scan(
 		&i.ID,
 		&i.Detuid,
@@ -606,6 +916,8 @@ func (q *Queries) GetErosita(ctx context.Context, id string) (Erosita, error) {
 		&i.FlagNoExtErr,
 		&i.FlagNoCtsErr,
 		&i.FlagOpt,
+		&i.Ra_2,
+		&i.Dec_2,
 	)
 	return i, err
 }
@@ -885,14 +1197,30 @@ func (q *Queries) GetErositaFromPixels(ctx context.Context, ipix []int64) ([]Get
 }
 
 const getGaia = `-- name: GetGaia :one
-SELECT id, phot_g_mean_flux, phot_g_mean_flux_error, phot_g_mean_mag, phot_bp_mean_flux, phot_bp_mean_flux_error, phot_bp_mean_mag, phot_rp_mean_flux, phot_rp_mean_flux_error, phot_rp_mean_mag
-FROM gaia
-WHERE id = ?
+SELECT gaia.id, gaia.phot_g_mean_flux, gaia.phot_g_mean_flux_error, gaia.phot_g_mean_mag, gaia.phot_bp_mean_flux, gaia.phot_bp_mean_flux_error, gaia.phot_bp_mean_mag, gaia.phot_rp_mean_flux, gaia.phot_rp_mean_flux_error, gaia.phot_rp_mean_mag, mastercat.ra, mastercat.dec
+FROM gaia 
+JOIN mastercat ON mastercat.id = gaia.id
+WHERE gaia.id = ?
 `
 
-func (q *Queries) GetGaia(ctx context.Context, id string) (Gaia, error) {
+type GetGaiaRow struct {
+	ID                  string          `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
+	PhotGMeanFlux       sql.NullFloat64 `json:"phot_g_mean_flux" parquet:"name=phot_g_mean_flux, type=DOUBLE"`
+	PhotGMeanFluxError  sql.NullFloat64 `json:"phot_g_mean_flux_error" parquet:"name=phot_g_mean_flux_error, type=DOUBLE"`
+	PhotGMeanMag        sql.NullFloat64 `json:"phot_g_mean_mag" parquet:"name=phot_g_mean_mag, type=DOUBLE"`
+	PhotBpMeanFlux      sql.NullFloat64 `json:"phot_bp_mean_flux" parquet:"name=phot_bp_mean_flux, type=DOUBLE"`
+	PhotBpMeanFluxError sql.NullFloat64 `json:"phot_bp_mean_flux_error" parquet:"name=phot_bp_mean_flux_error, type=DOUBLE"`
+	PhotBpMeanMag       sql.NullFloat64 `json:"phot_bp_mean_mag" parquet:"name=phot_bp_mean_mag, type=DOUBLE"`
+	PhotRpMeanFlux      sql.NullFloat64 `json:"phot_rp_mean_flux" parquet:"name=phot_rp_mean_flux, type=DOUBLE"`
+	PhotRpMeanFluxError sql.NullFloat64 `json:"phot_rp_mean_flux_error" parquet:"name=phot_rp_mean_flux_error, type=DOUBLE"`
+	PhotRpMeanMag       sql.NullFloat64 `json:"phot_rp_mean_mag" parquet:"name=phot_rp_mean_mag, type=DOUBLE"`
+	Ra                  float64         `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec                 float64         `json:"dec" parquet:"name=dec, type=DOUBLE"`
+}
+
+func (q *Queries) GetGaia(ctx context.Context, id string) (GetGaiaRow, error) {
 	row := q.db.QueryRowContext(ctx, getGaia, id)
-	var i Gaia
+	var i GetGaiaRow
 	err := row.Scan(
 		&i.ID,
 		&i.PhotGMeanFlux,
@@ -904,6 +1232,8 @@ func (q *Queries) GetGaia(ctx context.Context, id string) (Gaia, error) {
 		&i.PhotRpMeanFlux,
 		&i.PhotRpMeanFluxError,
 		&i.PhotRpMeanMag,
+		&i.Ra,
+		&i.Dec,
 	)
 	return i, err
 }

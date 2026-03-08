@@ -33,6 +33,7 @@ func TestMetadata_FindByID(t *testing.T) {
 
 	var db *sql.DB
 	ctr.Resolve(&db)
+	test_helpers.InsertAllwiseMastercat(10, db)
 	test_helpers.InsertAllwiseMetadata(10, db)
 
 	for i := range 10 {
@@ -42,7 +43,7 @@ func TestMetadata_FindByID(t *testing.T) {
 		router.ServeHTTP(recorder, req)
 
 		require.Equal(t, http.StatusOK, recorder.Code)
-		var result repository.Allwise
+		var result repository.GetAllwiseRow
 		if err := json.Unmarshal(recorder.Body.Bytes(), &result); err != nil {
 			t.Fatalf("could not unmarshal response: %v\n%v\nOn id: %v", err, recorder.Body.String(), i)
 		}
@@ -73,6 +74,7 @@ func TestMetadata_BulkFindByID(t *testing.T) {
 
 	var db *sql.DB
 	ctr.Resolve(&db)
+	test_helpers.InsertAllwiseMastercat(10, db)
 	test_helpers.InsertAllwiseMetadata(10, db)
 
 	ids := make([]string, 10)
@@ -96,7 +98,7 @@ func TestMetadata_BulkFindByID(t *testing.T) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code, "Request: %v | Response: %v", body, w.Body.String())
 
-	var result []repository.Allwise
+	var result []repository.BulkGetAllwiseRow
 
 	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
 		t.Fatalf("could not unmarshal response: %v\n%v", err, w.Body.String())

@@ -77,6 +77,12 @@ func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalog s
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
 	case "ztf":
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
+	case "erosita":
+		result, err := m.repository.GetErosita(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
 	default:
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Unknown catalog"}
 	}
@@ -100,13 +106,19 @@ func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, ca
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
 	case "ztf":
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
+	case "erosita":
+		result, err := m.repository.BulkGetErosita(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
 	default:
 		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Unknown catalog"}
 	}
 }
 
 func (m *MetadataService) validateCatalog(catalog string) error {
-	allowedCatalogs := []string{"allwise", "vlass", "ztf", "gaia"}
+	allowedCatalogs := []string{"allwise", "vlass", "ztf", "gaia", "erosita"}
 	if !slices.Contains(allowedCatalogs, strings.ToLower(catalog)) {
 		return ValidationError{
 			Field:  "catalog",
