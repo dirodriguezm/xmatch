@@ -7,7 +7,7 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/api"
 	"github.com/dirodriguezm/xmatch/service/internal/di"
-	"github.com/dirodriguezm/xmatch/service/internal/web"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,9 +25,8 @@ func StartHttpServer(
 ) error {
 	ctr := di.BuildServiceContainer(ctx, getenv, stdout)
 	var api *api.API
-	var web *web.Web
+
 	ctr.Resolve(&api)
-	ctr.Resolve(&web)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -40,7 +39,6 @@ func StartHttpServer(
 	r.SetTrustedProxies([]string{"localhost"})
 
 	api.SetupRoutes(r)
-	web.SetupRoutes(r)
 
 	err := r.Run()
 	return err

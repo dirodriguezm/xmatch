@@ -25,7 +25,6 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/dirodriguezm/xmatch/service/internal/api"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/web"
 
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -167,21 +166,6 @@ func BuildServiceContainer(
 		}
 
 		return api
-	})
-
-	ctr.Singleton(func(
-		conesearchService *conesearch.ConesearchService,
-		metadataService *metadata.MetadataService,
-		config *config.Config,
-	) *web.Web {
-		web, err := web.New(conesearchService, metadataService, config.Service, getenv)
-		if err != nil {
-			panic(fmt.Errorf("Could not register API: %w", err))
-		}
-		if web == nil {
-			panic("web nil while registering Web")
-		}
-		return web
 	})
 
 	return ctr
