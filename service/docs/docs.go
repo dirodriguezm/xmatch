@@ -9,7 +9,14 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "contact": {
+            "name": "Diego Rodriguez Mancini",
+            "email": "diegorodriguezmancini@gmail.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -17,7 +24,7 @@ const docTemplate = `{
     "paths": {
         "/bulk-conesearch": {
             "post": {
-                "description": "Search for objects in a given region using list of ra, dec and a single radius",
+                "description": "Search for objects in a given region using multiple RA/Dec coordinates and a single radius.\nAll coordinate pairs are searched in parallel for optimal performance.",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,61 +34,22 @@ const docTemplate = `{
                 "tags": [
                     "conesearch"
                 ],
-                "summary": "Search for objects in a given region using multiple coordinates",
+                "summary": "Bulk cone search for objects",
+                "operationId": "bulk-conesearch",
                 "parameters": [
                     {
-                        "description": "Right ascension in degrees",
-                        "name": "ra",
+                        "description": "Bulk conesearch request with arrays of coordinates",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "number"
-                            }
-                        }
-                    },
-                    {
-                        "description": "Declination in degrees",
-                        "name": "dec",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "number"
-                            }
-                        }
-                    },
-                    {
-                        "description": "Radius in degrees",
-                        "name": "radius",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "number"
-                        }
-                    },
-                    {
-                        "description": "Catalog to search in",
-                        "name": "catalog",
-                        "in": "body",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Number of neighbors to return",
-                        "name": "nneighbor",
-                        "in": "body",
-                        "schema": {
-                            "type": "integer"
+                            "$ref": "#/definitions/api.BulkConesearchRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Found objects",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -90,19 +58,19 @@ const docTemplate = `{
                         }
                     },
                     "204": {
-                        "description": "No Content",
+                        "description": "No objects found",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid parameters",
                         "schema": {
                             "$ref": "#/definitions/conesearch.ValidationError"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "string"
                         }
@@ -110,215 +78,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/conesearch": {
-            "get": {
-                "description": "Search for objects in a given region using ra, dec and radius",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "conesearch"
-                ],
-                "summary": "Search for objects in a given region",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Right ascension in degrees",
-                        "name": "ra",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Declination in degrees",
-                        "name": "dec",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Radius in degrees",
-                        "name": "radius",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Catalog to search in",
-                        "name": "catalog",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Number of neighbors to return",
-                        "name": "nneighbor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Return metadata results",
-                        "name": "getMetadata",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/repository.Mastercat"
-                            }
-                        }
-                    },
-                    "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/conesearch.ValidationError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/lightcurve": {
-            "get": {
-                "description": "Get lightcurve data for specified coordinates with search radius and neighbor count",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "lightcurve"
-                ],
-                "summary": "Get lightcurve data for coordinates",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Right Ascension coordinate",
-                        "name": "ra",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Declination coordinate",
-                        "name": "dec",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Search radius in arcseconds",
-                        "name": "radius",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Number of neighbors to return (default: 1)",
-                        "name": "nneighbor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/lightcurve.Lightcurve"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/metadata": {
-            "get": {
-                "description": "Search for metadata by id",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "metadata"
-                ],
-                "summary": "Search for metadata by id",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID to search for",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Catalog to search in",
-                        "name": "catalog",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/repository.Allwise"
-                        }
-                    },
-                    "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/metadata.ValidationError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/metadata/bulk": {
+        "/bulk-metadata": {
             "post": {
-                "description": "Search for metadata by multiple ids in bulk",
+                "description": "Retrieve detailed catalog metadata for multiple astronomical objects by their identifiers.\nAll IDs are queried in parallel for optimal performance.",
                 "consumes": [
                     "application/json"
                 ],
@@ -328,10 +90,11 @@ const docTemplate = `{
                 "tags": [
                     "metadata"
                 ],
-                "summary": "Search for metadata by multiple ids",
+                "summary": "Bulk get metadata by object IDs",
+                "operationId": "bulk-metadata",
                 "parameters": [
                     {
-                        "description": "Bulk metadata request",
+                        "description": "Bulk metadata request with list of object IDs",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -342,7 +105,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Objects metadata",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -351,19 +114,252 @@ const docTemplate = `{
                         }
                     },
                     "204": {
-                        "description": "No Content",
+                        "description": "No objects found",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid parameters",
                         "schema": {
                             "$ref": "#/definitions/metadata.ValidationError"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/conesearch": {
+            "get": {
+                "description": "Search for astronomical objects within a specified radius of given celestial coordinates (RA/Dec).\nReturns matching objects from the specified catalog.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "conesearch"
+                ],
+                "summary": "Cone search for objects",
+                "operationId": "conesearch",
+                "parameters": [
+                    {
+                        "maximum": 360,
+                        "minimum": 0,
+                        "type": "number",
+                        "example": 180.5,
+                        "description": "Right Ascension (J2000) in degrees",
+                        "name": "ra",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 90,
+                        "minimum": -90,
+                        "type": "number",
+                        "example": -45,
+                        "description": "Declination (J2000) in degrees",
+                        "name": "dec",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "number",
+                        "example": 0.01,
+                        "description": "Search radius in degrees",
+                        "name": "radius",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "all",
+                        "description": "Catalog to search in",
+                        "name": "catalog",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Maximum number of neighbors to return",
+                        "name": "nneighbor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Include full metadata in response",
+                        "name": "getMetadata",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found objects",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/repository.Mastercat"
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No objects found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/conesearch.ValidationError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/lightcurve": {
+            "get": {
+                "description": "Retrieve time-series photometry data (lightcurve) for astronomical objects at the specified coordinates.\nReturns detections, non-detections, and forced photometry measurements.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lightcurve"
+                ],
+                "summary": "Get lightcurve data",
+                "operationId": "lightcurve",
+                "parameters": [
+                    {
+                        "maximum": 360,
+                        "minimum": 0,
+                        "type": "number",
+                        "example": 180.5,
+                        "description": "Right Ascension (J2000) in degrees",
+                        "name": "ra",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 90,
+                        "minimum": -90,
+                        "type": "number",
+                        "example": -45,
+                        "description": "Declination (J2000) in degrees",
+                        "name": "dec",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "number",
+                        "example": 5,
+                        "description": "Search radius in arcseconds",
+                        "name": "radius",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Number of neighbors to return",
+                        "name": "nneighbor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lightcurve data",
+                        "schema": {
+                            "$ref": "#/definitions/lightcurve.Lightcurve"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/metadata": {
+            "get": {
+                "description": "Retrieve detailed catalog metadata for a specific astronomical object by its identifier.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metadata"
+                ],
+                "summary": "Get metadata by object ID",
+                "operationId": "metadata",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "J120000.00-450000.0",
+                        "description": "Object identifier",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "allwise",
+                        "description": "Catalog to search in",
+                        "name": "catalog",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Object metadata",
+                        "schema": {
+                            "$ref": "#/definitions/repository.Allwise"
+                        }
+                    },
+                    "204": {
+                        "description": "Object not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/metadata.ValidationError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "type": "string"
                         }
@@ -373,17 +369,66 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.BulkConesearchRequest": {
+            "type": "object",
+            "properties": {
+                "catalog": {
+                    "description": "Catalog name to search in (default: all)",
+                    "type": "string",
+                    "example": "allwise"
+                },
+                "dec": {
+                    "description": "Declination values in degrees (-90 to 90)",
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    },
+                    "example": [
+                        -45,
+                        -45.5
+                    ]
+                },
+                "nneighbor": {
+                    "description": "Number of neighbors to return per coordinate (default: 1)",
+                    "type": "integer",
+                    "example": 1
+                },
+                "ra": {
+                    "description": "Right ascension values in degrees (0-360)",
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    },
+                    "example": [
+                        180.5,
+                        181.2
+                    ]
+                },
+                "radius": {
+                    "description": "Search radius in degrees",
+                    "type": "number",
+                    "example": 0.01
+                }
+            }
+        },
         "api.BulkMetadataRequest": {
             "type": "object",
             "properties": {
                 "catalog": {
-                    "type": "string"
+                    "description": "Catalog to search in",
+                    "type": "string",
+                    "example": "allwise"
                 },
                 "ids": {
+                    "description": "List of object identifiers to search for",
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "id1",
+                        "id2"
+                    ]
                 }
             }
         },
@@ -505,17 +550,35 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "tags": [
+        {
+            "description": "Search for astronomical objects by celestial coordinates (RA/Dec)",
+            "name": "conesearch"
+        },
+        {
+            "description": "Retrieve detailed catalog information for specific objects",
+            "name": "metadata"
+        },
+        {
+            "description": "Get time-series photometry data for objects",
+            "name": "lightcurve"
+        }
+    ],
+    "externalDocs": {
+        "description": "ALeRCE Documentation",
+        "url": "https://alerce.science"
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
+	Version:          "1.0",
+	Host:             "localhost:8080",
+	BasePath:         "/v1",
 	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Title:            "CrossWave HTTP API",
+	Description:      "API for astronomical cross-matching and catalog queries developed by [ALeRCE](https://alerce.science).\n\n## Overview\n\nCrossWave provides fast cone search and metadata retrieval across multiple astronomical catalogs. The service is optimized for high-throughput queries using HEALPix spatial indexing.\n\n### Key Features\n\n- **Cone Search**: Find objects within a radius of given celestial coordinates\n- **Bulk Operations**: Process multiple queries in a single request\n- **Metadata Retrieval**: Get detailed catalog information for specific objects\n- **Lightcurves**: Retrieve time-series photometry data\n\n## Coordinates\n\nAll coordinates use the **J2000 equatorial coordinate system**:\n\n| Parameter | Range | Unit | Description |\n|-----------|-------|------|-------------|\n| `ra` | 0 to 360 | degrees | Right Ascension |\n| `dec` | -90 to +90 | degrees | Declination |\n| `radius` | > 0 | degrees | Search radius |\n\n## Available Catalogs\n\n| Catalog | Description |\n|---------|-------------|\n| `all` | Search across all available catalogs |\n| `allwise` | WISE All-Sky Data Release |\n\n## Response Codes\n\n| Code | Description |\n|------|-------------|\n| `200` | Success - results found |\n| `204` | Success - no results found |\n| `400` | Bad Request - invalid parameters |\n| `500` | Internal Server Error |\n\n## Example Usage\n\n### Single Cone Search\n\nSearch for objects within 0.01 degrees of RA=180.5, Dec=-45.0:\n\n```\nGET /v1/conesearch?ra=180.5&dec=-45.0&radius=0.01&catalog=allwise\n```\n\n### Bulk Cone Search\n\nSearch multiple positions in a single request:\n\n```json\nPOST /v1/bulk-conesearch\nContent-Type: application/json\n\n{\n  \"ra\": [180.5, 181.2, 182.0],\n  \"dec\": [-45.0, -45.5, -46.0],\n  \"radius\": 0.01,\n  \"catalog\": \"allwise\",\n  \"nneighbor\": 1\n}\n```\n\n### Get Metadata by ID\n\nRetrieve detailed catalog data for a specific object:\n\n```\nGET /v1/metadata?id=J120000.00-450000.0&catalog=allwise\n```\n\n### Get Lightcurve\n\nRetrieve time-series photometry for coordinates:\n\n```\nGET /v1/lightcurve?ra=180.5&dec=-45.0&radius=0.01\n```\n\n## Error Handling\n\nAll validation errors return a JSON object with the following structure:\n\n```json\n{\n  \"field\": \"ra\",\n  \"reason\": \"value out of range\",\n  \"value\": \"400.0\"\n}\n```\n\n## Rate Limits\n\n- Bulk endpoints accept up to **1000 coordinates** per request\n- Results are processed in parallel for optimal performance\n",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
