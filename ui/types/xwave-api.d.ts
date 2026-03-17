@@ -176,22 +176,22 @@ export interface components {
       value?: string;
     };
     "repository.Allwise": {
-      cntr?: number;
-      h_m_2mass?: number;
-      h_msig_2mass?: number;
       id?: string;
-      j_m_2mass?: number;
-      j_msig_2mass?: number;
-      k_m_2mass?: number;
-      k_msig_2mass?: number;
-      w1mpro?: number;
-      w1sigmpro?: number;
-      w2mpro?: number;
-      w2sigmpro?: number;
-      w3mpro?: number;
-      w3sigmpro?: number;
-      w4mpro?: number;
-      w4sigmpro?: number;
+      cntr?: number;
+      w1mpro?: { Float64: number; Valid: boolean };
+      w1sigmpro?: { Float64: number; Valid: boolean };
+      w2mpro?: { Float64: number; Valid: boolean };
+      w2sigmpro?: { Float64: number; Valid: boolean };
+      w3mpro?: { Float64: number; Valid: boolean };
+      w3sigmpro?: { Float64: number; Valid: boolean };
+      w4mpro?: { Float64: number; Valid: boolean };
+      w4sigmpro?: { Float64: number; Valid: boolean };
+      j_m_2mass?: { Float64: number; Valid: boolean };
+      j_msig_2mass?: { Float64: number; Valid: boolean };
+      h_m_2mass?: { Float64: number; Valid: boolean };
+      h_msig_2mass?: { Float64: number; Valid: boolean };
+      k_m_2mass?: { Float64: number; Valid: boolean };
+      k_msig_2mass?: { Float64: number; Valid: boolean };
     };
     "repository.Mastercat": {
       cat?: string;

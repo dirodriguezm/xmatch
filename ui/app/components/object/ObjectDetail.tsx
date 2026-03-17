@@ -27,13 +27,22 @@ import {
   buildSimbadUrl,
   buildVizierUrl,
 } from "@/app/lib/utils/urls";
+import type { components } from "@/types/xwave-api";
 
 import { AladinViewer } from "./AladinViewer";
 
 const { Text, Title } = Typography;
 
+type Allwise = components["schemas"]["repository.Allwise"];
+
 interface ObjectDetailProps {
   object: CrossmatchResult;
+  metadata?: Allwise | null;
+}
+
+function mag(field?: { Float64: number; Valid: boolean }): number | null {
+  if (!field || !field.Valid) return null;
+  return field.Float64;
 }
 
 // Convert decimal degrees to sexagesimal
@@ -54,7 +63,7 @@ function toDMS(dec: number): string {
   return `${sign}${d}° ${m.toString().padStart(2, "0")}′ ${s.toFixed(2)}″`;
 }
 
-export function ObjectDetail({ object }: ObjectDetailProps) {
+export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const { message } = App.useApp();
   const simbadUrl = buildSimbadUrl(object.ra, object.dec);
   const vizierUrl = buildVizierUrl(object.ra, object.dec);
@@ -65,11 +74,21 @@ export function ObjectDetail({ object }: ObjectDetailProps) {
     message.success(`${label} copied to clipboard`);
   };
 
-  // Build photometry data
+  // Map metadata fields to photometry bands
+  const bandMagMap: Record<string, number | null> = {
+    J: mag(metadata?.j_m_2mass),
+    H: mag(metadata?.h_m_2mass),
+    K: mag(metadata?.k_m_2mass),
+    W1: mag(metadata?.w1mpro),
+    W2: mag(metadata?.w2mpro),
+    W3: mag(metadata?.w3mpro),
+    W4: mag(metadata?.w4mpro),
+  };
+
   const photometryData = PHOTOMETRY_BANDS.map((band) => ({
     band: band.band,
     survey: band.survey,
-    mag: null as number | null,
+    mag: bandMagMap[band.band] ?? null,
   }));
 
   const collapseItems = [

@@ -1,9 +1,7 @@
 "use client";
 
-import { ArrowLeftOutlined } from "@ant-design/icons";
-import { Button, Empty, Layout, Spin } from "antd";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { Empty, Layout, Spin } from "antd";
+import { useRouter, useSearchParams } from "next/navigation";
 import { use, useEffect, useMemo, useRef } from "react";
 
 import { AppHeader } from "@/app/components/layout";
@@ -20,6 +18,7 @@ interface ObjectPageProps {
 export default function ObjectPage({ params }: ObjectPageProps) {
   const { objectId } = use(params);
   const decodedObjectId = decodeURIComponent(objectId);
+  const router = useRouter();
   const titleSet = useRef(false);
 
   useEffect(() => {
@@ -69,22 +68,14 @@ export default function ObjectPage({ params }: ObjectPageProps) {
 
   return (
     <Layout className="min-h-screen">
-      <AppHeader />
+      <AppHeader onBack={() => router.back()} />
       <Content className="bg-background min-h-[calc(100vh-64px)]">
-        <div className="p-4 border-b border-border bg-surface">
-          <Link href="/search">
-            <Button icon={<ArrowLeftOutlined />} type="text">
-              Back to Results
-            </Button>
-          </Link>
-        </div>
-
         {isLoading ? (
           <div className="flex items-center justify-center h-[calc(100vh-128px)]">
             <Spin size="large" />
           </div>
         ) : object ? (
-          <ObjectDetail object={object} />
+          <ObjectDetail object={object} metadata={metadata} />
         ) : (
           <div className="flex items-center justify-center h-[calc(100vh-128px)]">
             <Empty
