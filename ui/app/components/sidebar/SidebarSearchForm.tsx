@@ -77,10 +77,10 @@ export function SidebarSearchForm() {
             <Flex vertical gap={16}>
               <Flex vertical gap={6}>
                 <Text type="secondary" className="text-xs font-medium">
-                  RA (hms)
+                  RA (°)
                 </Text>
                 <Input
-                  placeholder="e.g., 12:00:00"
+                  placeholder="e.g., 10.6847"
                   value={draftRa}
                   onChange={(e) => setDraftRa(e.target.value)}
                   size="large"
@@ -89,10 +89,10 @@ export function SidebarSearchForm() {
 
               <Flex vertical gap={6}>
                 <Text type="secondary" className="text-xs font-medium">
-                  Dec (dms)
+                  Dec (°)
                 </Text>
                 <Input
-                  placeholder="e.g., -45:00:00"
+                  placeholder="e.g., 41.2689"
                   value={draftDec}
                   onChange={(e) => setDraftDec(e.target.value)}
                   size="large"
