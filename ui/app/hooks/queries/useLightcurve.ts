@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { apiFetch } from "@/app/lib/api/client";
 import type { components } from "@/types/xwave-api";
 
 type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
@@ -25,7 +24,14 @@ async function fetchLightcurve(
     searchParams.set("nneighbor", params.nneighbor.toString());
   }
 
-  return apiFetch<Lightcurve>(`/lightcurve?${searchParams}`);
+  const response = await fetch(`/api/lightcurve?${searchParams}`);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to fetch lightcurve data");
+  }
+
+  return response.json();
 }
 
 export function useLightcurve(params: LightcurveParams | null) {

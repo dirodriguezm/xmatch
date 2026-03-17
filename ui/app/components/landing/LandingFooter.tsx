@@ -12,13 +12,6 @@ export function LandingFooter() {
         separator={<Divider orientation="vertical" />}
         className="flex justify-center flex-wrap"
       >
-        <Text type="secondary">XWave v1.0</Text>
-
-        <Space size="small">
-          <CheckCircleOutlined className="text-success" />
-          <Text type="secondary">All systems operational</Text>
-        </Space>
-
         <Link
           href="https://ifa.uv.cl/xwave/swagger/index.html#"
           target="_blank"

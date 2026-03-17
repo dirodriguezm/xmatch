@@ -1,86 +1,65 @@
 "use client";
 
 import { AimOutlined, FilterOutlined, SearchOutlined } from "@ant-design/icons";
-import {
-  Button,
-  Checkbox,
-  Collapse,
-  Flex,
-  Input,
-  InputNumber,
-  Select,
-  Space,
-  Typography,
-} from "antd";
+import { Button, Collapse, Flex, Input, Typography } from "antd";
 import { useState } from "react";
 
+import { CatalogRadiusRow } from "@/app/components/common";
 import { useSearchParams } from "@/app/hooks/useSearchParamsSync";
+import {
+  buildDefaultCatalogConfigs,
+  CATALOG_SELECT_OPTIONS,
+} from "@/app/lib/constants/catalogs";
+import {
+  type CatalogRadiusConfig,
+  decodeCatalogRadii,
+  encodeCatalogRadii,
+} from "@/app/lib/constants/search";
 import { useCrossmatchState } from "@/app/store/crossmatch-context";
 
 const { Title, Text } = Typography;
 
-const unitOptions = [
-  { value: "arcsec", label: "arcsec" },
-  { value: "arcmin", label: "arcmin" },
-  { value: "deg", label: "deg" },
-];
-
-interface CatalogOption {
-  value: string;
-  label: string;
-  colorClass: string;
+function initConfigs(catalogRadiiStr: string): CatalogRadiusConfig[] {
+  if (!catalogRadiiStr) return buildDefaultCatalogConfigs();
+  const decoded = decodeCatalogRadii(catalogRadiiStr);
+  if (decoded.length === 0) return buildDefaultCatalogConfigs();
+  return decoded;
 }
-
-const catalogOptions: CatalogOption[] = [
-  { value: "gaia_dr3", label: "GAIA DR3", colorClass: "bg-blue-500" },
-  { value: "simbad", label: "SIMBAD", colorClass: "bg-green-500" },
-  { value: "2mass", label: "2MASS", colorClass: "bg-orange-500" },
-  { value: "wise", label: "WISE", colorClass: "bg-purple-600" },
-];
 
 export function SidebarSearchForm() {
   const { state, dispatch } = useCrossmatchState();
-  const { ra, dec, radius, unit, setRa, setDec, setRadius, setUnit, isValid } =
-    useSearchParams();
-  const [selectedCatalogs, setSelectedCatalogs] = useState<string[]>(
-    catalogOptions.map((c) => c.value)
+  const {
+    ra,
+    dec,
+    catalogRadii: catalogRadiiStr,
+    setSearchParams,
+  } = useSearchParams();
+
+  const [draftRa, setDraftRa] = useState(ra);
+  const [draftDec, setDraftDec] = useState(dec);
+  const [draftConfigs, setDraftConfigs] = useState<CatalogRadiusConfig[]>(() =>
+    initConfigs(catalogRadiiStr)
   );
+
+  const isDraftValid = Boolean(draftRa && draftDec);
+
+  const updateConfig = (
+    catalog: string,
+    patch: Partial<CatalogRadiusConfig>
+  ) => {
+    setDraftConfigs((prev) =>
+      prev.map((c) => (c.catalog === catalog ? { ...c, ...patch } : c))
+    );
+  };
 
   const handleUpdateSearch = () => {
     dispatch({ type: "SET_RESULTS_STATE", payload: "loading" });
-    // Simulate API call
-    setTimeout(() => {
-      dispatch({ type: "SET_RESULTS_STATE", payload: "success" });
-    }, 1500);
+    setSearchParams({
+      ra: draftRa,
+      dec: draftDec,
+      catalogRadii: encodeCatalogRadii(draftConfigs),
+    });
   };
-
-  const handleCatalogChange = (catalog: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCatalogs([...selectedCatalogs, catalog]);
-    } else {
-      setSelectedCatalogs(selectedCatalogs.filter((c) => c !== catalog));
-    }
-  };
-
-  const catalogFilterContent = (
-    <Flex vertical gap={12}>
-      {catalogOptions.map((catalog) => (
-        <Checkbox
-          key={catalog.value}
-          checked={selectedCatalogs.includes(catalog.value)}
-          onChange={(e) => handleCatalogChange(catalog.value, e.target.checked)}
-          className="catalog-checkbox"
-        >
-          <Flex align="center" gap={10}>
-            <span
-              className={`inline-block w-3 h-3 rounded-sm ${catalog.colorClass} shadow-[0_0_0_1px_rgba(0,0,0,0.25)]`}
-            />
-            <span className="font-medium">{catalog.label}</span>
-          </Flex>
-        </Checkbox>
-      ))}
-    </Flex>
-  );
 
   return (
     <div className="flex flex-col h-full">
@@ -90,7 +69,7 @@ export function SidebarSearchForm() {
           <Flex vertical gap={20}>
             <Flex align="center" gap={10}>
               <AimOutlined className="text-primary text-base" />
-              <Title level={5} className="!m-0">
+              <Title level={5} className="m-0!">
                 Search Parameters
               </Title>
             </Flex>
@@ -102,8 +81,8 @@ export function SidebarSearchForm() {
                 </Text>
                 <Input
                   placeholder="e.g., 12:00:00"
-                  value={ra}
-                  onChange={(e) => setRa(e.target.value)}
+                  value={draftRa}
+                  onChange={(e) => setDraftRa(e.target.value)}
                   size="large"
                 />
               </Flex>
@@ -114,33 +93,10 @@ export function SidebarSearchForm() {
                 </Text>
                 <Input
                   placeholder="e.g., -45:00:00"
-                  value={dec}
-                  onChange={(e) => setDec(e.target.value)}
+                  value={draftDec}
+                  onChange={(e) => setDraftDec(e.target.value)}
                   size="large"
                 />
-              </Flex>
-
-              <Flex vertical gap={6}>
-                <Text type="secondary" className="text-xs font-medium">
-                  Radius
-                </Text>
-                <Space.Compact className="w-full">
-                  <InputNumber
-                    value={radius}
-                    min={0}
-                    step={0.1}
-                    onChange={(value) => setRadius(value ?? 1)}
-                    className="flex-1"
-                    size="large"
-                  />
-                  <Select
-                    value={unit}
-                    options={unitOptions}
-                    onChange={(value) => setUnit(value)}
-                    className="w-[100px]"
-                    size="large"
-                  />
-                </Space.Compact>
               </Flex>
             </Flex>
 
@@ -149,16 +105,16 @@ export function SidebarSearchForm() {
               block
               icon={<SearchOutlined />}
               onClick={handleUpdateSearch}
-              disabled={!isValid}
+              disabled={!isDraftValid}
               loading={state.resultsState === "loading"}
               size="large"
             >
-              Update Search
+              Search
             </Button>
           </Flex>
         </div>
 
-        {/* Active Catalogs Section - Collapsible */}
+        {/* Catalogs & Radii Section - Collapsible */}
         <Collapse
           defaultActiveKey={["catalogs"]}
           ghost
@@ -170,13 +126,31 @@ export function SidebarSearchForm() {
               label: (
                 <Flex align="center" gap={10}>
                   <FilterOutlined className="text-primary text-base" />
-                  <Text strong>Filter Catalogs</Text>
+                  <Text strong>Catalogs & Radii</Text>
                   <Text type="secondary" className="text-xs">
-                    ({selectedCatalogs.length}/{catalogOptions.length})
+                    ({draftConfigs.filter((c) => c.enabled).length}/
+                    {draftConfigs.length})
                   </Text>
                 </Flex>
               ),
-              children: catalogFilterContent,
+              children: (
+                <Flex vertical gap={10} className="pb-2">
+                  {CATALOG_SELECT_OPTIONS.map((catalog) => {
+                    const config = draftConfigs.find(
+                      (c) => c.catalog === catalog.value
+                    )!;
+                    return (
+                      <CatalogRadiusRow
+                        key={catalog.value}
+                        label={catalog.label}
+                        catalog={catalog.value}
+                        config={config}
+                        onChange={(patch) => updateConfig(catalog.value, patch)}
+                      />
+                    );
+                  })}
+                </Flex>
+              ),
             },
           ]}
         />

@@ -2,11 +2,50 @@
  * Centralized catalog configuration for consistent naming and colors across the app
  */
 
+import type { CatalogRadiusConfig, RadiusUnit } from "./search";
+
 export interface CatalogConfig {
   id: string;
   label: string;
   color: string;
   antdColor: string;
+}
+
+export const CATALOG_OPTIONS = ["allwise", "gaia"] as const;
+
+export type CatalogOption = (typeof CATALOG_OPTIONS)[number];
+
+export const CATALOG_LABELS: Record<CatalogOption, string> = {
+  allwise: "AllWISE",
+  gaia: "Gaia",
+};
+
+export const CATALOG_SELECT_OPTIONS = CATALOG_OPTIONS.map((catalog) => ({
+  value: catalog,
+  label: CATALOG_LABELS[catalog],
+}));
+
+export const CATALOG_DEFAULT_RADII: Record<
+  CatalogOption,
+  { radius: number; unit: RadiusUnit }
+> = {
+  allwise: { radius: 5, unit: "deg" },
+  gaia: { radius: 10, unit: "deg" },
+};
+
+export const CATALOG_COLOR_CLASSES: Record<string, string> = {
+  allwise: "bg-purple-600",
+  gaia: "bg-blue-500",
+  erosita: "bg-red-500",
+};
+
+export function buildDefaultCatalogConfigs(): CatalogRadiusConfig[] {
+  return CATALOG_OPTIONS.map((catalog) => ({
+    catalog,
+    radius: CATALOG_DEFAULT_RADII[catalog].radius,
+    unit: CATALOG_DEFAULT_RADII[catalog].unit,
+    enabled: true,
+  }));
 }
 
 export const CATALOGS: Record<string, CatalogConfig> = {

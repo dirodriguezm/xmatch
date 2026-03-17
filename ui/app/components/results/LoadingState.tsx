@@ -1,20 +1,14 @@
 "use client";
 
-import { Flex, Typography } from "antd";
+import { Flex } from "antd";
 
 import { ResultsTable } from "./ResultsTable";
 
-const { Title } = Typography;
-
 export function LoadingState() {
   return (
-    <div className="p-6">
+    <div className="pl-10 pr-8 py-6">
       <Flex vertical gap="large">
-        <div className="flex items-center justify-between">
-          <Title level={4} className="!m-0">
-            Loading Results...
-          </Title>
-        </div>
+        <div className="h-[32px]" />
         <ResultsTable data={[]} loading={true} />
       </Flex>
     </div>

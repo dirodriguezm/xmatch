@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { apiFetch } from "@/app/lib/api/client";
 import type { components } from "@/types/xwave-api";
 
 type Allwise = components["schemas"]["repository.Allwise"];
@@ -16,7 +15,14 @@ async function fetchMetadata(params: MetadataParams): Promise<Allwise | null> {
     catalog: params.catalog,
   });
 
-  return apiFetch<Allwise>(`/metadata?${searchParams}`);
+  const response = await fetch(`/api/metadata?${searchParams}`);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to fetch metadata");
+  }
+
+  return response.json();
 }
 
 export function useMetadata(params: MetadataParams | null) {

@@ -69,7 +69,7 @@ export function ObjectDetail({ object }: ObjectDetailProps) {
   const photometryData = PHOTOMETRY_BANDS.map((band) => ({
     band: band.band,
     survey: band.survey,
-    mag: band.band === "G" && object.gMag !== undefined ? object.gMag : null,
+    mag: null as number | null,
   }));
 
   const collapseItems = [
@@ -170,18 +170,6 @@ export function ObjectDetail({ object }: ObjectDetailProps) {
                 <Flex align="center" gap={8}>
                   <QuestionCircleOutlined className="text-border" />
                   <Text type="secondary">Unknown type</Text>
-                  {object.gMag !== undefined && (
-                    <>
-                      <Text type="secondary">•</Text>
-                      <Text>
-                        G ={" "}
-                        <span className="font-mono">
-                          {object.gMag.toFixed(2)}
-                        </span>{" "}
-                        mag
-                      </Text>
-                    </>
-                  )}
                 </Flex>
               </div>
 

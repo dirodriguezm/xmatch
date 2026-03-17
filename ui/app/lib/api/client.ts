@@ -15,7 +15,6 @@ export async function apiFetch<T>(
   options?: RequestInit
 ): Promise<T | null> {
   const url = `${API_BASE_URL}${endpoint}`;
-
   const response = await fetch(url, {
     ...options,
     headers: {

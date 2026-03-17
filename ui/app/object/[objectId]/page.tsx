@@ -1,13 +1,15 @@
 "use client";
 
 import { ArrowLeftOutlined } from "@ant-design/icons";
-import { Button, Empty, Layout } from "antd";
+import { Button, Empty, Layout, Spin } from "antd";
 import Link from "next/link";
-import { use, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { use, useEffect, useMemo, useRef } from "react";
 
 import { AppHeader } from "@/app/components/layout";
 import { ObjectDetail } from "@/app/components/object";
-import { sampleData } from "@/app/components/results/ResultsTable";
+import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
+import { useMetadata } from "@/app/hooks/queries";
 
 const { Content } = Layout;
 
@@ -41,8 +43,29 @@ export default function ObjectPage({ params }: ObjectPageProps) {
     };
   }, [decodedObjectId]);
 
-  // Find the object in sample data (in real implementation, this would fetch from API)
-  const object = sampleData.find((item) => item.objectId === decodedObjectId);
+  const searchParams = useSearchParams();
+  const catalog = searchParams.get("catalog");
+  const raStr = searchParams.get("ra");
+  const decStr = searchParams.get("dec");
+
+  // Fetch metadata if we have a catalog
+  const { data: metadata, isLoading } = useMetadata(
+    catalog ? { id: decodedObjectId, catalog } : null
+  );
+
+  // Construct the object from URL params and metadata
+  const object = useMemo<CrossmatchResult | null>(() => {
+    if (!catalog || !raStr || !decStr) return null;
+
+    return {
+      key: decodedObjectId,
+      objectId: decodedObjectId,
+      ra: parseFloat(raStr),
+      dec: parseFloat(decStr),
+      catalog: catalog,
+      angularDistance: 0, // Not needed for detail view, but required by type
+    };
+  }, [decodedObjectId, catalog, raStr, decStr]);
 
   return (
     <Layout className="min-h-screen">
@@ -56,11 +79,17 @@ export default function ObjectPage({ params }: ObjectPageProps) {
           </Link>
         </div>
 
-        {object ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-[calc(100vh-128px)]">
+            <Spin size="large" />
+          </div>
+        ) : object ? (
           <ObjectDetail object={object} />
         ) : (
           <div className="flex items-center justify-center h-[calc(100vh-128px)]">
-            <Empty description={`Object "${decodedObjectId}" not found`} />
+            <Empty
+              description={`Object "${decodedObjectId}" not found or missing parameters`}
+            />
           </div>
         )}
       </Content>

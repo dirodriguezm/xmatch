@@ -1,38 +1,23 @@
 "use client";
 
 import { PlusOutlined } from "@ant-design/icons";
-import {
-  App,
-  Button,
-  Checkbox,
-  Flex,
-  Input,
-  InputNumber,
-  Select,
-  Space,
-  Tag,
-  Typography,
-} from "antd";
+import { App, Button, Flex, Input, Space, Tag, Typography } from "antd";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { CatalogRadiusRow } from "@/app/components/common";
 import { Logo } from "@/app/components/common";
 import { parseCoordinates, resolveObjectName } from "@/app/lib/api/sesame";
-import { getCatalogOptions } from "@/app/lib/constants/catalogs";
+import {
+  buildDefaultCatalogConfigs,
+  CATALOG_SELECT_OPTIONS,
+} from "@/app/lib/constants/catalogs";
+import {
+  type CatalogRadiusConfig,
+  encodeCatalogRadii,
+} from "@/app/lib/constants/search";
 
 const { Title, Text } = Typography;
-
-const unitOptions = [
-  { value: "arcsec", label: "arcsec" },
-  { value: "arcmin", label: "arcmin" },
-  { value: "deg", label: "deg" },
-];
-
-const catalogOptions = getCatalogOptions().map((c) => ({
-  value: c.id,
-  label: c.label,
-  color: c.color,
-}));
 
 interface QuickExample {
   name: string;
@@ -49,16 +34,29 @@ export function LandingSearch() {
   const router = useRouter();
   const { message } = App.useApp();
   const [query, setQuery] = useState("");
-  const [radius, setRadius] = useState(5);
-  const [unit, setUnit] = useState<"arcsec" | "arcmin" | "deg">("arcsec");
-  const [selectedCatalogs, setSelectedCatalogs] = useState<string[]>(
-    catalogOptions.map((c) => c.value)
+  const [configs, setConfigs] = useState<CatalogRadiusConfig[]>(
+    buildDefaultCatalogConfigs
   );
   const [isLoading, setIsLoading] = useState(false);
+
+  const updateConfig = (
+    catalog: string,
+    patch: Partial<CatalogRadiusConfig>
+  ) => {
+    setConfigs((prev) =>
+      prev.map((c) => (c.catalog === catalog ? { ...c, ...patch } : c))
+    );
+  };
 
   const handleSubmit = async () => {
     if (!query.trim()) {
       message.warning("Please enter coordinates or an object name");
+      return;
+    }
+
+    const enabledConfigs = configs.filter((c) => c.enabled);
+    if (enabledConfigs.length === 0) {
+      message.warning("Please select at least one catalog");
       return;
     }
 
@@ -68,13 +66,11 @@ export function LandingSearch() {
       let ra: number;
       let dec: number;
 
-      // Try to parse as coordinates first
       const coords = parseCoordinates(query);
       if (coords) {
         ra = coords.ra;
         dec = coords.dec;
       } else {
-        // Try to resolve as object name via Sesame
         const resolved = await resolveObjectName(query);
         if (!resolved) {
           message.error(`Could not resolve "${query}" to coordinates`);
@@ -85,13 +81,10 @@ export function LandingSearch() {
         dec = resolved.dec;
       }
 
-      // Build search URL and navigate
       const params = new URLSearchParams({
         ra: ra.toString(),
         dec: dec.toString(),
-        radius: radius.toString(),
-        unit: unit,
-        catalogs: selectedCatalogs.join(","),
+        catalogRadii: encodeCatalogRadii(configs),
       });
 
       router.push(`/search?${params.toString()}`);
@@ -105,17 +98,6 @@ export function LandingSearch() {
     setQuery(example.query);
   };
 
-  // Map catalog colors to Tailwind classes
-  const getCatalogColorClass = (color: string) => {
-    const colorMap: Record<string, string> = {
-      "#1890ff": "bg-blue-500",
-      "#52c41a": "bg-green-500",
-      "#fa8c16": "bg-orange-500",
-      "#722ed1": "bg-purple-600",
-    };
-    return colorMap[color] || "bg-gray-500";
-  };
-
   return (
     <Flex
       vertical
@@ -127,19 +109,17 @@ export function LandingSearch() {
         vertical
         align="center"
         gap="large"
-        className="max-w-[600px] w-full"
+        className="max-w-[620px] w-full"
       >
         {/* Branding */}
-        <Flex vertical align="center" gap="middle">
-          <Flex align="center" gap="middle">
-            <Logo size="xlarge" />
-            <Title level={1} className="!m-0 !text-5xl">
-              XWave
-            </Title>
-          </Flex>
+        <Flex align="center" gap="middle">
+          <Logo size="xlarge" />
+          <Title level={1} className="m-0! text-5xl!">
+            XWave
+          </Title>
         </Flex>
 
-        {/* Unified search bar */}
+        {/* Search bar */}
         <Space.Compact className="w-full">
           <Button icon={<PlusOutlined />} size="large" title="Upload file" />
           <Input.Search
@@ -154,46 +134,23 @@ export function LandingSearch() {
           />
         </Space.Compact>
 
-        {/* Radius selector */}
-        <Flex align="center" gap="small" justify="center">
-          <Text type="secondary">Radius:</Text>
-          <Space.Compact>
-            <InputNumber
-              value={radius}
-              min={0}
-              step={0.1}
-              onChange={(value) => setRadius(value ?? 1)}
-              className="w-20"
-            />
-            <Select
-              value={unit}
-              options={unitOptions}
-              onChange={(value) => setUnit(value)}
-              className="w-[90px]"
-            />
-          </Space.Compact>
-        </Flex>
-
-        {/* Catalog selection */}
+        {/* Per-catalog radius inputs */}
         <Flex vertical align="center" gap="small">
           <Text type="secondary">Catalogs:</Text>
-          <Checkbox.Group
-            value={selectedCatalogs}
-            onChange={(values) => setSelectedCatalogs(values as string[])}
-          >
-            <Flex gap="middle" wrap="wrap" justify="center">
-              {catalogOptions.map((catalog) => (
-                <Checkbox key={catalog.value} value={catalog.value}>
-                  <Flex align="center" gap={4}>
-                    <span
-                      className={`w-2 h-2 rounded-full inline-block ${getCatalogColorClass(catalog.color)}`}
-                    />
-                    {catalog.label}
-                  </Flex>
-                </Checkbox>
-              ))}
-            </Flex>
-          </Checkbox.Group>
+          <Flex vertical gap={8}>
+            {CATALOG_SELECT_OPTIONS.map((catalog) => {
+              const config = configs.find((c) => c.catalog === catalog.value)!;
+              return (
+                <CatalogRadiusRow
+                  key={catalog.value}
+                  label={catalog.label}
+                  catalog={catalog.value}
+                  config={config}
+                  onChange={(patch) => updateConfig(catalog.value, patch)}
+                />
+              );
+            })}
+          </Flex>
         </Flex>
 
         {/* Quick examples */}
