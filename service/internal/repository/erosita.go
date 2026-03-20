@@ -275,7 +275,15 @@ func (m GetErositaFromPixelsRow) GetId() string {
 }
 
 func (m GetErositaFromPixelsRow) GetCoordinates() (float64, float64) {
-	return m.Ra.Float64, m.Dec.Float64
+	ra := 0.0
+	dec := 0.0
+	if m.Ra.Valid {
+		ra = m.Ra.Float64
+	}
+	if m.Dec.Valid {
+		dec = m.Dec.Float64
+	}
+	return ra, dec
 }
 
 func (q *Queries) InsertErositaWithoutParams(ctx context.Context, arg Erosita) error {

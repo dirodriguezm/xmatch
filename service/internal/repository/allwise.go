@@ -27,17 +27,26 @@ type AllwiseInputSchema struct {
 }
 
 func (schema AllwiseInputSchema) GetCoordinates() (float64, float64) {
+	if schema.Ra == nil || schema.Dec == nil {
+		return 0, 0
+	}
 	return *schema.Ra, *schema.Dec
 }
 
 func (schema AllwiseInputSchema) GetId() string {
+	if schema.Source_id == nil {
+		return ""
+	}
 	return *schema.Source_id
 }
 
 func (schema AllwiseInputSchema) FillMetadata() Metadata {
-	allwise := &Allwise{
-		ID:   *schema.Source_id,
-		Cntr: *schema.Cntr,
+	allwise := &Allwise{}
+	if schema.Source_id != nil {
+		allwise.ID = *schema.Source_id
+	}
+	if schema.Cntr != nil {
+		allwise.Cntr = *schema.Cntr
 	}
 	if schema.W1mpro != nil {
 		allwise.W1mpro = NullFloat64{sql.NullFloat64{Float64: *schema.W1mpro, Valid: true}}
@@ -121,13 +130,20 @@ func (schema AllwiseInputSchema) FillMetadata() Metadata {
 }
 
 func (schema AllwiseInputSchema) FillMastercat(ipix int64) Mastercat {
-	return Mastercat{
-		ID:   *schema.Source_id,
+	mastercat := Mastercat{
 		Ipix: ipix,
-		Ra:   *schema.Ra,
-		Dec:  *schema.Dec,
 		Cat:  "allwise",
 	}
+	if schema.Source_id != nil {
+		mastercat.ID = *schema.Source_id
+	}
+	if schema.Ra != nil {
+		mastercat.Ra = *schema.Ra
+	}
+	if schema.Dec != nil {
+		mastercat.Dec = *schema.Dec
+	}
+	return mastercat
 }
 
 func (a Allwise) GetId() string {
