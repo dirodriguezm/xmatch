@@ -53,10 +53,10 @@ func TestReceive_Mastercat(t *testing.T) {
 func TestReceive_Allwise(t *testing.T) {
 	allwise := repository.Allwise{
 		ID:        "test",
-		W1mpro:    sql.NullFloat64{Float64: 1.0, Valid: true},
-		W1sigmpro: sql.NullFloat64{Float64: 1.0, Valid: true},
-		W2mpro:    sql.NullFloat64{Float64: 2.0, Valid: true},
-		W2sigmpro: sql.NullFloat64{Float64: 2.0, Valid: true},
+		W1mpro:    repository.NullFloat64{sql.NullFloat64{Float64: 1.0, Valid: true}},
+		W1sigmpro: repository.NullFloat64{sql.NullFloat64{Float64: 1.0, Valid: true}},
+		W2mpro:    repository.NullFloat64{sql.NullFloat64{Float64: 2.0, Valid: true}},
+		W2sigmpro: repository.NullFloat64{sql.NullFloat64{Float64: 2.0, Valid: true}},
 	}
 
 	repo := &conesearch.MockRepository{}

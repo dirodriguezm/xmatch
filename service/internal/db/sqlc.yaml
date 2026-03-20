@@ -14,32 +14,60 @@ sql:
             go_struct_tag: 'parquet:"name=cntr, type=INT64" json:"cntr"'
           - column: "allwise.w1mpro"
             go_struct_tag: 'parquet:"name=w1mpro, type=DOUBLE" json:"w1mpro"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.w1sigmpro"
             go_struct_tag: 'parquet:"name=w1sigmpro, type=DOUBLE" json:"w1sigmpro"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.w2mpro"
             go_struct_tag: 'parquet:"name=w2mpro, type=DOUBLE" json:"w2mpro"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.w2sigmpro"
             go_struct_tag: 'parquet:"name=w2sigmpro, type=DOUBLE" json:"w2sigmpro"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.w3mpro"
             go_struct_tag: 'parquet:"name=w3mpro, type=DOUBLE" json:"w3mpro"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.w3sigmpro"
             go_struct_tag: 'parquet:"name=w3sigmpro, type=DOUBLE" json:"w3sigmpro"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.w4mpro"
             go_struct_tag: 'parquet:"name=w4mpro, type=DOUBLE" json:"w4mpro"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.w4sigmpro"
             go_struct_tag: 'parquet:"name=w4sigmpro, type=DOUBLE" json:"w4sigmpro"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.j_m_2mass"
             go_struct_tag: 'parquet:"name=j_m_2mass, type=DOUBLE" json:"j_m_2mass"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.j_msig_2mass"
             go_struct_tag: 'parquet:"name=j_msig_2mass, type=DOUBLE" json:"j_msig_2mass"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.h_m_2mass"
             go_struct_tag: 'parquet:"name=h_m_2mass, type=DOUBLE" json:"h_m_2mass"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.h_msig_2mass"
             go_struct_tag: 'parquet:"name=h_msig_2mass, type=DOUBLE" json:"h_msig_2mass"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.k_m_2mass"
             go_struct_tag: 'parquet:"name=k_m_2mass, type=DOUBLE" json:"k_m_2mass"'
+            go_type:
+              type: "NullFloat64"
           - column: "allwise.k_msig_2mass"
             go_struct_tag: 'parquet:"name=k_msig_2mass, type=DOUBLE" json:"k_msig_2mass"'
+            go_type:
+              type: "NullFloat64"
           - column: "mastercat.id"
             go_struct_tag: 'parquet:"name=id, type=BYTE_ARRAY" json:"id"'
           - column: "mastercat.ipix"
@@ -54,22 +82,40 @@ sql:
             go_struct_tag: 'parquet:"name=id, type=BYTE_ARRAY" json:"id"'
           - column: "gaia.phot_g_mean_flux"
             go_struct_tag: 'parquet:"name=phot_g_mean_flux, type=DOUBLE" json:"phot_g_mean_flux"'
+            go_type:
+              type: "NullFloat64"
           - column: "gaia.phot_g_mean_flux_error"
             go_struct_tag: 'parquet:"name=phot_g_mean_flux_error, type=DOUBLE" json:"phot_g_mean_flux_error"'
+            go_type:
+              type: "NullFloat64"
           - column: "gaia.phot_g_mean_mag"
             go_struct_tag: 'parquet:"name=phot_g_mean_mag, type=DOUBLE" json:"phot_g_mean_mag"'
+            go_type:
+              type: "NullFloat64"
           - column: "gaia.phot_bp_mean_flux"
             go_struct_tag: 'parquet:"name=phot_bp_mean_flux, type=DOUBLE" json:"phot_bp_mean_flux"'
+            go_type:
+              type: "NullFloat64"
           - column: "gaia.phot_bp_mean_flux_error"
             go_struct_tag: 'parquet:"name=phot_bp_mean_flux_error, type=DOUBLE" json:"phot_bp_mean_flux_error"'
+            go_type:
+              type: "NullFloat64"
           - column: "gaia.phot_bp_mean_mag"
             go_struct_tag: 'parquet:"name=phot_bp_mean_mag, type=DOUBLE" json:"phot_bp_mean_mag"'
+            go_type:
+              type: "NullFloat64"
           - column: "gaia.phot_rp_mean_flux"
             go_struct_tag: 'parquet:"name=phot_rp_mean_flux, type=DOUBLE" json:"phot_rp_mean_flux"'
+            go_type:
+              type: "NullFloat64"
           - column: "gaia.phot_rp_mean_flux_error"
             go_struct_tag: 'parquet:"name=phot_rp_mean_flux_error, type=DOUBLE" json:"phot_rp_mean_flux_error"'
+            go_type:
+              type: "NullFloat64"
           - column: "gaia.phot_rp_mean_mag"
             go_struct_tag: 'parquet:"name=phot_rp_mean_mag, type=DOUBLE" json:"phot_rp_mean_mag"'
+            go_type:
+              type: "NullFloat64"
           - column: "erosita.id"
             go_struct_tag: 'parquet:"name=IAUNAME, type=BYTE_ARRAY" json:"id"'
           - column: "erosita.detuid"
@@ -86,8 +132,12 @@ sql:
             go_struct_tag: 'parquet:"name=ID_CLUSTER, type=INT32"'
           - column: "erosita.ra"
             go_struct_tag: 'parquet:"name=RA, type=DOUBLE"'
+            go_type:
+              type: "NullFloat64"
           - column: "erosita.dec"
             go_struct_tag: 'parquet:"name=DEC, type=DOUBLE"'
+            go_type:
+              type: "NullFloat64"
           - column: "erosita.ra_lowerr"
             go_struct_tag: 'parquet:"name=RA_LOWERR, type=FLOAT"'
           - column: "erosita.ra_uperr"
@@ -296,6 +346,30 @@ sql:
             go_struct_tag: 'parquet:"name=FLAG_NO_CTS_ERR, type=INT32"'
           - column: "erosita.flag_opt"
             go_struct_tag: 'parquet:"name=FLAG_OPT, type=INT32"'
+          - db_type: "double precision"
+            go_type:
+              type: "NullFloat64"
+            nullable: true
+          - db_type: "real"
+            go_type:
+              type: "NullFloat64"
+            nullable: true
+          - db_type: "integer"
+            go_type:
+              type: "NullInt64"
+            nullable: true
+          - db_type: "bigint"
+            go_type:
+              type: "NullInt64"
+            nullable: true
+          - db_type: "smallint"
+            go_type:
+              type: "NullInt64"
+            nullable: true
+          - db_type: "text"
+            go_type:
+              type: "NullString"
+            nullable: true
 overrides:
   go:
     rename:
