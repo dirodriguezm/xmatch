@@ -171,15 +171,15 @@ func (schema GaiaInputSchema) GetCoordinates() (float64, float64) {
 func (schema GaiaInputSchema) FillMetadata() Metadata {
 	return Gaia{
 		ID:                  schema.GetId(),
-		PhotGMeanFlux:       sql.NullFloat64{Float64: schema.PhotGMeanFlux, Valid: true},
-		PhotGMeanFluxError:  sql.NullFloat64{Float64: float64(schema.PhotGMeanFluxError), Valid: true},
-		PhotGMeanMag:        sql.NullFloat64{Float64: float64(schema.PhotGMeanMag), Valid: true},
-		PhotBpMeanFlux:      sql.NullFloat64{Float64: schema.PhotBpMeanFlux, Valid: true},
-		PhotBpMeanFluxError: sql.NullFloat64{Float64: float64(schema.PhotBpMeanFluxError), Valid: true},
-		PhotBpMeanMag:       sql.NullFloat64{Float64: float64(schema.PhotBpMeanMag), Valid: true},
-		PhotRpMeanFlux:      sql.NullFloat64{Float64: schema.PhotRpMeanFlux, Valid: true},
-		PhotRpMeanFluxError: sql.NullFloat64{Float64: float64(schema.PhotRpMeanFluxError), Valid: true},
-		PhotRpMeanMag:       sql.NullFloat64{Float64: float64(schema.PhotRpMeanMag), Valid: true},
+		PhotGMeanFlux:       NullFloat64{sql.NullFloat64{Float64: schema.PhotGMeanFlux, Valid: true}},
+		PhotGMeanFluxError:  NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanFluxError), Valid: true}},
+		PhotGMeanMag:        NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanMag), Valid: true}},
+		PhotBpMeanFlux:      NullFloat64{sql.NullFloat64{Float64: schema.PhotBpMeanFlux, Valid: true}},
+		PhotBpMeanFluxError: NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanFluxError), Valid: true}},
+		PhotBpMeanMag:       NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanMag), Valid: true}},
+		PhotRpMeanFlux:      NullFloat64{sql.NullFloat64{Float64: schema.PhotRpMeanFlux, Valid: true}},
+		PhotRpMeanFluxError: NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanFluxError), Valid: true}},
+		PhotRpMeanMag:       NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanMag), Valid: true}},
 	}
 }
 
