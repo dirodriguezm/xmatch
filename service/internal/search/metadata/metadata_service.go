@@ -17,7 +17,6 @@ package metadata
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -131,20 +130,11 @@ func (m *MetadataService) validateCatalog(catalog string) error {
 
 func (m *MetadataService) validateID(id string) error {
 	if err := ensureNoSQLInjection(id); err != nil {
-		return err
-	}
-
-	if err := ensureAlphanumeric(id); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ensureAlphanumeric(s string) error {
-	validIDPattern := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
-	if !validIDPattern.MatchString(s) {
-		return fmt.Errorf("id must contain only alphanumeric characters, underscores, or hyphens")
+		return ValidationError{
+			Field:  "id",
+			Reason: err.Error(),
+			Value:  id,
+		}
 	}
 
 	return nil
