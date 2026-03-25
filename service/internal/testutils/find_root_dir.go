@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package testutils
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 func FindRootModulePath(maxDepth int) (string, error) {
 	currDir, err := os.Getwd()
@@ -31,6 +34,10 @@ func FindRootModulePath(maxDepth int) (string, error) {
 		if dir.Name() == "go.mod" {
 			return currDir, nil
 		}
+	}
+
+	if maxDepth == 0 {
+		return "", fmt.Errorf("could not find root module path")
 	}
 
 	os.Chdir("..")

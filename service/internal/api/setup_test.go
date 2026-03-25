@@ -26,7 +26,7 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
-	"github.com/dirodriguezm/xmatch/service/internal/utils"
+	"github.com/dirodriguezm/xmatch/service/internal/testutils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -69,15 +69,17 @@ func beforeTest(t *testing.T) {
 func TestMain(m *testing.M) {
 	slog.Info("Setting up test environment")
 
-	depth := 5
-	rootPath, err := utils.FindRootModulePath(depth)
+	rootPath, err := testutils.FindRootModulePath(5)
 	if err != nil {
 		panic(fmt.Errorf("could not find root module path: %w", err))
 	}
 
 	// remove test database if exist
-	dbFile := filepath.Join(rootPath, "test.db")
-	os.Remove(dbFile)
+	dbDir, err := os.MkdirTemp("", "api_test_db_*")
+	if err != nil {
+		panic(fmt.Errorf("could not make db temp dir: %w", err))
+	}
+	dbFile := filepath.Join(dbDir, "test.db")
 
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "server_test_*")
@@ -174,6 +176,7 @@ service:
 	_ = db.Close()
 	_ = os.Remove(configPath)
 	_ = os.Remove(dbFile)
+	_ = os.Remove(dbDir)
 	_ = os.Remove(tmpDir)
 
 	os.Exit(code)
