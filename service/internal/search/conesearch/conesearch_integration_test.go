@@ -27,7 +27,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
-	"github.com/dirodriguezm/xmatch/service/internal/utils"
+	"github.com/dirodriguezm/xmatch/service/internal/testutils"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -40,14 +40,17 @@ var configPath string
 var dbFile string
 
 func TestMain(m *testing.M) {
-	rootPath, err := utils.FindRootModulePath(5)
+	rootPath, err := testutils.FindRootModulePath(5)
 	if err != nil {
 		panic(err)
 	}
 
 	// remove test database, ignore errors
-	dbFile = filepath.Join(rootPath, "test.db")
-	os.Remove(dbFile)
+	dbDir, err := os.MkdirTemp("", "conesearch_test_db_*")
+	if err != nil {
+		panic(err)
+	}
+	dbFile = filepath.Join(dbDir, "test.db")
 
 	// create temporary directory for config
 	tmpDir, err := os.MkdirTemp("", "xmatch-test-*")
@@ -96,6 +99,7 @@ service:
 	// cleanup
 	os.Remove(configPath)
 	os.Remove(dbFile)
+	os.Remove(dbDir)
 	os.Remove(tmpDir)
 
 	os.Exit(code)

@@ -27,7 +27,7 @@ import (
 	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
-	"github.com/dirodriguezm/xmatch/service/internal/utils"
+	"github.com/dirodriguezm/xmatch/service/internal/testutils"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -38,16 +38,18 @@ import (
 var repo conesearch.Repository
 
 func TestMain(m *testing.M) {
-	depth := 5
-	rootPath, err := utils.FindRootModulePath(depth)
+	rootPath, err := testutils.FindRootModulePath(5)
 	if err != nil {
-		slog.Error("could not find root module path", "depth", depth)
+		slog.Error("could not find root module path", "error", err)
 		panic(err)
 	}
 
 	// remove test database if exist
-	dbFile := filepath.Join(rootPath, "test.db")
-	os.Remove(dbFile)
+	dbDir, err := os.MkdirTemp("", "sqlite_writer_test_db_*")
+	if err != nil {
+		panic(err)
+	}
+	dbFile := filepath.Join(dbDir, "test.db")
 
 	// create a config file
 	tmpDir, err := os.MkdirTemp("", "sqlite_writer_integration_test_*")
@@ -115,6 +117,7 @@ catalog_indexer:
 	m.Run()
 	os.Remove(configPath)
 	os.Remove(dbFile)
+	os.Remove(dbDir)
 	os.Remove(tmpDir)
 }
 

@@ -119,19 +119,18 @@ func TestLoad(t *testing.T) {
 			},
 		},
 		{
-			name:    "load config path from default location",
+			name:    "load empty custom config",
 			wantErr: false,
 			setupEnv: func(t *testing.T) (cleanup func(), getEnv func(string) string) {
 				tempDir := t.TempDir()
-				t.Log("asdfsafd")
-				t.Log(tempDir)
 				configPath := filepath.Join(tempDir, "config.yaml")
-				os.WriteFile(configPath, []byte(""), 0644)
+				err := os.WriteFile(configPath, []byte(""), 0644)
+				require.NoError(t, err)
 
 				getEnv = func(key string) string {
 					switch key {
 					case "CONFIG_PATH":
-						return filepath.Join(tempDir, "config.yaml")
+						return configPath
 					default:
 						return ""
 					}
@@ -177,6 +176,14 @@ func TestLoad(t *testing.T) {
 			require.NotNil(t, cfg)
 		})
 	}
+}
+
+func TestLoadDefaultConfigFallsBackToEmbeddedConfig(t *testing.T) {
+	cfg, err := Load(func(string) string { return "" })
+	require.NoError(t, err)
+	require.Equal(t, "localhost:8080", cfg.Service.Host)
+	require.Equal(t, "file:dev.db", cfg.Service.Database.Url)
+	require.Equal(t, "file:dev.db", cfg.CatalogIndexer.Database.Url)
 }
 
 func Test_mergeConfig(t *testing.T) {

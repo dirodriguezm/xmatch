@@ -15,14 +15,17 @@
 package config
 
 import (
+	"embed"
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"gopkg.in/yaml.v3"
 )
+
+//go:embed config.yaml
+var embeddedConfig embed.FS
 
 type Config struct {
 	CatalogIndexer CatalogIndexerConfig `yaml:"catalog_indexer"`
@@ -135,27 +138,21 @@ func mergeConfig(defaultConfig Config, customConfig Config) (Config, error) {
 }
 
 func loadDefaultConfig() (Config, error) {
-	rootPath, err := utils.FindRootModulePath(5)
-	if err != nil {
-		return Config{}, err
-	}
-	configPath, err := searchDefaultLocations(rootPath)
-	return LoadFile(configPath)
+	return loadEmbeddedConfig()
 }
 
-func searchDefaultLocations(rootPath string) (string, error) {
-	locations := []string{
-		filepath.Join(rootPath, "config.yml"),
-		filepath.Join(rootPath, "config.yaml"),
+func loadEmbeddedConfig() (Config, error) {
+	data, err := embeddedConfig.ReadFile("config.yaml")
+	if err != nil {
+		return Config{}, fmt.Errorf("reading embedded config: %w", err)
 	}
 
-	for _, loc := range locations {
-		if _, err := os.Stat(loc); err == nil {
-			return loc, nil
-		}
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return Config{}, fmt.Errorf("parsing embedded config: %w", err)
 	}
 
-	return "", fmt.Errorf("Could not find configuration file")
+	return cfg, nil
 }
 
 func LoadFile(path string) (Config, error) {
