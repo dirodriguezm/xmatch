@@ -44,27 +44,25 @@ export default function ObjectPage({ params }: ObjectPageProps) {
 
   const searchParams = useSearchParams();
   const catalog = searchParams.get("catalog");
-  const raStr = searchParams.get("ra");
-  const decStr = searchParams.get("dec");
 
   // Fetch metadata if we have a catalog
   const { data: metadata, isLoading } = useMetadata(
     catalog ? { id: decodedObjectId, catalog } : null
   );
 
-  // Construct the object from URL params and metadata
+  // Construct the object from metadata response (ra/dec come from the API)
   const object = useMemo<CrossmatchResult | null>(() => {
-    if (!catalog || !raStr || !decStr) return null;
+    if (!catalog || metadata?.ra == null || metadata?.dec == null) return null;
 
     return {
       key: decodedObjectId,
       objectId: decodedObjectId,
-      ra: parseFloat(raStr),
-      dec: parseFloat(decStr),
+      ra: metadata.ra,
+      dec: metadata.dec,
       catalog: catalog,
       angularDistance: 0, // Not needed for detail view, but required by type
     };
-  }, [decodedObjectId, catalog, raStr, decStr]);
+  }, [decodedObjectId, catalog, metadata]);
 
   return (
     <Layout className="min-h-screen">

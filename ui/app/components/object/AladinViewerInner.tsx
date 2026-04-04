@@ -323,7 +323,7 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
 
     const setSurvey = useCallback((newSurvey: string) => {
       if (aladinRef.current) {
-        aladinRef.current.setImageSurvey(newSurvey);
+        aladinRef.current.setImageLayer(newSurvey);
       }
     }, []);
 

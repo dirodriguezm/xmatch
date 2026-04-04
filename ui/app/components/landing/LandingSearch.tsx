@@ -3,7 +3,7 @@
 import { PlusOutlined } from "@ant-design/icons";
 import { App, Button, Flex, Input, Space, Tag, Typography } from "antd";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { CatalogRadiusRow } from "@/app/components/common";
 import { Logo } from "@/app/components/common";
@@ -24,11 +24,30 @@ interface QuickExample {
   query: string;
 }
 
-const quickExamples: QuickExample[] = [
-  { name: "M31", query: "M31" },
+const ALL_EXAMPLES: QuickExample[] = [
+  { name: "M31 (Andromeda)", query: "M31" },
   { name: "Sagittarius A*", query: "17:45:40.0 -29:00:28" },
   { name: "Crab Pulsar", query: "05:34:31.9 +22:00:52" },
+  { name: "M87 (Virgo A)", query: "M87" },
+  { name: "Eta Carinae", query: "Eta Carinae" },
+  { name: "Vela Pulsar", query: "08:35:20.6 -45:10:35" },
+  { name: "NGC 253 (Sculptor)", query: "NGC 253" },
+  { name: "Cygnus X-1", query: "Cygnus X-1" },
+  { name: "M1 (Crab Nebula)", query: "M1" },
+  { name: "Centaurus A", query: "Centaurus A" },
+  { name: "M42 (Orion Nebula)", query: "M42" },
+  { name: "Cassiopeia A", query: "Cassiopeia A" },
+  { name: "M51 (Whirlpool)", query: "M51" },
+  { name: "Sirius", query: "Sirius" },
+  { name: "Sombrero Galaxy", query: "M104" },
 ];
+
+const EXAMPLES_TO_SHOW = 4;
+
+function pickRandom(items: QuickExample[], n: number): QuickExample[] {
+  const shuffled = [...items].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
 
 export function LandingSearch() {
   const router = useRouter();
@@ -38,6 +57,15 @@ export function LandingSearch() {
     buildDefaultCatalogConfigs
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [quickExamples, setQuickExamples] = useState(
+    ALL_EXAMPLES.slice(0, EXAMPLES_TO_SHOW)
+  );
+
+  useEffect(() => {
+    // Randomize on client mount to avoid SSR hydration mismatch
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setQuickExamples(pickRandom(ALL_EXAMPLES, EXAMPLES_TO_SHOW));
+  }, []);
 
   const updateConfig = (
     catalog: string,

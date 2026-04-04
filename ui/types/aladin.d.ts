@@ -94,8 +94,10 @@ export interface AladinInstance {
   getFov: () => number[];
   /** Get current RA/Dec */
   getRaDec: () => [number, number];
-  /** Set survey by URL or ID */
+  /** Set survey by URL or ID (legacy) */
   setImageSurvey: (survey: string) => void;
+  /** Set image layer by HiPS ID or URL (v3 API) */
+  setImageLayer: (surveyId: string) => void;
   /** Add overlay (catalog, shapes) */
   addOverlay: (overlay: AladinCatalog | AladinShape) => void;
   /** Remove overlay */

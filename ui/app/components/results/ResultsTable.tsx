@@ -140,7 +140,7 @@ export function ResultsTable({
       onRow={(record) => ({
         onClick: () =>
           router.push(
-            `/object/${encodeURIComponent(record.objectId)}?catalog=${encodeURIComponent(record.catalog)}&ra=${record.ra}&dec=${record.dec}`
+            `/object/${encodeURIComponent(record.objectId)}?catalog=${encodeURIComponent(record.catalog)}`
           ),
         className: "cursor-pointer",
       })}

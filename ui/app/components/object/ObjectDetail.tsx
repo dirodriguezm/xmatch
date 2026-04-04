@@ -2,7 +2,9 @@
 
 import {
   CopyOutlined,
+  DatabaseOutlined,
   EnvironmentOutlined,
+  LineChartOutlined,
   QuestionCircleOutlined,
   StarOutlined,
   TagOutlined,
@@ -13,23 +15,66 @@ import {
   Card,
   Col,
   Collapse,
+  Descriptions,
   Flex,
   Row,
+  Select,
   Space,
   Tooltip,
   Typography,
 } from "antd";
+import { useRef } from "react";
 
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
+import { useZtfLightcurve } from "@/app/hooks/queries";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
 import {
   buildAladinUrl,
   buildSimbadUrl,
   buildVizierUrl,
 } from "@/app/lib/utils/urls";
+import type { AladinViewerRef } from "@/types/aladin";
 import type { components } from "@/types/xwave-api";
 
 import { AladinViewer } from "./AladinViewer";
+import { LightCurveChart } from "./LightCurveChart";
+
+const DSS_SURVEY = "https://alasky.cds.unistra.fr/DSS/DSSColor/";
+
+const SURVEY_OPTIONS = [
+  { label: "DSS Optical", value: DSS_SURVEY, category: "Optical" },
+  {
+    label: "DESI DR10",
+    value: "CDS/P/DESI-Legacy-Surveys/DR10/color",
+    category: "Optical",
+  },
+  { label: "DSS2 Color", value: "CDS/P/DSS2/color", category: "Optical" },
+  { label: "2MASS", value: "CDS/P/2MASS/color", category: "Infrared" },
+  { label: "AllWISE", value: "CDS/P/allWISE/color", category: "Infrared" },
+  { label: "XMM-Newton", value: "xcatdb/P/XMM/PN/color", category: "X-ray" },
+  {
+    label: "Chandra",
+    value: "cxc.harvard.edu/P/cda/hips/allsky/rgb",
+    category: "X-ray",
+  },
+  { label: "NVSS 1.4 GHz", value: "CDS/P/NVSS", category: "Radio" },
+  { label: "SUMSS 843 MHz", value: "CDS/P/SUMSS", category: "Radio" },
+  {
+    label: "RACS 887 MHz",
+    value: "https://casda.csiro.au/hips/RACS/low/I/",
+    category: "Radio",
+  },
+];
+
+const surveySelectOptions = Object.entries(
+  SURVEY_OPTIONS.reduce<Record<string, { label: string; value: string }[]>>(
+    (acc, s) => {
+      (acc[s.category] ??= []).push({ label: s.label, value: s.value });
+      return acc;
+    },
+    {}
+  )
+).map(([category, options]) => ({ label: category, options }));
 
 const { Text, Title } = Typography;
 
@@ -40,9 +85,9 @@ interface ObjectDetailProps {
   metadata?: Allwise | null;
 }
 
-function mag(field?: { Float64: number; Valid: boolean }): number | null {
-  if (!field || !field.Valid) return null;
-  return field.Float64;
+function mag(field?: number): number | null {
+  if (field == null) return null;
+  return field;
 }
 
 // Convert decimal degrees to sexagesimal
@@ -65,6 +110,12 @@ function toDMS(dec: number): string {
 
 export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const { message } = App.useApp();
+  const aladinRef = useRef<AladinViewerRef>(null);
+  const {
+    data: ztfData,
+    isLoading: ztfLoading,
+    error: ztfError,
+  } = useZtfLightcurve({ ra: object.ra, dec: object.dec });
   const simbadUrl = buildSimbadUrl(object.ra, object.dec);
   const vizierUrl = buildVizierUrl(object.ra, object.dec);
   const aladinUrl = buildAladinUrl(object.ra, object.dec);
@@ -74,8 +125,12 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     message.success(`${label} copied to clipboard`);
   };
 
-  // Map metadata fields to photometry bands
+  // Map metadata fields to photometry bands (supports multiple catalogs)
+  const meta = metadata as Record<string, unknown> | undefined;
   const bandMagMap: Record<string, number | null> = {
+    G: mag(meta?.phot_g_mean_mag as number | undefined),
+    BP: mag(meta?.phot_bp_mean_mag as number | undefined),
+    RP: mag(meta?.phot_rp_mean_mag as number | undefined),
     J: mag(metadata?.j_m_2mass),
     H: mag(metadata?.h_m_2mass),
     K: mag(metadata?.k_m_2mass),
@@ -90,6 +145,18 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     survey: band.survey,
     mag: bandMagMap[band.band] ?? null,
   }));
+
+  // Build catalog details from all metadata fields (exclude id, ra, dec already shown)
+  const excludedFields = new Set(["id", "ra", "dec"]);
+  const catalogDetails = meta
+    ? Object.entries(meta)
+        .filter(([key]) => !excludedFields.has(key))
+        .map(([key, value]) => ({
+          key,
+          label: key,
+          value: value == null ? "—" : String(value),
+        }))
+    : [];
 
   const collapseItems = [
     {
@@ -131,6 +198,61 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         </Flex>
       ),
     },
+    {
+      key: "ztf-lightcurve",
+      label: (
+        <Space>
+          <LineChartOutlined />
+          <span>Light Curve (ZTF)</span>
+          {ztfData?.detections && ztfData.detections.length > 0 && (
+            <Text type="secondary" className="text-xs">
+              ({ztfData.detections.length} points)
+            </Text>
+          )}
+        </Space>
+      ),
+      children: (
+        <LightCurveChart
+          data={ztfData}
+          loading={ztfLoading}
+          error={ztfError ?? null}
+        />
+      ),
+    },
+    ...(catalogDetails.length > 0
+      ? [
+          {
+            key: "catalog-details",
+            label: (
+              <Space>
+                <DatabaseOutlined />
+                <span>Catalog Details</span>
+                <Text type="secondary" className="text-xs">
+                  ({catalogDetails.length} fields)
+                </Text>
+              </Space>
+            ),
+            children: (
+              <Descriptions
+                size="small"
+                column={{ xs: 1, sm: 2, md: 3 }}
+                bordered
+              >
+                {catalogDetails.map((field) => (
+                  <Descriptions.Item
+                    key={field.key}
+                    label={
+                      <Text className="font-mono text-xs">{field.label}</Text>
+                    }
+                  >
+                    <Text className="font-mono text-xs">{field.value}</Text>
+                  </Descriptions.Item>
+                ))}
+              </Descriptions>
+            ),
+          },
+        ]
+      : []),
     {
       key: "external",
       label: (
@@ -276,8 +398,18 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                 <span>Sky View</span>
               </Space>
             }
+            extra={
+              <Select
+                defaultValue={DSS_SURVEY}
+                size="small"
+                className="w-[150px]"
+                options={surveySelectOptions}
+                onChange={(value) => aladinRef.current?.setSurvey(value)}
+              />
+            }
           >
             <AladinViewer
+              ref={aladinRef}
               center={{ ra: object.ra, dec: object.dec }}
               fov={0.9}
               height={280}
@@ -289,7 +421,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       {/* Collapsible sections */}
       <Collapse
         items={collapseItems}
-        defaultActiveKey={["photometry"]}
+        defaultActiveKey={["photometry", "ztf-lightcurve"]}
         className="bg-surface"
       />
     </div>
