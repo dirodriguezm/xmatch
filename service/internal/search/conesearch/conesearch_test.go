@@ -131,6 +131,19 @@ func TestBulkConesearch(t *testing.T) {
 	}
 }
 
+func TestBulkConesearch_WithRepositoryError(t *testing.T) {
+	repo := &MockRepository{}
+	repo.On("FindObjects", mock.Anything, mock.Anything).Return(nil, errors.New("repository error"))
+	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	require.NoError(t, err)
+
+	_, err = service.BulkConesearch([]float64{1, 10}, []float64{1, 10}, 1, 100, "all", 2, 1)
+	repo.AssertExpectations(t)
+	require.Error(t, err)
+	require.Equal(t, "repository error", err.Error())
+}
+
 func TestConesearch_WithMetadata(t *testing.T) {
 	objects := []repository.GetAllwiseFromPixelsRow{
 		{ID: "A", Ra: 1, Dec: 1},

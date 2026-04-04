@@ -13,9 +13,10 @@ type MastercatExtended struct {
 type MastercatResult struct {
 	Catalog string              `json:"catalog"`
 	Data    []MastercatExtended `json:"data"`
+	Index   int                 `json:"index"`
 }
 
-func ResultFromKnn(objs knn.KnnResult[repository.Mastercat]) []MastercatResult {
+func ResultFromKnn(objs knn.KnnResult[repository.Mastercat], index int) []MastercatResult {
 	result := make([]MastercatResult, 0)
 	grouped := make(map[string][]MastercatExtended)
 	for i, m := range objs.Data {
@@ -25,7 +26,7 @@ func ResultFromKnn(objs knn.KnnResult[repository.Mastercat]) []MastercatResult {
 		})
 	}
 	for catalog, data := range grouped {
-		result = append(result, MastercatResult{Catalog: catalog, Data: data})
+		result = append(result, MastercatResult{Catalog: catalog, Data: data, Index: index})
 	}
 	return result
 }
