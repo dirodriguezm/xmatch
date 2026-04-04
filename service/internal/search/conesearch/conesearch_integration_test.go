@@ -283,14 +283,83 @@ func TestBulkConesearch(t *testing.T) {
 			t.Error(err)
 		}
 
-		require.Len(t, tc.expected, len(result), "testCase: %v | result: %v", tc, result)
+		foundIDs := make(map[string]bool)
 		for i := range result {
 			for j := range result[i].Data {
 				id := result[i].Data[j].ID
 				require.Contains(t, tc.expected, id, "testCase: %v | result: %v", tc, result)
+				foundIDs[id] = true
 			}
 		}
+		for _, expectedID := range tc.expected {
+			require.True(t, foundIDs[expectedID], "expected ID %s not found in result for testCase: %v", expectedID, tc)
+		}
 	}
+
+	// test that coordinates with no matches are properly handled
+	t.Run("coordinates with no matches return empty results", func(t *testing.T) {
+		noMatchResult, err := service.BulkConesearch(
+			[]float64{100, 200}, // coordinates with no objects nearby
+			[]float64{50, 60},
+			1,
+			10,
+			"all",
+			1,
+			1,
+		)
+		require.NoError(t, err)
+		require.Len(t, noMatchResult, 0, "expected no matches for coordinates with no nearby objects, got: %v", noMatchResult)
+	})
+
+	// test that Index field is correctly set
+	t.Run("index field is correctly set for matched coordinates", func(t *testing.T) {
+		multiMatchResult, err := service.BulkConesearch(
+			[]float64{0, 10}, // first matches A, second matches B
+			[]float64{0, 10},
+			1,
+			10,
+			"all",
+			1,
+			1,
+		)
+		require.NoError(t, err)
+		require.Len(t, multiMatchResult, 2, "expected 2 results, got: %v", multiMatchResult)
+
+		indexMap := make(map[int][]string)
+		for _, r := range multiMatchResult {
+			for _, d := range r.Data {
+				indexMap[r.Index] = append(indexMap[r.Index], d.ID)
+			}
+		}
+		require.Contains(t, indexMap[0], "A", "index 0 should contain ID A")
+		require.Contains(t, indexMap[1], "B", "index 1 should contain ID B")
+	})
+
+	// test that non-matching coordinates in the middle are handled correctly
+	t.Run("non-matching coordinates in the middle preserve index correctness", func(t *testing.T) {
+		middleNoMatchResult, err := service.BulkConesearch(
+			[]float64{0, 50, 10, 60},
+			[]float64{0, 50, 10, 60},
+			1,
+			10,
+			"all",
+			1,
+			1,
+		)
+		require.NoError(t, err)
+		require.Len(t, middleNoMatchResult, 2, "expected 2 results, got: %v", middleNoMatchResult)
+
+		indexMap := make(map[int][]string)
+		for _, r := range middleNoMatchResult {
+			for _, d := range r.Data {
+				indexMap[r.Index] = append(indexMap[r.Index], d.ID)
+			}
+		}
+		require.Contains(t, indexMap[0], "A", "index 0 should contain ID A")
+		require.Contains(t, indexMap[2], "B", "index 2 should contain ID B")
+		require.NotContains(t, indexMap, 1, "index 1 should have no matches")
+		require.NotContains(t, indexMap, 3, "index 3 should have no matches")
+	})
 
 	CleanDB(t, repo)
 }

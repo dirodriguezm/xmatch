@@ -26,10 +26,14 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/assertions"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/knn"
-	"github.com/dirodriguezm/xmatch/service/internal/utils"
 
 	"github.com/dirodriguezm/healpix"
 )
+
+type indexedResult struct {
+	index  int
+	result knn.KnnResult[repository.Mastercat]
+}
 
 type Repository interface {
 	FindObjects(context.Context, []int64) ([]repository.Mastercat, error)
@@ -136,7 +140,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 		objects = append(objects, objs...)
 	}
 
-	return ResultFromKnn(knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)), nil
+	return ResultFromKnn(knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor), 0), nil
 }
 
 func (c *ConesearchService) FindMetadataByConesearch(
@@ -189,7 +193,7 @@ func (c *ConesearchService) BulkConesearch(
 
 	radius_radians := arcsecToRadians(radius)
 	numChunks := (len(ra) + chunkSize - 1) / chunkSize
-	resultsChan := make(chan knn.KnnResult[repository.Mastercat], numChunks)
+	resultsChan := make(chan indexedResult, numChunks)
 	errChan := make(chan error, numChunks)
 	var wg sync.WaitGroup
 
@@ -203,7 +207,7 @@ func (c *ConesearchService) BulkConesearch(
 			chunkRa := ra[i:end]
 			chunkDec := dec[i:end]
 
-			go func(chunkRa, chunkDec []float64) {
+			go func(chunkRa, chunkDec []float64, baseIndex int) {
 				sem <- struct{}{}
 
 				defer func() {
@@ -218,12 +222,16 @@ func (c *ConesearchService) BulkConesearch(
 					objs, err := c.getObjects(pixelList, catalog)
 					if err != nil {
 						errChan <- err
+						break
 					}
 
-					resultsChan <- knn.NearestNeighborSearch(objs, chunkRa[j], chunkDec[j], radius, nneighbor)
+					resultsChan <- indexedResult{
+						index:  baseIndex + j,
+						result: knn.NearestNeighborSearch(objs, chunkRa[j], chunkDec[j], radius, nneighbor),
+					}
 				}
 
-			}(chunkRa, chunkDec)
+			}(chunkRa, chunkDec, i)
 		}
 	}
 
@@ -233,21 +241,34 @@ func (c *ConesearchService) BulkConesearch(
 		close(errChan)
 	}()
 
-	allObjects := make([]MastercatResult, 0)
-	for result := range resultsChan {
-		allObjects = append(allObjects, ResultFromKnn(result)...)
+	resultsByIndex := make([][]MastercatResult, len(ra))
+	for indexed := range resultsChan {
+		resultsByIndex[indexed.index] = ResultFromKnn(indexed.result, indexed.index)
 	}
 	for err := range errChan {
 		return nil, err
 	}
 
 	uniqueObjects := make([]MastercatResult, 0)
-	ids := utils.Set{}
-	for i := range allObjects {
-		for j := range allObjects[i].Data {
-			if !ids.Contains(allObjects[i].Data[j].ID) {
-				uniqueObjects = append(uniqueObjects, allObjects[i])
-				ids.Add(allObjects[i].Data[j].ID)
+	seenIDs := make(map[int]map[string]bool)
+	for i := range resultsByIndex {
+		if resultsByIndex[i] == nil {
+			resultsByIndex[i] = []MastercatResult{}
+		}
+		if seenIDs[i] == nil {
+			seenIDs[i] = make(map[string]bool)
+		}
+		for _, mastercatResult := range resultsByIndex[i] {
+			for j := range mastercatResult.Data {
+				id := mastercatResult.Data[j].ID
+				if !seenIDs[i][id] {
+					seenIDs[i][id] = true
+					uniqueObjects = append(uniqueObjects, MastercatResult{
+						Catalog: mastercatResult.Catalog,
+						Data:    []MastercatExtended{mastercatResult.Data[j]},
+						Index:   i,
+					})
+				}
 			}
 		}
 	}
