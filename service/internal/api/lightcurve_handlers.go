@@ -16,6 +16,7 @@ import (
 //	@Param			ra			query		string	true	"Right Ascension coordinate"
 //	@Param			dec			query		string	true	"Declination coordinate"
 //	@Param			radius		query		string	true	"Search radius in arcseconds"
+//	@Param			catalog		query		string	false	"Catalog to query (all, ztf, neowise, allwise)"
 //	@Param			nneighbor	query		string	false	"Number of neighbors to return (default: 1)"
 //	@Success		200			{object}	LightcurveResponse
 //	@Failure		400			{string}	string
@@ -25,6 +26,7 @@ func (api *API) Lightcurve(c *gin.Context) {
 	ra := c.Query("ra")
 	dec := c.Query("dec")
 	radius := c.Query("radius")
+	catalog := c.DefaultQuery("catalog", "all")
 	nneighbor := c.DefaultQuery("nneighbor", "1")
 
 	parsedRa, err := parseRa(ra)
@@ -47,7 +49,12 @@ func (api *API) Lightcurve(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
-	lightcurve, err := api.lightcurveService.GetLightcurve(parsedRa, parsedDec, parsedRadius, parsedNneighbor)
+	parsedCatalog, err := parseLightcurveCatalog(catalog)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+	lightcurve, err := api.lightcurveService.GetLightcurve(parsedRa, parsedDec, parsedRadius, parsedNneighbor, parsedCatalog)
 	if err != nil {
 		c.Error(err)
 		c.JSON(http.StatusInternalServerError, "Could not fetch lightcurve")
