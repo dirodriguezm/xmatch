@@ -99,10 +99,16 @@ type DatabaseConfig struct {
 
 type LightcurveServiceConfig struct {
 	NeowiseConfig NeowiseConfig `yaml:"neowise"`
+	ZtfDrConfig   ZtfDrConfig   `yaml:"ztf_dr"`
 }
 
 type NeowiseConfig struct {
+	UseIdFilter   bool `yaml:"use_id_filter"`
 	UseCntrFilter bool `yaml:"use_cntr_filter"`
+}
+
+type ZtfDrConfig struct {
+	UseIdFilter bool `yaml:"use_id_filter"`
 }
 
 func Load(getEnv func(string) string) (Config, error) {

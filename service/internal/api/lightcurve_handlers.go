@@ -17,7 +17,7 @@ import (
 //	@Param			dec			query		string	true	"Declination coordinate"
 //	@Param			radius		query		string	true	"Search radius in arcseconds"
 //	@Param			nneighbor	query		string	false	"Number of neighbors to return (default: 1)"
-//	@Success		200			{object}	lightcurve.Lightcurve
+//	@Success		200			{object}	LightcurveResponse
 //	@Failure		400			{string}	string
 //	@Failure		500			{string}	string
 //	@Router			/lightcurve [get]
@@ -54,5 +54,12 @@ func (api *API) Lightcurve(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, lightcurve)
+	response, err := newLightcurveResponse(lightcurve)
+	if err != nil {
+		c.Error(err)
+		c.JSON(http.StatusInternalServerError, "Could not serialize lightcurve")
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }

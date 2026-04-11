@@ -31,6 +31,19 @@ type TestDetection struct {
 	MJD            float64
 }
 
+type testMetadata struct {
+	id      string
+	catalog string
+}
+
+func (m testMetadata) GetId() string {
+	return m.id
+}
+
+func (m testMetadata) GetCatalog() string {
+	return m.catalog
+}
+
 func (d TestDetection) GetId() string {
 	return d.ID
 }
@@ -171,6 +184,31 @@ func TestMergeClientResults_WithError(t *testing.T) {
 	require.Equal(t, []LightcurveObject{
 		TestDetection{"1", "ALLWISE1", 1, 1, 1},
 	}, lightcurve.Detections)
+}
+
+func TestExtractObjectIds_PreservesCatalog(t *testing.T) {
+	lightcurveService, err := New([]ExternalClient{NewMockExternalClient(t)}, []LightcurveFilter{MockLightcurveFilter}, NewMockConesearchService(t))
+	require.NoError(t, err)
+
+	metadataResult := make(chan []conesearch.MetadataResult, 1)
+	errors := make(chan error, 1)
+	metadataResult <- []conesearch.MetadataResult{
+		{
+			Catalog: "ztf",
+			Data:    []conesearch.MetadataExtended{{Metadata: testMetadata{id: "ZTF1", catalog: "ztf"}}},
+		},
+		{
+			Catalog: "gaia",
+			Data:    []conesearch.MetadataExtended{{Metadata: testMetadata{id: "GAIA1", catalog: "gaia"}}},
+		},
+	}
+
+	ids, objects, err := lightcurveService.extractObjectIds(metadataResult, errors)
+	require.NoError(t, err)
+	require.Equal(t, []string{"ZTF1", "GAIA1"}, ids)
+	require.Len(t, objects, 2)
+	require.Equal(t, "ztf", objects[0].Catalog)
+	require.Equal(t, "gaia", objects[1].Catalog)
 }
 
 func TestMergeLightcurves(t *testing.T) {

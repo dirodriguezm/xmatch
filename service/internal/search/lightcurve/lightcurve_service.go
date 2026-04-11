@@ -104,6 +104,9 @@ func (service *LightcurveService) GetLightcurve(ra, dec, radius float64, nobject
 	if err != nil {
 		return Lightcurve{}, err
 	}
+	if len(objectIds) == 0 {
+		return mergedClientResult, nil
+	}
 
 	// Step 2: Fetch Xwave data and apply filters concurrently
 	xwaveLightcurve := make(chan Lightcurve, 1)
@@ -201,7 +204,7 @@ func (service *LightcurveService) extractObjectIds(
 			for j := range res[i].Data {
 				objectIds = append(objectIds, res[i].Data[j].GetId())
 			}
-			objects = append(objects, conesearch.MetadataResult{Data: res[i].Data})
+			objects = append(objects, conesearch.MetadataResult{Catalog: res[i].Catalog, Data: res[i].Data})
 		}
 		return objectIds, objects, nil
 	case err := <-errors:

@@ -45,7 +45,9 @@ service:
   max_bulk_concurrency: 4
   lightcurve_service:
     neowise:
-      use_cntr_filter: true
+      use_id_filter: false
+    ztf_dr:
+      use_id_filter: false
 # Configuration for the preprocessor
 preprocessor:
   source:

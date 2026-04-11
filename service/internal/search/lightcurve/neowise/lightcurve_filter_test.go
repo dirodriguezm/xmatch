@@ -10,16 +10,31 @@ import (
 )
 
 func TestFilter(t *testing.T) {
-	lightcurve := lc.Lightcurve{
-		Detections: []lc.LightcurveObject{&Detection{Cntr: 1}},
-	}
-	objects := []conesearch.MetadataResult{{Catalog: "allwise", Data: []conesearch.MetadataExtended{
-		{Metadata: repository.Allwise{ID: "1", Cntr: 1}},
-		{Metadata: repository.Allwise{ID: "2", Cntr: 2}},
-	}}}
+	t.Run("keeps detections matching allwise cntr", func(t *testing.T) {
+		lightcurve := lc.Lightcurve{
+			Detections: []lc.LightcurveObject{&Detection{Cntr: 1}},
+		}
+		objects := []conesearch.MetadataResult{{Catalog: "allwise", Data: []conesearch.MetadataExtended{
+			{Metadata: repository.Allwise{ID: "1", Cntr: 1}},
+			{Metadata: repository.Allwise{ID: "2", Cntr: 2}},
+		}}}
 
-	filtered := Filter(lightcurve, objects)
+		filtered := Filter(lightcurve, objects)
 
-	require.Equal(t, []lc.LightcurveObject{&Detection{Cntr: 1}}, filtered.Detections)
+		require.Equal(t, []lc.LightcurveObject{&Detection{Cntr: 1}}, filtered.Detections)
+	})
 
+	t.Run("ignores non allwise catalogs", func(t *testing.T) {
+		lightcurve := lc.Lightcurve{
+			Detections: []lc.LightcurveObject{&Detection{Cntr: 1}},
+		}
+		objects := []conesearch.MetadataResult{
+			{Catalog: "gaia", Data: []conesearch.MetadataExtended{{Metadata: repository.Gaia{ID: "gaia-1"}}}},
+			{Catalog: "allwise", Data: []conesearch.MetadataExtended{{Metadata: repository.Allwise{ID: "1", Cntr: 1}}}},
+		}
+
+		filtered := Filter(lightcurve, objects)
+
+		require.Equal(t, []lc.LightcurveObject{&Detection{Cntr: 1}}, filtered.Detections)
+	})
 }
