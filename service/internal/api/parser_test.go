@@ -81,3 +81,24 @@ func TestNneighborValidation(t *testing.T) {
 		require.Equal(t, expectedResult, result)
 	}
 }
+
+func TestLightcurveCatalogValidation(t *testing.T) {
+	testCases := map[string]string{
+		"":          "all",
+		"all":       "all",
+		"ztf":       "ztf",
+		"neowise":   "neowise",
+		"allwise":   "neowise",
+		"ALLWISE":   "neowise",
+		" NeOWISE ": "neowise",
+	}
+
+	for catalog, expectedCatalog := range testCases {
+		result, err := parseLightcurveCatalog(catalog)
+		require.NoError(t, err)
+		require.Equal(t, expectedCatalog, result)
+	}
+
+	_, err := parseLightcurveCatalog("gaia")
+	require.Error(t, err)
+}

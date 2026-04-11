@@ -109,21 +109,21 @@ func MetadataService(repo conesearch.Repository) (*metadata.MetadataService, err
 }
 
 func LightcurveService(cfg config.Config, conesearchService *conesearch.ConesearchService) (*lightcurve.LightcurveService, error) {
-	externalClients := []lightcurve.ExternalClient{neowise.NewNeowiseClient(), ztfdr.NewZtfDrClient()}
-	lightcurveFilterSlice := make([]lightcurve.LightcurveFilter, 0)
+	neowiseFilter := lightcurve.DummyLightcurveFilter
 	if cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseIdFilter || cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseCntrFilter {
-		lightcurveFilterSlice = append(lightcurveFilterSlice, neowise.Filter)
+		neowiseFilter = neowise.Filter
 	}
+	ztfFilter := lightcurve.DummyLightcurveFilter
 	if cfg.Service.LightcurveServiceConfig.ZtfDrConfig.UseIdFilter {
-		lightcurveFilterSlice = append(lightcurveFilterSlice, ztfdr.Filter)
+		ztfFilter = ztfdr.Filter
 	}
-	if len(lightcurveFilterSlice) == 0 {
-		lightcurveFilterSlice = append(lightcurveFilterSlice, lightcurve.DummyLightcurveFilter)
+	sources := []lightcurve.Source{
+		{Catalog: "neowise", Client: neowise.NewNeowiseClient(), Filter: neowiseFilter},
+		{Catalog: "ztf", Client: ztfdr.NewZtfDrClient(), Filter: ztfFilter},
 	}
 
 	service, err := lightcurve.New(
-		externalClients,
-		lightcurveFilterSlice,
+		sources,
 		conesearchService,
 	)
 	if err != nil {
