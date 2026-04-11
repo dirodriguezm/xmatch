@@ -1,8 +1,8 @@
 package neowise
 
 import (
-	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -11,16 +11,25 @@ import (
 
 func Filter(lightcurve lc.Lightcurve, objects []conesearch.MetadataResult) lc.Lightcurve {
 	newLightcurve := lc.Lightcurve{}
+	allCntrs := make(map[string]struct{})
 
-	allCntrs := make([]string, 0)
 	for _, catalog := range objects {
+		if !strings.EqualFold(catalog.Catalog, "allwise") {
+			continue
+		}
+
 		for _, object := range catalog.Data {
-			allCntrs = append(allCntrs, strconv.FormatInt(object.Metadata.(repository.Allwise).Cntr, 10))
+			allwise, ok := object.Metadata.(repository.Allwise)
+			if !ok {
+				continue
+			}
+
+			allCntrs[strconv.FormatInt(allwise.Cntr, 10)] = struct{}{}
 		}
 	}
 
 	for _, detection := range lightcurve.Detections {
-		if slices.Contains(allCntrs, detection.GetObjectId()) {
+		if _, ok := allCntrs[detection.GetObjectId()]; ok {
 			newLightcurve.Detections = append(newLightcurve.Detections, detection)
 		}
 	}
