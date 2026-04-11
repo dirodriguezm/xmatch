@@ -201,7 +201,7 @@ func (service *LightcurveService) extractObjectIds(
 			for j := range res[i].Data {
 				objectIds = append(objectIds, res[i].Data[j].GetId())
 			}
-			objects = append(objects, conesearch.MetadataResult{Data: res[i].Data})
+			objects = append(objects, conesearch.MetadataResult{Catalog: res[i].Catalog, Data: res[i].Data})
 		}
 		return objectIds, objects, nil
 	case err := <-errors:

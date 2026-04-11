@@ -29,6 +29,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/lightcurve"
 	"github.com/dirodriguezm/xmatch/service/internal/search/lightcurve/neowise"
+	"github.com/dirodriguezm/xmatch/service/internal/search/lightcurve/ztfdr"
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -108,13 +109,21 @@ func MetadataService(repo conesearch.Repository) (*metadata.MetadataService, err
 }
 
 func LightcurveService(cfg config.Config, conesearchService *conesearch.ConesearchService) (*lightcurve.LightcurveService, error) {
-	lightcurveFilterSlice := []lightcurve.LightcurveFilter{lightcurve.DummyLightcurveFilter}
-	if cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseCntrFilter {
+	externalClients := []lightcurve.ExternalClient{neowise.NewNeowiseClient()}
+	lightcurveFilterSlice := make([]lightcurve.LightcurveFilter, 0)
+	if cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseIdFilter || cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseCntrFilter {
 		lightcurveFilterSlice = append(lightcurveFilterSlice, neowise.Filter)
+	}
+	if cfg.Service.LightcurveServiceConfig.ZtfDrConfig.UseIdFilter {
+		externalClients = append(externalClients, ztfdr.NewZtfDrClient())
+		lightcurveFilterSlice = append(lightcurveFilterSlice, ztfdr.Filter)
+	}
+	if len(lightcurveFilterSlice) == 0 {
+		lightcurveFilterSlice = append(lightcurveFilterSlice, lightcurve.DummyLightcurveFilter)
 	}
 
 	service, err := lightcurve.New(
-		[]lightcurve.ExternalClient{neowise.NewNeowiseClient()},
+		externalClients,
 		lightcurveFilterSlice,
 		conesearchService,
 	)
