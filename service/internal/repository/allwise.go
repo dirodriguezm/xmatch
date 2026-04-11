@@ -41,7 +41,7 @@ func (schema AllwiseInputSchema) GetId() string {
 }
 
 func (schema AllwiseInputSchema) FillMetadata() Metadata {
-	allwise := &Allwise{}
+	allwise := Allwise{}
 	if schema.Source_id != nil {
 		allwise.ID = *schema.Source_id
 	}

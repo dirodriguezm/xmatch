@@ -59,3 +59,21 @@ func TestGetLightcurve_AppliesZtfDrFilter(t *testing.T) {
 	require.Len(t, result.Detections, 1)
 	require.Equal(t, "1", result.Detections[0].GetObjectId())
 }
+
+func TestGetLightcurve_ReturnsClientDataWhenConesearchHasNoMatches(t *testing.T) {
+	service, err := lc.New(
+		[]lc.ExternalClient{stubExternalClient{
+			result: lc.ClientResult{Lightcurve: lc.Lightcurve{Detections: []lc.LightcurveObject{
+				ztfdr.Detection{Oid: 1, Hmjd: 1},
+			}}},
+		}},
+		[]lc.LightcurveFilter{ztfdr.Filter},
+		stubConesearchService{},
+	)
+	require.NoError(t, err)
+
+	result, err := service.GetLightcurve(10, -10, 0.2, 10)
+	require.NoError(t, err)
+	require.Len(t, result.Detections, 1)
+	require.Equal(t, "1", result.Detections[0].GetObjectId())
+}

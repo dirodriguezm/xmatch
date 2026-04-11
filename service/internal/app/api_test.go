@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLightcurveService_SkipsZtfDrClientWhenDisabled(t *testing.T) {
+func TestLightcurveService_AlwaysAddsZtfDrClient(t *testing.T) {
 	cfg := config.Config{
 		Service: config.ServiceConfig{
 			LightcurveServiceConfig: config.LightcurveServiceConfig{
@@ -21,10 +21,11 @@ func TestLightcurveService_SkipsZtfDrClientWhenDisabled(t *testing.T) {
 
 	service, err := LightcurveService(cfg, &conesearch.ConesearchService{})
 	require.NoError(t, err)
-	require.Equal(t, 1, reflect.ValueOf(service).Elem().FieldByName("externalClients").Len())
+	require.Equal(t, 2, reflect.ValueOf(service).Elem().FieldByName("externalClients").Len())
+	require.Equal(t, 1, reflect.ValueOf(service).Elem().FieldByName("lightcurveFilters").Len())
 }
 
-func TestLightcurveService_AddsZtfDrClientWhenEnabled(t *testing.T) {
+func TestLightcurveService_AddsZtfDrFilterWhenEnabled(t *testing.T) {
 	cfg := config.Config{
 		Service: config.ServiceConfig{
 			LightcurveServiceConfig: config.LightcurveServiceConfig{
@@ -37,4 +38,5 @@ func TestLightcurveService_AddsZtfDrClientWhenEnabled(t *testing.T) {
 	service, err := LightcurveService(cfg, &conesearch.ConesearchService{})
 	require.NoError(t, err)
 	require.Equal(t, 2, reflect.ValueOf(service).Elem().FieldByName("externalClients").Len())
+	require.Equal(t, 1, reflect.ValueOf(service).Elem().FieldByName("lightcurveFilters").Len())
 }

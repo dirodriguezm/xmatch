@@ -109,13 +109,12 @@ func MetadataService(repo conesearch.Repository) (*metadata.MetadataService, err
 }
 
 func LightcurveService(cfg config.Config, conesearchService *conesearch.ConesearchService) (*lightcurve.LightcurveService, error) {
-	externalClients := []lightcurve.ExternalClient{neowise.NewNeowiseClient()}
+	externalClients := []lightcurve.ExternalClient{neowise.NewNeowiseClient(), ztfdr.NewZtfDrClient()}
 	lightcurveFilterSlice := make([]lightcurve.LightcurveFilter, 0)
 	if cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseIdFilter || cfg.Service.LightcurveServiceConfig.NeowiseConfig.UseCntrFilter {
 		lightcurveFilterSlice = append(lightcurveFilterSlice, neowise.Filter)
 	}
 	if cfg.Service.LightcurveServiceConfig.ZtfDrConfig.UseIdFilter {
-		externalClients = append(externalClients, ztfdr.NewZtfDrClient())
 		lightcurveFilterSlice = append(lightcurveFilterSlice, ztfdr.Filter)
 	}
 	if len(lightcurveFilterSlice) == 0 {

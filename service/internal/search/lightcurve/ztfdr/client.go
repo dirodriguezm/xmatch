@@ -64,12 +64,12 @@ func (client *ZtfDrClient) FetchLightcurve(ra, dec, radius float64, _ int) light
 		return lightcurve.ClientResult{Error: fmt.Errorf("could not read response body: %w", err)}
 	}
 
-	var response lightCurveResponse
-	if err := json.Unmarshal(body, &response); err != nil {
+	responses, err := parseLightcurveResponse(body)
+	if err != nil {
 		return lightcurve.ClientResult{Error: fmt.Errorf("could not parse response body: %w", err)}
 	}
 
-	detections, err := convertToLightcurveObjects(response)
+	detections, err := convertToLightcurveObjects(responses)
 	if err != nil {
 		return lightcurve.ClientResult{Error: fmt.Errorf("could not convert response to lightcurve object: %w", err)}
 	}
@@ -77,6 +77,20 @@ func (client *ZtfDrClient) FetchLightcurve(ra, dec, radius float64, _ int) light
 	return lightcurve.ClientResult{
 		Lightcurve: lightcurve.Lightcurve{Detections: detections},
 	}
+}
+
+func parseLightcurveResponse(body []byte) ([]lightCurveResponse, error) {
+	var responses []lightCurveResponse
+	if err := json.Unmarshal(body, &responses); err == nil {
+		return responses, nil
+	}
+
+	var response lightCurveResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	return []lightCurveResponse{response}, nil
 }
 
 func addQueryParameters(u *url.URL, params map[string]string) *url.URL {
@@ -92,24 +106,26 @@ func addQueryParameters(u *url.URL, params map[string]string) *url.URL {
 	return &newURL
 }
 
-func convertToLightcurveObjects(response lightCurveResponse) ([]lightcurve.LightcurveObject, error) {
-	if len(response.Hmjd) != len(response.Mag) || len(response.Hmjd) != len(response.Magerr) {
-		return nil, fmt.Errorf("response arrays have different lengths")
-	}
+func convertToLightcurveObjects(responses []lightCurveResponse) ([]lightcurve.LightcurveObject, error) {
+	detections := make([]lightcurve.LightcurveObject, 0)
+	for _, response := range responses {
+		if len(response.Hmjd) != len(response.Mag) || len(response.Hmjd) != len(response.Magerr) {
+			return nil, fmt.Errorf("response arrays have different lengths")
+		}
 
-	detections := make([]lightcurve.LightcurveObject, len(response.Hmjd))
-	for i := range response.Hmjd {
-		detections[i] = Detection{
-			Oid:      response.Id,
-			FilterId: response.FilterId,
-			FieldId:  response.FieldId,
-			Rcid:     response.Rcid,
-			Nepochs:  response.Nepochs,
-			ObjRa:    response.ObjRa,
-			ObjDec:   response.ObjDec,
-			Hmjd:     response.Hmjd[i],
-			Mag:      response.Mag[i],
-			Magerr:   response.Magerr[i],
+		for i := range response.Hmjd {
+			detections = append(detections, Detection{
+				Oid:      response.Id,
+				FilterId: response.FilterId,
+				FieldId:  response.FieldId,
+				Rcid:     response.Rcid,
+				Nepochs:  response.Nepochs,
+				ObjRa:    response.ObjRa,
+				ObjDec:   response.ObjDec,
+				Hmjd:     response.Hmjd[i],
+				Mag:      response.Mag[i],
+				Magerr:   response.Magerr[i],
+			})
 		}
 	}
 

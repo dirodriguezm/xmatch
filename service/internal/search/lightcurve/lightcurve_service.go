@@ -104,6 +104,9 @@ func (service *LightcurveService) GetLightcurve(ra, dec, radius float64, nobject
 	if err != nil {
 		return Lightcurve{}, err
 	}
+	if len(objectIds) == 0 {
+		return mergedClientResult, nil
+	}
 
 	// Step 2: Fetch Xwave data and apply filters concurrently
 	xwaveLightcurve := make(chan Lightcurve, 1)
