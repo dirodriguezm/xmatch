@@ -241,7 +241,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/lightcurve.Lightcurve"
+                            "$ref": "#/definitions/api.LightcurveResponse"
                         }
                     },
                     "400": {
@@ -401,20 +401,52 @@ const docTemplate = `{
                 }
             }
         },
-        "lightcurve.Lightcurve": {
+        "api.LightcurveEntry": {
+            "type": "object",
+            "properties": {
+                "catalog": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "object"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mag": {
+                    "type": "number"
+                },
+                "magerr": {
+                    "type": "number"
+                },
+                "mjd": {
+                    "type": "number"
+                },
+                "object_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.LightcurveResponse": {
             "type": "object",
             "properties": {
                 "detections": {
                     "type": "array",
-                    "items": {}
+                    "items": {
+                        "$ref": "#/definitions/api.LightcurveEntry"
+                    }
                 },
                 "forced_photometry": {
                     "type": "array",
-                    "items": {}
+                    "items": {
+                        "$ref": "#/definitions/api.LightcurveEntry"
+                    }
                 },
                 "non_detections": {
                     "type": "array",
-                    "items": {}
+                    "items": {
+                        "$ref": "#/definitions/api.LightcurveEntry"
+                    }
                 }
             }
         },

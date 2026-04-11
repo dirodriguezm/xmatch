@@ -17,16 +17,36 @@ definitions:
       reason:
         type: string
     type: object
-  lightcurve.Lightcurve:
+  api.LightcurveEntry:
+    properties:
+      catalog:
+        type: string
+      data:
+        type: object
+      id:
+        type: string
+      mag:
+        type: number
+      magerr:
+        type: number
+      mjd:
+        type: number
+      object_id:
+        type: string
+    type: object
+  api.LightcurveResponse:
     properties:
       detections:
-        items: {}
+        items:
+          $ref: '#/definitions/api.LightcurveEntry'
         type: array
       forced_photometry:
-        items: {}
+        items:
+          $ref: '#/definitions/api.LightcurveEntry'
         type: array
       non_detections:
-        items: {}
+        items:
+          $ref: '#/definitions/api.LightcurveEntry'
         type: array
     type: object
   metadata.ValidationError:
@@ -241,7 +261,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/lightcurve.Lightcurve'
+            $ref: '#/definitions/api.LightcurveResponse'
         "400":
           description: Bad Request
           schema:
