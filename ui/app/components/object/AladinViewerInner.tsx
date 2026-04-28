@@ -46,6 +46,8 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
       showCooGrid = DEFAULT_OPTIONS.showCooGrid,
       showReticle = DEFAULT_OPTIONS.showReticle,
       showFullscreenControl = DEFAULT_OPTIONS.showFullscreenControl,
+      gaiaOverlay = false,
+      gaiaOverlayRadius = 0.15,
       onReady,
       onPositionChange,
       onFovChange,
@@ -57,6 +59,7 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
     const aladinGlobalRef = useRef<AladinGlobal | null>(null);
     const catalogRef = useRef<AladinCatalog | null>(null);
     const markerCatalogRef = useRef<AladinCatalog | null>(null);
+    const gaiaCatalogRef = useRef<AladinCatalog | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -248,6 +251,39 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
       }
     }, [catalogSources, catalogName, catalogColor, isInitialized]);
 
+    // Handle Gaia DR3 cone-search overlay (VizieR I/355/gaiadr3)
+    useEffect(() => {
+      if (!isInitialized || !aladinRef.current || !aladinGlobalRef.current)
+        return;
+
+      const A = aladinGlobalRef.current;
+
+      // Always tear down the previous overlay (center or radius may have changed)
+      if (gaiaCatalogRef.current) {
+        aladinRef.current.removeOverlay(gaiaCatalogRef.current);
+        gaiaCatalogRef.current = null;
+      }
+
+      if (gaiaOverlay && center) {
+        const target = `${center.ra} ${center.dec}`;
+        const gaia = A.catalogFromVizieR(
+          "I/355/gaiadr3",
+          target,
+          gaiaOverlayRadius,
+          {
+            name: "Gaia DR3",
+            color: "#fadb14",
+            sourceSize: 4,
+            shape: "circle",
+            onClick: "showPopup",
+            limit: 500,
+          }
+        );
+        aladinRef.current.addOverlay(gaia);
+        gaiaCatalogRef.current = gaia;
+      }
+    }, [gaiaOverlay, gaiaOverlayRadius, center, isInitialized]);
+
     // Imperative handle methods
     const goTo = useCallback((ra: number, dec: number, newFov?: number) => {
       if (aladinRef.current) {
@@ -365,6 +401,7 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
         aladinGlobalRef.current = null;
         catalogRef.current = null;
         markerCatalogRef.current = null;
+        gaiaCatalogRef.current = null;
       };
     }, []);
 

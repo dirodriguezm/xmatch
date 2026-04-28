@@ -148,3 +148,25 @@ body {
 .aladin-container button:hover {
   background: var(--border) !important;
 }
+
+/* Subtle skeleton shimmer for chart-shaped placeholders */
+@keyframes lc-skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.lc-skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 100%
+  );
+  animation: lc-skeleton-shimmer 1800ms ease-in-out infinite;
+}

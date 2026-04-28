@@ -19,6 +19,7 @@ interface LightCurveChartProps {
   data: Lightcurve | null | undefined;
   loading?: boolean;
   error?: Error | null;
+  mjdRange?: { min: number; max: number };
 }
 
 // Detection point structure (assumed based on common light curve formats)
@@ -53,6 +54,7 @@ export function LightCurveChart({
   data,
   loading,
   error,
+  mjdRange,
 }: LightCurveChartProps) {
   if (loading) {
     return (
@@ -127,7 +129,7 @@ export function LightCurveChart({
     .filter((d) => d.mag !== undefined)
     .map((d) => d.mag!);
 
-  const mjdBounds = calculateAxisBounds(allMjd, 0.05, 1);
+  const mjdBounds = mjdRange ?? calculateAxisBounds(allMjd, 0.05, 1);
   const magBounds = calculateAxisBounds(allMag, 0.1, 0.1);
 
   const option: EChartsOption = {

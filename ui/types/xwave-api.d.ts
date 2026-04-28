@@ -177,7 +177,6 @@ export interface components {
     };
     "repository.Allwise": {
       cntr?: number;
-      dec?: number;
       h_m_2mass?: number;
       h_msig_2mass?: number;
       id?: string;
@@ -185,7 +184,6 @@ export interface components {
       j_msig_2mass?: number;
       k_m_2mass?: number;
       k_msig_2mass?: number;
-      ra?: number;
       w1mpro?: number;
       w1sigmpro?: number;
       w2mpro?: number;

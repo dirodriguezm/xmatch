@@ -16,18 +16,25 @@ import {
   Col,
   Collapse,
   Descriptions,
+  Empty,
   Flex,
   Row,
   Select,
   Space,
+  Switch,
   Tooltip,
   Typography,
 } from "antd";
-import { useRef } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
-import { useZtfLightcurve } from "@/app/hooks/queries";
+import { useLightcurve } from "@/app/hooks/queries";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
+import { calculateAxisBounds } from "@/app/lib/utils/data";
+import {
+  getCatalogLabel,
+  groupDetectionsByCatalog,
+} from "@/app/lib/utils/lightcurve";
 import {
   buildAladinUrl,
   buildSimbadUrl,
@@ -38,6 +45,7 @@ import type { components } from "@/types/xwave-api";
 
 import { AladinViewer } from "./AladinViewer";
 import { LightCurveChart } from "./LightCurveChart";
+import { LightCurveSkeleton } from "./LightCurveSkeleton";
 
 const DSS_SURVEY = "https://alasky.cds.unistra.fr/DSS/DSSColor/";
 
@@ -62,6 +70,16 @@ const SURVEY_OPTIONS = [
   {
     label: "RACS 887 MHz",
     value: "https://casda.csiro.au/hips/RACS/low/I/",
+    category: "Radio",
+  },
+  {
+    label: "RACS-mid 1.4 GHz",
+    value: "https://casda.csiro.au/hips/RACSmidb_I1/",
+    category: "Radio",
+  },
+  {
+    label: "VLASS 3 GHz",
+    value: "https://vlass-dl.nrao.edu/vlass/HiPS/MedianStack/Quicklook/",
     category: "Radio",
   },
 ];
@@ -111,11 +129,12 @@ function toDMS(dec: number): string {
 export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const { message } = App.useApp();
   const aladinRef = useRef<AladinViewerRef>(null);
+  const [gaiaOverlay, setGaiaOverlay] = useState(false);
   const {
-    data: ztfData,
-    isLoading: ztfLoading,
-    error: ztfError,
-  } = useZtfLightcurve({ ra: object.ra, dec: object.dec });
+    data: lightcurveData,
+    isLoading: lightcurveLoading,
+    error: lightcurveError,
+  } = useLightcurve({ ra: object.ra, dec: object.dec, radius: 1.5 });
   const simbadUrl = buildSimbadUrl(object.ra, object.dec);
   const vizierUrl = buildVizierUrl(object.ra, object.dec);
   const aladinUrl = buildAladinUrl(object.ra, object.dec);
@@ -158,6 +177,107 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         }))
     : [];
 
+  // Per-catalog light curve panels from the unified /lightcurve endpoint
+  const lightcurveByCatalog = groupDetectionsByCatalog(lightcurveData);
+  // Shared MJD range across all surveys so panels can be visually compared along the time axis
+  const allLightcurveMjds = Object.values(lightcurveByCatalog)
+    .flat()
+    .map((p) => p.mjd)
+    .filter((m): m is number => typeof m === "number");
+  const sharedMjdRange =
+    allLightcurveMjds.length > 0
+      ? calculateAxisBounds(allLightcurveMjds, 0.05, 1)
+      : undefined;
+  const surveyPanelItems = Object.entries(lightcurveByCatalog)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([catalog, points]) => ({
+      key: `lightcurve-${catalog}`,
+      label: (
+        <Space>
+          <LineChartOutlined />
+          <span>Light Curve ({getCatalogLabel(catalog)})</span>
+          <Text type="secondary" className="text-xs">
+            ({points.length} points)
+          </Text>
+        </Space>
+      ),
+      children: (
+        <LightCurveChart
+          data={{
+            detections: points,
+            non_detections: [],
+            forced_photometry: [],
+          }}
+          loading={lightcurveLoading}
+          error={lightcurveError ?? null}
+          mjdRange={sharedMjdRange}
+        />
+      ),
+    }));
+
+  // Placeholder shown while the unified /lightcurve request is in flight, errored, or returned no detections
+  let lightcurveStatusItem: {
+    key: string;
+    label: ReactNode;
+    children: ReactNode;
+  } | null = null;
+  if (lightcurveLoading) {
+    lightcurveStatusItem = {
+      key: "lightcurve-loading",
+      label: (
+        <Space>
+          <LineChartOutlined />
+          <span>Light Curves</span>
+          <Text type="secondary" className="text-xs">
+            (loading…)
+          </Text>
+        </Space>
+      ),
+      children: <LightCurveSkeleton />,
+    };
+  } else if (lightcurveError) {
+    lightcurveStatusItem = {
+      key: "lightcurve-error",
+      label: (
+        <Space>
+          <LineChartOutlined />
+          <span>Light Curves</span>
+          <Text type="danger" className="text-xs">
+            (failed to load)
+          </Text>
+        </Space>
+      ),
+      children: (
+        <Text type="danger">
+          {lightcurveError.message || "Failed to load light curves"}
+        </Text>
+      ),
+    };
+  } else if (surveyPanelItems.length === 0) {
+    lightcurveStatusItem = {
+      key: "lightcurve-empty",
+      label: (
+        <Space>
+          <LineChartOutlined />
+          <span>Light Curves</span>
+          <Text type="secondary" className="text-xs">
+            (unavailable)
+          </Text>
+        </Space>
+      ),
+      children: (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            <Text type="secondary">
+              No light curves available for this object.
+            </Text>
+          }
+        />
+      ),
+    };
+  }
+
   const collapseItems = [
     {
       key: "photometry",
@@ -198,27 +318,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         </Flex>
       ),
     },
-    {
-      key: "ztf-lightcurve",
-      label: (
-        <Space>
-          <LineChartOutlined />
-          <span>Light Curve (ZTF)</span>
-          {ztfData?.detections && ztfData.detections.length > 0 && (
-            <Text type="secondary" className="text-xs">
-              ({ztfData.detections.length} points)
-            </Text>
-          )}
-        </Space>
-      ),
-      children: (
-        <LightCurveChart
-          data={ztfData}
-          loading={ztfLoading}
-          error={ztfError ?? null}
-        />
-      ),
-    },
+    ...(lightcurveStatusItem ? [lightcurveStatusItem] : surveyPanelItems),
     ...(catalogDetails.length > 0
       ? [
           {
@@ -399,13 +499,24 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               </Space>
             }
             extra={
-              <Select
-                defaultValue={DSS_SURVEY}
-                size="small"
-                className="w-[150px]"
-                options={surveySelectOptions}
-                onChange={(value) => aladinRef.current?.setSurvey(value)}
-              />
+              <Space size="small">
+                <Tooltip title="Overlay clickable Gaia DR3 sources">
+                  <Switch
+                    size="small"
+                    checked={gaiaOverlay}
+                    onChange={setGaiaOverlay}
+                    checkedChildren="Gaia"
+                    unCheckedChildren="Gaia"
+                  />
+                </Tooltip>
+                <Select
+                  defaultValue={DSS_SURVEY}
+                  size="small"
+                  className="w-[150px]"
+                  options={surveySelectOptions}
+                  onChange={(value) => aladinRef.current?.setSurvey(value)}
+                />
+              </Space>
             }
           >
             <AladinViewer
@@ -413,15 +524,23 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               center={{ ra: object.ra, dec: object.dec }}
               fov={0.9}
               height={280}
+              gaiaOverlay={gaiaOverlay}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* Collapsible sections */}
+      {/* Collapsible sections — `key` flips when the lightcurve query settles, so
+          the new survey panels auto-expand instead of inheriting the loading default */}
       <Collapse
+        key={lightcurveLoading ? "lc-loading" : "lc-loaded"}
         items={collapseItems}
-        defaultActiveKey={["photometry", "ztf-lightcurve"]}
+        defaultActiveKey={[
+          "photometry",
+          ...(lightcurveStatusItem
+            ? [lightcurveStatusItem.key]
+            : surveyPanelItems.map((item) => item.key)),
+        ]}
         className="bg-surface"
       />
     </div>

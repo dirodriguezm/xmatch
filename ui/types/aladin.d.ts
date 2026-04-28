@@ -40,6 +40,15 @@ export interface AladinGlobal {
   ) => AladinShape;
   /** Create a polyline overlay */
   polyline: (coords: [number, number][], options?: ShapeOptions) => AladinShape;
+  /** Create a progressive HiPS catalog (e.g. Gaia DR3, Simbad) */
+  catalogHiPS: (url: string, options?: CatalogOptions) => AladinCatalog;
+  /** Create a finite catalog from a VizieR cone search */
+  catalogFromVizieR: (
+    vizCat: string,
+    target: string,
+    radiusDeg: number,
+    options?: CatalogOptions
+  ) => AladinCatalog;
 }
 
 export interface AladinOptions {
@@ -132,6 +141,8 @@ export interface CatalogOptions {
   sourceSize?: number;
   shape?: "circle" | "plus" | "rhomb" | "cross" | "triangle" | "square";
   onClick?: "showTable" | "showPopup" | ((source: AladinSource) => void);
+  /** Maximum number of sources (passed to VizieR as -out.max) */
+  limit?: number;
 }
 
 export interface AladinCatalog {
@@ -219,6 +230,10 @@ export interface AladinViewerProps {
   showReticle?: boolean;
   /** Show fullscreen button */
   showFullscreenControl?: boolean;
+  /** Overlay clickable Gaia DR3 sources around the center via VizieR cone search */
+  gaiaOverlay?: boolean;
+  /** Cone-search radius in degrees for the Gaia overlay (default 0.15° = 9 arcmin) */
+  gaiaOverlayRadius?: number;
   /** Callback when viewer is ready */
   onReady?: (aladin: AladinInstance) => void;
   /** Callback when position changes */
