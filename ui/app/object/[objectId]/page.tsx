@@ -50,15 +50,19 @@ export default function ObjectPage({ params }: ObjectPageProps) {
     catalog ? { id: decodedObjectId, catalog } : null
   );
 
-  // Construct the object from metadata response (ra/dec come from the API)
+  // Construct the object from metadata response (ra/dec come from the API
+  // payload but aren't part of the per-catalog typed schema, hence the cast).
   const object = useMemo<CrossmatchResult | null>(() => {
-    if (!catalog || metadata?.ra == null || metadata?.dec == null) return null;
+    const meta = metadata as
+      | ({ ra?: number; dec?: number } & typeof metadata)
+      | undefined;
+    if (!catalog || meta?.ra == null || meta?.dec == null) return null;
 
     return {
       key: decodedObjectId,
       objectId: decodedObjectId,
-      ra: metadata.ra,
-      dec: metadata.dec,
+      ra: meta.ra,
+      dec: meta.dec,
       catalog: catalog,
       angularDistance: 0, // Not needed for detail view, but required by type
     };
