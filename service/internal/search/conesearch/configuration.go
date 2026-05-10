@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
@@ -62,9 +63,16 @@ func WithCatalogs(catalogs []repository.Catalog) ConesearchOption {
 	}
 }
 
-func WithRepository(repository Repository) ConesearchOption {
+func WithMastercatStore(store MastercatStore) ConesearchOption {
 	return func(service *ConesearchService) error {
-		service.repository = repository
+		service.store = store
+		return nil
+	}
+}
+
+func WithResolver(resolver *catalog.Resolver) ConesearchOption {
+	return func(service *ConesearchService) error {
+		service.resolver = resolver
 		return nil
 	}
 }

@@ -12,19 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fits_reader
+// Package fitsreader provides a reader for FITS files
+package fitsreader
 
 import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 
 	"codeberg.org/astrogo/fitsio"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
-type FitsReader struct {
+type FitsReader[T repository.InputSchema] struct {
 	currentFileReader io.ReadCloser
 	currentFitsRows   *fitsio.Rows
 	currentFitsFile   *fitsio.File
@@ -32,23 +35,23 @@ type FitsReader struct {
 	batchSize         int
 }
 
-func NewFitsReader(src *source.Source, opts ...FitsReaderOption) (FitsReader, error) {
+func NewFitsReader[T repository.InputSchema](src *source.Source, opts ...FitsReaderOption[T]) (*FitsReader[T], error) {
 	currentFileReader, err := src.Next()
 	if err != nil {
-		return FitsReader{}, err
+		return nil, err
 	}
 
 	fits, err := fitsio.Open(currentFileReader)
 	if err != nil {
-		return FitsReader{}, err
+		return nil, err
 	}
 	table := fits.HDU(1).(*fitsio.Table)
 	rows, err := table.Read(0, table.NumRows())
 	if err != nil {
-		return FitsReader{}, err
+		return nil, err
 	}
 
-	r := FitsReader{
+	r := &FitsReader[T]{
 		currentFileReader: currentFileReader,
 		currentFitsRows:   rows,
 		currentFitsFile:   fits,
@@ -57,23 +60,21 @@ func NewFitsReader(src *source.Source, opts ...FitsReaderOption) (FitsReader, er
 	}
 
 	for _, opt := range opts {
-		r = opt(r)
+		opt(r)
 	}
 
 	return r, nil
 }
 
-func (r *FitsReader) Read() ([]repository.InputSchema, error) {
+func (r *FitsReader[T]) Read() ([]repository.InputSchema, error) {
 	panic("Not implemented")
 }
 
-func (r *FitsReader) ReadBatch() ([]repository.InputSchema, error) {
+func (r *FitsReader[T]) ReadBatch() ([]repository.InputSchema, error) {
 	rows := make([]repository.InputSchema, 0, r.batchSize)
 
-	currentRows, err := r.ReadBatchSingleFile(r.currentFitsRows, r.batchSize, r.src.CatalogName)
+	currentRows, err := r.ReadBatchSingleFile(r.currentFitsRows, r.batchSize)
 
-	// If the error is EOF, we get the next reader from the Source.
-	// And if there is no next reader, we return the rows we have so far.
 	if err == io.EOF {
 		rows = append(rows, currentRows...)
 
@@ -90,17 +91,15 @@ func (r *FitsReader) ReadBatch() ([]repository.InputSchema, error) {
 		return rows, nil
 	}
 
-	// If the error is not EOF, it's a real error.
 	if err != nil {
 		return nil, fmt.Errorf("could not read batch from csv: %w", err)
 	}
 
-	// Read batch successfully and more to read
 	rows = append(rows, currentRows...)
 	return rows, nil
 }
 
-func (r *FitsReader) closeResources() error {
+func (r *FitsReader[T]) closeResources() error {
 	err := r.currentFitsRows.Close()
 	if err != nil {
 		return fmt.Errorf("failed to close FITS rows: %w", err)
@@ -119,10 +118,10 @@ func (r *FitsReader) closeResources() error {
 	return nil
 }
 
-func (r *FitsReader) switchToNewFile() error {
+func (r *FitsReader[T]) switchToNewFile() error {
 	ioReader, err := r.src.Next()
 	if err != nil {
-		return err // This error can potentially be EOF, handled by the caller.
+		return err
 	}
 	r.currentFileReader = ioReader
 
@@ -140,7 +139,7 @@ func (r *FitsReader) switchToNewFile() error {
 	return nil
 }
 
-func (r *FitsReader) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int, name string) ([]repository.InputSchema, error) {
+func (r *FitsReader[T]) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int) ([]repository.InputSchema, error) {
 	rows := make([]repository.InputSchema, 0, size)
 	for range size {
 		hasNext := rowIterator.Next()
@@ -148,40 +147,31 @@ func (r *FitsReader) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int, nam
 			return rows, io.EOF
 		}
 
-		row := r.createInputSchema(name, rowIterator)
+		row := r.createInputSchema(rowIterator)
 		rows = append(rows, row)
 	}
 
 	return rows, nil
 }
 
-func (r *FitsReader) createInputSchema(name string, rowIterator *fitsio.Rows) repository.InputSchema {
-	switch name {
-	case "allwise":
-		schema := repository.AllwiseInputSchema{}
-		err := rowIterator.Scan(&schema)
-		if err != nil {
-			panic(err)
-		}
-		return schema
-	case "erosita":
-		schema := repository.ErositaInputSchema{}
-		err := rowIterator.Scan(&schema)
-		if err != nil {
-			panic(err)
-		}
-		return schema
-	default:
-		schema := TestSchema{}
-		err := rowIterator.Scan(&schema)
-		if err != nil {
+func (r *FitsReader[T]) createInputSchema(rowIterator *fitsio.Rows) repository.InputSchema {
+	adapter, err := catalog.GetFactory(r.src.CatalogName)
+	if err != nil {
+		var schema T
+		if err := rowIterator.Scan(&schema); err != nil {
 			panic(err)
 		}
 		return schema
 	}
+
+	schemaPtr := reflect.New(reflect.TypeOf(adapter.NewInputSchema()))
+	if err := rowIterator.Scan(schemaPtr.Interface()); err != nil {
+		panic(err)
+	}
+	return schemaPtr.Elem().Interface().(repository.InputSchema)
 }
 
-func (r *FitsReader) Close() error {
+func (r *FitsReader[T]) Close() error {
 	return errors.Join(
 		r.currentFitsRows.Close(),
 		r.currentFitsFile.Close(),

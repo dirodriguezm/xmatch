@@ -24,10 +24,15 @@ import (
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/app"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/testutils"
+
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -131,9 +136,11 @@ func TestConesearch(t *testing.T) {
 		t.Fatalf("creating database connection: %v", err)
 	}
 
-	repo := app.ServiceRepository(db)
+	queries := app.ServiceRepository(db)
+	defer CleanDB(t, queries)
 
-	service, err := app.ConesearchService(repo)
+	resolver := catalog.NewResolver()
+	service, err := app.ConesearchService(queries, resolver)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
 	}
@@ -143,7 +150,7 @@ func TestConesearch(t *testing.T) {
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
 	for _, obj := range objects {
-		err = repo.InsertMastercat(context.Background(), obj)
+		err = queries.InsertMastercat(context.Background(), obj)
 		if err != nil {
 			t.Fatalf("inserting object: %v", err)
 		}
@@ -154,8 +161,6 @@ func TestConesearch(t *testing.T) {
 		t.Error(err)
 	}
 	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result))
-
-	CleanDB(t, repo)
 }
 
 func TestConesearch_WithMetadata(t *testing.T) {
@@ -184,9 +189,12 @@ func TestConesearch_WithMetadata(t *testing.T) {
 		t.Fatalf("creating database connection: %v", err)
 	}
 
-	repo := app.ServiceRepository(db)
+	queries := app.ServiceRepository(db)
+	defer CleanDB(t, queries)
 
-	service, err := app.ConesearchService(repo)
+	resolver := catalog.NewResolver()
+	resolver.RegisterStore("allwise", queries)
+	service, err := app.ConesearchService(queries, resolver)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
 	}
@@ -197,11 +205,11 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	}
 	for _, obj := range objects {
 		ctx := context.Background()
-		err = repo.InsertMastercat(ctx, obj)
+		err = queries.InsertMastercat(ctx, obj)
 		if err != nil {
 			t.Fatalf("inserting mastercat: %v", err)
 		}
-		err = repo.InsertAllwiseWithoutParams(ctx, repository.Allwise{ID: obj.ID})
+		err = queries.InsertAllwiseWithoutParams(ctx, repository.Allwise{ID: obj.ID})
 		if err != nil {
 			t.Fatalf("inserting allwise: %v", err)
 		}
@@ -212,8 +220,6 @@ func TestConesearch_WithMetadata(t *testing.T) {
 		t.Error(err)
 	}
 	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result))
-
-	CleanDB(t, repo)
 }
 
 func TestBulkConesearch(t *testing.T) {
@@ -242,9 +248,11 @@ func TestBulkConesearch(t *testing.T) {
 		t.Fatalf("creating database connection: %v", err)
 	}
 
-	repo := app.ServiceRepository(db)
+	queries := app.ServiceRepository(db)
+	defer CleanDB(t, queries)
 
-	service, err := app.ConesearchService(repo)
+	resolver := catalog.NewResolver()
+	service, err := app.ConesearchService(queries, resolver)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
 	}
@@ -255,7 +263,7 @@ func TestBulkConesearch(t *testing.T) {
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
 	for _, obj := range objects {
-		err = repo.InsertMastercat(context.Background(), obj)
+		err = queries.InsertMastercat(context.Background(), obj)
 		if err != nil {
 			t.Fatalf("inserting object: %v", err)
 		}
@@ -361,10 +369,9 @@ func TestBulkConesearch(t *testing.T) {
 		require.NotContains(t, indexMap, 3, "index 3 should have no matches")
 	})
 
-	CleanDB(t, repo)
 }
 
-func CleanDB(t *testing.T, repo conesearch.Repository) {
+func CleanDB(t *testing.T, repo conesearch.MastercatStore) {
 	err := repo.RemoveAllObjects(context.Background())
 	require.NoError(t, err)
 }

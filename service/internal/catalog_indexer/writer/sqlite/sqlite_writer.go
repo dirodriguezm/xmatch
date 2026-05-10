@@ -1,17 +1,3 @@
-// Copyright 2024-2025 Diego Rodriguez Mancini
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package sqlite_writer
 
 import (
@@ -21,26 +7,23 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 )
 
 type SqliteWriter struct {
-	repository conesearch.Repository
+	db         *sql.DB
 	bulkInsert func(context.Context, *sql.DB, []any) error
 	ctx        context.Context
-	db         *sql.DB
 }
 
 func New(
-	repo conesearch.Repository,
+	db *sql.DB,
 	ctx context.Context,
 	bulkInsert func(context.Context, *sql.DB, []any) error,
 ) *SqliteWriter {
 	slog.Debug("Creating new SqliteWriter")
 	return &SqliteWriter{
-		repository: repo,
+		db:         db,
 		ctx:        ctx,
-		db:         repo.GetDbInstance(),
 		bulkInsert: bulkInsert,
 	}
 }

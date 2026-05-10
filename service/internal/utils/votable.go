@@ -1,3 +1,4 @@
+// Package utils contains utility functions like VOTABLE, Set, etc.
 package utils
 
 import (

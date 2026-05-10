@@ -1,6 +1,6 @@
 module github.com/dirodriguezm/xmatch/service
 
-go 1.24.0
+go 1.26
 
 require (
 	codeberg.org/astrogo/fitsio v0.4.0

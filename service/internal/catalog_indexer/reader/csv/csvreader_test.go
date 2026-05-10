@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package csv_reader
+package csvreader
 
 import (
 	"io"
@@ -146,9 +146,7 @@ o4,4,4
 
 		require.Len(t, batch, 2)
 
-		for _, row := range batch {
-			rows = append(rows, row)
-		}
+		rows = append(rows, batch...)
 	}
 
 	require.Equal(t, 4, len(rows))
@@ -195,9 +193,7 @@ o3,3,3
 		if err == io.EOF {
 			eof = true
 		}
-		for _, row := range batch {
-			rows = append(rows, row)
-		}
+		rows = append(rows, batch...)
 	}
 
 	require.Equal(t, 3, len(rows))
@@ -243,9 +239,7 @@ o3,3,3
 			eof = true
 		}
 
-		for _, row := range batch {
-			rows = append(rows, row)
-		}
+		rows = append(rows, batch...)
 	}
 
 	require.Equal(t, 6, len(rows))

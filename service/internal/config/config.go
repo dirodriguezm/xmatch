@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package config contains the configuration for the service and catalog indexer.
 package config
 
 import (

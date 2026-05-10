@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package csv_reader
+// Package csvreader provides a reader for CSV files
+// Converts CSV files into InputSchemas
+package csvreader
 
 import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"log/slog"
 	"reflect"
 	"slices"
 	"strconv"
 
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
@@ -100,10 +104,13 @@ func (r *CsvReader) Read() ([]repository.InputSchema, error) {
 		ioReader, err := r.src.Next()
 		eof = err == io.EOF
 		if err != nil && !eof {
-			return nil, fmt.Errorf("Could not get next source: %w", err)
+			return nil, fmt.Errorf("could not get next source: %w", err)
 		}
 
-		r.currentFileReader.Close()
+		closeErr := r.currentFileReader.Close()
+		if closeErr != nil {
+			slog.Error("could not close current file reader", "error", closeErr)
+		}
 		r.currentFileReader = ioReader
 		r.currentReader = csv.NewReader(ioReader)
 	}
@@ -117,7 +124,7 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader, batchSize int
 	if r.Header == nil {
 		header, err := currentReader.Read()
 		if err != nil {
-			return nil, fmt.Errorf("Could not read header from csv: %w", err)
+			return nil, fmt.Errorf("could not read header from csv: %w", err)
 		}
 		r.Header = header
 	}
@@ -164,7 +171,10 @@ func (r *CsvReader) ReadBatch() ([]repository.InputSchema, error) {
 			return rows, nextErr // This error can potentially be EOF, handled by the caller.
 		}
 
-		r.currentFileReader.Close()
+		err := r.currentFileReader.Close()
+		if err != nil {
+			slog.Error("could not close current file reader", "error", err)
+		}
 		r.currentFileReader = ioReader
 		r.currentReader = csv.NewReader(ioReader)
 		// We need to apply the options again, since the reader was reset
@@ -185,29 +195,20 @@ func (r *CsvReader) ReadBatch() ([]repository.InputSchema, error) {
 }
 
 func (r *CsvReader) createInputSchema(catalogName string, record []string) repository.InputSchema {
-	switch catalogName {
-	case "allwise":
-		schema := repository.AllwiseInputSchema{}
-		err := fillStructFromStrings(&schema, record)
-		if err != nil {
-			panic(err)
-		}
-		return schema
-	case "gaia":
-		schema := repository.GaiaInputSchema{}
-		err := fillStructFromStrings(&schema, record)
-		if err != nil {
-			panic(err)
-		}
-		return schema
-	default:
+	adapter, err := catalog.GetFactory(catalogName)
+	if err != nil {
 		schema := TestSchema{}
-		err := fillStructFromStrings(&schema, record)
-		if err != nil {
+		if err := fillStructFromStrings(&schema, record); err != nil {
 			panic(err)
 		}
 		return schema
 	}
+
+	schemaPtr := reflect.New(reflect.TypeOf(adapter.NewInputSchema()))
+	if err := fillStructFromStrings(schemaPtr.Interface(), record); err != nil {
+		panic(err)
+	}
+	return schemaPtr.Elem().Interface().(repository.InputSchema)
 }
 
 func fillStructFromStrings(s any, values []string) error {

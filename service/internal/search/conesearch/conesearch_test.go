@@ -1,29 +1,21 @@
-// Copyright 2024-2025 Diego Rodriguez Mancini
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package conesearch
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
-
 	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
 )
 
 func TestConesearch(t *testing.T) {
@@ -31,10 +23,10 @@ func TestConesearch(t *testing.T) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &MockRepository{}
+	repo := NewMockMastercatStore(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	result, err := service.Conesearch(1, 1, 1, 1, "all")
@@ -46,10 +38,10 @@ func TestConesearch(t *testing.T) {
 }
 
 func TestConesearch_WithRepositoryError(t *testing.T) {
-	repo := &MockRepository{}
+	repo := NewMockMastercatStore(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(nil, errors.New("Test error"))
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	_, err = service.Conesearch(1, 1, 1, 1, "all")
@@ -67,17 +59,16 @@ func TestConesearch_WithMultipleMappers(t *testing.T) {
 	ztfObjects := []repository.Mastercat{
 		{ID: "ZTFA", Ra: 1, Dec: 1, Cat: "ztf"},
 	}
-	repo := &MockRepository{}
+	repo := NewMockMastercatStore(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(vlassObjects, nil).Once()
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(ztfObjects, nil).Once()
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}, {Name: "ztf", Nside: 12}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	result, err := service.Conesearch(1, 1, 1, 2, "all")
 	repo.AssertExpectations(t)
 
-	// both objects in the result should be in the same coordinates, but different catalog
 	require.Len(t, result, 2)
 	ids := make([]string, 2)
 	cats := make([]string, 2)
@@ -96,10 +87,10 @@ func TestBulkConesearch(t *testing.T) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &MockRepository{}
+	repo := NewMockMastercatStore(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	type testCase struct {
@@ -132,10 +123,10 @@ func TestBulkConesearch(t *testing.T) {
 }
 
 func TestBulkConesearch_WithRepositoryError(t *testing.T) {
-	repo := &MockRepository{}
+	repo := NewMockMastercatStore(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(nil, errors.New("repository error"))
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	_, err = service.BulkConesearch([]float64{1, 10}, []float64{1, 10}, 1, 100, "all", 2, 1)
@@ -144,20 +135,38 @@ func TestBulkConesearch_WithRepositoryError(t *testing.T) {
 	require.Equal(t, "repository error", err.Error())
 }
 
+type mockAllwiseStore struct {
+	t       *testing.T
+	objects []repository.GetAllwiseFromPixelsRow
+}
+
+func (m mockAllwiseStore) InsertAllwiseWithoutParams(context.Context, repository.Allwise) error   { return nil }
+func (m mockAllwiseStore) GetAllwise(context.Context, string) (repository.GetAllwiseRow, error)    { return repository.GetAllwiseRow{}, nil }
+func (m mockAllwiseStore) BulkInsertAllwise(context.Context, *sql.DB, []any) error                 { return nil }
+func (m mockAllwiseStore) BulkGetAllwise(context.Context, []string) ([]repository.BulkGetAllwiseRow, error) {
+	return nil, nil
+}
+func (m mockAllwiseStore) GetAllwiseFromPixels(ctx context.Context, pixels []int64) ([]repository.GetAllwiseFromPixelsRow, error) {
+	return m.objects, nil
+}
+
 func TestConesearch_WithMetadata(t *testing.T) {
 	objects := []repository.GetAllwiseFromPixelsRow{
 		{ID: "A", Ra: 1, Dec: 1},
 		{ID: "B", Ra: 10, Dec: 10},
 	}
-	repo := &MockRepository{}
-	repo.On("GetAllwiseFromPixels", mock.Anything, mock.Anything).Return(objects, nil)
+
+	store := mockAllwiseStore{t: t, objects: objects}
+	resolver := catalog.NewResolver()
+	resolver.RegisterStore("allwise", store)
+
+	repo := NewMockMastercatStore(t)
 	catalogs := []repository.Catalog{{Name: "allwise", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithResolver(resolver), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	result, err := service.FindMetadataByConesearch(1, 1, 1, 1, "allwise")
 	require.NoError(t, err)
-	repo.AssertExpectations(t)
 
 	require.Len(t, result, 1)
 	require.Equal(t, result[0].Data[0].GetId(), "A")
@@ -168,10 +177,10 @@ func FuzzConesearch(f *testing.F) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &MockRepository{}
+	repo := NewMockMastercatStore(f)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(f, err)
 
 	f.Add(float64(1), float64(1), float64(1), int(1))

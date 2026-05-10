@@ -286,6 +286,10 @@ func (m GetErositaFromPixelsRow) GetCoordinates() (float64, float64) {
 	return ra, dec
 }
 
+func (m GetErositaFromPixelsRow) GetCatalog() string {
+	return "eROSITA"
+}
+
 func (q *Queries) InsertErositaWithoutParams(ctx context.Context, arg Erosita) error {
 	return q.InsertErosita(ctx, InsertErositaParams{
 		ID:             arg.ID,

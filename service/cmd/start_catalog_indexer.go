@@ -8,6 +8,7 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/app"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 )
 
 func StartCatalogIndexer(
@@ -28,24 +29,30 @@ func StartCatalogIndexer(
 		return err
 	}
 
+	resolver := catalog.NewResolver()
+	srcCfg := cfg.CatalogIndexer.Source
+	resolver.RegisterStore(srcCfg.CatalogName, repo)
+
 	// update catalogs table
-	catalogRegister := app.CatalogRegister(ctx, repo, cfg.CatalogIndexer.Source)
+	catalogRegister := app.CatalogRegister(ctx, repo, srcCfg)
 	catalogRegister.RegisterCatalog()
 
-	src, err := app.Source(cfg.CatalogIndexer.Source)
+	src, err := app.Source(srcCfg)
 	if err != nil {
 		return err
 	}
 
+	db := repo.GetDbInstance()
+
 	// initialize mastercatWriter
-	mastercatWriter, err := app.MastercatWriter(ctx, cfg, repo, src)
+	mastercatWriter, err := app.MastercatWriter(ctx, cfg, db, repo, src)
 	if err != nil {
 		return err
 	}
 	mastercatWriter.Start()
 
 	// initialize metadata writer
-	metadataWriter, err := app.MetadataWriter(ctx, cfg, repo, src)
+	metadataWriter, err := app.MetadataWriter(ctx, cfg, db, resolver, src)
 	if cfg.CatalogIndexer.Source.Metadata {
 		metadataWriter.Start()
 	}

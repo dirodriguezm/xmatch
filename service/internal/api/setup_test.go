@@ -25,9 +25,14 @@ import (
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/app"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/testutils"
 	"github.com/gin-gonic/gin"
+
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 )
 
 var router *gin.Engine
@@ -140,15 +145,20 @@ service:
 		panic(fmt.Errorf("creating database connection: %w", err))
 	}
 
-	repo := app.ServiceRepository(db)
+	queries := app.ServiceRepository(db)
 
-	conesearchService, err := app.ConesearchService(repo)
+	resolver := catalog.NewResolver()
+	resolver.RegisterStore("allwise", queries)
+	resolver.RegisterStore("gaia", queries)
+	resolver.RegisterStore("erosita", queries)
+
+	conesearchService, err := app.ConesearchService(queries, resolver)
 	if err != nil {
 		_ = db.Close()
 		panic(fmt.Errorf("creating conesearch service: %w", err))
 	}
 
-	metadataService, err := app.MetadataService(repo)
+	metadataService, err := app.MetadataService(resolver)
 	if err != nil {
 		_ = db.Close()
 		panic(fmt.Errorf("creating metadata service: %w", err))

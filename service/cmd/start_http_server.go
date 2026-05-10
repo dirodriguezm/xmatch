@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/app"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,14 +38,19 @@ func StartHttpServer(
 	}
 	defer db.Close()
 
-	repo := app.ServiceRepository(db)
+	queries := app.ServiceRepository(db)
 
-	conesearchService, err := app.ConesearchService(repo)
+	resolver := catalog.NewResolver()
+	resolver.RegisterStore("allwise", queries)
+	resolver.RegisterStore("gaia", queries)
+	resolver.RegisterStore("erosita", queries)
+
+	conesearchService, err := app.ConesearchService(queries, resolver)
 	if err != nil {
 		return fmt.Errorf("creating conesearch service: %w", err)
 	}
 
-	metadataService, err := app.MetadataService(repo)
+	metadataService, err := app.MetadataService(resolver)
 	if err != nil {
 		return fmt.Errorf("creating metadata service: %w", err)
 	}

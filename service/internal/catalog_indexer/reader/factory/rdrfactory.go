@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package reader_factory
+// Package rdrfactory provides a factory for creating readers
+package rdrfactory
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	csv_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/csv"
-	fits_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/fits"
-	parquet_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 func ReaderFactory(
@@ -32,7 +31,7 @@ func ReaderFactory(
 	cfg config.ReaderConfig,
 ) (reader.Reader, error) {
 	if cfg.BatchSize <= 0 {
-		return nil, fmt.Errorf("Batch size must be greater than 0")
+		return nil, fmt.Errorf("batch size must be greater than 0")
 	}
 	readerType := strings.ToLower(cfg.Type)
 	switch readerType {
@@ -49,31 +48,22 @@ func ReaderFactory(
 	case "fits":
 		return fitsFactory(src, cfg)
 	default:
-		return nil, fmt.Errorf("Reader type not allowed")
+		return nil, fmt.Errorf("reader type not allowed")
 	}
 }
 
 func parquetFactory(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
-	switch strings.ToLower(src.CatalogName) {
-	case "allwise":
-		return parquet_reader.NewParquetReader(
-			src,
-			parquet_reader.WithParquetBatchSize[repository.AllwiseInputSchema](cfg.BatchSize),
-		)
-	case "gaia":
-		return parquet_reader.NewParquetReader(
-			src,
-			parquet_reader.WithParquetBatchSize[repository.GaiaInputSchema](cfg.BatchSize),
-		)
-	default:
-		return nil, fmt.Errorf("Schema not found for catalog %s", src.CatalogName)
-	}
-}
-
-func fitsFactory(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
-	fitsReader, err := fits_reader.NewFitsReader(src, fits_reader.WithBatchSize(cfg.BatchSize))
+	adapter, err := catalog.GetFactory(src.CatalogName)
 	if err != nil {
 		return nil, err
 	}
-	return &fitsReader, nil
+	return adapter.NewParquetReader(src, cfg)
+}
+
+func fitsFactory(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
+	adapter, err := catalog.GetFactory(src.CatalogName)
+	if err != nil {
+		return nil, err
+	}
+	return adapter.NewFitsReader(src, cfg)
 }
