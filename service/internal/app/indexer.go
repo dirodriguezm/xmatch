@@ -6,17 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dirodriguezm/healpix"
-	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
-	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
-	reader_factory "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/factory"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
-	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -52,76 +43,4 @@ func CatalogRegister(ctx context.Context, registry conesearch.CatalogRegistry, s
 
 func Source(cfg config.SourceConfig) (*source.Source, error) {
 	return source.NewSource(cfg)
-}
-
-func MastercatWriter(ctx context.Context, cfg config.Config, db *sql.DB, store conesearch.MastercatStore, src *source.Source) (*actor.Actor, error) {
-	switch cfg.CatalogIndexer.IndexerWriter.Type {
-	case "parquet":
-		w, err := parquet_writer.New[repository.Mastercat](cfg.CatalogIndexer.IndexerWriter, ctx)
-		if err != nil {
-			return nil, err
-		}
-		return actor.New("mastercat writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-	case "sqlite":
-		w := sqlite_writer.New(db, ctx, store.BulkInsertObject)
-		return actor.New("mastercat writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-	default:
-		return nil, fmt.Errorf("writer type not allowed")
-	}
-}
-
-func MetadataWriter(ctx context.Context, cfg config.Config, db *sql.DB, resolver *catalog.Resolver, src *source.Source) (*actor.Actor, error) {
-	adapter, err := resolver.Get(cfg.CatalogIndexer.Source.CatalogName)
-	if err != nil {
-		return nil, err
-	}
-	switch cfg.CatalogIndexer.MetadataWriter.Type {
-	case "parquet":
-		w, err := adapter.NewParquetWriter(cfg.CatalogIndexer.MetadataWriter, ctx)
-		if err != nil {
-			return nil, err
-		}
-		return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-	case "sqlite":
-		w := sqlite_writer.New(db, ctx, adapter.BulkInsertFn())
-		return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-	default:
-		return nil, fmt.Errorf("unknown Metadata Writer Type: %s", cfg.CatalogIndexer.MetadataWriter.Type)
-	}
-}
-
-func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context, fillMastercat func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
-	ind, err := mastercat_indexer.New(cfg.Indexer, fillMastercat)
-	if err != nil {
-		return nil, err
-	}
-	return actor.New("mastercat indexer", cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, ctx), nil
-}
-
-func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context, fillMetadata func(any) repository.Metadata) *actor.Actor {
-	ind := metadata.New(fillMetadata)
-	return actor.New("metadata indexer", cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, ctx)
-}
-
-func Reader(
-	src *source.Source,
-	cfg config.ReaderConfig,
-	srcConfig config.SourceConfig,
-	mastercatIndexer *actor.Actor,
-	metadataIndexer *actor.Actor,
-) (reader.SourceReader, error) {
-	r, err := reader_factory.ReaderFactory(src, cfg)
-	if err != nil {
-		return reader.SourceReader{}, err
-	}
-
-	sourceReader := reader.SourceReader{
-		Reader:    r,
-		BatchSize: cfg.BatchSize,
-		Receivers: []*actor.Actor{mastercatIndexer},
-	}
-	if srcConfig.Metadata {
-		sourceReader.Receivers = append(sourceReader.Receivers, metadataIndexer)
-	}
-	return sourceReader, nil
 }

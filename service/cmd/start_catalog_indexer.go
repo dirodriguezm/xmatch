@@ -6,11 +6,9 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/dirodriguezm/healpix"
-	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/pipeline"
 )
 
 func StartCatalogIndexer(
@@ -25,7 +23,6 @@ func StartCatalogIndexer(
 		return err
 	}
 
-	// database
 	repo, err := app.Repository(cfg)
 	if err != nil {
 		return err
@@ -35,7 +32,6 @@ func StartCatalogIndexer(
 	srcCfg := cfg.CatalogIndexer.Source
 	resolver.RegisterStore(srcCfg.CatalogName, repo)
 
-	// update catalogs table
 	catalogRegister := app.CatalogRegister(ctx, repo, srcCfg)
 	catalogRegister.RegisterCatalog()
 
@@ -44,63 +40,29 @@ func StartCatalogIndexer(
 		return err
 	}
 
-	db := repo.GetDbInstance()
-
-	// initialize mastercatWriter
-	mastercatWriter, err := app.MastercatWriter(ctx, cfg, db, repo, src)
-	if err != nil {
-		return err
-	}
-	mastercatWriter.Start()
-
-	// initialize metadata writer
-	metadataWriter, err := app.MetadataWriter(ctx, cfg, db, resolver, src)
-	if cfg.CatalogIndexer.Source.Metadata {
-		metadataWriter.Start()
-	}
-
-	// initialize indexer
 	adapter, err := resolver.Get(srcCfg.CatalogName)
 	if err != nil {
 		return err
 	}
-	fillMastercat := func(raw any, mapper *healpix.HEALPixMapper) repository.Mastercat {
-		mc, _ := adapter.ConvertToMastercat(raw, mapper)
-		return mc
-	}
-	mastercatIndexer, err := app.MastercatIndexer(cfg.CatalogIndexer, mastercatWriter, ctx, fillMastercat)
+
+	db := repo.GetDbInstance()
+	pipeline, err := pipeline.New(pipeline.PipelineConfig{
+		Context: ctx,
+		Config:  cfg,
+		DB:      db,
+		Source:  src,
+		Adapter: adapter,
+		Store:   repo,
+	})
 	if err != nil {
-		return err
-	}
-	mastercatIndexer.Start()
-
-	// initialize metadata indexer
-	var metadataIndexer *actor.Actor
-	if cfg.CatalogIndexer.Source.Metadata {
-		fillMetadata := func(raw any) repository.Metadata {
-			md, _ := adapter.ConvertToMetadataFromRaw(raw)
-			return md
-		}
-		metadataIndexer = app.MetadataIndexer(cfg.CatalogIndexer, metadataWriter, ctx, fillMetadata)
-		metadataIndexer.Start()
+		return fmt.Errorf("error creating pipeline: %w", err)
 	}
 
-	// initialize reader
-	sourceReader, err := app.Reader(src, cfg.CatalogIndexer.Reader, cfg.CatalogIndexer.Source, mastercatIndexer, metadataIndexer)
-	defer func() error {
-		err := sourceReader.Close()
-		if err != nil {
-			return fmt.Errorf("Error closing reader: %w", err)
-		}
-		return err
-	}()
+	pipeline.Run()
+	pipeline.Stop()
 
-	sourceReader.Read()
-	mastercatIndexer.Stop()
-	mastercatWriter.Stop()
-	if cfg.CatalogIndexer.Source.Metadata {
-		metadataIndexer.Stop()
-		metadataWriter.Stop()
+	if err := pipeline.CloseSource(); err != nil {
+		return fmt.Errorf("Error closing reader: %w", err)
 	}
 
 	slog.Info("Catalog indexer finished successfully")
