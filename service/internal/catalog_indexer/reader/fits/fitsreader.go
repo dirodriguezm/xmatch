@@ -24,10 +24,9 @@ import (
 	"codeberg.org/astrogo/fitsio"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
-type FitsReader[T repository.InputSchema] struct {
+type FitsReader[T any] struct {
 	currentFileReader io.ReadCloser
 	currentFitsRows   *fitsio.Rows
 	currentFitsFile   *fitsio.File
@@ -35,7 +34,7 @@ type FitsReader[T repository.InputSchema] struct {
 	batchSize         int
 }
 
-func NewFitsReader[T repository.InputSchema](src *source.Source, opts ...FitsReaderOption[T]) (*FitsReader[T], error) {
+func NewFitsReader[T any](src *source.Source, opts ...FitsReaderOption[T]) (*FitsReader[T], error) {
 	currentFileReader, err := src.Next()
 	if err != nil {
 		return nil, err
@@ -66,12 +65,12 @@ func NewFitsReader[T repository.InputSchema](src *source.Source, opts ...FitsRea
 	return r, nil
 }
 
-func (r *FitsReader[T]) Read() ([]repository.InputSchema, error) {
+func (r *FitsReader[T]) Read() ([]any, error) {
 	panic("Not implemented")
 }
 
-func (r *FitsReader[T]) ReadBatch() ([]repository.InputSchema, error) {
-	rows := make([]repository.InputSchema, 0, r.batchSize)
+func (r *FitsReader[T]) ReadBatch() ([]any, error) {
+	rows := make([]any, 0, r.batchSize)
 
 	currentRows, err := r.ReadBatchSingleFile(r.currentFitsRows, r.batchSize)
 
@@ -139,22 +138,22 @@ func (r *FitsReader[T]) switchToNewFile() error {
 	return nil
 }
 
-func (r *FitsReader[T]) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int) ([]repository.InputSchema, error) {
-	rows := make([]repository.InputSchema, 0, size)
+func (r *FitsReader[T]) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int) ([]any, error) {
+	rows := make([]any, 0, size)
 	for range size {
 		hasNext := rowIterator.Next()
 		if !hasNext {
 			return rows, io.EOF
 		}
 
-		row := r.createInputSchema(rowIterator)
+		row := r.createRawRecord(rowIterator)
 		rows = append(rows, row)
 	}
 
 	return rows, nil
 }
 
-func (r *FitsReader[T]) createInputSchema(rowIterator *fitsio.Rows) repository.InputSchema {
+func (r *FitsReader[T]) createRawRecord(rowIterator *fitsio.Rows) any {
 	adapter, err := catalog.GetFactory(r.src.CatalogName)
 	if err != nil {
 		var schema T
@@ -164,11 +163,11 @@ func (r *FitsReader[T]) createInputSchema(rowIterator *fitsio.Rows) repository.I
 		return schema
 	}
 
-	schemaPtr := reflect.New(reflect.TypeOf(adapter.NewInputSchema()))
+	schemaPtr := reflect.New(reflect.TypeOf(adapter.NewRawRecord()))
 	if err := rowIterator.Scan(schemaPtr.Interface()); err != nil {
 		panic(err)
 	}
-	return schemaPtr.Elem().Interface().(repository.InputSchema)
+	return schemaPtr.Elem().Interface()
 }
 
 func (r *FitsReader[T]) Close() error {

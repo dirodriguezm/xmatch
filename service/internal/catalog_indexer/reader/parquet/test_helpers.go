@@ -20,7 +20,6 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,31 +29,13 @@ type TestInputSchema struct {
 	Dec float64
 }
 
-func (t TestInputSchema) FillMastercat(dst *repository.Mastercat, ipix int64) {
-	dst.ID = t.Oid
-	dst.Ra = t.Ra
-	dst.Dec = t.Dec
-	dst.Cat = "test"
-	dst.Ipix = ipix
-}
-
-func (t TestInputSchema) FillMetadata(dst repository.Metadata) {}
-
-func (t TestInputSchema) GetCoordinates() (float64, float64) {
-	return t.Ra, t.Dec
-}
-
-func (t TestInputSchema) GetId() string {
-	return t.Oid
-}
-
-type ReaderBuilder[T repository.InputSchema] struct {
+type ReaderBuilder[T any] struct {
 	ReaderConfig *config.ReaderConfig
 	t            *testing.T
 	Source       *source.Source
 }
 
-func AReader[T repository.InputSchema](t *testing.T) *ReaderBuilder[T] {
+func AReader[T any](t *testing.T) *ReaderBuilder[T] {
 	return &ReaderBuilder[T]{
 		t: t,
 		ReaderConfig: &config.ReaderConfig{

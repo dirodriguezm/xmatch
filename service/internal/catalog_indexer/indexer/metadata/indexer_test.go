@@ -23,8 +23,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fillMetadata = func(schema repository.InputSchema) repository.Metadata {
-	return schema.(repository.AllwiseInputSchema).FillMetadata()
+var fillMetadata = func(raw any) repository.Metadata {
+	return repository.Allwise{ID: *raw.(repository.AllwiseInputSchema).Source_id}
 }
 
 func TestStart(t *testing.T) {

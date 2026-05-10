@@ -20,7 +20,6 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,10 +50,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+	schema := row.(TestSchema)
+	receivedOids[i] = schema.Oid
 	}
 
 	require.Equal(t, expectedOids, receivedOids)
@@ -86,10 +83,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+	schema := row.(TestSchema)
+	receivedOids[i] = schema.Oid
 	}
 
 	require.Equal(t, expectedOids, receivedOids)
@@ -131,7 +126,7 @@ o4,4,4
 		t.Fatal(err)
 	}
 
-	var rows []repository.InputSchema
+	var rows []any
 
 	for {
 		batch, err := csvReader.ReadBatch()
@@ -153,10 +148,8 @@ o4,4,4
 	expectedOids := []string{"o1", "o2", "o3", "o4"}
 	receivedOids := make([]string, 4)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -182,7 +175,7 @@ o3,3,3
 		t.Fatal(err)
 	}
 
-	var rows []repository.InputSchema
+	var rows []any
 
 	eof := false
 	for !eof {
@@ -200,10 +193,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+	schema := row.(TestSchema)
+	receivedOids[i] = schema.Oid
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -227,7 +218,7 @@ o3,3,3
 	)
 	require.NoError(t, err)
 
-	var rows []repository.InputSchema
+	var rows []any
 
 	eof := false
 	for !eof {
@@ -247,10 +238,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+	schema := row.(TestSchema)
+	receivedOids[i] = schema.Oid
 	}
 
 	require.Equal(t, expectedOids, receivedOids)

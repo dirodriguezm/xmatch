@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"codeberg.org/astrogo/fitsio"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 func writeFitsFile(t *testing.T, filename string, rows []map[string]any) {
@@ -244,26 +243,4 @@ type TestSchema struct {
 	Oid string
 	Ra  float64
 	Dec float64
-}
-
-func (t TestSchema) FillMastercat(ipix int64) repository.Mastercat {
-	return repository.Mastercat{
-		ID:   t.Oid,
-		Ipix: ipix,
-		Ra:   t.Ra,
-		Dec:  t.Dec,
-		Cat:  "test",
-	}
-}
-
-func (t TestSchema) FillMetadata() repository.Metadata {
-	return nil
-}
-
-func (t TestSchema) GetCoordinates() (float64, float64) {
-	return t.Ra, t.Dec
-}
-
-func (t TestSchema) GetId() string {
-	return t.Oid
 }

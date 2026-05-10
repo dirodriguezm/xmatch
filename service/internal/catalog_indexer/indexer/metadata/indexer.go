@@ -22,10 +22,10 @@ import (
 )
 
 type Indexer struct {
-	fillMetadata func(repository.InputSchema) repository.Metadata
+	fillMetadata func(any) repository.Metadata
 }
 
-func New(fillMetadata func(repository.InputSchema) repository.Metadata) *Indexer {
+func New(fillMetadata func(any) repository.Metadata) *Indexer {
 	return &Indexer{fillMetadata: fillMetadata}
 }
 
@@ -46,7 +46,7 @@ func (ind *Indexer) Index(a *actor.Actor, msg actor.Message) {
 func (ind *Indexer) getOutputBatch(rows []any) []any {
 	outputBatch := make([]any, len(rows))
 	for i := range rows {
-		outputBatch[i] = ind.fillMetadata(rows[i].(repository.InputSchema))
+		outputBatch[i] = ind.fillMetadata(rows[i])
 	}
 	return outputBatch
 }

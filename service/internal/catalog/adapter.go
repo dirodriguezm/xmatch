@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
@@ -17,7 +18,7 @@ import (
 type CatalogAdapter interface {
 	Name() string
 
-	NewInputSchema() repository.InputSchema
+	NewRawRecord() any
 
 	NewParquetWriter(cfg config.WriterConfig, ctx context.Context) (writer.Writer, error)
 
@@ -34,11 +35,15 @@ type CatalogAdapter interface {
 	GetFromPixels(ctx context.Context, pixels []int64) ([]repository.MetadataWithCoordinates, error)
 
 	ConvertToMetadata(obj repository.MetadataWithCoordinates) repository.Metadata
+
+	ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (repository.Mastercat, error)
+
+	ConvertToMetadataFromRaw(raw any) (repository.Metadata, error)
 }
 
 type CatalogFactory interface {
 	Name() string
-	NewInputSchema() repository.InputSchema
+	NewRawRecord() any
 	NewParquetWriter(cfg config.WriterConfig, ctx context.Context) (writer.Writer, error)
 	NewParquetReader(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error)
 	NewFitsReader(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error)

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 )
 
 type AllwiseInputSchema struct {
@@ -24,126 +23,6 @@ type AllwiseInputSchema struct {
 	J_msig_2mass *float64 `parquet:"name=j_msig_2mass, type=DOUBLE"`
 	H_msig_2mass *float64 `parquet:"name=h_msig_2mass, type=DOUBLE"`
 	K_msig_2mass *float64 `parquet:"name=k_msig_2mass, type=DOUBLE"`
-}
-
-func (schema AllwiseInputSchema) GetCoordinates() (float64, float64) {
-	if schema.Ra == nil || schema.Dec == nil {
-		return 0, 0
-	}
-	return *schema.Ra, *schema.Dec
-}
-
-func (schema AllwiseInputSchema) GetId() string {
-	if schema.Source_id == nil {
-		return ""
-	}
-	return *schema.Source_id
-}
-
-func (schema AllwiseInputSchema) FillMetadata() Metadata {
-	allwise := Allwise{}
-	if schema.Source_id != nil {
-		allwise.ID = *schema.Source_id
-	}
-	if schema.Cntr != nil {
-		allwise.Cntr = *schema.Cntr
-	}
-	if schema.W1mpro != nil {
-		allwise.W1mpro = NullFloat64{sql.NullFloat64{Float64: *schema.W1mpro, Valid: true}}
-	} else {
-		allwise.W1mpro = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.W1sigmpro != nil {
-		allwise.W1sigmpro = NullFloat64{sql.NullFloat64{Float64: *schema.W1sigmpro, Valid: true}}
-	} else {
-		allwise.W1sigmpro = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.W2mpro != nil {
-		allwise.W2mpro = NullFloat64{sql.NullFloat64{Float64: *schema.W2mpro, Valid: true}}
-	} else {
-		allwise.W2mpro = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.W2sigmpro != nil {
-		allwise.W2sigmpro = NullFloat64{sql.NullFloat64{Float64: *schema.W2sigmpro, Valid: true}}
-	} else {
-		allwise.W2sigmpro = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.W3mpro != nil {
-		allwise.W3mpro = NullFloat64{sql.NullFloat64{Float64: *schema.W3mpro, Valid: true}}
-	} else {
-		allwise.W3mpro = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.W3sigmpro != nil {
-		allwise.W3sigmpro = NullFloat64{sql.NullFloat64{Float64: *schema.W3sigmpro, Valid: true}}
-	} else {
-		allwise.W3sigmpro = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.W4mpro != nil {
-		allwise.W4mpro = NullFloat64{sql.NullFloat64{Float64: *schema.W4mpro, Valid: true}}
-	} else {
-		allwise.W4mpro = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.W4sigmpro != nil {
-		allwise.W4sigmpro = NullFloat64{sql.NullFloat64{Float64: *schema.W4sigmpro, Valid: true}}
-	} else {
-		allwise.W4sigmpro = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.J_m_2mass != nil {
-		allwise.JM2mass = NullFloat64{sql.NullFloat64{Float64: *schema.J_m_2mass, Valid: true}}
-	} else {
-		allwise.JM2mass = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.J_msig_2mass != nil {
-		allwise.JMsig2mass = NullFloat64{sql.NullFloat64{Float64: *schema.J_msig_2mass, Valid: true}}
-	} else {
-		allwise.JMsig2mass = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.H_m_2mass != nil {
-		allwise.HM2mass = NullFloat64{sql.NullFloat64{Float64: *schema.H_m_2mass, Valid: true}}
-	} else {
-		allwise.HM2mass = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.H_msig_2mass != nil {
-		allwise.HMsig2mass = NullFloat64{sql.NullFloat64{Float64: *schema.H_msig_2mass, Valid: true}}
-	} else {
-		allwise.HMsig2mass = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	if schema.K_m_2mass != nil {
-		allwise.KM2mass = NullFloat64{sql.NullFloat64{Float64: *schema.K_m_2mass, Valid: true}}
-	} else {
-		allwise.KM2mass = NullFloat64{sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-
-	return allwise
-}
-
-func (schema AllwiseInputSchema) FillMastercat(ipix int64) Mastercat {
-	mastercat := Mastercat{
-		Ipix: ipix,
-		Cat:  "allwise",
-	}
-	if schema.Source_id != nil {
-		mastercat.ID = *schema.Source_id
-	}
-	if schema.Ra != nil {
-		mastercat.Ra = *schema.Ra
-	}
-	if schema.Dec != nil {
-		mastercat.Dec = *schema.Dec
-	}
-	return mastercat
 }
 
 func (a Allwise) GetId() string {

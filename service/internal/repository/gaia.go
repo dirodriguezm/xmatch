@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 )
 
 type GaiaInputSchema struct {
@@ -158,40 +157,6 @@ type GaiaInputSchema struct {
 	EbpminrpGspphotLower        float32 `json:"ebpminrp_gspphot_lower" parquet:"name=ebpminrp_gspphot_lower, type=FLOAT"`
 	EbpminrpGspphotUpper        float32 `json:"ebpminrp_gspphot_upper" parquet:"name=ebpminrp_gspphot_upper, type=FLOAT"`
 	LibnameGspphot              string  `json:"libname_gspphot" parquet:"name=libname_gspphot, type=BYTE_ARRAY"`
-}
-
-func (schema GaiaInputSchema) GetId() string {
-	return schema.Designation
-}
-
-func (schema GaiaInputSchema) GetCoordinates() (float64, float64) {
-	return schema.RA, schema.Dec
-}
-
-func (schema GaiaInputSchema) FillMetadata() Metadata {
-	return Gaia{
-		ID:                  schema.GetId(),
-		PhotGMeanFlux:       NullFloat64{sql.NullFloat64{Float64: schema.PhotGMeanFlux, Valid: true}},
-		PhotGMeanFluxError:  NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanFluxError), Valid: true}},
-		PhotGMeanMag:        NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanMag), Valid: true}},
-		PhotBpMeanFlux:      NullFloat64{sql.NullFloat64{Float64: schema.PhotBpMeanFlux, Valid: true}},
-		PhotBpMeanFluxError: NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanFluxError), Valid: true}},
-		PhotBpMeanMag:       NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanMag), Valid: true}},
-		PhotRpMeanFlux:      NullFloat64{sql.NullFloat64{Float64: schema.PhotRpMeanFlux, Valid: true}},
-		PhotRpMeanFluxError: NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanFluxError), Valid: true}},
-		PhotRpMeanMag:       NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanMag), Valid: true}},
-	}
-}
-
-func (schema GaiaInputSchema) FillMastercat(ipix int64) Mastercat {
-	ra, dec := schema.GetCoordinates()
-	return Mastercat{
-		ID:   schema.GetId(),
-		Ipix: ipix,
-		Ra:   ra,
-		Dec:  dec,
-		Cat:  "gaia",
-	}
 }
 
 func (gaia Gaia) GetId() string {

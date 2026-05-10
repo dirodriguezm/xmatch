@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	fits_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/fits"
@@ -39,7 +40,7 @@ func (a Adapter) Name() string {
 	return "gaia"
 }
 
-func (a Adapter) NewInputSchema() repository.InputSchema {
+func (a Adapter) NewRawRecord() any {
 	return repository.GaiaInputSchema{}
 }
 
@@ -113,4 +114,32 @@ func (a Adapter) ConvertToMetadata(obj repository.MetadataWithCoordinates) repos
 		PhotRpMeanFluxError: row.PhotRpMeanFluxError,
 		PhotRpMeanMag:       row.PhotRpMeanMag,
 	}
+}
+
+func (a Adapter) ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (repository.Mastercat, error) {
+	schema := raw.(repository.GaiaInputSchema)
+	ipix := mapper.PixelAt(healpix.RADec(schema.RA, schema.Dec))
+	return repository.Mastercat{
+		ID:   schema.Designation,
+		Ipix: ipix,
+		Ra:   schema.RA,
+		Dec:  schema.Dec,
+		Cat:  "gaia",
+	}, nil
+}
+
+func (a Adapter) ConvertToMetadataFromRaw(raw any) (repository.Metadata, error) {
+	schema := raw.(repository.GaiaInputSchema)
+	return repository.Gaia{
+		ID:                  schema.Designation,
+		PhotGMeanFlux:       repository.NullFloat64{sql.NullFloat64{Float64: schema.PhotGMeanFlux, Valid: true}},
+		PhotGMeanFluxError:  repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanFluxError), Valid: true}},
+		PhotGMeanMag:        repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanMag), Valid: true}},
+		PhotBpMeanFlux:      repository.NullFloat64{sql.NullFloat64{Float64: schema.PhotBpMeanFlux, Valid: true}},
+		PhotBpMeanFluxError: repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanFluxError), Valid: true}},
+		PhotBpMeanMag:       repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanMag), Valid: true}},
+		PhotRpMeanFlux:      repository.NullFloat64{sql.NullFloat64{Float64: schema.PhotRpMeanFlux, Valid: true}},
+		PhotRpMeanFluxError: repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanFluxError), Valid: true}},
+		PhotRpMeanMag:       repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanMag), Valid: true}},
+	}, nil
 }

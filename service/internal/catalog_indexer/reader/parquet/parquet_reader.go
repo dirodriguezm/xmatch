@@ -22,14 +22,13 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 
 	"github.com/xitongsys/parquet-go-source/local"
 	preader "github.com/xitongsys/parquet-go/reader"
 	psource "github.com/xitongsys/parquet-go/source"
 )
 
-type ParquetReader[T repository.InputSchema] struct {
+type ParquetReader[T any] struct {
 	currentParquetReader *preader.ParquetReader
 	currentFileReader    psource.ParquetFile
 	currentFileName      string
@@ -37,7 +36,7 @@ type ParquetReader[T repository.InputSchema] struct {
 	batchSize            int
 }
 
-func NewParquetReader[T repository.InputSchema](src *source.Source, opts ...ParquetReaderOption[T]) (*ParquetReader[T], error) {
+func NewParquetReader[T any](src *source.Source, opts ...ParquetReaderOption[T]) (*ParquetReader[T], error) {
 	currentReader, err := src.Next()
 	if err != nil {
 		return nil, fmt.Errorf("could not get next source: %w", err)
@@ -70,7 +69,7 @@ func NewParquetReader[T repository.InputSchema](src *source.Source, opts ...Parq
 	return newReader, nil
 }
 
-func (r *ParquetReader[T]) ReadSingleFile(src *source.Source, currentReader *preader.ParquetReader) ([]repository.InputSchema, error) {
+func (r *ParquetReader[T]) ReadSingleFile(src *source.Source, currentReader *preader.ParquetReader) ([]any, error) {
 	defer currentReader.ReadStop()
 
 	nrows := currentReader.GetNumRows()
@@ -83,16 +82,16 @@ func (r *ParquetReader[T]) ReadSingleFile(src *source.Source, currentReader *pre
 	return convertToInputSchema(records), nil
 }
 
-func convertToInputSchema[T repository.InputSchema](records []T) []repository.InputSchema {
-	converted := make([]repository.InputSchema, len(records))
+func convertToInputSchema[T any](records []T) []any {
+	converted := make([]any, len(records))
 	for i := range records {
 		converted[i] = records[i]
 	}
 	return converted
 }
 
-func (r *ParquetReader[T]) Read() ([]repository.InputSchema, error) {
-	rows := make([]repository.InputSchema, 0, r.currentParquetReader.GetNumRows())
+func (r *ParquetReader[T]) Read() ([]any, error) {
+	rows := make([]any, 0, r.currentParquetReader.GetNumRows())
 	eof := false
 
 	for !eof {
@@ -145,7 +144,7 @@ func (r *ParquetReader[T]) Read() ([]repository.InputSchema, error) {
 // Reads batch from the passed reader
 // The closing should be handling by the caller
 // Returns io.EOF if there are no more rows to read
-func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]repository.InputSchema, error) {
+func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]any, error) {
 	records := make([]T, r.batchSize)
 
 	if err := currentReader.Read(&records); err != nil {
@@ -160,7 +159,7 @@ func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetRea
 	return convertToInputSchema(records), nil
 }
 
-func (r *ParquetReader[T]) ReadBatch() ([]repository.InputSchema, error) {
+func (r *ParquetReader[T]) ReadBatch() ([]any, error) {
 	currentRows, err := r.ReadBatchSingleFile(r.currentParquetReader)
 
 	// Read did not finish successfully
@@ -215,7 +214,7 @@ func (r *ParquetReader[T]) ReadBatch() ([]repository.InputSchema, error) {
 	return currentRows, nil
 }
 
-func isZeroValueSlice[T repository.InputSchema](s []T) bool {
+func isZeroValueSlice[T any](s []T) bool {
 	for i := range s {
 		if !isZeroValueInputSchema(s[i]) {
 			return false
@@ -224,7 +223,7 @@ func isZeroValueSlice[T repository.InputSchema](s []T) bool {
 	return true
 }
 
-func isZeroValueInputSchema(schema repository.InputSchema) bool {
+func isZeroValueInputSchema(schema any) bool {
 	elem := reflect.ValueOf(schema)
 	if elem.Kind() == reflect.Ptr {
 		elem = elem.Elem()

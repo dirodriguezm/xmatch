@@ -6,9 +6,11 @@ import (
 	"io"
 	"log/slog"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 func StartCatalogIndexer(
@@ -58,7 +60,15 @@ func StartCatalogIndexer(
 	}
 
 	// initialize indexer
-	mastercatIndexer, err := app.MastercatIndexer(cfg.CatalogIndexer, mastercatWriter, ctx)
+	adapter, err := resolver.Get(srcCfg.CatalogName)
+	if err != nil {
+		return err
+	}
+	fillMastercat := func(raw any, mapper *healpix.HEALPixMapper) repository.Mastercat {
+		mc, _ := adapter.ConvertToMastercat(raw, mapper)
+		return mc
+	}
+	mastercatIndexer, err := app.MastercatIndexer(cfg.CatalogIndexer, mastercatWriter, ctx, fillMastercat)
 	if err != nil {
 		return err
 	}
@@ -67,7 +77,11 @@ func StartCatalogIndexer(
 	// initialize metadata indexer
 	var metadataIndexer *actor.Actor
 	if cfg.CatalogIndexer.Source.Metadata {
-		metadataIndexer = app.MetadataIndexer(cfg.CatalogIndexer, metadataWriter, ctx)
+		fillMetadata := func(raw any) repository.Metadata {
+			md, _ := adapter.ConvertToMetadataFromRaw(raw)
+			return md
+		}
+		metadataIndexer = app.MetadataIndexer(cfg.CatalogIndexer, metadataWriter, ctx, fillMetadata)
 		metadataIndexer.Start()
 	}
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer"
@@ -89,11 +90,7 @@ func MetadataWriter(ctx context.Context, cfg config.Config, db *sql.DB, resolver
 	}
 }
 
-func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context) (*actor.Actor, error) {
-	fillMastercat := func(schema repository.InputSchema, ipix int64) repository.Mastercat {
-		return schema.FillMastercat(ipix)
-	}
-
+func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context, fillMastercat func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
 	ind, err := mastercat_indexer.New(cfg.Indexer, fillMastercat)
 	if err != nil {
 		return nil, err
@@ -101,10 +98,7 @@ func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx 
 	return actor.New("mastercat indexer", cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, ctx), nil
 }
 
-func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context) *actor.Actor {
-	fillMetadata := func(schema repository.InputSchema) repository.Metadata {
-		return schema.FillMetadata()
-	}
+func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context, fillMetadata func(any) repository.Metadata) *actor.Actor {
 	ind := metadata.New(fillMetadata)
 	return actor.New("metadata indexer", cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, ctx)
 }

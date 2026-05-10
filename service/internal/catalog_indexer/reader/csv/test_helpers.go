@@ -20,7 +20,6 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
@@ -81,26 +80,4 @@ type TestSchema struct {
 	Oid string
 	Ra  float64
 	Dec float64
-}
-
-func (t TestSchema) FillMastercat(ipix int64) repository.Mastercat {
-	return repository.Mastercat{
-		ID:   t.Oid,
-		Ra:   t.Ra,
-		Dec:  t.Dec,
-		Ipix: ipix,
-		Cat:  "test",
-	}
-}
-
-func (t TestSchema) FillMetadata() repository.Metadata {
-	return nil
-}
-
-func (t TestSchema) GetCoordinates() (float64, float64) {
-	return t.Ra, t.Dec
-}
-
-func (t TestSchema) GetId() string {
-	return t.Oid
 }

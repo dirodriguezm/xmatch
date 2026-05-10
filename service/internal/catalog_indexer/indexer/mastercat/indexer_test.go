@@ -17,6 +17,7 @@ package mastercat_indexer
 import (
 	"testing"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -30,34 +31,18 @@ type TestSchema struct {
 	Cat string
 }
 
-func (schema TestSchema) FillMastercat(ipix int64) repository.Mastercat {
-	ra, dec := schema.GetCoordinates()
-	return repository.Mastercat{
-		ID:   schema.GetId(),
-		Ipix: ipix,
-		Ra:   ra,
-		Dec:  dec,
-		Cat:  "test",
-	}
-}
-
-func (t TestSchema) FillMetadata() repository.Metadata {
-	return nil
-}
-
-func (t TestSchema) GetCoordinates() (float64, float64) {
-	return t.Ra, t.Dec
-}
-
-func (t TestSchema) GetId() string {
-	return t.ID
-}
-
-var fillMastercat = func(schema repository.InputSchema, ipix int64) repository.Mastercat {
-	return schema.(TestSchema).FillMastercat(ipix)
-}
-
 func TestIndexActor(t *testing.T) {
+	fillMastercat := func(raw any, mapper *healpix.HEALPixMapper) repository.Mastercat {
+		schema := raw.(TestSchema)
+		ipix := mapper.PixelAt(healpix.RADec(schema.Ra, schema.Dec))
+		return repository.Mastercat{
+			ID:   schema.ID,
+			Ipix: ipix,
+			Ra:   schema.Ra,
+			Dec:  schema.Dec,
+			Cat:  "test",
+		}
+	}
 	rows := make([]any, 2)
 	rows[0] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id1", Cat: "test"}
 	rows[1] = TestSchema{Ra: 0.0, Dec: 0.0, ID: "id2", Cat: "test"}
