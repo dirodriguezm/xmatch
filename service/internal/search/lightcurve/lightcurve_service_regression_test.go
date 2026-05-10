@@ -3,6 +3,7 @@ package lightcurve_test
 import (
 	"testing"
 
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	lc "github.com/dirodriguezm/xmatch/service/internal/search/lightcurve"
 	"github.com/dirodriguezm/xmatch/service/internal/search/lightcurve/ztfdr"
@@ -33,19 +34,6 @@ func (s *stubConesearchService) FindMetadataByConesearch(_, _, _ float64, _ int,
 	return s.results, nil
 }
 
-type metadataStub struct {
-	id      string
-	catalog string
-}
-
-func (m metadataStub) GetId() string {
-	return m.id
-}
-
-func (m metadataStub) GetCatalog() string {
-	return m.catalog
-}
-
 func TestGetLightcurve_AppliesZtfDrFilter(t *testing.T) {
 	service, err := lc.New(
 		[]lc.Source{{
@@ -58,7 +46,7 @@ func TestGetLightcurve_AppliesZtfDrFilter(t *testing.T) {
 		}},
 		&stubConesearchService{results: []conesearch.MetadataResult{{
 			Catalog: "ztf",
-			Data:    []conesearch.MetadataExtended{{Metadata: metadataStub{id: "1", catalog: "ztf"}}},
+			Data:    []conesearch.MetadataExtended{{Metadata: repository.Metadata{ID: "1", Catalog: "ztf"}}},
 		}}},
 	)
 	require.NoError(t, err)
@@ -113,7 +101,7 @@ func TestGetLightcurve_ExecutesOnlySelectedCatalogClient(t *testing.T) {
 			catalogTarget: &conesearchCatalog,
 			results: []conesearch.MetadataResult{{
 				Catalog: "ztf",
-				Data:    []conesearch.MetadataExtended{{Metadata: metadataStub{id: "1", catalog: "ztf"}}},
+				Data:    []conesearch.MetadataExtended{{Metadata: repository.Metadata{ID: "1", Catalog: "ztf"}}},
 			}},
 		},
 	)
@@ -177,7 +165,7 @@ func TestGetLightcurve_AllCatalogDoesNotDuplicateFilteredSource(t *testing.T) {
 		},
 		&stubConesearchService{results: []conesearch.MetadataResult{{
 			Catalog: "ztf",
-			Data:    []conesearch.MetadataExtended{{Metadata: metadataStub{id: "1", catalog: "ztf"}}},
+			Data:    []conesearch.MetadataExtended{{Metadata: repository.Metadata{ID: "1", Catalog: "ztf"}}},
 		}}},
 	)
 	require.NoError(t, err)

@@ -75,3 +75,7 @@ func (a *Actor) Broadcast(msg Message) {
 		receiver.Send(msg)
 	}
 }
+
+func (a *Actor) Receivers() []*Actor {
+	return a.receivers
+}

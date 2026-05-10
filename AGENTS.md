@@ -1,14 +1,11 @@
 # ALeRCE xmatch - Agent Guidelines
 
-This document provides guidelines for AI agents working on the ALeRCE xmatch project. It covers build commands, testing, linting, and code style conventions.
-
 ## Project Overview
 
 - **Language**: Go (1.24+)
 - **Framework**: Gin web framework, actor pattern
 - **Database**: SQLite, Parquet
 - **Build tool**: Just (command runner), Nix/Devenv for environment
-- **Frontend**: Tailwind CSS (compiled via Tailwind CLI)
 
 ## Environment Setup
 
@@ -73,123 +70,19 @@ cd service
 gofmt -w .
 ```
 
-## Code Style Guidelines
+## Agent skills
 
-### Imports
+### Issue tracker
 
-Group imports in the following order, separated by a blank line:
+Issues tracked as local markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
 
-1. Standard library
-2. Internal packages (project modules)
-3. External dependencies
+### Triage labels
 
-Example:
-```go
-import (
-    "context"
-    "fmt"
-    "log/slog"
+Not used — no formal triage state machine on this repo. See `docs/agents/triage-labels.md`.
 
-    "github.com/dirodriguezm/xmatch/service/internal/actor"
-    "github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+### Domain docs
 
-    "github.com/gin-gonic/gin"
-    "github.com/stretchr/testify/assert"
-)
-```
-
-### Naming Conventions
-
-- **Exported identifiers**: PascalCase
-- **Unexported identifiers**: camelCase
-- **Acronyms**: Keep all caps (e.g., `SqliteWriter`, `ID`, `Ra`, `Dec`)
-- **Interfaces**: Use `er` suffix when appropriate (e.g., `Repository`, `Writer`)
-- **Constructors**: `New` for the primary constructor; `NewX` for alternative constructors
-- **Test functions**: `TestXxx` where `Xxx` describes the scenario
-
-### Error Handling
-
-- Functions that can fail should return `error` as the last return value.
-- Use `if err != nil { return err }` pattern; avoid panics in production code.
-- Wrap errors with context using `fmt.Errorf("...: %w", err)`.
-- Log errors with `slog.Error` providing structured fields.
-
-### Logging
-
-Use `log/slog` for structured logging. Follow these conventions:
-
-- Use `slog.Debug` for debugging information, `slog.Info` for important events, `slog.Error` for errors.
-- Provide key‑value pairs as separate arguments after the message:
-  ```go
-  slog.Info("catalog indexed", "catalog", cat, "rows", n)
-  ```
-
-### Context Usage
-
-- Pass `context.Context` as the first parameter to functions that perform I/O, network calls, or long‑running operations.
-- Respect cancellation and deadlines from the context.
-
-### Struct Design
-
-- Use pointer receivers for methods that modify the struct or when the struct is large.
-- Prefer returning pointers from constructors (`&X{}`).
-- Embedding is used for composition (e.g., `gin.Engine`).
-
-### Testing
-
-- Use `testify/assert` for assertions.
-- Use `testify/mock` for mocking interfaces (see `just mock`).
-- Table‑driven tests are encouraged for multiple test cases.
-- Integration tests should be named `*_integration_test.go` and may require external resources.
-
-## Mock Generation
-
-Mocks are generated with `mockery` using the configuration in `service/.mockery.yaml`. Run:
-
-```bash
-just mock
-```
-
-This creates `mocks.go` files in the same directory as the interface.
-
-## Database Migrations
-
-Migrations are managed with `go-migrate`. The `just migrate` command expects a database file name (without extension) as argument:
-
-```bash
-just migrate zeus      # applies migrations to zeus.db
-```
-
-Migrations are located in `service/internal/db/migrations/`.
-
-## Environment Variables
-
-- `CONFIG_PATH`: path to the service config file (default `service/config.yaml`)
-- `LOG_LEVEL`: log level (`debug`, `info`, `warn`, `error`)
-- `ENVIRONMENT`: runtime environment (`local`, `production`)
-- `USE_LOGGER`: enable structured logging (`true`/`false`)
-
-## Frontend Assets
-
-Tailwind CSS is used for styling. The source file is `service/ui/static/css/tailwind.css`. It is compiled to `service/ui/static/css/output.css` with the `just build-css` command. The compiled CSS is minified and optimized.
-
-## Submodules
-
-The `healpix` directory is a Git submodule containing a C++ HEALPix library with Go bindings. The Nix environment automatically builds it and sets the necessary `CGO` flags (`CGO_CFLAGS`, `CGO_LDFLAGS`). Do not modify the submodule directly.
-
-## CI/CD
-
-GitHub Actions workflows are in `.github/workflows/`. The `go.yml` workflow runs `just build` and `just test` inside a Nix environment. Ensure any changes pass these checks.
-
-## Commit Messages
-
-Follow conventional commits style: use a type prefix (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`). Start with a lowercase verb and keep the summary line under 72 characters.
-
-## Additional Notes
-
-- The `healpix` Go module is a local replace dependency (points to `../healpix`). Changes to the healpix bindings must be made in that separate module.
-- The `dev.db` and `zeus.db` files are SQLite databases used for development; they are ignored by Git.
-- The `service/configs/` directory contains YAML configuration files for different catalogs.
+Single-context — `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
 
 ---
-*Last updated: 2025‑01‑28*
+

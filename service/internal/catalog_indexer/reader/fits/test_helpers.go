@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fits_reader
+package fitsreader
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"reflect"
 	"sort"
@@ -23,7 +24,6 @@ import (
 	"testing"
 
 	"codeberg.org/astrogo/fitsio"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 func writeFitsFile(t *testing.T, filename string, rows []map[string]any) {
@@ -34,7 +34,12 @@ func writeFitsFile(t *testing.T, filename string, rows []map[string]any) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			slog.Error("could not close file", "error", err)
+		}
+	}()
 	t.Log("Created file", filename)
 
 	t.Log("Creating fits file")
@@ -42,7 +47,12 @@ func writeFitsFile(t *testing.T, filename string, rows []map[string]any) {
 	if err != nil {
 		t.Fatal("Could not create fits file")
 	}
-	defer fitsFile.Close()
+	defer func() {
+		err := fitsFile.Close()
+		if err != nil {
+			slog.Error("could not close fits file", "error", err)
+		}
+	}()
 	t.Log("Created fits file")
 
 	t.Log("Creating primaryHDU")
@@ -64,7 +74,12 @@ func writeFitsFile(t *testing.T, filename string, rows []map[string]any) {
 	if err != nil {
 		t.Fatal("Could not create table %w", err)
 	}
-	defer fitsTable.Close()
+	defer func() {
+		err := fitsTable.Close()
+		if err != nil {
+			slog.Error("could not close fits table", "error", err)
+		}
+	}()
 	t.Log("Created table")
 
 	// Write the table to the file
@@ -74,7 +89,6 @@ func writeFitsFile(t *testing.T, filename string, rows []map[string]any) {
 		t.Fatal("Could not write table to file %w", err)
 	}
 	t.Log("Wrote table to file")
-
 }
 
 func CreateFitsTable(data []map[string]any) (*fitsio.Table, error) {
@@ -105,7 +119,7 @@ func CreateFitsTable(data []map[string]any) (*fitsio.Table, error) {
 
 	nrows := table.NumRows()
 	if nrows != int64(len(data)) {
-		return nil, fmt.Errorf("Error creating table: number of rows written (%d) does not match number of rows in data (%d)", nrows, len(data))
+		return nil, fmt.Errorf("error creating table: number of rows written (%d) does not match number of rows in data (%d)", nrows, len(data))
 	}
 
 	return table, nil
@@ -132,7 +146,7 @@ func createColumns(data []map[string]any) ([]fitsio.Column, error) {
 			value := data[i][key]
 			format = getFormat(value)
 			if format == "" {
-				return nil, fmt.Errorf("Error creating columns: unsupported type %T for key %s", value, key)
+				return nil, fmt.Errorf("error creating columns: unsupported type %T for key %s", value, key)
 			}
 			columns = append(columns, fitsio.Column{
 				Name:   key,
@@ -229,26 +243,4 @@ type TestSchema struct {
 	Oid string
 	Ra  float64
 	Dec float64
-}
-
-func (t TestSchema) FillMastercat(ipix int64) repository.Mastercat {
-	return repository.Mastercat{
-		ID:   t.Oid,
-		Ipix: ipix,
-		Ra:   t.Ra,
-		Dec:  t.Dec,
-		Cat:  "test",
-	}
-}
-
-func (t TestSchema) FillMetadata() repository.Metadata {
-	return nil
-}
-
-func (t TestSchema) GetCoordinates() (float64, float64) {
-	return t.Ra, t.Dec
-}
-
-func (t TestSchema) GetId() string {
-	return t.Oid
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package csv_reader
+package csvreader
 
 import (
 	"io"
@@ -20,7 +20,6 @@ import (
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,7 +39,7 @@ o3,3,3
 	})
 	require.NoError(t, err)
 
-	csvReader, err := NewCsvReader(source, WithCsvBatchSize(2))
+	csvReader, err := NewCsvReader(source, nil, WithCsvBatchSize(2))
 	require.NoError(t, err)
 
 	rows, err := csvReader.Read()
@@ -51,10 +50,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 
 	require.Equal(t, expectedOids, receivedOids)
@@ -75,7 +72,7 @@ o3,3,3
 	})
 	require.NoError(t, err)
 
-	csvReader, err := NewCsvReader(source, WithHeader([]string{"oid", "ra", "dec"}), WithCsvBatchSize(2))
+	csvReader, err := NewCsvReader(source, nil, WithHeader([]string{"oid", "ra", "dec"}), WithCsvBatchSize(2))
 	require.NoError(t, err)
 
 	rows, err := csvReader.Read()
@@ -86,10 +83,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 
 	require.Equal(t, expectedOids, receivedOids)
@@ -101,7 +96,7 @@ func TestReadWithHeader_Error(t *testing.T) {
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, WithCsvBatchSize(2))
+	csvReader, err := NewCsvReader(&source, nil, WithCsvBatchSize(2))
 	require.NoError(t, err)
 
 	rows, err := csvReader.Read()
@@ -124,6 +119,7 @@ o4,4,4
 
 	csvReader, err := NewCsvReader(
 		&source,
+		nil,
 		WithCsvBatchSize(2),
 		WithFirstLineHeader(true),
 	)
@@ -131,7 +127,7 @@ o4,4,4
 		t.Fatal(err)
 	}
 
-	var rows []repository.InputSchema
+	var rows []any
 
 	for {
 		batch, err := csvReader.ReadBatch()
@@ -146,19 +142,15 @@ o4,4,4
 
 		require.Len(t, batch, 2)
 
-		for _, row := range batch {
-			rows = append(rows, row)
-		}
+		rows = append(rows, batch...)
 	}
 
 	require.Equal(t, 4, len(rows))
 	expectedOids := []string{"o1", "o2", "o3", "o4"}
 	receivedOids := make([]string, 4)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -177,6 +169,7 @@ o3,3,3
 
 	csvReader, err := NewCsvReader(
 		&source,
+		nil,
 		WithFirstLineHeader(true),
 		WithCsvBatchSize(2),
 	)
@@ -184,7 +177,7 @@ o3,3,3
 		t.Fatal(err)
 	}
 
-	var rows []repository.InputSchema
+	var rows []any
 
 	eof := false
 	for !eof {
@@ -195,19 +188,15 @@ o3,3,3
 		if err == io.EOF {
 			eof = true
 		}
-		for _, row := range batch {
-			rows = append(rows, row)
-		}
+		rows = append(rows, batch...)
 	}
 
 	require.Equal(t, 3, len(rows))
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -226,12 +215,13 @@ o3,3,3
 
 	csvReader, err := NewCsvReader(
 		&source,
+		nil,
 		WithFirstLineHeader(true),
 		WithCsvBatchSize(2),
 	)
 	require.NoError(t, err)
 
-	var rows []repository.InputSchema
+	var rows []any
 
 	eof := false
 	for !eof {
@@ -243,9 +233,7 @@ o3,3,3
 			eof = true
 		}
 
-		for _, row := range batch {
-			rows = append(rows, row)
-		}
+		rows = append(rows, batch...)
 	}
 
 	require.Equal(t, 6, len(rows))
@@ -253,10 +241,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6)
 	for i, row := range rows {
-		mastercat := repository.Mastercat{
-			ID: row.GetId(),
-		}
-		receivedOids[i] = mastercat.ID
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 
 	require.Equal(t, expectedOids, receivedOids)

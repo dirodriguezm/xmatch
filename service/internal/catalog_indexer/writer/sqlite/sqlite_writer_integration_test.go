@@ -1,21 +1,8 @@
-// Copyright 2024-2025 Diego Rodriguez Mancini
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package sqlite_writer_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
@@ -26,7 +13,6 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/app"
 	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/testutils"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -35,7 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var repo conesearch.Repository
+var queries *repository.Queries
+var db *sql.DB
 
 func TestMain(m *testing.M) {
 	rootPath, err := testutils.FindRootModulePath(5)
@@ -44,14 +31,12 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	// remove test database if exist
 	dbDir, err := os.MkdirTemp("", "sqlite_writer_test_db_*")
 	if err != nil {
 		panic(err)
 	}
 	dbFile := filepath.Join(dbDir, "test.db")
 
-	// create a config file
 	tmpDir, err := os.MkdirTemp("", "sqlite_writer_integration_test_*")
 	if err != nil {
 		slog.Error("could not make temp dir")
@@ -98,10 +83,11 @@ catalog_indexer:
 	if err != nil {
 		panic(err)
 	}
-	repo, err = app.Repository(cfg)
+	db, err = app.IndexerDatabase(cfg)
 	if err != nil {
 		panic(err)
 	}
+	queries = app.IndexerRepository(db)
 
 	// create tables
 	mig, err := migrate.New(fmt.Sprintf("file://%s/internal/db/migrations", rootPath), fmt.Sprintf("sqlite3://%s", dbFile))
@@ -114,16 +100,20 @@ catalog_indexer:
 		slog.Error("Error during migrations", "error", err)
 		panic(err)
 	}
-	m.Run()
+	code := m.Run()
+	if err := db.Close(); err != nil {
+		slog.Error("could not close test database", "error", err)
+	}
 	os.Remove(configPath)
 	os.Remove(dbFile)
 	os.Remove(dbDir)
 	os.Remove(tmpDir)
+	os.Exit(code)
 }
 
 func TestReceive(t *testing.T) {
 	ctx := context.Background()
-	w := sqlite_writer.New(repo, ctx, repo.BulkInsertObject)
+	w := sqlite_writer.New(ctx, queries.BulkInsertObject)
 
 	ids := []string{"1", "2"}
 	ras := []float64{1, 2}
@@ -139,7 +129,7 @@ func TestReceive(t *testing.T) {
 	})
 
 	// check the database
-	objects, err := repo.GetAllObjects(ctx)
+	objects, err := queries.GetAllObjects(ctx)
 	require.NoError(t, err)
 	require.Len(t, objects, 2)
 }

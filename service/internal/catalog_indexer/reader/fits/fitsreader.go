@@ -12,68 +12,77 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fits_reader
+// Package fitsreader provides a reader for FITS files
+package fitsreader
 
 import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 
 	"codeberg.org/astrogo/fitsio"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
+
+type rawRecordFactory interface {
+	NewRawRecord() any
+}
 
 type FitsReader struct {
 	currentFileReader io.ReadCloser
 	currentFitsRows   *fitsio.Rows
 	currentFitsFile   *fitsio.File
 	src               *source.Source
+	adapter           rawRecordFactory
 	batchSize         int
 }
 
-func NewFitsReader(src *source.Source, opts ...FitsReaderOption) (FitsReader, error) {
+func NewFitsReader(src *source.Source, adapter rawRecordFactory, opts ...FitsReaderOption) (*FitsReader, error) {
+	if adapter == nil {
+		return nil, errors.New("fits reader requires a raw record factory")
+	}
+
 	currentFileReader, err := src.Next()
 	if err != nil {
-		return FitsReader{}, err
+		return nil, err
 	}
 
 	fits, err := fitsio.Open(currentFileReader)
 	if err != nil {
-		return FitsReader{}, err
+		return nil, err
 	}
 	table := fits.HDU(1).(*fitsio.Table)
 	rows, err := table.Read(0, table.NumRows())
 	if err != nil {
-		return FitsReader{}, err
+		return nil, err
 	}
 
-	r := FitsReader{
+	r := &FitsReader{
 		currentFileReader: currentFileReader,
 		currentFitsRows:   rows,
 		currentFitsFile:   fits,
 		src:               src,
+		adapter:           adapter,
 		batchSize:         1,
 	}
 
 	for _, opt := range opts {
-		r = opt(r)
+		opt(r)
 	}
 
 	return r, nil
 }
 
-func (r *FitsReader) Read() ([]repository.InputSchema, error) {
+func (r *FitsReader) Read() ([]any, error) {
 	panic("Not implemented")
 }
 
-func (r *FitsReader) ReadBatch() ([]repository.InputSchema, error) {
-	rows := make([]repository.InputSchema, 0, r.batchSize)
+func (r *FitsReader) ReadBatch() ([]any, error) {
+	rows := make([]any, 0, r.batchSize)
 
-	currentRows, err := r.ReadBatchSingleFile(r.currentFitsRows, r.batchSize, r.src.CatalogName)
+	currentRows, err := r.ReadBatchSingleFile(r.currentFitsRows, r.batchSize)
 
-	// If the error is EOF, we get the next reader from the Source.
-	// And if there is no next reader, we return the rows we have so far.
 	if err == io.EOF {
 		rows = append(rows, currentRows...)
 
@@ -90,12 +99,10 @@ func (r *FitsReader) ReadBatch() ([]repository.InputSchema, error) {
 		return rows, nil
 	}
 
-	// If the error is not EOF, it's a real error.
 	if err != nil {
 		return nil, fmt.Errorf("could not read batch from csv: %w", err)
 	}
 
-	// Read batch successfully and more to read
 	rows = append(rows, currentRows...)
 	return rows, nil
 }
@@ -122,7 +129,7 @@ func (r *FitsReader) closeResources() error {
 func (r *FitsReader) switchToNewFile() error {
 	ioReader, err := r.src.Next()
 	if err != nil {
-		return err // This error can potentially be EOF, handled by the caller.
+		return err
 	}
 	r.currentFileReader = ioReader
 
@@ -140,45 +147,27 @@ func (r *FitsReader) switchToNewFile() error {
 	return nil
 }
 
-func (r *FitsReader) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int, name string) ([]repository.InputSchema, error) {
-	rows := make([]repository.InputSchema, 0, size)
+func (r *FitsReader) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int) ([]any, error) {
+	rows := make([]any, 0, size)
 	for range size {
 		hasNext := rowIterator.Next()
 		if !hasNext {
 			return rows, io.EOF
 		}
 
-		row := r.createInputSchema(name, rowIterator)
+		row := r.createRawRecord(rowIterator)
 		rows = append(rows, row)
 	}
 
 	return rows, nil
 }
 
-func (r *FitsReader) createInputSchema(name string, rowIterator *fitsio.Rows) repository.InputSchema {
-	switch name {
-	case "allwise":
-		schema := repository.AllwiseInputSchema{}
-		err := rowIterator.Scan(&schema)
-		if err != nil {
-			panic(err)
-		}
-		return schema
-	case "erosita":
-		schema := repository.ErositaInputSchema{}
-		err := rowIterator.Scan(&schema)
-		if err != nil {
-			panic(err)
-		}
-		return schema
-	default:
-		schema := TestSchema{}
-		err := rowIterator.Scan(&schema)
-		if err != nil {
-			panic(err)
-		}
-		return schema
+func (r *FitsReader) createRawRecord(rowIterator *fitsio.Rows) any {
+	schemaPtr := reflect.New(reflect.TypeOf(r.adapter.NewRawRecord()))
+	if err := rowIterator.Scan(schemaPtr.Interface()); err != nil {
+		panic(err)
 	}
+	return schemaPtr.Elem().Interface()
 }
 
 func (r *FitsReader) Close() error {

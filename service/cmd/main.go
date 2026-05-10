@@ -24,6 +24,10 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 )
 
 func main() {
