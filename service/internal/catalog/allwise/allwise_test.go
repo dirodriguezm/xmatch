@@ -120,7 +120,7 @@ func TestConvertToMetadataFromRaw(t *testing.T) {
 
 	t.Run("metadata type assertions", func(t *testing.T) {
 		md, _ := adapter.ConvertToMetadataFromRaw(repository.AllwiseInputSchema{})
-		assert.Implements(t, (*repository.Metadata)(nil), md)
+		assert.IsType(t, repository.Allwise{}, md)
 	})
 }
 
@@ -192,7 +192,7 @@ func TestConvertToMetadata_ImplementsMetadataInterface(t *testing.T) {
 	adapter := Adapter{}
 	md, err := adapter.ConvertToMetadataFromRaw(repository.AllwiseInputSchema{})
 	require.NoError(t, err)
-	assert.Equal(t, "AllWISE", md.GetCatalog())
+	assert.IsType(t, repository.Allwise{}, md)
 }
 
 func TestConvertToMetadataFromRowType(t *testing.T) {
@@ -203,7 +203,7 @@ func TestConvertToMetadataFromRowType(t *testing.T) {
 		W1mpro: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 14.0, Valid: true}},
 	}
 	md := adapter.ConvertToMetadata(row)
-	result := md.(repository.Allwise)
+	result := md.Object.(repository.Allwise)
 	assert.Equal(t, "from_db", result.ID)
 	assert.Equal(t, int64(42), result.Cntr)
 	assert.Equal(t, 14.0, result.W1mpro.Float64)

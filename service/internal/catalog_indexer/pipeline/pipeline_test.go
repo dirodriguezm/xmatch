@@ -182,20 +182,12 @@ func (m *mockCatalogAdapter) BulkGetByID(ctx context.Context, ids []string) (any
 	return args.Get(0), args.Error(1)
 }
 
-func (m *mockCatalogAdapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.MetadataWithCoordinates, error) {
+func (m *mockCatalogAdapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
 	args := m.Called(ctx, pixels)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]repository.MetadataWithCoordinates), args.Error(1)
-}
-
-func (m *mockCatalogAdapter) ConvertToMetadata(obj repository.MetadataWithCoordinates) repository.Metadata {
-	args := m.Called(obj)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(repository.Metadata)
+	return args.Get(0).([]repository.Metadata), args.Error(1)
 }
 
 func (m *mockCatalogAdapter) ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (repository.Mastercat, error) {
@@ -203,18 +195,18 @@ func (m *mockCatalogAdapter) ConvertToMastercat(raw any, mapper *healpix.HEALPix
 	return args.Get(0).(repository.Mastercat), args.Error(1)
 }
 
-func (m *mockCatalogAdapter) ConvertToMetadataFromRaw(raw any) (repository.Metadata, error) {
+func (m *mockCatalogAdapter) ConvertToMetadataFromRaw(raw any) (any, error) {
 	args := m.Called(raw)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(repository.Metadata), args.Error(1)
+	return args.Get(0), args.Error(1)
 }
 
 // noopReader is a Reader implementation that returns EOF immediately.
 type noopReader struct{}
 
-func (r *noopReader) Read() ([]any, error)     { return nil, io.EOF }
+func (r *noopReader) Read() ([]any, error)      { return nil, io.EOF }
 func (r *noopReader) ReadBatch() ([]any, error) { return nil, io.EOF }
 func (r *noopReader) Close() error              { return nil }
 
@@ -233,7 +225,7 @@ func TestPipeline_WiringWithoutMetadata(t *testing.T) {
 	NewMastercatIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
 		return actor.New("mc-indexer", 10, func(*actor.Actor, actor.Message) {}, nil, []*actor.Actor{writer}, ctx), nil
 	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) repository.Metadata) *actor.Actor {
+	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
 		return actor.New("md-indexer", 10, func(*actor.Actor, actor.Message) {}, nil, []*actor.Actor{writer}, ctx)
 	}
 	NewSourceReader = func(_ *source.Source, _ config.ReaderConfig, _ config.SourceConfig, mcIndexer, mdIndexer *actor.Actor) (reader.SourceReader, error) {
@@ -279,7 +271,7 @@ func TestPipeline_WiringWithMetadata(t *testing.T) {
 	NewMastercatIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
 		return actor.New("mc-indexer", 10, func(*actor.Actor, actor.Message) {}, nil, []*actor.Actor{writer}, ctx), nil
 	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) repository.Metadata) *actor.Actor {
+	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
 		return actor.New("md-indexer", 10, func(*actor.Actor, actor.Message) {}, nil, []*actor.Actor{writer}, ctx)
 	}
 	NewSourceReader = func(_ *source.Source, _ config.ReaderConfig, _ config.SourceConfig, mcIndexer, mdIndexer *actor.Actor) (reader.SourceReader, error) {
@@ -343,7 +335,7 @@ func TestPipeline_Stop(t *testing.T) {
 			mu.Unlock()
 		}, []*actor.Actor{writer}, ctx), nil
 	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) repository.Metadata) *actor.Actor {
+	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
 		return actor.New("md-indexer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
 			mu.Lock()
 			mdIndexerStopped = true
@@ -402,7 +394,7 @@ func TestPipeline_Stop_WithMetadata(t *testing.T) {
 			mu.Unlock()
 		}, []*actor.Actor{writer}, ctx), nil
 	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) repository.Metadata) *actor.Actor {
+	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
 		return actor.New("md-indexer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
 			mu.Lock()
 			mdIndexerStopped = true
@@ -449,7 +441,7 @@ func TestPipeline_ErrorPropagation(t *testing.T) {
 			a.Broadcast(msg)
 		}, nil, []*actor.Actor{writer}, ctx), nil
 	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) repository.Metadata) *actor.Actor {
+	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
 		return actor.New("md-indexer", 10, func(a *actor.Actor, msg actor.Message) {
 			a.Broadcast(msg)
 		}, nil, []*actor.Actor{writer}, ctx)

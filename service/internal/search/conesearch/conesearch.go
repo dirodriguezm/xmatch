@@ -149,7 +149,7 @@ func (c *ConesearchService) FindMetadataByConesearch(
 		return nil, fmt.Errorf("could not find allwise metadata: %w", err)
 	}
 
-	return ResultFromKnnMetadata(knn.NearestNeighborSearchForMetadata(objects, ra, dec, radius, nneighbor, catalog)), nil
+	return ResultFromKnnMetadata(knn.NearestNeighborSearchForMetadata(objects, ra, dec, radius, nneighbor)), nil
 }
 
 func findMetadata(
@@ -157,8 +157,8 @@ func findMetadata(
 	radius_radians float64,
 	c *ConesearchService,
 	catalog string,
-) ([]repository.MetadataWithCoordinates, error) {
-	objects := make([]repository.MetadataWithCoordinates, 0)
+) ([]repository.Metadata, error) {
+	objects := make([]repository.Metadata, 0)
 	for _, v := range c.mappers {
 		pixelRanges := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
 		pixelList := pixelRangeToList(pixelRanges)
@@ -292,8 +292,8 @@ func (c *ConesearchService) getObjects(pixelList []int64, catalog string) ([]rep
 	return objects, nil
 }
 
-func (c *ConesearchService) getMetadata(pixelList []int64, catalogName string) ([]repository.MetadataWithCoordinates, error) {
-	objects := make([]repository.MetadataWithCoordinates, 0)
+func (c *ConesearchService) getMetadata(pixelList []int64, catalogName string) ([]repository.Metadata, error) {
+	objects := make([]repository.Metadata, 0)
 
 	catalogList := c.resolveCatalogList(catalogName)
 	for _, name := range catalogList {

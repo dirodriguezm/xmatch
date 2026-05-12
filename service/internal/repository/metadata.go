@@ -14,12 +14,10 @@
 
 package repository
 
-type Metadata interface {
-	GetId() string
-	GetCatalog() string
-}
-
-type MetadataWithCoordinates interface {
-	Metadata
-	GetCoordinates() (float64, float64)
+type Metadata struct {
+	ID      string  `json:"id"`
+	Catalog string  `json:"catalog"`
+	Ra      float64 `json:"ra"`
+	Dec     float64 `json:"dec"`
+	Object  any     `json:"object"`
 }

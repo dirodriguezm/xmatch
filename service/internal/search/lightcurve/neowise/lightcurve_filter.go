@@ -19,7 +19,7 @@ func Filter(lightcurve lc.Lightcurve, objects []conesearch.MetadataResult) lc.Li
 		}
 
 		for _, object := range catalog.Data {
-			allwise, ok := object.Metadata.(repository.Allwise)
+			allwise, ok := object.Object.(repository.Allwise)
 			if !ok {
 				continue
 			}

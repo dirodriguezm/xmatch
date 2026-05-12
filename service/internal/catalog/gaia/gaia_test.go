@@ -63,7 +63,7 @@ func TestConvertToMetadataFromRaw_ImplementsMetadataInterface(t *testing.T) {
 	adapter := Adapter{}
 	md, err := adapter.ConvertToMetadataFromRaw(repository.GaiaInputSchema{})
 	require.NoError(t, err)
-	assert.Equal(t, "GAIA/DR3", md.GetCatalog())
+	assert.IsType(t, repository.Gaia{}, md)
 }
 
 func TestConvertToMetadataFromRowType(t *testing.T) {
@@ -78,7 +78,7 @@ func TestConvertToMetadataFromRowType(t *testing.T) {
 		PhotBpMeanMag:       repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 16.0, Valid: true}},
 	}
 	md := adapter.ConvertToMetadata(row)
-	result := md.(repository.Gaia)
+	result := md.Object.(repository.Gaia)
 	assert.Equal(t, "from_db", result.ID)
 	assert.Equal(t, 1000.5, result.PhotGMeanFlux.Float64)
 	assert.Equal(t, 16.0, result.PhotBpMeanMag.Float64)

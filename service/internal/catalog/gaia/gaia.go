@@ -85,7 +85,7 @@ func (a Adapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
 	return a.store.BulkGetGaia(ctx, ids)
 }
 
-func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.MetadataWithCoordinates, error) {
+func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
 	if a.store == nil {
 		return nil, fmt.Errorf("gaia adapter has no store")
 	}
@@ -93,26 +93,49 @@ func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repositor
 	if err != nil {
 		return nil, err
 	}
-	result := make([]repository.MetadataWithCoordinates, len(rows))
+	result := make([]repository.Metadata, len(rows))
 	for i, r := range rows {
-		result[i] = r
+		result[i] = repository.Metadata{
+			ID:      r.ID,
+			Catalog: r.GetCatalog(),
+			Ra:      r.Ra,
+			Dec:     r.Dec,
+			Object: repository.Gaia{
+				ID:                  r.ID,
+				PhotGMeanFlux:       r.PhotGMeanFlux,
+				PhotGMeanFluxError:  r.PhotGMeanFluxError,
+				PhotGMeanMag:        r.PhotGMeanMag,
+				PhotBpMeanFlux:      r.PhotBpMeanFlux,
+				PhotBpMeanFluxError: r.PhotBpMeanFluxError,
+				PhotBpMeanMag:       r.PhotBpMeanMag,
+				PhotRpMeanFlux:      r.PhotRpMeanFlux,
+				PhotRpMeanFluxError: r.PhotRpMeanFluxError,
+				PhotRpMeanMag:       r.PhotRpMeanMag,
+			},
+		}
 	}
 	return result, nil
 }
 
-func (a Adapter) ConvertToMetadata(obj repository.MetadataWithCoordinates) repository.Metadata {
+func (a Adapter) ConvertToMetadata(obj any) repository.Metadata {
 	row := obj.(repository.GetGaiaFromPixelsRow)
-	return repository.Gaia{
-		ID:                  row.ID,
-		PhotGMeanFlux:       row.PhotGMeanFlux,
-		PhotGMeanFluxError:  row.PhotGMeanFluxError,
-		PhotGMeanMag:        row.PhotGMeanMag,
-		PhotBpMeanFlux:      row.PhotBpMeanFlux,
-		PhotBpMeanFluxError: row.PhotBpMeanFluxError,
-		PhotBpMeanMag:       row.PhotBpMeanMag,
-		PhotRpMeanFlux:      row.PhotRpMeanFlux,
-		PhotRpMeanFluxError: row.PhotRpMeanFluxError,
-		PhotRpMeanMag:       row.PhotRpMeanMag,
+	return repository.Metadata{
+		ID:      row.ID,
+		Catalog: row.GetCatalog(),
+		Ra:      row.Ra,
+		Dec:     row.Dec,
+		Object: repository.Gaia{
+			ID:                  row.ID,
+			PhotGMeanFlux:       row.PhotGMeanFlux,
+			PhotGMeanFluxError:  row.PhotGMeanFluxError,
+			PhotGMeanMag:        row.PhotGMeanMag,
+			PhotBpMeanFlux:      row.PhotBpMeanFlux,
+			PhotBpMeanFluxError: row.PhotBpMeanFluxError,
+			PhotBpMeanMag:       row.PhotBpMeanMag,
+			PhotRpMeanFlux:      row.PhotRpMeanFlux,
+			PhotRpMeanFluxError: row.PhotRpMeanFluxError,
+			PhotRpMeanMag:       row.PhotRpMeanMag,
+		},
 	}
 }
 
@@ -128,7 +151,7 @@ func (a Adapter) ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (rep
 	}, nil
 }
 
-func (a Adapter) ConvertToMetadataFromRaw(raw any) (repository.Metadata, error) {
+func (a Adapter) ConvertToMetadataFromRaw(raw any) (any, error) {
 	schema := raw.(repository.GaiaInputSchema)
 	return repository.Gaia{
 		ID:                  schema.Designation,

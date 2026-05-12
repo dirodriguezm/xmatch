@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fillMetadata = func(raw any) repository.Metadata {
+var fillMetadata = func(raw any) any {
 	return repository.Allwise{ID: *raw.(repository.AllwiseInputSchema).Source_id}
 }
 

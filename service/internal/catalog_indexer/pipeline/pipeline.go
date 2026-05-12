@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package pipeline implements the healpix indexer pipeline.
 package pipeline
 
 import (
@@ -53,10 +54,10 @@ type Pipeline struct {
 
 // Factory function types expose constructor injection points for tests.
 type (
-	MastercatWriterFn func(context.Context, config.CatalogIndexerConfig, *sql.DB, conesearch.MastercatStore) (*actor.Actor, error)
-	MetadataWriterFn  func(context.Context, config.CatalogIndexerConfig, *sql.DB, catalog.CatalogAdapter) (*actor.Actor, error)
+	MastercatWriterFn  func(context.Context, config.CatalogIndexerConfig, *sql.DB, conesearch.MastercatStore) (*actor.Actor, error)
+	MetadataWriterFn   func(context.Context, config.CatalogIndexerConfig, *sql.DB, catalog.CatalogAdapter) (*actor.Actor, error)
 	MastercatIndexerFn func(config.CatalogIndexerConfig, *actor.Actor, context.Context, func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error)
-	MetadataIndexerFn  func(config.CatalogIndexerConfig, *actor.Actor, context.Context, func(any) repository.Metadata) *actor.Actor
+	MetadataIndexerFn  func(config.CatalogIndexerConfig, *actor.Actor, context.Context, func(any) any) *actor.Actor
 	SourceReaderFn     func(*source.Source, config.ReaderConfig, config.SourceConfig, *actor.Actor, *actor.Actor) (reader.SourceReader, error)
 )
 
@@ -99,7 +100,7 @@ func New(cfg PipelineConfig) (*Pipeline, error) {
 
 	var mdIndexer *actor.Actor
 	if ciCfg.Source.Metadata {
-		fillMetadata := func(raw any) repository.Metadata {
+		fillMetadata := func(raw any) any {
 			md, _ := cfg.Adapter.ConvertToMetadataFromRaw(raw)
 			return md
 		}
@@ -197,7 +198,7 @@ func defaultMetadataIndexer(
 	cfg config.CatalogIndexerConfig,
 	writer *actor.Actor,
 	ctx context.Context,
-	fillMetadata func(any) repository.Metadata,
+	fillMetadata func(any) any,
 ) *actor.Actor {
 	ind := metadata.New(fillMetadata)
 	return actor.New("metadata indexer", cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, ctx)

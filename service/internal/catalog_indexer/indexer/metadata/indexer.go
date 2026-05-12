@@ -18,14 +18,13 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Indexer struct {
-	fillMetadata func(any) repository.Metadata
+	fillMetadata func(any) any
 }
 
-func New(fillMetadata func(any) repository.Metadata) *Indexer {
+func New(fillMetadata func(any) any) *Indexer {
 	return &Indexer{fillMetadata: fillMetadata}
 }
 

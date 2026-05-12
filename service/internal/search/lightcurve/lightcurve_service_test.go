@@ -102,11 +102,11 @@ func TestGetObjectIds_NonEmpty(t *testing.T) {
 	).Return([]conesearch.MetadataResult{
 		{
 			Catalog: "allwise",
-			Data:    []conesearch.MetadataExtended{{Metadata: repository.Gaia{ID: "ALLWISE1"}, Distance: 0.5}},
+			Data:    []conesearch.MetadataExtended{{Metadata: repository.Metadata{ID: "ALLWISE1", Catalog: "allwise", Object: repository.Gaia{ID: "ALLWISE1"}}, Distance: 0.5}},
 		},
 		{
 			Catalog: "gaia",
-			Data:    []conesearch.MetadataExtended{{Metadata: repository.Gaia{ID: "GAIA1"}, Distance: 0.5}},
+			Data:    []conesearch.MetadataExtended{{Metadata: repository.Metadata{ID: "GAIA1", Catalog: "gaia", Object: repository.Gaia{ID: "GAIA1"}}, Distance: 0.5}},
 		},
 	}, nil)
 
@@ -119,7 +119,7 @@ func TestGetObjectIds_NonEmpty(t *testing.T) {
 	ids := make([]string, 0)
 	for i := range objs {
 		for j := range objs[i].Data {
-			ids = append(ids, objs[i].Data[j].GetId())
+			ids = append(ids, objs[i].Data[j].ID)
 		}
 	}
 
@@ -199,11 +199,11 @@ func TestExtractObjectIds_PreservesCatalog(t *testing.T) {
 	metadataResult <- []conesearch.MetadataResult{
 		{
 			Catalog: "ztf",
-			Data:    []conesearch.MetadataExtended{{Metadata: testMetadata{id: "ZTF1", catalog: "ztf"}}},
+			Data:    []conesearch.MetadataExtended{{Metadata: repository.Metadata{ID: "ZTF1", Catalog: "ztf"}}},
 		},
 		{
 			Catalog: "gaia",
-			Data:    []conesearch.MetadataExtended{{Metadata: testMetadata{id: "GAIA1", catalog: "gaia"}}},
+			Data:    []conesearch.MetadataExtended{{Metadata: repository.Metadata{ID: "GAIA1", Catalog: "gaia"}}},
 		},
 	}
 

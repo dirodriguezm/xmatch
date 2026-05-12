@@ -13,7 +13,11 @@ type MetadataExtended struct {
 }
 
 func (m MetadataExtended) MarshalJSON() ([]byte, error) {
-	metadataBytes, err := json.Marshal(m.Metadata)
+	payload := m.Object
+	if payload == nil {
+		payload = m.Metadata
+	}
+	metadataBytes, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +40,7 @@ func ResultFromKnnMetadata(metadata knn.KnnResult[repository.Metadata]) []Metada
 	result := make([]MetadataResult, 0)
 	grouped := make(map[string][]MetadataExtended)
 	for i, m := range metadata.Data {
-		grouped[m.GetCatalog()] = append(grouped[m.GetCatalog()], MetadataExtended{
+		grouped[m.Catalog] = append(grouped[m.Catalog], MetadataExtended{
 			Metadata: m,
 			Distance: metadata.Distance[i],
 		})

@@ -3,23 +3,11 @@ package ztfdr
 import (
 	"testing"
 
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	lc "github.com/dirodriguezm/xmatch/service/internal/search/lightcurve"
 	"github.com/stretchr/testify/require"
 )
-
-type metadataStub struct {
-	id      string
-	catalog string
-}
-
-func (m metadataStub) GetId() string {
-	return m.id
-}
-
-func (m metadataStub) GetCatalog() string {
-	return m.catalog
-}
 
 func TestFilter(t *testing.T) {
 	lightcurve := lc.Lightcurve{
@@ -31,8 +19,8 @@ func TestFilter(t *testing.T) {
 		ForcedPhotometry: []lc.LightcurveObject{Detection{Oid: 4}},
 	}
 	objects := []conesearch.MetadataResult{{Catalog: "ztf", Data: []conesearch.MetadataExtended{
-		{Metadata: metadataStub{id: "1", catalog: "ztf"}},
-		{Metadata: metadataStub{id: "3", catalog: "ztf"}},
+		{Metadata: repository.Metadata{ID: "1", Catalog: "ztf"}},
+		{Metadata: repository.Metadata{ID: "3", Catalog: "ztf"}},
 	}}}
 
 	filtered := Filter(lightcurve, objects)

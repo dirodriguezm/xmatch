@@ -15,8 +15,8 @@ func TestFilter(t *testing.T) {
 			Detections: []lc.LightcurveObject{&Detection{Cntr: 1}},
 		}
 		objects := []conesearch.MetadataResult{{Catalog: "allwise", Data: []conesearch.MetadataExtended{
-			{Metadata: repository.Allwise{ID: "1", Cntr: 1}},
-			{Metadata: repository.Allwise{ID: "2", Cntr: 2}},
+			{Metadata: repository.Metadata{ID: "1", Catalog: "allwise", Object: repository.Allwise{ID: "1", Cntr: 1}}},
+			{Metadata: repository.Metadata{ID: "2", Catalog: "allwise", Object: repository.Allwise{ID: "2", Cntr: 2}}},
 		}}}
 
 		filtered := Filter(lightcurve, objects)
@@ -29,8 +29,8 @@ func TestFilter(t *testing.T) {
 			Detections: []lc.LightcurveObject{&Detection{Cntr: 1}},
 		}
 		objects := []conesearch.MetadataResult{
-			{Catalog: "gaia", Data: []conesearch.MetadataExtended{{Metadata: repository.Gaia{ID: "gaia-1"}}}},
-			{Catalog: "allwise", Data: []conesearch.MetadataExtended{{Metadata: repository.Allwise{ID: "1", Cntr: 1}}}},
+			{Catalog: "gaia", Data: []conesearch.MetadataExtended{{Metadata: repository.Metadata{ID: "gaia-1", Catalog: "gaia", Object: repository.Gaia{ID: "gaia-1"}}}}},
+			{Catalog: "allwise", Data: []conesearch.MetadataExtended{{Metadata: repository.Metadata{ID: "1", Catalog: "allwise", Object: repository.Allwise{ID: "1", Cntr: 1}}}}},
 		}
 
 		filtered := Filter(lightcurve, objects)

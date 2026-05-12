@@ -32,13 +32,11 @@ type CatalogAdapter interface {
 
 	BulkGetByID(ctx context.Context, ids []string) (any, error)
 
-	GetFromPixels(ctx context.Context, pixels []int64) ([]repository.MetadataWithCoordinates, error)
-
-	ConvertToMetadata(obj repository.MetadataWithCoordinates) repository.Metadata
+	GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error)
 
 	ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (repository.Mastercat, error)
 
-	ConvertToMetadataFromRaw(raw any) (repository.Metadata, error)
+	ConvertToMetadataFromRaw(raw any) (any, error)
 }
 
 type CatalogFactory interface {

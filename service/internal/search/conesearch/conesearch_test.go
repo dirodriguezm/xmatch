@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 )
 
 func TestConesearch(t *testing.T) {
@@ -140,9 +140,13 @@ type mockAllwiseStore struct {
 	objects []repository.GetAllwiseFromPixelsRow
 }
 
-func (m mockAllwiseStore) InsertAllwiseWithoutParams(context.Context, repository.Allwise) error   { return nil }
-func (m mockAllwiseStore) GetAllwise(context.Context, string) (repository.GetAllwiseRow, error)    { return repository.GetAllwiseRow{}, nil }
-func (m mockAllwiseStore) BulkInsertAllwise(context.Context, *sql.DB, []any) error                 { return nil }
+func (m mockAllwiseStore) InsertAllwiseWithoutParams(context.Context, repository.Allwise) error {
+	return nil
+}
+func (m mockAllwiseStore) GetAllwise(context.Context, string) (repository.GetAllwiseRow, error) {
+	return repository.GetAllwiseRow{}, nil
+}
+func (m mockAllwiseStore) BulkInsertAllwise(context.Context, *sql.DB, []any) error { return nil }
 func (m mockAllwiseStore) BulkGetAllwise(context.Context, []string) ([]repository.BulkGetAllwiseRow, error) {
 	return nil, nil
 }
@@ -169,7 +173,7 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, result, 1)
-	require.Equal(t, result[0].Data[0].GetId(), "A")
+	require.Equal(t, result[0].Data[0].ID, "A")
 }
 
 func FuzzConesearch(f *testing.F) {

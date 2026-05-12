@@ -11,10 +11,10 @@ func Filter(lightcurve lc.Lightcurve, objects []conesearch.MetadataResult) lc.Li
 
 	for _, catalog := range objects {
 		for _, object := range catalog.Data {
-			if catalog.Catalog != "ztf" && object.GetCatalog() != "ztf" {
+			if catalog.Catalog != "ztf" && object.Catalog != "ztf" {
 				continue
 			}
-			ztfIDs[object.GetId()] = struct{}{}
+			ztfIDs[object.ID] = struct{}{}
 		}
 	}
 

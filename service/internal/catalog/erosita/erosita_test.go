@@ -57,7 +57,7 @@ func TestConvertToMetadataFromRaw_ImplementsMetadataInterface(t *testing.T) {
 	adapter := Adapter{}
 	md, err := adapter.ConvertToMetadataFromRaw(repository.ErositaInputSchema{})
 	require.NoError(t, err)
-	assert.Equal(t, "eROSITA", md.GetCatalog())
+	assert.IsType(t, repository.Erosita{}, md)
 }
 
 func TestConvertToMetadataFromRowType(t *testing.T) {
@@ -68,7 +68,7 @@ func TestConvertToMetadataFromRowType(t *testing.T) {
 		Ra:     repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 50.0, Valid: true}},
 	}
 	md := adapter.ConvertToMetadata(row)
-	result := md.(repository.Erosita)
+	result := md.Object.(repository.Erosita)
 	assert.Equal(t, "from_db", result.ID)
 	assert.Equal(t, "det456", result.Detuid.String)
 	assert.Equal(t, 50.0, result.Ra.Float64)

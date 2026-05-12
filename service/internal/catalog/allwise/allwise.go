@@ -85,7 +85,7 @@ func (a Adapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
 	return a.store.BulkGetAllwise(ctx, ids)
 }
 
-func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.MetadataWithCoordinates, error) {
+func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
 	if a.store == nil {
 		return nil, fmt.Errorf("allwise adapter has no store")
 	}
@@ -93,33 +93,16 @@ func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repositor
 	if err != nil {
 		return nil, err
 	}
-	result := make([]repository.MetadataWithCoordinates, len(rows))
+	result := make([]repository.Metadata, len(rows))
 	for i, r := range rows {
-		result[i] = r
+		result[i] = convertAllwiseFromPixelsRowToMetadata(r)
 	}
 	return result, nil
 }
 
-func (a Adapter) ConvertToMetadata(obj repository.MetadataWithCoordinates) repository.Metadata {
+func (a Adapter) ConvertToMetadata(obj any) repository.Metadata {
 	row := obj.(repository.GetAllwiseFromPixelsRow)
-	return repository.Allwise{
-		ID:         row.ID,
-		Cntr:       row.Cntr,
-		W1mpro:     row.W1mpro,
-		W1sigmpro:  row.W1sigmpro,
-		W2mpro:     row.W2mpro,
-		W2sigmpro:  row.W2sigmpro,
-		W3mpro:     row.W3mpro,
-		W3sigmpro:  row.W3sigmpro,
-		W4mpro:     row.W4mpro,
-		W4sigmpro:  row.W4sigmpro,
-		JM2mass:    row.JM2mass,
-		JMsig2mass: row.JMsig2mass,
-		HM2mass:    row.HM2mass,
-		HMsig2mass: row.HMsig2mass,
-		KM2mass:    row.KM2mass,
-		KMsig2mass: row.KMsig2mass,
-	}
+	return convertAllwiseFromPixelsRowToMetadata(row)
 }
 
 func (a Adapter) ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (repository.Mastercat, error) {
@@ -149,9 +132,36 @@ func (a Adapter) ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (rep
 	return mc, nil
 }
 
-func (a Adapter) ConvertToMetadataFromRaw(raw any) (repository.Metadata, error) {
+func (a Adapter) ConvertToMetadataFromRaw(raw any) (any, error) {
 	schema := raw.(repository.AllwiseInputSchema)
 	return convertAllwiseInputToMetadata(schema), nil
+}
+
+func convertAllwiseFromPixelsRowToMetadata(row repository.GetAllwiseFromPixelsRow) repository.Metadata {
+	return repository.Metadata{
+		ID:      row.ID,
+		Catalog: row.GetCatalog(),
+		Ra:      row.Ra,
+		Dec:     row.Dec,
+		Object: repository.Allwise{
+			ID:         row.ID,
+			Cntr:       row.Cntr,
+			W1mpro:     row.W1mpro,
+			W1sigmpro:  row.W1sigmpro,
+			W2mpro:     row.W2mpro,
+			W2sigmpro:  row.W2sigmpro,
+			W3mpro:     row.W3mpro,
+			W3sigmpro:  row.W3sigmpro,
+			W4mpro:     row.W4mpro,
+			W4sigmpro:  row.W4sigmpro,
+			JM2mass:    row.JM2mass,
+			JMsig2mass: row.JMsig2mass,
+			HM2mass:    row.HM2mass,
+			HMsig2mass: row.HMsig2mass,
+			KM2mass:    row.KM2mass,
+			KMsig2mass: row.KMsig2mass,
+		},
+	}
 }
 
 func convertAllwiseInputToMetadata(schema repository.AllwiseInputSchema) repository.Allwise {
