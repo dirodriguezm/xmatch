@@ -59,7 +59,7 @@ func (m *MetadataService) BulkFindByID(ctx context.Context, ids []string, catalo
 }
 
 func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalogName string) (any, error) {
-	adapter, err := m.resolver.Get(catalogName)
+	adapter, err := m.resolver.GetQuery(catalogName)
 	if err != nil {
 		return nil, ArgumentError{Name: "catalog", Value: catalogName, Reason: err.Error()}
 	}
@@ -67,7 +67,7 @@ func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalogNa
 }
 
 func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, catalogName string) (any, error) {
-	adapter, err := m.resolver.Get(catalogName)
+	adapter, err := m.resolver.GetQuery(catalogName)
 	if err != nil {
 		return nil, ArgumentError{Name: "catalog", Value: catalogName, Reason: err.Error()}
 	}
@@ -75,11 +75,10 @@ func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, ca
 }
 
 func (m *MetadataService) validateCatalog(catalogName string) error {
-	_, err := catalog.GetFactory(catalogName)
-	if err != nil {
+	if !m.resolver.Has(catalogName) {
 		return ValidationError{
 			Field:  "catalog",
-			Reason: err.Error(),
+			Reason: fmt.Sprintf("unknown catalog: %s", catalogName),
 			Value:  catalogName,
 		}
 	}

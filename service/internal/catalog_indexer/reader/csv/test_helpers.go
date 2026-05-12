@@ -69,6 +69,7 @@ func (builder *ReaderBuilder) Build() reader.Reader {
 
 	r, err := NewCsvReader(
 		builder.Source,
+		nil,
 		WithHeader(builder.ReaderConfig.Header),
 		WithFirstLineHeader(builder.ReaderConfig.FirstLineHeader),
 	)

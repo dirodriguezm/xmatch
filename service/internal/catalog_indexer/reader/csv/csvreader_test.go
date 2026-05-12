@@ -39,7 +39,7 @@ o3,3,3
 	})
 	require.NoError(t, err)
 
-	csvReader, err := NewCsvReader(source, WithCsvBatchSize(2))
+	csvReader, err := NewCsvReader(source, nil, WithCsvBatchSize(2))
 	require.NoError(t, err)
 
 	rows, err := csvReader.Read()
@@ -50,8 +50,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-	schema := row.(TestSchema)
-	receivedOids[i] = schema.Oid
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 
 	require.Equal(t, expectedOids, receivedOids)
@@ -72,7 +72,7 @@ o3,3,3
 	})
 	require.NoError(t, err)
 
-	csvReader, err := NewCsvReader(source, WithHeader([]string{"oid", "ra", "dec"}), WithCsvBatchSize(2))
+	csvReader, err := NewCsvReader(source, nil, WithHeader([]string{"oid", "ra", "dec"}), WithCsvBatchSize(2))
 	require.NoError(t, err)
 
 	rows, err := csvReader.Read()
@@ -83,8 +83,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-	schema := row.(TestSchema)
-	receivedOids[i] = schema.Oid
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 
 	require.Equal(t, expectedOids, receivedOids)
@@ -96,7 +96,7 @@ func TestReadWithHeader_Error(t *testing.T) {
 		CatalogName: "vlass",
 	}
 
-	csvReader, err := NewCsvReader(&source, WithCsvBatchSize(2))
+	csvReader, err := NewCsvReader(&source, nil, WithCsvBatchSize(2))
 	require.NoError(t, err)
 
 	rows, err := csvReader.Read()
@@ -119,6 +119,7 @@ o4,4,4
 
 	csvReader, err := NewCsvReader(
 		&source,
+		nil,
 		WithCsvBatchSize(2),
 		WithFirstLineHeader(true),
 	)
@@ -168,6 +169,7 @@ o3,3,3
 
 	csvReader, err := NewCsvReader(
 		&source,
+		nil,
 		WithFirstLineHeader(true),
 		WithCsvBatchSize(2),
 	)
@@ -193,8 +195,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3"}
 	receivedOids := make([]string, 3)
 	for i, row := range rows {
-	schema := row.(TestSchema)
-	receivedOids[i] = schema.Oid
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 	require.Equal(t, expectedOids, receivedOids)
 }
@@ -213,6 +215,7 @@ o3,3,3
 
 	csvReader, err := NewCsvReader(
 		&source,
+		nil,
 		WithFirstLineHeader(true),
 		WithCsvBatchSize(2),
 	)
@@ -238,8 +241,8 @@ o3,3,3
 	expectedOids := []string{"o1", "o2", "o3", "o1", "o2", "o3"}
 	receivedOids := make([]string, 6)
 	for i, row := range rows {
-	schema := row.(TestSchema)
-	receivedOids[i] = schema.Oid
+		schema := row.(TestSchema)
+		receivedOids[i] = schema.Oid
 	}
 
 	require.Equal(t, expectedOids, receivedOids)

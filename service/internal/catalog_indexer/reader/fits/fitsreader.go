@@ -31,10 +31,11 @@ type FitsReader[T any] struct {
 	currentFitsRows   *fitsio.Rows
 	currentFitsFile   *fitsio.File
 	src               *source.Source
+	adapter           catalog.CatalogIndexAdapter
 	batchSize         int
 }
 
-func NewFitsReader[T any](src *source.Source, opts ...FitsReaderOption[T]) (*FitsReader[T], error) {
+func NewFitsReader[T any](src *source.Source, adapter catalog.CatalogIndexAdapter, opts ...FitsReaderOption[T]) (*FitsReader[T], error) {
 	currentFileReader, err := src.Next()
 	if err != nil {
 		return nil, err
@@ -55,6 +56,7 @@ func NewFitsReader[T any](src *source.Source, opts ...FitsReaderOption[T]) (*Fit
 		currentFitsRows:   rows,
 		currentFitsFile:   fits,
 		src:               src,
+		adapter:           adapter,
 		batchSize:         1,
 	}
 
@@ -154,8 +156,7 @@ func (r *FitsReader[T]) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int) 
 }
 
 func (r *FitsReader[T]) createRawRecord(rowIterator *fitsio.Rows) any {
-	adapter, err := catalog.GetFactory(r.src.CatalogName)
-	if err != nil {
+	if r.adapter == nil {
 		var schema T
 		if err := rowIterator.Scan(&schema); err != nil {
 			panic(err)
@@ -163,7 +164,7 @@ func (r *FitsReader[T]) createRawRecord(rowIterator *fitsio.Rows) any {
 		return schema
 	}
 
-	schemaPtr := reflect.New(reflect.TypeOf(adapter.NewRawRecord()))
+	schemaPtr := reflect.New(reflect.TypeOf(r.adapter.NewRawRecord()))
 	if err := rowIterator.Scan(schemaPtr.Interface()); err != nil {
 		panic(err)
 	}

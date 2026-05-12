@@ -30,7 +30,7 @@ type Adapter struct {
 }
 
 func init() {
-	catalog.Register("erosita", func(store any) (catalog.CatalogAdapter, error) {
+	catalog.Register("erosita", func(store any) (catalog.CatalogIndexAdapter, error) {
 		s, _ := store.(ErositaStore)
 		return &Adapter{store: s}, nil
 	})
@@ -58,6 +58,7 @@ func (a Adapter) NewParquetReader(src *source.Source, cfg config.ReaderConfig) (
 func (a Adapter) NewFitsReader(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
 	return fits_reader.NewFitsReader(
 		src,
+		a,
 		fits_reader.WithBatchSize[repository.ErositaInputSchema](cfg.BatchSize),
 	)
 }

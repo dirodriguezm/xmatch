@@ -37,11 +37,12 @@ type CsvReader struct {
 	currentFileReader io.ReadCloser
 	currentReader     *csv.Reader
 	src               *source.Source
+	adapter           catalog.CatalogIndexAdapter
 	batchSize         int
 	opts              []CsvReaderOption
 }
 
-func NewCsvReader(src *source.Source, opts ...CsvReaderOption) (*CsvReader, error) {
+func NewCsvReader(src *source.Source, adapter catalog.CatalogIndexAdapter, opts ...CsvReaderOption) (*CsvReader, error) {
 	currentFileReader, err := src.Next()
 	if err != nil {
 		return nil, fmt.Errorf("could not get next source: %w", err)
@@ -51,6 +52,7 @@ func NewCsvReader(src *source.Source, opts ...CsvReaderOption) (*CsvReader, erro
 		currentReader:     csv.NewReader(currentFileReader),
 		currentFileReader: currentFileReader,
 		src:               src,
+		adapter:           adapter,
 		opts:              opts,
 	}
 
@@ -194,8 +196,7 @@ func (r *CsvReader) ReadBatch() ([]any, error) {
 }
 
 func (r *CsvReader) createRawRecord(catalogName string, record []string) any {
-	adapter, err := catalog.GetFactory(catalogName)
-	if err != nil {
+	if r.adapter == nil {
 		schema := TestSchema{}
 		if err := fillStructFromStrings(&schema, record); err != nil {
 			panic(err)
@@ -203,7 +204,7 @@ func (r *CsvReader) createRawRecord(catalogName string, record []string) any {
 		return schema
 	}
 
-	schemaPtr := reflect.New(reflect.TypeOf(adapter.NewRawRecord()))
+	schemaPtr := reflect.New(reflect.TypeOf(r.adapter.NewRawRecord()))
 	if err := fillStructFromStrings(schemaPtr.Interface(), record); err != nil {
 		panic(err)
 	}

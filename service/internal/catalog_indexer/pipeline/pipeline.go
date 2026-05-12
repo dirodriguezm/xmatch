@@ -19,6 +19,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
@@ -26,7 +27,7 @@ import (
 	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
-	rdrfactory "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/factory"
+	csv_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/csv"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
 	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
@@ -40,7 +41,7 @@ type PipelineConfig struct {
 	Config  config.Config
 	DB      *sql.DB
 	Source  *source.Source
-	Adapter catalog.CatalogAdapter
+	Adapter catalog.CatalogIndexAdapter
 	Store   conesearch.MastercatStore
 }
 
@@ -55,10 +56,10 @@ type Pipeline struct {
 // Factory function types expose constructor injection points for tests.
 type (
 	MastercatWriterFn  func(context.Context, config.CatalogIndexerConfig, *sql.DB, conesearch.MastercatStore) (*actor.Actor, error)
-	MetadataWriterFn   func(context.Context, config.CatalogIndexerConfig, *sql.DB, catalog.CatalogAdapter) (*actor.Actor, error)
+	MetadataWriterFn   func(context.Context, config.CatalogIndexerConfig, *sql.DB, catalog.CatalogIndexAdapter) (*actor.Actor, error)
 	MastercatIndexerFn func(config.CatalogIndexerConfig, *actor.Actor, context.Context, func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error)
 	MetadataIndexerFn  func(config.CatalogIndexerConfig, *actor.Actor, context.Context, func(any) any) *actor.Actor
-	SourceReaderFn     func(*source.Source, config.ReaderConfig, config.SourceConfig, *actor.Actor, *actor.Actor) (reader.SourceReader, error)
+	SourceReaderFn     func(*source.Source, catalog.CatalogIndexAdapter, config.ReaderConfig, config.SourceConfig, *actor.Actor, *actor.Actor) (reader.SourceReader, error)
 )
 
 // Overrideable factory functions for test injection.
@@ -108,7 +109,7 @@ func New(cfg PipelineConfig) (*Pipeline, error) {
 		mdIndexer.Start()
 	}
 
-	srcReader, err := NewSourceReader(cfg.Source, ciCfg.Reader, ciCfg.Source, mIndexer, mdIndexer)
+	srcReader, err := NewSourceReader(cfg.Source, cfg.Adapter, ciCfg.Reader, ciCfg.Source, mIndexer, mdIndexer)
 	if err != nil {
 		return nil, fmt.Errorf("building reader: %w", err)
 	}
@@ -164,7 +165,7 @@ func defaultMetadataWriter(
 	ctx context.Context,
 	cfg config.CatalogIndexerConfig,
 	db *sql.DB,
-	adapter catalog.CatalogAdapter,
+	adapter catalog.CatalogIndexAdapter,
 ) (*actor.Actor, error) {
 	switch cfg.MetadataWriter.Type {
 	case "parquet":
@@ -206,12 +207,35 @@ func defaultMetadataIndexer(
 
 func defaultSourceReader(
 	src *source.Source,
+	adapter catalog.CatalogIndexAdapter,
 	readerCfg config.ReaderConfig,
 	srcCfg config.SourceConfig,
 	mastercatIndexer *actor.Actor,
 	metadataIndexer *actor.Actor,
 ) (reader.SourceReader, error) {
-	r, err := rdrfactory.ReaderFactory(src, readerCfg)
+	if readerCfg.BatchSize <= 0 {
+		return reader.SourceReader{}, fmt.Errorf("batch size must be greater than 0")
+	}
+
+	var r reader.Reader
+	var err error
+	switch strings.ToLower(readerCfg.Type) {
+	case "csv":
+		r, err = csv_reader.NewCsvReader(
+			src,
+			adapter,
+			csv_reader.WithHeader(readerCfg.Header),
+			csv_reader.WithFirstLineHeader(readerCfg.FirstLineHeader),
+			csv_reader.WithComment(readerCfg.Comment),
+			csv_reader.WithCsvBatchSize(readerCfg.BatchSize),
+		)
+	case "parquet":
+		r, err = adapter.NewParquetReader(src, readerCfg)
+	case "fits":
+		r, err = adapter.NewFitsReader(src, readerCfg)
+	default:
+		return reader.SourceReader{}, fmt.Errorf("reader type not allowed")
+	}
 	if err != nil {
 		return reader.SourceReader{}, err
 	}

@@ -15,7 +15,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
-type CatalogAdapter interface {
+type CatalogIndexAdapter interface {
 	Name() string
 
 	NewRawRecord() any
@@ -28,41 +28,27 @@ type CatalogAdapter interface {
 
 	BulkInsertFn() func(context.Context, *sql.DB, []any) error
 
+	ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (repository.Mastercat, error)
+
+	ConvertToMetadataFromRaw(raw any) (any, error)
+}
+
+type CatalogQueryAdapter interface {
+	Name() string
+
 	GetByID(ctx context.Context, id string) (any, error)
 
 	BulkGetByID(ctx context.Context, ids []string) (any, error)
 
 	GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error)
 
-	ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (repository.Mastercat, error)
-
-	ConvertToMetadataFromRaw(raw any) (any, error)
+	ConvertToMetadata(obj any) repository.Metadata
 }
 
-type CatalogFactory interface {
-	Name() string
-	NewRawRecord() any
-	NewParquetWriter(cfg config.WriterConfig, ctx context.Context) (writer.Writer, error)
-	NewParquetReader(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error)
-	NewFitsReader(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error)
-}
+var factories = map[string]func(any) (CatalogIndexAdapter, error){}
 
-var factories = map[string]func(any) (CatalogAdapter, error){}
-
-func Register(name string, factory func(any) (CatalogAdapter, error)) {
+func Register(name string, factory func(any) (CatalogIndexAdapter, error)) {
 	factories[strings.ToLower(name)] = factory
-}
-
-func GetFactory(name string) (CatalogFactory, error) {
-	factory, ok := factories[strings.ToLower(name)]
-	if !ok {
-		return nil, fmt.Errorf("unknown catalog: %s", name)
-	}
-	adapter, err := factory(nil)
-	if err != nil {
-		return nil, err
-	}
-	return adapter, nil
 }
 
 type Resolver struct {
@@ -77,7 +63,12 @@ func (r *Resolver) RegisterStore(name string, store any) {
 	r.stores[strings.ToLower(name)] = store
 }
 
-func (r *Resolver) Get(name string) (CatalogAdapter, error) {
+func (r *Resolver) Has(name string) bool {
+	_, ok := factories[strings.ToLower(name)]
+	return ok
+}
+
+func (r *Resolver) Get(name string) (CatalogIndexAdapter, error) {
 	factory, ok := factories[strings.ToLower(name)]
 	if !ok {
 		return nil, fmt.Errorf("unknown catalog: %s", name)
@@ -87,4 +78,16 @@ func (r *Resolver) Get(name string) (CatalogAdapter, error) {
 		return nil, fmt.Errorf("no store registered for catalog: %s", name)
 	}
 	return factory(store)
+}
+
+func (r *Resolver) GetQuery(name string) (CatalogQueryAdapter, error) {
+	adapter, err := r.Get(name)
+	if err != nil {
+		return nil, err
+	}
+	queryAdapter, ok := adapter.(CatalogQueryAdapter)
+	if !ok {
+		return nil, fmt.Errorf("catalog %s does not support query operations", name)
+	}
+	return queryAdapter, nil
 }
