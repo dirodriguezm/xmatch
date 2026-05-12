@@ -53,28 +53,10 @@ type Pipeline struct {
 	metadataIndexer  *actor.Actor
 }
 
-// Factory function types expose constructor injection points for tests.
-type (
-	MastercatWriterFn  func(context.Context, config.CatalogIndexerConfig, *sql.DB, conesearch.MastercatStore) (*actor.Actor, error)
-	MetadataWriterFn   func(context.Context, config.CatalogIndexerConfig, *sql.DB, catalog.CatalogIndexAdapter) (*actor.Actor, error)
-	MastercatIndexerFn func(config.CatalogIndexerConfig, *actor.Actor, context.Context, func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error)
-	MetadataIndexerFn  func(config.CatalogIndexerConfig, *actor.Actor, context.Context, func(any) any) *actor.Actor
-	SourceReaderFn     func(*source.Source, catalog.CatalogIndexAdapter, config.ReaderConfig, config.SourceConfig, *actor.Actor, *actor.Actor) (reader.SourceReader, error)
-)
-
-// Overrideable factory functions for test injection.
-var (
-	NewMastercatWriter  MastercatWriterFn  = defaultMastercatWriter
-	NewMetadataWriter   MetadataWriterFn   = defaultMetadataWriter
-	NewMastercatIndexer MastercatIndexerFn = defaultMastercatIndexer
-	NewMetadataIndexer  MetadataIndexerFn  = defaultMetadataIndexer
-	NewSourceReader     SourceReaderFn     = defaultSourceReader
-)
-
 func New(cfg PipelineConfig) (*Pipeline, error) {
 	ciCfg := cfg.Config.CatalogIndexer
 
-	mWriter, err := NewMastercatWriter(cfg.Context, ciCfg, cfg.DB, cfg.Store)
+	mWriter, err := defaultMastercatWriter(cfg.Context, ciCfg, cfg.DB, cfg.Store)
 	if err != nil {
 		return nil, fmt.Errorf("building mastercat writer: %w", err)
 	}
@@ -82,7 +64,7 @@ func New(cfg PipelineConfig) (*Pipeline, error) {
 
 	var mdWriter *actor.Actor
 	if ciCfg.Source.Metadata {
-		mdWriter, err = NewMetadataWriter(cfg.Context, ciCfg, cfg.DB, cfg.Adapter)
+		mdWriter, err = defaultMetadataWriter(cfg.Context, ciCfg, cfg.DB, cfg.Adapter)
 		if err != nil {
 			return nil, fmt.Errorf("building metadata writer: %w", err)
 		}
@@ -93,7 +75,7 @@ func New(cfg PipelineConfig) (*Pipeline, error) {
 		mc, _ := cfg.Adapter.ConvertToMastercat(raw, mapper)
 		return mc
 	}
-	mIndexer, err := NewMastercatIndexer(ciCfg, mWriter, cfg.Context, fillMastercat)
+	mIndexer, err := defaultMastercatIndexer(ciCfg, mWriter, cfg.Context, fillMastercat)
 	if err != nil {
 		return nil, fmt.Errorf("building mastercat indexer: %w", err)
 	}
@@ -105,11 +87,11 @@ func New(cfg PipelineConfig) (*Pipeline, error) {
 			md, _ := cfg.Adapter.ConvertToMetadataFromRaw(raw)
 			return md
 		}
-		mdIndexer = NewMetadataIndexer(ciCfg, mdWriter, cfg.Context, fillMetadata)
+		mdIndexer = defaultMetadataIndexer(ciCfg, mdWriter, cfg.Context, fillMetadata)
 		mdIndexer.Start()
 	}
 
-	srcReader, err := NewSourceReader(cfg.Source, cfg.Adapter, ciCfg.Reader, ciCfg.Source, mIndexer, mdIndexer)
+	srcReader, err := defaultSourceReader(cfg.Source, cfg.Adapter, ciCfg.Reader, ciCfg.Source, mIndexer, mdIndexer)
 	if err != nil {
 		return nil, fmt.Errorf("building reader: %w", err)
 	}

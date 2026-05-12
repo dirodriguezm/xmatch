@@ -2,13 +2,20 @@ template: testify
 template-data:
   unroll-variadic: true
 packages:
+  github.com/dirodriguezm/xmatch/service/internal/catalog:
+    config:
+      dir: "{{.InterfaceDir}}"
+      filename: "mocks.go"
+      structname: "Mock{{.InterfaceName}}"
+    interfaces:
+      CatalogIndexAdapter:
   github.com/dirodriguezm/xmatch/service/internal/search/conesearch:
     config:
       dir: "{{.InterfaceDir}}"
       filename: "mocks.go"
       structname: "Mock{{.InterfaceName}}"
     interfaces:
-      Repository:
+      MastercatStore:
   github.com/dirodriguezm/xmatch/service/internal/search/lightcurve:
     config:
       dir: "{{.InterfaceDir}}"

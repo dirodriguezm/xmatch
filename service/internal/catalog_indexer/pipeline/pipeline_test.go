@@ -18,39 +18,29 @@ import (
 	"context"
 	"database/sql"
 	"io"
-	"sync"
 	"testing"
 
-	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func restoreDefaults() {
-	NewMastercatWriter = defaultMastercatWriter
-	NewMetadataWriter = defaultMetadataWriter
-	NewMastercatIndexer = defaultMastercatIndexer
-	NewMetadataIndexer = defaultMetadataIndexer
-	NewSourceReader = defaultSourceReader
-}
+func baseConfig(t *testing.T) PipelineConfig {
+	t.Helper()
 
-func baseConfig() PipelineConfig {
 	return PipelineConfig{
 		Context: context.Background(),
 		Config: config.Config{
 			CatalogIndexer: config.CatalogIndexerConfig{
 				Source: config.SourceConfig{
 					CatalogName: "test",
-					Nside:       32,
+					Nside:       5,
 					Metadata:    false,
 				},
 				Reader: config.ReaderConfig{
@@ -59,151 +49,28 @@ func baseConfig() PipelineConfig {
 				},
 				Indexer: config.IndexerConfig{
 					OrderingScheme: "nested",
-					Nside:          32,
+					Nside:          5,
 				},
-				IndexerWriter: config.WriterConfig{
-					Type: "sqlite",
-				},
-				MetadataWriter: config.WriterConfig{
-					Type: "sqlite",
-				},
-				ChannelSize: 10,
+				IndexerWriter:  config.WriterConfig{Type: "sqlite"},
+				MetadataWriter: config.WriterConfig{Type: "sqlite"},
+				ChannelSize:    10,
 			},
 		},
-		DB:      &sql.DB{},
-		Source:  &source.Source{CatalogName: "test", Nside: 32},
-		Adapter: newMockAdapter(),
-		Store:   newMockStore(),
+		DB:      newTestDB(t),
+		Source:  &source.Source{Sources: []string{"buffer:id\n1"}, CatalogName: "test", Nside: 5},
+		Adapter: catalog.NewMockCatalogIndexAdapter(t),
+		Store:   conesearch.NewMockMastercatStore(t),
 	}
 }
 
-func newMockStore() *mockMastercatStore {
-	m := &mockMastercatStore{}
-	m.On("BulkInsertObject", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	return m
+func newTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+
+	db, err := sql.Open("sqlite3", "file:pipeline-test?mode=memory&cache=shared")
+	require.NoError(t, err)
+	return db
 }
 
-func newMockAdapter() *mockCatalogAdapter {
-	m := &mockCatalogAdapter{}
-	m.On("ConvertToMastercat", mock.Anything, mock.Anything).Return(repository.Mastercat{}, (error)(nil))
-	m.On("ConvertToMetadataFromRaw", mock.Anything).Return(repository.Metadata{}, (error)(nil))
-	m.On("BulkInsertFn").Return(func(context.Context, *sql.DB, []any) error { return nil })
-	return m
-}
-
-type mockMastercatStore struct {
-	mock.Mock
-}
-
-func (m *mockMastercatStore) FindObjects(ctx context.Context, pixels []int64) ([]repository.Mastercat, error) {
-	args := m.Called(ctx, pixels)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]repository.Mastercat), args.Error(1)
-}
-
-func (m *mockMastercatStore) InsertMastercat(ctx context.Context, arg repository.Mastercat) error {
-	args := m.Called(ctx, arg)
-	return args.Error(0)
-}
-
-func (m *mockMastercatStore) GetAllObjects(ctx context.Context) ([]repository.Mastercat, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]repository.Mastercat), args.Error(1)
-}
-
-func (m *mockMastercatStore) RemoveAllObjects(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
-
-func (m *mockMastercatStore) BulkInsertObject(ctx context.Context, db *sql.DB, rows []any) error {
-	args := m.Called(ctx, db, rows)
-	return args.Error(0)
-}
-
-type mockCatalogAdapter struct {
-	mock.Mock
-}
-
-func (m *mockCatalogAdapter) Name() string {
-	args := m.Called()
-	return args.String(0)
-}
-
-func (m *mockCatalogAdapter) NewRawRecord() any {
-	args := m.Called()
-	return args.Get(0)
-}
-
-func (m *mockCatalogAdapter) NewParquetWriter(cfg config.WriterConfig, ctx context.Context) (writer.Writer, error) {
-	args := m.Called(cfg, ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(writer.Writer), args.Error(1)
-}
-
-func (m *mockCatalogAdapter) NewParquetReader(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
-	args := m.Called(src, cfg)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(reader.Reader), args.Error(1)
-}
-
-func (m *mockCatalogAdapter) NewFitsReader(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
-	args := m.Called(src, cfg)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(reader.Reader), args.Error(1)
-}
-
-func (m *mockCatalogAdapter) BulkInsertFn() func(context.Context, *sql.DB, []any) error {
-	args := m.Called()
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(func(context.Context, *sql.DB, []any) error)
-}
-
-func (m *mockCatalogAdapter) GetByID(ctx context.Context, id string) (any, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0), args.Error(1)
-}
-
-func (m *mockCatalogAdapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
-	args := m.Called(ctx, ids)
-	return args.Get(0), args.Error(1)
-}
-
-func (m *mockCatalogAdapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
-	args := m.Called(ctx, pixels)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]repository.Metadata), args.Error(1)
-}
-
-func (m *mockCatalogAdapter) ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (repository.Mastercat, error) {
-	args := m.Called(raw, mapper)
-	return args.Get(0).(repository.Mastercat), args.Error(1)
-}
-
-func (m *mockCatalogAdapter) ConvertToMetadataFromRaw(raw any) (any, error) {
-	args := m.Called(raw)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0), args.Error(1)
-}
-
-// noopReader is a Reader implementation that returns EOF immediately.
 type noopReader struct{}
 
 func (r *noopReader) Read() ([]any, error)      { return nil, io.EOF }
@@ -211,37 +78,13 @@ func (r *noopReader) ReadBatch() ([]any, error) { return nil, io.EOF }
 func (r *noopReader) Close() error              { return nil }
 
 func TestPipeline_WiringWithoutMetadata(t *testing.T) {
-	defer restoreDefaults()
-
-	cfg := baseConfig()
-	ctx := t.Context()
-
-	NewMastercatWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ conesearch.MastercatStore) (*actor.Actor, error) {
-		return actor.New("mc-writer", 10, func(*actor.Actor, actor.Message) {}, nil, nil, ctx), nil
-	}
-	NewMetadataWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ catalog.CatalogIndexAdapter) (*actor.Actor, error) {
-		return actor.New("md-writer", 10, func(*actor.Actor, actor.Message) {}, nil, nil, ctx), nil
-	}
-	NewMastercatIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
-		return actor.New("mc-indexer", 10, func(*actor.Actor, actor.Message) {}, nil, []*actor.Actor{writer}, ctx), nil
-	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
-		return actor.New("md-indexer", 10, func(*actor.Actor, actor.Message) {}, nil, []*actor.Actor{writer}, ctx)
-	}
-	NewSourceReader = func(_ *source.Source, _ catalog.CatalogIndexAdapter, _ config.ReaderConfig, _ config.SourceConfig, mcIndexer, mdIndexer *actor.Actor) (reader.SourceReader, error) {
-		receivers := []*actor.Actor{mcIndexer}
-		if mdIndexer != nil {
-			receivers = append(receivers, mdIndexer)
-		}
-		return reader.SourceReader{Reader: &noopReader{}, BatchSize: 10, Receivers: receivers}, nil
-	}
+	cfg := baseConfig(t)
 
 	pipeline, err := New(cfg)
 	require.NoError(t, err)
 
 	require.NotNil(t, pipeline.mastercatWriter)
 	require.NotNil(t, pipeline.mastercatIndexer)
-
 	require.Nil(t, pipeline.metadataWriter, "metadata writer should be nil when metadata disabled")
 	require.Nil(t, pipeline.metadataIndexer, "metadata indexer should be nil when metadata disabled")
 
@@ -256,27 +99,12 @@ func TestPipeline_WiringWithoutMetadata(t *testing.T) {
 }
 
 func TestPipeline_WiringWithMetadata(t *testing.T) {
-	defer restoreDefaults()
-
-	cfg := baseConfig()
+	cfg := baseConfig(t)
 	cfg.Config.CatalogIndexer.Source.Metadata = true
-	ctx := t.Context()
-
-	NewMastercatWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ conesearch.MastercatStore) (*actor.Actor, error) {
-		return actor.New("mc-writer", 10, func(*actor.Actor, actor.Message) {}, nil, nil, ctx), nil
-	}
-	NewMetadataWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ catalog.CatalogIndexAdapter) (*actor.Actor, error) {
-		return actor.New("md-writer", 10, func(*actor.Actor, actor.Message) {}, nil, nil, ctx), nil
-	}
-	NewMastercatIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
-		return actor.New("mc-indexer", 10, func(*actor.Actor, actor.Message) {}, nil, []*actor.Actor{writer}, ctx), nil
-	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
-		return actor.New("md-indexer", 10, func(*actor.Actor, actor.Message) {}, nil, []*actor.Actor{writer}, ctx)
-	}
-	NewSourceReader = func(_ *source.Source, _ catalog.CatalogIndexAdapter, _ config.ReaderConfig, _ config.SourceConfig, mcIndexer, mdIndexer *actor.Actor) (reader.SourceReader, error) {
-		return reader.SourceReader{Reader: &noopReader{}, BatchSize: 10, Receivers: []*actor.Actor{mcIndexer, mdIndexer}}, nil
-	}
+	cfg.Adapter.(*catalog.MockCatalogIndexAdapter).
+		EXPECT().
+		BulkInsertFn().
+		Return(func(context.Context, *sql.DB, []any) error { return nil })
 
 	pipeline, err := New(cfg)
 	require.NoError(t, err)
@@ -302,114 +130,46 @@ func TestPipeline_WiringWithMetadata(t *testing.T) {
 }
 
 func TestPipeline_Stop(t *testing.T) {
-	defer restoreDefaults()
-
-	cfg := baseConfig()
 	ctx := t.Context()
-
-	var mcWriterStopped, mcIndexerStopped, mdWriterStopped, mdIndexerStopped bool
-	var mu sync.Mutex
+	var mcWriterStopped, mcIndexerStopped bool
 
 	mcWriter := actor.New("mc-writer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
-		mu.Lock()
 		mcWriterStopped = true
-		mu.Unlock()
 	}, nil, ctx)
+	mcIndexer := actor.New("mc-indexer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
+		mcIndexerStopped = true
+	}, []*actor.Actor{mcWriter}, ctx)
 
-	mdWriter := actor.New("md-writer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
-		mu.Lock()
-		mdWriterStopped = true
-		mu.Unlock()
-	}, nil, ctx)
-
-	NewMastercatWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ conesearch.MastercatStore) (*actor.Actor, error) {
-		return mcWriter, nil
-	}
-	NewMetadataWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ catalog.CatalogIndexAdapter) (*actor.Actor, error) {
-		return mdWriter, nil
-	}
-	NewMastercatIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
-		return actor.New("mc-indexer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
-			mu.Lock()
-			mcIndexerStopped = true
-			mu.Unlock()
-		}, []*actor.Actor{writer}, ctx), nil
-	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
-		return actor.New("md-indexer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
-			mu.Lock()
-			mdIndexerStopped = true
-			mu.Unlock()
-		}, []*actor.Actor{writer}, ctx)
-	}
-	NewSourceReader = func(_ *source.Source, _ catalog.CatalogIndexAdapter, _ config.ReaderConfig, _ config.SourceConfig, mcIndexer, mdIndexer *actor.Actor) (reader.SourceReader, error) {
-		return reader.SourceReader{Reader: &noopReader{}, BatchSize: 10, Receivers: []*actor.Actor{mcIndexer}}, nil
-	}
-
-	mcWriter.Start()
-	mdWriter.Start()
-	pipeline, err := New(cfg)
-	require.NoError(t, err)
-
+	pipeline := &Pipeline{mastercatWriter: mcWriter, mastercatIndexer: mcIndexer}
 	pipeline.Stop()
 
 	assert.True(t, mcIndexerStopped, "mastercat indexer should be stopped")
 	assert.True(t, mcWriterStopped, "mastercat writer should be stopped")
-	assert.False(t, mdWriterStopped, "metadata writer should not be stopped when metadata disabled")
-	assert.False(t, mdIndexerStopped, "metadata indexer should not be stopped when metadata disabled")
 }
 
 func TestPipeline_Stop_WithMetadata(t *testing.T) {
-	defer restoreDefaults()
-
-	cfg := baseConfig()
-	cfg.Config.CatalogIndexer.Source.Metadata = true
 	ctx := t.Context()
-
 	var mcWriterStopped, mcIndexerStopped, mdWriterStopped, mdIndexerStopped bool
-	var mu sync.Mutex
 
 	mcWriter := actor.New("mc-writer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
-		mu.Lock()
 		mcWriterStopped = true
-		mu.Unlock()
 	}, nil, ctx)
-
 	mdWriter := actor.New("md-writer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
-		mu.Lock()
 		mdWriterStopped = true
-		mu.Unlock()
 	}, nil, ctx)
+	mcIndexer := actor.New("mc-indexer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
+		mcIndexerStopped = true
+	}, []*actor.Actor{mcWriter}, ctx)
+	mdIndexer := actor.New("md-indexer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
+		mdIndexerStopped = true
+	}, []*actor.Actor{mdWriter}, ctx)
 
-	NewMastercatWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ conesearch.MastercatStore) (*actor.Actor, error) {
-		return mcWriter, nil
+	pipeline := &Pipeline{
+		mastercatWriter:  mcWriter,
+		metadataWriter:   mdWriter,
+		mastercatIndexer: mcIndexer,
+		metadataIndexer:  mdIndexer,
 	}
-	NewMetadataWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ catalog.CatalogIndexAdapter) (*actor.Actor, error) {
-		return mdWriter, nil
-	}
-	NewMastercatIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
-		return actor.New("mc-indexer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
-			mu.Lock()
-			mcIndexerStopped = true
-			mu.Unlock()
-		}, []*actor.Actor{writer}, ctx), nil
-	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
-		return actor.New("md-indexer", 10, func(*actor.Actor, actor.Message) {}, func(*actor.Actor) {
-			mu.Lock()
-			mdIndexerStopped = true
-			mu.Unlock()
-		}, []*actor.Actor{writer}, ctx)
-	}
-	NewSourceReader = func(_ *source.Source, _ catalog.CatalogIndexAdapter, _ config.ReaderConfig, _ config.SourceConfig, mcIndexer, mdIndexer *actor.Actor) (reader.SourceReader, error) {
-		return reader.SourceReader{Reader: &noopReader{}, BatchSize: 10, Receivers: []*actor.Actor{mcIndexer, mdIndexer}}, nil
-	}
-
-	mcWriter.Start()
-	mdWriter.Start()
-	pipeline, err := New(cfg)
-	require.NoError(t, err)
-
 	pipeline.Stop()
 
 	assert.True(t, mcIndexerStopped, "mastercat indexer should be stopped")
@@ -419,42 +179,23 @@ func TestPipeline_Stop_WithMetadata(t *testing.T) {
 }
 
 func TestPipeline_ErrorPropagation(t *testing.T) {
-	defer restoreDefaults()
-
-	cfg := baseConfig()
 	ctx := t.Context()
+	receivedErrors := make(chan error, 1)
 
-	receivedErrors := make(chan error, 10)
+	mcWriter := actor.New("mc-writer", 10, func(_ *actor.Actor, msg actor.Message) {
+		if msg.Error != nil {
+			receivedErrors <- msg.Error
+		}
+	}, nil, nil, ctx)
+	mcIndexer := actor.New("mc-indexer", 10, func(a *actor.Actor, msg actor.Message) {
+		a.Broadcast(msg)
+	}, nil, []*actor.Actor{mcWriter}, ctx)
 
-	NewMastercatWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ conesearch.MastercatStore) (*actor.Actor, error) {
-		return actor.New("mc-writer", 10, func(_ *actor.Actor, msg actor.Message) {
-			if msg.Error != nil {
-				receivedErrors <- msg.Error
-			}
-		}, nil, nil, ctx), nil
-	}
-	NewMetadataWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ catalog.CatalogIndexAdapter) (*actor.Actor, error) {
-		return actor.New("md-writer", 10, func(*actor.Actor, actor.Message) {}, nil, nil, ctx), nil
-	}
-	NewMastercatIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
-		return actor.New("mc-indexer", 10, func(a *actor.Actor, msg actor.Message) {
-			a.Broadcast(msg)
-		}, nil, []*actor.Actor{writer}, ctx), nil
-	}
-	NewMetadataIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any) any) *actor.Actor {
-		return actor.New("md-indexer", 10, func(a *actor.Actor, msg actor.Message) {
-			a.Broadcast(msg)
-		}, nil, []*actor.Actor{writer}, ctx)
-	}
-	NewSourceReader = func(_ *source.Source, _ catalog.CatalogIndexAdapter, _ config.ReaderConfig, _ config.SourceConfig, mcIndexer, mdIndexer *actor.Actor) (reader.SourceReader, error) {
-		return reader.SourceReader{Reader: &noopReader{}, BatchSize: 10, Receivers: []*actor.Actor{mcIndexer}}, nil
-	}
-
-	pipeline, err := New(cfg)
-	require.NoError(t, err)
+	mcWriter.Start()
+	mcIndexer.Start()
+	pipeline := &Pipeline{mastercatWriter: mcWriter, mastercatIndexer: mcIndexer}
 
 	testErr := io.ErrUnexpectedEOF
-	mcIndexer := pipeline.sourceReader.Receivers[0]
 	mcIndexer.Send(actor.Message{Error: testErr})
 
 	errReceived := <-receivedErrors
@@ -464,33 +205,12 @@ func TestPipeline_ErrorPropagation(t *testing.T) {
 }
 
 func TestPipeline_CloseSource(t *testing.T) {
-	defer restoreDefaults()
-
-	cfg := baseConfig()
-	ctx := t.Context()
-
 	closed := false
-	NewSourceReader = func(_ *source.Source, _ catalog.CatalogIndexAdapter, _ config.ReaderConfig, _ config.SourceConfig, _, _ *actor.Actor) (reader.SourceReader, error) {
-		return reader.SourceReader{
-			Reader: &closeTrackingReader{closed: &closed},
-		}, nil
-	}
+	pipeline := &Pipeline{sourceReader: reader.SourceReader{Reader: &closeTrackingReader{closed: &closed}}}
 
-	NewMastercatWriter = func(_ context.Context, _ config.CatalogIndexerConfig, _ *sql.DB, _ conesearch.MastercatStore) (*actor.Actor, error) {
-		return actor.New("mc-writer", 10, func(*actor.Actor, actor.Message) {}, nil, nil, ctx), nil
-	}
-	NewMastercatIndexer = func(_ config.CatalogIndexerConfig, writer *actor.Actor, _ context.Context, _ func(any, *healpix.HEALPixMapper) repository.Mastercat) (*actor.Actor, error) {
-		return actor.New("mc-indexer", 10, func(*actor.Actor, actor.Message) {}, nil, []*actor.Actor{writer}, ctx), nil
-	}
-
-	pipeline, err := New(cfg)
-	require.NoError(t, err)
-
-	err = pipeline.CloseSource()
+	err := pipeline.CloseSource()
 	require.NoError(t, err)
 	assert.True(t, closed)
-
-	pipeline.Stop()
 }
 
 type closeTrackingReader struct {
