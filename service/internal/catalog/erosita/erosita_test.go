@@ -1,38 +1,41 @@
 package erosita
 
 import (
-	"database/sql"
+	"context"
 	"testing"
 
-	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConvertToMastercat(t *testing.T) {
-	mapper, err := healpix.NewHEALPixMapper(18, healpix.Ring)
-	require.NoError(t, err)
 	adapter := Adapter{}
+	ipix := int64(123)
 
-	raw := repository.ErositaInputSchema{
+	raw := InputSchema{
 		IAUNAME: "eROSITA J123456.7-765432",
 		RA:      45.0,
 		DEC:     30.0,
 	}
-	mc, err := adapter.ConvertToMastercat(raw, mapper)
+	ra, dec, err := adapter.GetCoordinates(raw)
+	require.NoError(t, err)
+	assert.Equal(t, 45.0, ra)
+	assert.Equal(t, 30.0, dec)
+
+	mc, err := adapter.ConvertToMastercat(raw, ipix)
 	require.NoError(t, err)
 	assert.Equal(t, "eROSITA J123456.7-765432", mc.ID)
 	assert.Equal(t, 45.0, mc.Ra)
 	assert.Equal(t, 30.0, mc.Dec)
 	assert.Equal(t, "erosita", mc.Cat)
-	assert.NotZero(t, mc.Ipix)
+	assert.Equal(t, ipix, mc.Ipix)
 }
 
 func TestConvertToMetadataFromRaw(t *testing.T) {
 	adapter := Adapter{}
 
-	raw := repository.ErositaInputSchema{
+	raw := InputSchema{
 		IAUNAME: "eROSITA J123456.7-765432",
 		DETUID:  "det123",
 		SKYTILE: 42,
@@ -55,21 +58,14 @@ func TestConvertToMetadataFromRaw(t *testing.T) {
 
 func TestConvertToMetadataFromRaw_ImplementsMetadataInterface(t *testing.T) {
 	adapter := Adapter{}
-	md, err := adapter.ConvertToMetadataFromRaw(repository.ErositaInputSchema{})
+	md, err := adapter.ConvertToMetadataFromRaw(InputSchema{})
 	require.NoError(t, err)
 	assert.IsType(t, repository.Erosita{}, md)
 }
 
-func TestConvertToMetadataFromRowType(t *testing.T) {
+func TestGetFromPixelsRequiresRepository(t *testing.T) {
 	adapter := Adapter{}
-	row := repository.GetErositaFromPixelsRow{
-		ID:     "from_db",
-		Detuid: repository.NullString{NullString: sql.NullString{String: "det456", Valid: true}},
-		Ra:     repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 50.0, Valid: true}},
-	}
-	md := adapter.ConvertToMetadata(row)
-	result := md.Object.(repository.Erosita)
-	assert.Equal(t, "from_db", result.ID)
-	assert.Equal(t, "det456", result.Detuid.String)
-	assert.Equal(t, 50.0, result.Ra.Float64)
+
+	_, err := adapter.GetFromPixels(context.Background(), []int64{1})
+	require.EqualError(t, err, "erosita adapter has no repository")
 }

@@ -22,20 +22,27 @@ import (
 	"reflect"
 
 	"codeberg.org/astrogo/fitsio"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 )
 
-type FitsReader[T any] struct {
+type rawRecordFactory interface {
+	NewRawRecord() any
+}
+
+type FitsReader struct {
 	currentFileReader io.ReadCloser
 	currentFitsRows   *fitsio.Rows
 	currentFitsFile   *fitsio.File
 	src               *source.Source
-	adapter           catalog.CatalogIndexAdapter
+	adapter           rawRecordFactory
 	batchSize         int
 }
 
-func NewFitsReader[T any](src *source.Source, adapter catalog.CatalogIndexAdapter, opts ...FitsReaderOption[T]) (*FitsReader[T], error) {
+func NewFitsReader(src *source.Source, adapter rawRecordFactory, opts ...FitsReaderOption) (*FitsReader, error) {
+	if adapter == nil {
+		return nil, errors.New("fits reader requires a raw record factory")
+	}
+
 	currentFileReader, err := src.Next()
 	if err != nil {
 		return nil, err
@@ -51,7 +58,7 @@ func NewFitsReader[T any](src *source.Source, adapter catalog.CatalogIndexAdapte
 		return nil, err
 	}
 
-	r := &FitsReader[T]{
+	r := &FitsReader{
 		currentFileReader: currentFileReader,
 		currentFitsRows:   rows,
 		currentFitsFile:   fits,
@@ -67,11 +74,11 @@ func NewFitsReader[T any](src *source.Source, adapter catalog.CatalogIndexAdapte
 	return r, nil
 }
 
-func (r *FitsReader[T]) Read() ([]any, error) {
+func (r *FitsReader) Read() ([]any, error) {
 	panic("Not implemented")
 }
 
-func (r *FitsReader[T]) ReadBatch() ([]any, error) {
+func (r *FitsReader) ReadBatch() ([]any, error) {
 	rows := make([]any, 0, r.batchSize)
 
 	currentRows, err := r.ReadBatchSingleFile(r.currentFitsRows, r.batchSize)
@@ -100,7 +107,7 @@ func (r *FitsReader[T]) ReadBatch() ([]any, error) {
 	return rows, nil
 }
 
-func (r *FitsReader[T]) closeResources() error {
+func (r *FitsReader) closeResources() error {
 	err := r.currentFitsRows.Close()
 	if err != nil {
 		return fmt.Errorf("failed to close FITS rows: %w", err)
@@ -119,7 +126,7 @@ func (r *FitsReader[T]) closeResources() error {
 	return nil
 }
 
-func (r *FitsReader[T]) switchToNewFile() error {
+func (r *FitsReader) switchToNewFile() error {
 	ioReader, err := r.src.Next()
 	if err != nil {
 		return err
@@ -140,7 +147,7 @@ func (r *FitsReader[T]) switchToNewFile() error {
 	return nil
 }
 
-func (r *FitsReader[T]) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int) ([]any, error) {
+func (r *FitsReader) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int) ([]any, error) {
 	rows := make([]any, 0, size)
 	for range size {
 		hasNext := rowIterator.Next()
@@ -155,15 +162,7 @@ func (r *FitsReader[T]) ReadBatchSingleFile(rowIterator *fitsio.Rows, size int) 
 	return rows, nil
 }
 
-func (r *FitsReader[T]) createRawRecord(rowIterator *fitsio.Rows) any {
-	if r.adapter == nil {
-		var schema T
-		if err := rowIterator.Scan(&schema); err != nil {
-			panic(err)
-		}
-		return schema
-	}
-
+func (r *FitsReader) createRawRecord(rowIterator *fitsio.Rows) any {
 	schemaPtr := reflect.New(reflect.TypeOf(r.adapter.NewRawRecord()))
 	if err := rowIterator.Scan(schemaPtr.Interface()); err != nil {
 		panic(err)
@@ -171,7 +170,7 @@ func (r *FitsReader[T]) createRawRecord(rowIterator *fitsio.Rows) any {
 	return schemaPtr.Elem().Interface()
 }
 
-func (r *FitsReader[T]) Close() error {
+func (r *FitsReader) Close() error {
 	return errors.Join(
 		r.currentFitsRows.Close(),
 		r.currentFitsFile.Close(),

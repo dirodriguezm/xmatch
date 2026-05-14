@@ -8,7 +8,7 @@ packages:
       filename: "mocks.go"
       structname: "Mock{{.InterfaceName}}"
     interfaces:
-      CatalogIndexAdapter:
+      CatalogAdapter:
   github.com/dirodriguezm/xmatch/service/internal/search/conesearch:
     config:
       dir: "{{.InterfaceDir}}"

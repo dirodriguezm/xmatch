@@ -33,10 +33,7 @@ import (
 
 type MastercatStore interface {
 	FindObjects(context.Context, []int64) ([]repository.Mastercat, error)
-	InsertMastercat(context.Context, repository.Mastercat) error
-	GetAllObjects(context.Context) ([]repository.Mastercat, error)
-	RemoveAllObjects(context.Context) error
-	BulkInsertObject(context.Context, *sql.DB, []any) error
+	BulkInsertObject(context.Context, []any) error
 }
 
 type CatalogRegistry interface {
@@ -297,7 +294,7 @@ func (c *ConesearchService) getMetadata(pixelList []int64, catalogName string) (
 
 	catalogList := c.resolveCatalogList(catalogName)
 	for _, name := range catalogList {
-		adapter, err := c.resolver.GetQuery(name)
+		adapter, err := c.resolver.Get(name)
 		if err != nil {
 			return nil, err
 		}

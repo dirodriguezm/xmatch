@@ -26,13 +26,12 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/testutils"
 
 	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -139,7 +138,7 @@ func TestConesearch(t *testing.T) {
 	queries := app.ServiceRepository(db)
 	defer CleanDB(t, queries)
 
-	resolver := catalog.NewResolver()
+	resolver := catalog.NewResolver(queries)
 	service, err := app.ConesearchService(queries, resolver)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
@@ -192,8 +191,7 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	queries := app.ServiceRepository(db)
 	defer CleanDB(t, queries)
 
-	resolver := catalog.NewResolver()
-	resolver.RegisterStore("allwise", queries)
+	resolver := catalog.NewResolver(queries)
 	service, err := app.ConesearchService(queries, resolver)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
@@ -209,7 +207,7 @@ func TestConesearch_WithMetadata(t *testing.T) {
 		if err != nil {
 			t.Fatalf("inserting mastercat: %v", err)
 		}
-		err = queries.InsertAllwiseWithoutParams(ctx, repository.Allwise{ID: obj.ID})
+		err = queries.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: obj.ID})
 		if err != nil {
 			t.Fatalf("inserting allwise: %v", err)
 		}
@@ -251,7 +249,7 @@ func TestBulkConesearch(t *testing.T) {
 	queries := app.ServiceRepository(db)
 	defer CleanDB(t, queries)
 
-	resolver := catalog.NewResolver()
+	resolver := catalog.NewResolver(queries)
 	service, err := app.ConesearchService(queries, resolver)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
@@ -371,7 +369,9 @@ func TestBulkConesearch(t *testing.T) {
 
 }
 
-func CleanDB(t *testing.T, repo conesearch.MastercatStore) {
+func CleanDB(t *testing.T, repo interface {
+	RemoveAllObjects(context.Context) error
+}) {
 	err := repo.RemoveAllObjects(context.Background())
 	require.NoError(t, err)
 }

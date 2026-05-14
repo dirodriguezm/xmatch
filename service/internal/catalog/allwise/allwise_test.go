@@ -4,43 +4,51 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConvertToMastercat(t *testing.T) {
-	mapper, err := healpix.NewHEALPixMapper(18, healpix.Ring)
-	require.NoError(t, err)
 	adapter := Adapter{}
+	ipix := int64(123)
 
 	t.Run("all fields populated", func(t *testing.T) {
 		sourceID := "allwise_001"
 		ra := 45.0
 		dec := 30.0
-		raw := repository.AllwiseInputSchema{
+		raw := InputSchema{
 			Source_id: &sourceID,
 			Ra:        &ra,
 			Dec:       &dec,
 		}
-		mc, err := adapter.ConvertToMastercat(raw, mapper)
+		raOut, decOut, err := adapter.GetCoordinates(raw)
+		require.NoError(t, err)
+		assert.Equal(t, ra, raOut)
+		assert.Equal(t, dec, decOut)
+
+		mc, err := adapter.ConvertToMastercat(raw, ipix)
 		require.NoError(t, err)
 		assert.Equal(t, "allwise_001", mc.ID)
 		assert.Equal(t, 45.0, mc.Ra)
 		assert.Equal(t, 30.0, mc.Dec)
 		assert.Equal(t, "allwise", mc.Cat)
-		assert.NotZero(t, mc.Ipix)
+		assert.Equal(t, ipix, mc.Ipix)
 	})
 
 	t.Run("nil coordinates - zero values", func(t *testing.T) {
 		sourceID := "allwise_002"
-		raw := repository.AllwiseInputSchema{
+		raw := InputSchema{
 			Source_id: &sourceID,
 			Ra:        nil,
 			Dec:       nil,
 		}
-		mc, err := adapter.ConvertToMastercat(raw, mapper)
+		ra, dec, err := adapter.GetCoordinates(raw)
+		require.NoError(t, err)
+		assert.Equal(t, 0.0, ra)
+		assert.Equal(t, 0.0, dec)
+
+		mc, err := adapter.ConvertToMastercat(raw, ipix)
 		require.NoError(t, err)
 		assert.Equal(t, "allwise_002", mc.ID)
 		assert.Equal(t, 0.0, mc.Ra)
@@ -51,12 +59,12 @@ func TestConvertToMastercat(t *testing.T) {
 	t.Run("nil source_id - empty id", func(t *testing.T) {
 		ra := 10.0
 		dec := 20.0
-		raw := repository.AllwiseInputSchema{
+		raw := InputSchema{
 			Source_id: nil,
 			Ra:        &ra,
 			Dec:       &dec,
 		}
-		mc, err := adapter.ConvertToMastercat(raw, mapper)
+		mc, err := adapter.ConvertToMastercat(raw, ipix)
 		require.NoError(t, err)
 		assert.Equal(t, "", mc.ID)
 		assert.Equal(t, 10.0, mc.Ra)
@@ -73,7 +81,7 @@ func TestConvertToMetadataFromRaw(t *testing.T) {
 		w1 := 13.5
 		w1sig := 0.05
 		jmag := 15.2
-		raw := repository.AllwiseInputSchema{
+		raw := InputSchema{
 			Source_id: &sourceID,
 			Cntr:      &cntr,
 			W1mpro:    &w1,
@@ -93,7 +101,7 @@ func TestConvertToMetadataFromRaw(t *testing.T) {
 
 	t.Run("nil fields - sentinel values", func(t *testing.T) {
 		sourceID := "allwise_002"
-		raw := repository.AllwiseInputSchema{
+		raw := InputSchema{
 			Source_id: &sourceID,
 			W1mpro:    nil,
 			W1sigmpro: nil,
@@ -109,7 +117,7 @@ func TestConvertToMetadataFromRaw(t *testing.T) {
 	})
 
 	t.Run("nil Source_id - empty id", func(t *testing.T) {
-		raw := repository.AllwiseInputSchema{
+		raw := InputSchema{
 			Source_id: nil,
 		}
 		md, err := adapter.ConvertToMetadataFromRaw(raw)
@@ -119,7 +127,7 @@ func TestConvertToMetadataFromRaw(t *testing.T) {
 	})
 
 	t.Run("metadata type assertions", func(t *testing.T) {
-		md, _ := adapter.ConvertToMetadataFromRaw(repository.AllwiseInputSchema{})
+		md, _ := adapter.ConvertToMetadataFromRaw(InputSchema{})
 		assert.IsType(t, repository.Allwise{}, md)
 	})
 }
@@ -133,7 +141,7 @@ func TestConvertToMetadataFromRaw_2massFields(t *testing.T) {
 	hsig := 0.04
 	kmag := 13.0
 	ksig := 0.02
-	raw := repository.AllwiseInputSchema{
+	raw := InputSchema{
 		Source_id:    strPtr("test"),
 		J_m_2mass:    &jmag,
 		J_msig_2mass: &jsig,
@@ -164,7 +172,7 @@ func TestConvertToMetadataFromRaw_WiseAllBands(t *testing.T) {
 	w2s := 0.03
 	w3s := 0.05
 	w4s := 0.10
-	raw := repository.AllwiseInputSchema{
+	raw := InputSchema{
 		Source_id: strPtr("test"),
 		W1mpro:    &w1,
 		W1sigmpro: &w1s,
@@ -190,19 +198,19 @@ func TestConvertToMetadataFromRaw_WiseAllBands(t *testing.T) {
 
 func TestConvertToMetadata_ImplementsMetadataInterface(t *testing.T) {
 	adapter := Adapter{}
-	md, err := adapter.ConvertToMetadataFromRaw(repository.AllwiseInputSchema{})
+	md, err := adapter.ConvertToMetadataFromRaw(InputSchema{})
 	require.NoError(t, err)
 	assert.IsType(t, repository.Allwise{}, md)
 }
 
-func TestConvertToMetadataFromRowType(t *testing.T) {
-	adapter := Adapter{}
+func TestConvertFromPixelsRowToMetadata(t *testing.T) {
 	row := repository.GetAllwiseFromPixelsRow{
 		ID:     "from_db",
 		Cntr:   42,
 		W1mpro: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 14.0, Valid: true}},
 	}
-	md := adapter.ConvertToMetadata(row)
+
+	md := convertAllwiseFromPixelsRowToMetadata(row)
 	result := md.Object.(repository.Allwise)
 	assert.Equal(t, "from_db", result.ID)
 	assert.Equal(t, int64(42), result.Cntr)

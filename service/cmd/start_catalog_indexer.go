@@ -27,10 +27,10 @@ func StartCatalogIndexer(
 	if err != nil {
 		return err
 	}
+	defer repo.GetDbInstance().Close()
 
-	resolver := catalog.NewResolver()
+	resolver := catalog.NewResolver(repo)
 	srcCfg := cfg.CatalogIndexer.Source
-	resolver.RegisterStore(srcCfg.CatalogName, repo)
 
 	catalogRegister := app.CatalogRegister(ctx, repo, srcCfg)
 	catalogRegister.RegisterCatalog()
@@ -45,11 +45,9 @@ func StartCatalogIndexer(
 		return err
 	}
 
-	db := repo.GetDbInstance()
 	pipeline, err := pipeline.New(pipeline.PipelineConfig{
 		Context: ctx,
 		Config:  cfg,
-		DB:      db,
 		Source:  src,
 		Adapter: adapter,
 		Store:   repo,

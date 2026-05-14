@@ -3,11 +3,11 @@ package metadata
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
@@ -15,29 +15,57 @@ import (
 	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 )
 
-type mockAllwiseStore struct {
-	getAllwise    func(ctx context.Context, id string) (repository.GetAllwiseRow, error)
-	bulkGetAllwise func(ctx context.Context, ids []string) ([]repository.BulkGetAllwiseRow, error)
+func newAllwiseMetadataService(t *testing.T) (*MetadataService, *repository.Queries) {
+	t.Helper()
+	db, err := sql.Open("sqlite3", ":memory:")
+	require.NoError(t, err)
+	db.SetMaxOpenConns(1)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	_, err = db.Exec(`
+		CREATE TABLE mastercat (
+			id text not null,
+			ipix bigint not null,
+			ra double precision not null,
+			dec double precision not null,
+			cat text not null,
+			PRIMARY KEY (id, cat)
+		);
+		CREATE TABLE allwise (
+			id text not null,
+			cntr bigint not null,
+			w1mpro double precision,
+			w1sigmpro double precision,
+			w2mpro double precision,
+			w2sigmpro double precision,
+			w3mpro double precision,
+			w3sigmpro double precision,
+			w4mpro double precision,
+			w4sigmpro double precision,
+			J_m_2mass double precision,
+			J_msig_2mass double precision,
+			H_m_2mass double precision,
+			H_msig_2mass double precision,
+			K_m_2mass double precision,
+			K_msig_2mass double precision,
+			PRIMARY KEY (id)
+		);
+	`)
+	require.NoError(t, err)
+
+	queries := repository.New(db)
+	return &MetadataService{resolver: catalog.NewResolver(queries)}, queries
 }
 
-func (m mockAllwiseStore) InsertAllwiseWithoutParams(context.Context, repository.Allwise) error {
-	return nil
-}
-func (m mockAllwiseStore) GetAllwise(ctx context.Context, id string) (repository.GetAllwiseRow, error) {
-	return m.getAllwise(ctx, id)
-}
-func (m mockAllwiseStore) BulkInsertAllwise(context.Context, *sql.DB, []any) error {
-	return nil
-}
-func (m mockAllwiseStore) BulkGetAllwise(ctx context.Context, ids []string) ([]repository.BulkGetAllwiseRow, error) {
-	return m.bulkGetAllwise(ctx, ids)
-}
-func (m mockAllwiseStore) GetAllwiseFromPixels(context.Context, []int64) ([]repository.GetAllwiseFromPixelsRow, error) {
-	return nil, nil
+func insertAllwiseMetadata(t *testing.T, queries *repository.Queries, id string, ra, dec float64) {
+	t.Helper()
+	ctx := context.Background()
+	require.NoError(t, queries.InsertMastercat(ctx, repository.Mastercat{ID: id, Ipix: 1, Ra: ra, Dec: dec, Cat: "allwise"}))
+	require.NoError(t, queries.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: id}))
 }
 
 func TestMetadata_ValidateCatalog(t *testing.T) {
-	m := &MetadataService{resolver: catalog.NewResolver()}
+	m := &MetadataService{resolver: catalog.NewResolver(nil)}
 
 	err := m.validateCatalog("allwise")
 	require.Nil(t, err)
@@ -60,15 +88,8 @@ func TestMetadata_ValidateCatalog(t *testing.T) {
 }
 
 func TestMetadata_FindByID(t *testing.T) {
-	store := mockAllwiseStore{
-		getAllwise: func(ctx context.Context, id string) (repository.GetAllwiseRow, error) {
-			return repository.GetAllwiseRow{ID: "allwise1", Ra: 12.34, Dec: 56.78}, nil
-		},
-	}
-	resolver := catalog.NewResolver()
-	resolver.RegisterStore("allwise", store)
-
-	m := &MetadataService{resolver: resolver}
+	m, queries := newAllwiseMetadataService(t)
+	insertAllwiseMetadata(t, queries, "allwise1", 12.34, 56.78)
 
 	result, err := m.FindByID(context.Background(), "allwise1", "allwise")
 	require.Nil(t, err)
@@ -76,18 +97,9 @@ func TestMetadata_FindByID(t *testing.T) {
 }
 
 func TestMetadata_BulkFindByID(t *testing.T) {
-	store := mockAllwiseStore{
-		bulkGetAllwise: func(ctx context.Context, ids []string) ([]repository.BulkGetAllwiseRow, error) {
-			return []repository.BulkGetAllwiseRow{
-				{ID: "allwise1", Ra: 12.34, Dec: 56.78},
-				{ID: "allwise2", Ra: 23.45, Dec: 67.89},
-			}, nil
-		},
-	}
-	resolver := catalog.NewResolver()
-	resolver.RegisterStore("allwise", store)
-
-	m := &MetadataService{resolver: resolver}
+	m, queries := newAllwiseMetadataService(t)
+	insertAllwiseMetadata(t, queries, "allwise1", 12.34, 56.78)
+	insertAllwiseMetadata(t, queries, "allwise2", 23.45, 67.89)
 
 	result, err := m.BulkFindByID(context.Background(), []string{"allwise1", "allwise2"}, "allwise")
 	require.Nil(t, err)
@@ -98,15 +110,7 @@ func TestMetadata_BulkFindByID(t *testing.T) {
 }
 
 func TestMetadata_Bulk_EmptyResult(t *testing.T) {
-	store := mockAllwiseStore{
-		getAllwise: func(ctx context.Context, id string) (repository.GetAllwiseRow, error) {
-			return repository.GetAllwiseRow{}, sql.ErrNoRows
-		},
-	}
-	resolver := catalog.NewResolver()
-	resolver.RegisterStore("allwise", store)
-
-	m := &MetadataService{resolver: resolver}
+	m, _ := newAllwiseMetadataService(t)
 
 	_, err := m.FindByID(context.Background(), "allwise1", "allwise")
 	require.NotNil(t, err)
@@ -114,17 +118,9 @@ func TestMetadata_Bulk_EmptyResult(t *testing.T) {
 }
 
 func TestMetadata_SomeDBError(t *testing.T) {
-	store := mockAllwiseStore{
-		getAllwise: func(ctx context.Context, id string) (repository.GetAllwiseRow, error) {
-			return repository.GetAllwiseRow{}, fmt.Errorf("db error")
-		},
-	}
-	resolver := catalog.NewResolver()
-	resolver.RegisterStore("allwise", store)
-
-	m := &MetadataService{resolver: resolver}
+	m, queries := newAllwiseMetadataService(t)
+	require.NoError(t, queries.GetDbInstance().Close())
 
 	_, err := m.FindByID(context.Background(), "allwise1", "allwise")
 	require.NotNil(t, err)
-	require.EqualError(t, err, "db error")
 }

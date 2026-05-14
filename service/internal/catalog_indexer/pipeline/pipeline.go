@@ -17,17 +17,17 @@ package pipeline
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 
-	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
 	csv_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/csv"
+	fits_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/fits"
+	parquet_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/parquet"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
 	sqlite_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/sqlite"
@@ -39,9 +39,8 @@ import (
 type PipelineConfig struct {
 	Context context.Context
 	Config  config.Config
-	DB      *sql.DB
 	Source  *source.Source
-	Adapter catalog.CatalogIndexAdapter
+	Adapter catalog.CatalogAdapter
 	Store   conesearch.MastercatStore
 }
 
@@ -56,7 +55,7 @@ type Pipeline struct {
 func New(cfg PipelineConfig) (*Pipeline, error) {
 	ciCfg := cfg.Config.CatalogIndexer
 
-	mWriter, err := defaultMastercatWriter(cfg.Context, ciCfg, cfg.DB, cfg.Store)
+	mWriter, err := defaultMastercatWriter(cfg.Context, ciCfg, cfg.Store)
 	if err != nil {
 		return nil, fmt.Errorf("building mastercat writer: %w", err)
 	}
@@ -64,18 +63,14 @@ func New(cfg PipelineConfig) (*Pipeline, error) {
 
 	var mdWriter *actor.Actor
 	if ciCfg.Source.Metadata {
-		mdWriter, err = defaultMetadataWriter(cfg.Context, ciCfg, cfg.DB, cfg.Adapter)
+		mdWriter, err = defaultMetadataWriter(cfg.Context, ciCfg, cfg.Adapter)
 		if err != nil {
 			return nil, fmt.Errorf("building metadata writer: %w", err)
 		}
 		mdWriter.Start()
 	}
 
-	fillMastercat := func(raw any, mapper *healpix.HEALPixMapper) repository.Mastercat {
-		mc, _ := cfg.Adapter.ConvertToMastercat(raw, mapper)
-		return mc
-	}
-	mIndexer, err := defaultMastercatIndexer(ciCfg, mWriter, cfg.Context, fillMastercat)
+	mIndexer, err := defaultMastercatIndexer(ciCfg, mWriter, cfg.Context, cfg.Adapter)
 	if err != nil {
 		return nil, fmt.Errorf("building mastercat indexer: %w", err)
 	}
@@ -83,11 +78,7 @@ func New(cfg PipelineConfig) (*Pipeline, error) {
 
 	var mdIndexer *actor.Actor
 	if ciCfg.Source.Metadata {
-		fillMetadata := func(raw any) any {
-			md, _ := cfg.Adapter.ConvertToMetadataFromRaw(raw)
-			return md
-		}
-		mdIndexer = defaultMetadataIndexer(ciCfg, mdWriter, cfg.Context, fillMetadata)
+		mdIndexer = defaultMetadataIndexer(ciCfg, mdWriter, cfg.Context, cfg.Adapter)
 		mdIndexer.Start()
 	}
 
@@ -125,18 +116,17 @@ func (p *Pipeline) CloseSource() error {
 func defaultMastercatWriter(
 	ctx context.Context,
 	cfg config.CatalogIndexerConfig,
-	db *sql.DB,
 	store conesearch.MastercatStore,
 ) (*actor.Actor, error) {
 	switch cfg.IndexerWriter.Type {
 	case "parquet":
-		w, err := parquet_writer.New[repository.Mastercat](cfg.IndexerWriter, ctx)
+		w, err := parquet_writer.New(cfg.IndexerWriter, ctx, repository.Mastercat{})
 		if err != nil {
 			return nil, err
 		}
 		return actor.New("mastercat writer", cfg.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	case "sqlite":
-		w := sqlite_writer.New(db, ctx, store.BulkInsertObject)
+		w := sqlite_writer.New(ctx, store.BulkInsertObject)
 		return actor.New("mastercat writer", cfg.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	default:
 		return nil, fmt.Errorf("writer type not allowed")
@@ -146,18 +136,17 @@ func defaultMastercatWriter(
 func defaultMetadataWriter(
 	ctx context.Context,
 	cfg config.CatalogIndexerConfig,
-	db *sql.DB,
-	adapter catalog.CatalogIndexAdapter,
+	adapter catalog.CatalogAdapter,
 ) (*actor.Actor, error) {
 	switch cfg.MetadataWriter.Type {
 	case "parquet":
-		w, err := adapter.NewParquetWriter(cfg.MetadataWriter, ctx)
+		w, err := parquet_writer.New(cfg.MetadataWriter, ctx, adapter.NewMetadataRecord())
 		if err != nil {
 			return nil, err
 		}
 		return actor.New("metadata writer", cfg.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	case "sqlite":
-		w := sqlite_writer.New(db, ctx, adapter.BulkInsertFn())
+		w := sqlite_writer.New(ctx, adapter.BulkInsertMetadata)
 		return actor.New("metadata writer", cfg.ChannelSize, w.Write, w.Stop, nil, ctx), nil
 	default:
 		return nil, fmt.Errorf("unknown Metadata Writer Type: %s", cfg.MetadataWriter.Type)
@@ -168,9 +157,9 @@ func defaultMastercatIndexer(
 	cfg config.CatalogIndexerConfig,
 	writer *actor.Actor,
 	ctx context.Context,
-	fillMastercat func(any, *healpix.HEALPixMapper) repository.Mastercat,
+	adapter catalog.CatalogAdapter,
 ) (*actor.Actor, error) {
-	ind, err := mastercat_indexer.New(cfg.Indexer, fillMastercat)
+	ind, err := mastercat_indexer.New(cfg.Indexer, adapter)
 	if err != nil {
 		return nil, err
 	}
@@ -181,15 +170,15 @@ func defaultMetadataIndexer(
 	cfg config.CatalogIndexerConfig,
 	writer *actor.Actor,
 	ctx context.Context,
-	fillMetadata func(any) any,
+	adapter catalog.CatalogAdapter,
 ) *actor.Actor {
-	ind := metadata.New(fillMetadata)
+	ind := metadata.New(adapter)
 	return actor.New("metadata indexer", cfg.ChannelSize, ind.Index, nil, []*actor.Actor{writer}, ctx)
 }
 
 func defaultSourceReader(
 	src *source.Source,
-	adapter catalog.CatalogIndexAdapter,
+	adapter catalog.CatalogAdapter,
 	readerCfg config.ReaderConfig,
 	srcCfg config.SourceConfig,
 	mastercatIndexer *actor.Actor,
@@ -212,9 +201,17 @@ func defaultSourceReader(
 			csv_reader.WithCsvBatchSize(readerCfg.BatchSize),
 		)
 	case "parquet":
-		r, err = adapter.NewParquetReader(src, readerCfg)
+		r, err = parquet_reader.NewParquetReader(
+			src,
+			adapter,
+			parquet_reader.WithParquetBatchSize(readerCfg.BatchSize),
+		)
 	case "fits":
-		r, err = adapter.NewFitsReader(src, readerCfg)
+		r, err = fits_reader.NewFitsReader(
+			src,
+			adapter,
+			fits_reader.WithBatchSize(readerCfg.BatchSize),
+		)
 	default:
 		return reader.SourceReader{}, fmt.Errorf("reader type not allowed")
 	}

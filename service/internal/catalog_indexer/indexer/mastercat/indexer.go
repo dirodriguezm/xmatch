@@ -20,16 +20,16 @@ import (
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Indexer struct {
-	mapper        *healpix.HEALPixMapper
-	fillMastercat func(any, *healpix.HEALPixMapper) repository.Mastercat
+	mapper  *healpix.HEALPixMapper
+	adapter catalog.CatalogAdapter
 }
 
-func New(cfg config.IndexerConfig, fillMastercat func(any, *healpix.HEALPixMapper) repository.Mastercat) (*Indexer, error) {
+func New(cfg config.IndexerConfig, adapter catalog.CatalogAdapter) (*Indexer, error) {
 	slog.Debug("Creating new Mastercat Indexer")
 	orderingScheme := healpix.Ring
 	if strings.ToLower(cfg.OrderingScheme) == "nested" {
@@ -40,8 +40,8 @@ func New(cfg config.IndexerConfig, fillMastercat func(any, *healpix.HEALPixMappe
 		return nil, err
 	}
 	return &Indexer{
-		mapper:        mapper,
-		fillMastercat: fillMastercat,
+		mapper:  mapper,
+		adapter: adapter,
 	}, nil
 }
 
@@ -52,11 +52,23 @@ func (ind Indexer) Index(a *actor.Actor, msg actor.Message) {
 			Error: msg.Error,
 			Rows:  nil,
 		})
+		return
 	}
 
 	outputBatch := make([]any, len(msg.Rows))
 	for i := range msg.Rows {
-		outputBatch[i] = ind.fillMastercat(msg.Rows[i], ind.mapper)
+		ra, dec, err := ind.adapter.GetCoordinates(msg.Rows[i])
+		if err != nil {
+			a.Broadcast(actor.Message{Error: err, Rows: nil})
+			return
+		}
+		ipix := ind.mapper.PixelAt(healpix.RADec(ra, dec))
+		mastercat, err := ind.adapter.ConvertToMastercat(msg.Rows[i], ipix)
+		if err != nil {
+			a.Broadcast(actor.Message{Error: err, Rows: nil})
+			return
+		}
+		outputBatch[i] = mastercat
 	}
 
 	slog.Debug("Mastercat Indexer sending message", "len", len(outputBatch))
@@ -66,5 +78,4 @@ func (ind Indexer) Index(a *actor.Actor, msg actor.Message) {
 	})
 
 	msg.Rows = nil
-	outputBatch = nil
 }

@@ -37,12 +37,12 @@ type CsvReader struct {
 	currentFileReader io.ReadCloser
 	currentReader     *csv.Reader
 	src               *source.Source
-	adapter           catalog.CatalogIndexAdapter
+	adapter           catalog.CatalogAdapter
 	batchSize         int
 	opts              []CsvReaderOption
 }
 
-func NewCsvReader(src *source.Source, adapter catalog.CatalogIndexAdapter, opts ...CsvReaderOption) (*CsvReader, error) {
+func NewCsvReader(src *source.Source, adapter catalog.CatalogAdapter, opts ...CsvReaderOption) (*CsvReader, error) {
 	currentFileReader, err := src.Next()
 	if err != nil {
 		return nil, fmt.Errorf("could not get next source: %w", err)

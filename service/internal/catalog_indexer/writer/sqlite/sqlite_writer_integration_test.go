@@ -109,7 +109,7 @@ catalog_indexer:
 
 func TestReceive(t *testing.T) {
 	ctx := context.Background()
-	w := sqlite_writer.New(db, ctx, queries.BulkInsertObject)
+	w := sqlite_writer.New(ctx, queries.BulkInsertObject)
 
 	ids := []string{"1", "2"}
 	ras := []float64{1, 2}

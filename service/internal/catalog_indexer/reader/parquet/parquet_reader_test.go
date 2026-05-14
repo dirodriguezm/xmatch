@@ -42,6 +42,12 @@ type Object struct {
 	Dec float64 `parquet:"name=dec, type=DOUBLE"`
 }
 
+type testRawRecordFactory struct{}
+
+func (testRawRecordFactory) NewRawRecord() any {
+	return Object{}
+}
+
 func Write(t *testing.T, nrows int) string {
 	dir := t.TempDir()
 	parquetFile := filepath.Join(dir, "test.parquet")
@@ -90,7 +96,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +129,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +165,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +201,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}

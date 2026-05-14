@@ -9,6 +9,7 @@ import (
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -135,34 +136,56 @@ func TestBulkConesearch_WithRepositoryError(t *testing.T) {
 	require.Equal(t, "repository error", err.Error())
 }
 
-type mockAllwiseStore struct {
-	t       *testing.T
-	objects []repository.GetAllwiseFromPixelsRow
-}
+func newAllwiseMetadataRepo(t *testing.T) *repository.Queries {
+	t.Helper()
+	db, err := sql.Open("sqlite3", ":memory:")
+	require.NoError(t, err)
+	db.SetMaxOpenConns(1)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
-func (m mockAllwiseStore) InsertAllwiseWithoutParams(context.Context, repository.Allwise) error {
-	return nil
-}
-func (m mockAllwiseStore) GetAllwise(context.Context, string) (repository.GetAllwiseRow, error) {
-	return repository.GetAllwiseRow{}, nil
-}
-func (m mockAllwiseStore) BulkInsertAllwise(context.Context, *sql.DB, []any) error { return nil }
-func (m mockAllwiseStore) BulkGetAllwise(context.Context, []string) ([]repository.BulkGetAllwiseRow, error) {
-	return nil, nil
-}
-func (m mockAllwiseStore) GetAllwiseFromPixels(ctx context.Context, pixels []int64) ([]repository.GetAllwiseFromPixelsRow, error) {
-	return m.objects, nil
+	_, err = db.Exec(`
+		CREATE TABLE mastercat (
+			id text not null,
+			ipix bigint not null,
+			ra double precision not null,
+			dec double precision not null,
+			cat text not null,
+			PRIMARY KEY (id, cat)
+		);
+		CREATE TABLE allwise (
+			id text not null,
+			cntr bigint not null,
+			w1mpro double precision,
+			w1sigmpro double precision,
+			w2mpro double precision,
+			w2sigmpro double precision,
+			w3mpro double precision,
+			w3sigmpro double precision,
+			w4mpro double precision,
+			w4sigmpro double precision,
+			J_m_2mass double precision,
+			J_msig_2mass double precision,
+			H_m_2mass double precision,
+			H_msig_2mass double precision,
+			K_m_2mass double precision,
+			K_msig_2mass double precision,
+			PRIMARY KEY (id)
+		);
+	`)
+	require.NoError(t, err)
+	return repository.New(db)
 }
 
 func TestConesearch_WithMetadata(t *testing.T) {
-	objects := []repository.GetAllwiseFromPixelsRow{
-		{ID: "A", Ra: 1, Dec: 1},
-		{ID: "B", Ra: 10, Dec: 10},
-	}
-
-	store := mockAllwiseStore{t: t, objects: objects}
-	resolver := catalog.NewResolver()
-	resolver.RegisterStore("allwise", store)
+	metadataRepo := newAllwiseMetadataRepo(t)
+	ctx := context.Background()
+	mapper, err := healpix.NewHEALPixMapper(18, healpix.Nest)
+	require.NoError(t, err)
+	require.NoError(t, metadataRepo.InsertMastercat(ctx, repository.Mastercat{ID: "A", Ipix: mapper.PixelAt(healpix.RADec(1, 1)), Ra: 1, Dec: 1, Cat: "allwise"}))
+	require.NoError(t, metadataRepo.InsertMastercat(ctx, repository.Mastercat{ID: "B", Ipix: mapper.PixelAt(healpix.RADec(10, 10)), Ra: 10, Dec: 10, Cat: "allwise"}))
+	require.NoError(t, metadataRepo.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: "A"}))
+	require.NoError(t, metadataRepo.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: "B"}))
+	resolver := catalog.NewResolver(metadataRepo)
 
 	repo := NewMockMastercatStore(t)
 	catalogs := []repository.Catalog{{Name: "allwise", Nside: 18}}

@@ -4,35 +4,38 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConvertToMastercat(t *testing.T) {
-	mapper, err := healpix.NewHEALPixMapper(18, healpix.Ring)
-	require.NoError(t, err)
 	adapter := Adapter{}
+	ipix := int64(123)
 
-	raw := repository.GaiaInputSchema{
+	raw := InputSchema{
 		Designation: "Gaia DR3 123456789",
 		RA:          45.0,
 		Dec:         30.0,
 	}
-	mc, err := adapter.ConvertToMastercat(raw, mapper)
+	ra, dec, err := adapter.GetCoordinates(raw)
+	require.NoError(t, err)
+	assert.Equal(t, 45.0, ra)
+	assert.Equal(t, 30.0, dec)
+
+	mc, err := adapter.ConvertToMastercat(raw, ipix)
 	require.NoError(t, err)
 	assert.Equal(t, "Gaia DR3 123456789", mc.ID)
 	assert.Equal(t, 45.0, mc.Ra)
 	assert.Equal(t, 30.0, mc.Dec)
 	assert.Equal(t, "gaia", mc.Cat)
-	assert.NotZero(t, mc.Ipix)
+	assert.Equal(t, ipix, mc.Ipix)
 }
 
 func TestConvertToMetadataFromRaw(t *testing.T) {
 	adapter := Adapter{}
 
-	raw := repository.GaiaInputSchema{
+	raw := InputSchema{
 		Designation:         "Gaia DR3 123456789",
 		PhotGMeanFlux:       1000.5,
 		PhotGMeanFluxError:  10.2,
@@ -61,13 +64,12 @@ func TestConvertToMetadataFromRaw(t *testing.T) {
 
 func TestConvertToMetadataFromRaw_ImplementsMetadataInterface(t *testing.T) {
 	adapter := Adapter{}
-	md, err := adapter.ConvertToMetadataFromRaw(repository.GaiaInputSchema{})
+	md, err := adapter.ConvertToMetadataFromRaw(InputSchema{})
 	require.NoError(t, err)
 	assert.IsType(t, repository.Gaia{}, md)
 }
 
-func TestConvertToMetadataFromRowType(t *testing.T) {
-	adapter := Adapter{}
+func TestConvertFromPixelsRowToMetadata(t *testing.T) {
 	row := repository.GetGaiaFromPixelsRow{
 		ID:                  "from_db",
 		PhotGMeanFlux:       repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 1000.5, Valid: true}},
@@ -77,7 +79,8 @@ func TestConvertToMetadataFromRowType(t *testing.T) {
 		PhotBpMeanFluxError: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 8.1, Valid: true}},
 		PhotBpMeanMag:       repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 16.0, Valid: true}},
 	}
-	md := adapter.ConvertToMetadata(row)
+
+	md := convertGaiaFromPixelsRowToMetadata(row)
 	result := md.Object.(repository.Gaia)
 	assert.Equal(t, "from_db", result.ID)
 	assert.Equal(t, 1000.5, result.PhotGMeanFlux.Float64)

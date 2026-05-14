@@ -59,7 +59,7 @@ func (m *MetadataService) BulkFindByID(ctx context.Context, ids []string, catalo
 }
 
 func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalogName string) (any, error) {
-	adapter, err := m.resolver.GetQuery(catalogName)
+	adapter, err := m.resolver.Get(catalogName)
 	if err != nil {
 		return nil, ArgumentError{Name: "catalog", Value: catalogName, Reason: err.Error()}
 	}
@@ -67,7 +67,7 @@ func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalogNa
 }
 
 func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, catalogName string) (any, error) {
-	adapter, err := m.resolver.GetQuery(catalogName)
+	adapter, err := m.resolver.Get(catalogName)
 	if err != nil {
 		return nil, ArgumentError{Name: "catalog", Value: catalogName, Reason: err.Error()}
 	}

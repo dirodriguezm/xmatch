@@ -129,7 +129,7 @@ func InsertAllwiseMetadata(nobjects int, db *sql.DB) error {
 			KM2mass:    repository.NullFloat64{sql.NullFloat64{Float64: 7.0, Valid: true}},
 			KMsig2mass: repository.NullFloat64{sql.NullFloat64{Float64: 0.7, Valid: true}},
 		}
-		err := repo.InsertAllwiseWithoutParams(context.Background(), metadata)
+		err := repo.InsertAllwise(context.Background(), repository.InsertAllwiseParams(metadata))
 		if err != nil {
 			return fmt.Errorf("could not insert allwise metadata: %w", err)
 		}

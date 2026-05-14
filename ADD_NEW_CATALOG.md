@@ -1,282 +1,391 @@
 # Adding a New Catalog to the ALeRCE xmatch Indexer
 
-This guide provides step-by-step instructions for adding a new astronomical catalog to the ALeRCE xmatch indexer. The process involves modifying database schemas, implementing Go interfaces, and updating configuration files.
+This guide describes the current path for adding a new astronomical catalog to the xmatch service. The indexer now routes catalog-specific behavior through `catalog.CatalogIndexAdapter`, so new catalogs should be added as adapters instead of by editing reader factories or pipeline switch statements.
+
+Use `newcatalog` below as the placeholder catalog name.
 
 ## Overview
 
-The indexer supports multiple catalogs (AllWISE, Gaia, eRosita) through a modular architecture. Each catalog requires:
-1. Database table definition
-2. SQLC configuration for code generation
-3. Input schema struct with interface implementations
-4. Reader factory registration
-5. App initialization updates
+A catalog needs these pieces:
 
-## Step 1: Create Database Migration
+1. A metadata table migration under `service/internal/db/migrations/`.
+2. SQL queries in `service/internal/db/query.sql`.
+3. SQLC overrides in `service/internal/db/sqlc.yaml` when generated types or parquet tags need customization.
+4. Repository glue in `service/internal/repository/newcatalog.go`.
+5. Bulk insert support in `service/internal/repository/bulk_insert.go`.
+6. A catalog adapter under `service/internal/catalog/newcatalog/`.
+7. Adapter registration in `service/cmd/main.go` and, if the HTTP API must query it, `service/cmd/start_http_server.go`.
+8. A config file passed with `CONFIG_PATH` when running the indexer.
 
-### 1.1 Create Migration File
-Create a new migration file in `service/internal/db/migrations/`:
+## Step 1: Add Database Migrations
+
+Create the next numbered migration files in `service/internal/db/migrations/`. The current last catalog migration is `005_erosita`, so the next one should be `006_newcatalog` unless new migrations have been added since this guide was written.
 
 ```bash
-# Create migration for new catalog (e.g., "newcatalog")
-cd service/internal/db/migrations
-touch 003_newcatalog.up.sql
-touch 003_newcatalog.down.sql
+touch service/internal/db/migrations/006_newcatalog.up.sql
+touch service/internal/db/migrations/006_newcatalog.down.sql
 ```
 
-### 1.2 Define Table Schema
-Edit `003_newcatalog.up.sql`:
+Metadata tables store only catalog-specific fields. Coordinates and HEALPix pixels are stored in `mastercat`, so do not add `ipix` to the catalog table unless the catalog itself has an unrelated pixel column.
+
+Example `006_newcatalog.up.sql`:
 
 ```sql
 CREATE TABLE newcatalog (
-    id TEXT PRIMARY KEY,
-    ra REAL NOT NULL,
-    dec REAL NOT NULL,
-    -- Add your catalog-specific columns here
-    column1 REAL,
-    column2 REAL,
-    -- Include nullable columns with appropriate defaults
-    optional_column REAL DEFAULT NULL
+    id text NOT NULL,
+    mag_g double precision,
+    mag_r double precision,
+    flag smallint,
+    PRIMARY KEY (id)
 );
 
--- Create indexes for performance
-CREATE INDEX idx_newcatalog_ra_dec ON newcatalog(ra, dec);
-CREATE INDEX idx_newcatalog_ipix ON newcatalog(ipix);
+CREATE INDEX idx_newcatalog_mag_g ON newcatalog(mag_g);
 ```
 
-Edit `003_newcatalog.down.sql`:
+Example `006_newcatalog.down.sql`:
 
 ```sql
 DROP TABLE IF EXISTS newcatalog;
 ```
 
-### 1.3 Apply Migration
+Apply migrations to a local database when you need to test against SQLite:
+
 ```bash
-just migrate dev  # or your database name
+just migrate dev
 ```
 
-## Step 2: Update SQLC Configuration
+## Step 2: Add SQLC Queries
 
-### 2.1 Edit `service/internal/db/sqlc.yaml`
-Add column overrides for your new catalog in the `overrides` section:
+Edit `service/internal/db/query.sql` and add insert, lookup, bulk lookup, cleanup, and pixel lookup queries.
+
+```sql
+-- name: InsertNewcatalog :exec
+INSERT INTO newcatalog (
+    id, mag_g, mag_r, flag
+) VALUES (
+    ?, ?, ?, ?
+);
+
+-- name: GetNewcatalog :one
+SELECT newcatalog.*, mastercat.ra, mastercat.dec
+FROM newcatalog
+JOIN mastercat ON mastercat.id = newcatalog.id
+WHERE newcatalog.id = ?;
+
+-- name: BulkGetNewcatalog :many
+SELECT newcatalog.*, mastercat.ra, mastercat.dec
+FROM newcatalog
+JOIN mastercat ON mastercat.id = newcatalog.id
+WHERE newcatalog.id IN (sqlc.slice(id));
+
+-- name: RemoveAllNewcatalog :exec
+DELETE FROM newcatalog;
+
+-- name: GetNewcatalogFromPixels :many
+SELECT newcatalog.*, mastercat.ra, mastercat.dec
+FROM newcatalog
+JOIN mastercat ON mastercat.id = newcatalog.id
+WHERE mastercat.ipix IN (sqlc.slice(ipix));
+```
+
+The joins are important because metadata responses include RA and DEC from `mastercat`.
+
+## Step 3: Update SQLC Configuration
+
+Edit `service/internal/db/sqlc.yaml`.
+
+Add column overrides under `sql[0].gen.go.overrides` if the generated struct needs parquet tags or custom nullable wrapper types:
+
+```yaml
+          - column: "newcatalog.id"
+            go_struct_tag: 'json:"id" parquet:"name=id, type=BYTE_ARRAY"'
+          - column: "newcatalog.mag_g"
+            go_struct_tag: 'json:"mag_g" parquet:"name=mag_g, type=DOUBLE"'
+            go_type:
+              type: "NullFloat64"
+          - column: "newcatalog.mag_r"
+            go_struct_tag: 'json:"mag_r" parquet:"name=mag_r, type=DOUBLE"'
+            go_type:
+              type: "NullFloat64"
+          - column: "newcatalog.flag"
+            go_struct_tag: 'json:"flag" parquet:"name=flag, type=INT32"'
+            go_type:
+              type: "NullInt64"
+```
+
+If SQLC generates an awkward Go type name, add a rename under the root `overrides.go.rename` block at the end of the file:
 
 ```yaml
 overrides:
   go:
     rename:
-      newcatalogum: Newcatalog  # SQLite table name + "um" suffix -> Go struct name
-  - column: "newcatalog.id"
-    go_struct_tag: 'parquet:"name=id, type=BYTE_ARRAY" json:"id"'
-  - column: "newcatalog.ra"
-    go_struct_tag: 'parquet:"name=ra, type=DOUBLE" json:"ra"'
-  - column: "newcatalog.dec"
-    go_struct_tag: 'parquet:"name=dec, type=DOUBLE" json:"dec"'
-  # Add overrides for all your catalog columns
-  - column: "newcatalog.column1"
-    go_struct_tag: 'parquet:"name=column1, type=DOUBLE" json:"column1"'
+      gaium: Gaia
+      erositum: Erosita
+      newcatalogum: Newcatalog
 ```
 
-### 2.2 Regenerate SQLC Code
+Only add the rename if SQLC actually needs it.
+
+Regenerate repository code from the directory containing `sqlc.yaml`:
+
 ```bash
-cd service
+cd service/internal/db
 sqlc generate
 ```
 
-## Step 3: Implement Repository Interfaces
+This updates generated files such as `service/internal/repository/models.go` and `service/internal/repository/query.sql.go`.
 
-### 3.1 Create Input Schema File
-Create `service/internal/repository/newcatalog.go`:
+## Step 4: Add Repository Glue
+
+Create `service/internal/repository/newcatalog.go`. This file holds the input schema used by readers and small methods that cannot be generated by SQLC.
 
 ```go
 package repository
 
-import (
-    "context"
-    "database/sql"
-)
+import "context"
 
 type NewcatalogInputSchema struct {
-    ID      string  `parquet:"name=id, type=BYTE_ARRAY"`
-    Ra      float64 `parquet:"name=ra, type=DOUBLE"`
-    Dec     float64 `parquet:"name=dec, type=DOUBLE"`
-    Column1 float64 `parquet:"name=column1, type=DOUBLE"`
-    Column2 float64 `parquet:"name=column2, type=DOUBLE"`
+	ID    string  `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
+	RA    float64 `json:"ra" parquet:"name=ra, type=DOUBLE"`
+	Dec   float64 `json:"dec" parquet:"name=dec, type=DOUBLE"`
+	MagG  float64 `json:"mag_g" parquet:"name=mag_g, type=DOUBLE"`
+	MagR  float64 `json:"mag_r" parquet:"name=mag_r, type=DOUBLE"`
+	Flag  int64   `json:"flag" parquet:"name=flag, type=INT64"`
 }
 
-func (schema NewcatalogInputSchema) GetCoordinates() (float64, float64) {
-    return schema.Ra, schema.Dec
-}
-
-func (schema NewcatalogInputSchema) GetId() string {
-    return schema.ID
-}
-
-func (schema NewcatalogInputSchema) FillMetadata() Metadata {
-    return &Newcatalog{
-        ID:      schema.ID,
-        Column1: sql.NullFloat64{Float64: schema.Column1, Valid: true},
-        Column2: sql.NullFloat64{Float64: schema.Column2, Valid: true},
-    }
-}
-
-func (schema NewcatalogInputSchema) FillMastercat(ipix int64) Mastercat {
-    return Mastercat{
-        ID:   schema.ID,
-        Ipix: ipix,
-        Ra:   schema.Ra,
-        Dec:  schema.Dec,
-        Cat:  "newcatalog",
-    }
-}
-
-// Implement required interface methods for the model
 func (n Newcatalog) GetId() string {
-    return n.ID
+	return n.ID
 }
 
 func (n Newcatalog) GetCatalog() string {
-    return "NewCatalog"
+	return "NewCatalog"
 }
 
-// Add bulk insert helper if needed
+func (m GetNewcatalogFromPixelsRow) GetId() string {
+	return m.ID
+}
+
+func (m GetNewcatalogFromPixelsRow) GetCoordinates() (float64, float64) {
+	return m.Ra, m.Dec
+}
+
+func (m GetNewcatalogFromPixelsRow) GetCatalog() string {
+	return "NewCatalog"
+}
+
 func (q *Queries) InsertNewcatalogWithoutParams(ctx context.Context, arg Newcatalog) error {
-    _, err := q.db.ExecContext(ctx, insertNewcatalog,
-        arg.ID,
-        arg.Column1,
-        arg.Column2,
-    )
-    return err
+	return q.InsertNewcatalog(ctx, InsertNewcatalogParams{
+		ID:    arg.ID,
+		MagG:  arg.MagG,
+		MagR:  arg.MagR,
+		Flag:  arg.Flag,
+	})
 }
 ```
 
-### 3.2 Update `service/internal/repository/input_schema.go`
-Add a variable for your input schema:
+Notes:
+
+1. `Newcatalog` and `InsertNewcatalogParams` are generated by SQLC after Step 3.
+2. CSV input is mapped by field order, not header name, so the input schema field order must match the CSV columns used by the reader.
+3. Use pointers in the input schema for nullable source values if the source format needs to distinguish zero from null, then handle those pointers in the adapter conversion code.
+
+## Step 5: Add Bulk Insert Support
+
+Edit `service/internal/repository/bulk_insert.go` and add a catalog-specific bulk insert method.
 
 ```go
-var NewcatalogInputSchema NewcatalogInputSchema
+func (q *Queries) BulkInsertNewcatalog(ctx context.Context, db *sql.DB, arg []any) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	qtx := q.WithTx(tx)
+	for i := range arg {
+		err = qtx.InsertNewcatalogWithoutParams(ctx, arg[i].(Newcatalog))
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
 ```
 
-## Step 4: Update Reader Factory
+`bulk_insert.go` already imports `context` and `database/sql`, so no new imports are usually required.
 
-### 4.1 Edit `service/internal/catalog_indexer/reader/factory/reader_factory.go`
-Update the `parquetFactory` function to support your catalog:
+## Step 6: Add the Catalog Adapter
+
+Create `service/internal/catalog/newcatalog/newcatalog.go`. The adapter is what connects readers, writers, indexing, SQLite bulk inserts, and metadata search for the catalog.
 
 ```go
-func parquetFactory(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
-    switch strings.ToLower(src.CatalogName) {
-    case "allwise":
-        return parquet_reader.NewParquetReader(
-            src,
-            parquet_reader.WithParquetBatchSize[repository.AllwiseInputSchema](cfg.BatchSize),
-        )
-    case "gaia":
-        return parquet_reader.NewParquetReader(
-            src,
-            parquet_reader.WithParquetBatchSize[repository.GaiaInputSchema](cfg.BatchSize),
-        )
-    case "newcatalog":  // Add your catalog
-        return parquet_reader.NewParquetReader(
-            src,
-            parquet_reader.WithParquetBatchSize[repository.NewcatalogInputSchema](cfg.BatchSize),
-        )
-    default:
-        return nil, fmt.Errorf("Schema not found for catalog %s", src.CatalogName)
-    }
+package newcatalog
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+
+	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader"
+	fits_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/fits"
+	parquet_reader "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/reader/parquet"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer"
+	parquet_writer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/writer/parquet"
+	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
+)
+
+type NewcatalogStore interface {
+	InsertNewcatalogWithoutParams(context.Context, repository.Newcatalog) error
+	GetNewcatalog(context.Context, string) (repository.GetNewcatalogRow, error)
+	BulkInsertNewcatalog(context.Context, *sql.DB, []any) error
+	BulkGetNewcatalog(context.Context, []string) ([]repository.BulkGetNewcatalogRow, error)
+	GetNewcatalogFromPixels(context.Context, []int64) ([]repository.GetNewcatalogFromPixelsRow, error)
+}
+
+type Adapter struct {
+	store NewcatalogStore
+}
+
+func init() {
+	catalog.Register("newcatalog", func(store any) (catalog.CatalogIndexAdapter, error) {
+		s, _ := store.(NewcatalogStore)
+		return &Adapter{store: s}, nil
+	})
+}
+
+func (a Adapter) Name() string {
+	return "newcatalog"
+}
+
+func (a Adapter) NewRawRecord() any {
+	return repository.NewcatalogInputSchema{}
+}
+
+func (a Adapter) NewParquetWriter(cfg config.WriterConfig, ctx context.Context) (writer.Writer, error) {
+	return parquet_writer.New[repository.Newcatalog](cfg, ctx)
+}
+
+func (a Adapter) NewParquetReader(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
+	return parquet_reader.NewParquetReader(
+		src,
+		parquet_reader.WithParquetBatchSize[repository.NewcatalogInputSchema](cfg.BatchSize),
+	)
+}
+
+func (a Adapter) NewFitsReader(src *source.Source, cfg config.ReaderConfig) (reader.Reader, error) {
+	return fits_reader.NewFitsReader(
+		src,
+		a,
+		fits_reader.WithBatchSize[repository.NewcatalogInputSchema](cfg.BatchSize),
+	)
+}
+
+func (a Adapter) BulkInsertFn() func(context.Context, *sql.DB, []any) error {
+	if a.store == nil {
+		return func(ctx context.Context, db *sql.DB, rows []any) error {
+			return fmt.Errorf("newcatalog adapter has no store")
+		}
+	}
+	return a.store.BulkInsertNewcatalog
+}
+
+func (a Adapter) GetByID(ctx context.Context, id string) (any, error) {
+	if a.store == nil {
+		return nil, fmt.Errorf("newcatalog adapter has no store")
+	}
+	return a.store.GetNewcatalog(ctx, id)
+}
+
+func (a Adapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
+	if a.store == nil {
+		return nil, fmt.Errorf("newcatalog adapter has no store")
+	}
+	return a.store.BulkGetNewcatalog(ctx, ids)
+}
+
+func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
+	if a.store == nil {
+		return nil, fmt.Errorf("newcatalog adapter has no store")
+	}
+	rows, err := a.store.GetNewcatalogFromPixels(ctx, pixels)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]repository.Metadata, len(rows))
+	for i, r := range rows {
+		result[i] = a.ConvertToMetadata(r)
+	}
+	return result, nil
+}
+
+func (a Adapter) ConvertToMetadata(obj any) repository.Metadata {
+	row := obj.(repository.GetNewcatalogFromPixelsRow)
+	return repository.Metadata{
+		ID:      row.ID,
+		Catalog: row.GetCatalog(),
+		Ra:      row.Ra,
+		Dec:     row.Dec,
+		Object: repository.Newcatalog{
+			ID:    row.ID,
+			MagG:  row.MagG,
+			MagR:  row.MagR,
+			Flag:  row.Flag,
+		},
+	}
+}
+
+func (a Adapter) ConvertToMastercat(raw any, mapper *healpix.HEALPixMapper) (repository.Mastercat, error) {
+	schema := raw.(repository.NewcatalogInputSchema)
+	ipix := mapper.PixelAt(healpix.RADec(schema.RA, schema.Dec))
+	return repository.Mastercat{
+		ID:   schema.ID,
+		Ipix: ipix,
+		Ra:   schema.RA,
+		Dec:  schema.Dec,
+		Cat:  "newcatalog",
+	}, nil
+}
+
+func (a Adapter) ConvertToMetadataFromRaw(raw any) (any, error) {
+	schema := raw.(repository.NewcatalogInputSchema)
+	return repository.Newcatalog{
+		ID:    schema.ID,
+		MagG:  repository.NullFloat64{sql.NullFloat64{Float64: schema.MagG, Valid: true}},
+		MagR:  repository.NullFloat64{sql.NullFloat64{Float64: schema.MagR, Valid: true}},
+		Flag:  repository.NullInt64{sql.NullInt64{Int64: schema.Flag, Valid: true}},
+	}, nil
 }
 ```
 
-## Step 5: Update App Initialization
+Adjust the generated field names in the example to match SQLC output. Run `gofmt` after editing Go files.
 
-### 5.1 Edit `service/internal/app/indexer.go`
-Add constants and update switch statements:
+## Step 7: Register the Adapter
+
+Edit `service/cmd/main.go` and add a blank import so the adapter `init()` function runs:
 
 ```go
-const ALLWISE = "allwise"
-const GAIA = "gaia"
-const EROSITA = "erosita"
-const NEWCATALOG = "newcatalog"  // Add your catalog
-
-// Update MetadataWriter function
-func MetadataWriter(ctx context.Context, cfg config.Config, repo conesearch.Repository, src *source.Source) (*actor.Actor, error) {
-    switch cfg.CatalogIndexer.MetadataWriter.Type {
-    case "parquet":
-        var w writer.Writer
-        var err error
-        switch strings.ToLower(cfg.CatalogIndexer.Source.CatalogName) {
-        case ALLWISE:
-            w, err = parquet_writer.New[repository.Allwise](cfg.CatalogIndexer.MetadataWriter, ctx)
-        case GAIA:
-            w, err = parquet_writer.New[repository.Gaia](cfg.CatalogIndexer.MetadataWriter, ctx)
-        case EROSITA:
-            w, err = parquet_writer.New[repository.Erosita](cfg.CatalogIndexer.MetadataWriter, ctx)
-        case NEWCATALOG:  // Add your catalog
-            w, err = parquet_writer.New[repository.Newcatalog](cfg.CatalogIndexer.MetadataWriter, ctx)
-        default:
-            err = fmt.Errorf("Unknown catalog %s", cfg.CatalogIndexer.Source.CatalogName)
-        }
-        // ... rest of function
-    case "sqlite":
-        switch strings.ToLower(cfg.CatalogIndexer.Source.CatalogName) {
-        case ALLWISE:
-            w := sqlite_writer.New(repo, ctx, repo.BulkInsertAllwise)
-            return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-        case GAIA:
-            w := sqlite_writer.New(repo, ctx, repo.BulkInsertGaia)
-            return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-        case EROSITA:
-            w := sqlite_writer.New(repo, ctx, repo.BulkInsertErosita)
-            return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-        case NEWCATALOG:  // Add your catalog
-            w := sqlite_writer.New(repo, ctx, repo.BulkInsertNewcatalog)
-            return actor.New("metadata writer", cfg.CatalogIndexer.ChannelSize, w.Write, w.Stop, nil, ctx), nil
-        default:
-            return nil, fmt.Errorf("Unknown catalog %s", cfg.CatalogIndexer.Source.CatalogName)
-        }
-    }
-}
-
-// Update MastercatIndexer function
-func MastercatIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context) (*actor.Actor, error) {
-    fillMastercat := func(schema repository.InputSchema, ipix int64) repository.Mastercat {
-        switch cfg.Source.CatalogName {
-        case ALLWISE:
-            return repository.AllwiseInputSchema.FillMastercat(schema.(repository.AllwiseInputSchema), ipix)
-        case GAIA:
-            return repository.GaiaInputSchema.FillMastercat(schema.(repository.GaiaInputSchema), ipix)
-        case EROSITA:
-            return repository.ErositaInputSchema.FillMastercat(schema.(repository.ErositaInputSchema), ipix)
-        case NEWCATALOG:  // Add your catalog
-            return repository.NewcatalogInputSchema.FillMastercat(schema.(repository.NewcatalogInputSchema), ipix)
-        default:
-            panic("Catalog not supported")
-        }
-    }
-    // ... rest of function
-}
-
-// Update MetadataIndexer function
-func MetadataIndexer(cfg config.CatalogIndexerConfig, writer *actor.Actor, ctx context.Context) *actor.Actor {
-    fillMetadata := func(schema repository.InputSchema) repository.Metadata {
-        switch cfg.Source.CatalogName {
-        case ALLWISE:
-            return repository.AllwiseInputSchema.FillMetadata(schema.(repository.AllwiseInputSchema))
-        case GAIA:
-            return repository.GaiaInputSchema.FillMetadata(schema.(repository.GaiaInputSchema))
-        case EROSITA:
-            return repository.ErositaInputSchema.FillMetadata(schema.(repository.ErositaInputSchema))
-        case NEWCATALOG:  // Add your catalog
-            return repository.NewcatalogInputSchema.FillMetadata(schema.(repository.NewcatalogInputSchema))
-        default:
-            panic("Catalog not supported")
-        }
-    }
-    // ... rest of function
-}
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/newcatalog"
 ```
 
-## Step 6: Create Configuration
+The indexer registers the SQLite store dynamically from `catalog_indexer.source.catalog_name`, so no per-catalog indexer switch is needed.
 
-### 6.1 Create Catalog Configuration
-Create a configuration file in `service/configs/` (e.g., `newcatalog.yaml`):
+If the HTTP API must query metadata for the new catalog, edit `service/cmd/start_http_server.go` and register the store:
+
+```go
+	resolver.RegisterStore("newcatalog", queries)
+```
+
+Also update API/setup tests if they construct a resolver with all supported catalogs.
+
+## Step 8: Configure and Run the Indexer
+
+Create a local config file and run with `CONFIG_PATH`. There is no required `service/configs/` directory; any path is fine.
+
+Example `service/newcatalog.yaml`:
 
 ```yaml
 catalog_indexer:
@@ -300,59 +409,42 @@ catalog_indexer:
   channel_size: 50000
 ```
 
-### 6.2 Update Main Config (Optional)
-Add your catalog to the main `service/config.yaml` if needed:
+Run it:
 
-```yaml
-catalog_indexer:
-  source:
-    catalog_name: "vlass|ztf|allwise|gaia|erosita|newcatalog"
+```bash
+CONFIG_PATH=service/newcatalog.yaml just run indexer
 ```
 
-## Step 7: Add Bulk Insert Support (Optional)
+For CSV sources, set `source.type` and `reader.type` to `csv`. The current CSV reader maps records into `NewcatalogInputSchema` by struct field order, so make sure the source column order matches the input schema or provide a preprocessed file in that order.
 
-If you need bulk insert functionality, update `service/internal/repository/bulk_insert.go`:
+## Step 9: Verify
 
-```go
-func (q *Queries) BulkInsertNewcatalog(ctx context.Context, arg []Newcatalog) error {
-    // Implement bulk insert logic similar to other catalogs
-    // See BulkInsertAllwise for reference
-}
+Run these checks from the repository root unless the command changes directories itself:
+
+```bash
+cd service/internal/db
+sqlc generate
 ```
 
-## Common Patterns and Examples
-
-### Handling Nullable Fields
-```go
-type NewcatalogInputSchema struct {
-    ID         string   `parquet:"name=id, type=BYTE_ARRAY"`
-    Ra         float64  `parquet:"name=ra, type=DOUBLE"`
-    Dec        float64  `parquet:"name=dec, type=DOUBLE"`
-    Optional   *float64 `parquet:"name=optional, type=DOUBLE"`  // Pointer for nullable
-}
-
-func (schema NewcatalogInputSchema) FillMetadata() Metadata {
-    newcatalog := &Newcatalog{
-        ID: schema.ID,
-    }
-    
-    if schema.Optional != nil {
-        newcatalog.Optional = sql.NullFloat64{Float64: *schema.Optional, Valid: true}
-    } else {
-        newcatalog.Optional = sql.NullFloat64{Float64: -9999.0, Valid: false}
-    }
-    
-    return newcatalog
-}
+```bash
+cd service
+gofmt -w internal/repository internal/catalog cmd
+go test ./... -race
 ```
 
-### CSV Reader Support
-If your catalog uses CSV format, ensure column mappings are correct in your configuration.
+If you changed `catalog.CatalogIndexAdapter` itself, regenerate mocks:
 
-## References
+```bash
+just mock
+```
 
-- Existing implementations: `service/internal/repository/allwise.go`, `gaia.go`, `erosita.go`
-- Reader factory: `service/internal/catalog_indexer/reader/factory/reader_factory.go`
-- App initialization: `service/internal/app/indexer.go`
-- SQLC configuration: `service/internal/db/sqlc.yaml`
+## Reference Files
 
+- `service/internal/catalog/adapter.go`: catalog adapter interfaces and resolver.
+- `service/internal/catalog/allwise/allwise.go`: compact adapter example with nullable source values.
+- `service/internal/catalog/gaia/gaia.go`: simple adapter example.
+- `service/internal/catalog/erosita/erosita.go`: large metadata adapter example.
+- `service/internal/catalog_indexer/pipeline/pipeline.go`: generic pipeline using adapters.
+- `service/internal/repository/bulk_insert.go`: SQLite bulk insert helpers.
+- `service/internal/db/query.sql`: SQLC query definitions.
+- `service/internal/db/sqlc.yaml`: SQLC generation and type/tag overrides.

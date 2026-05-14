@@ -147,10 +147,7 @@ service:
 
 	queries := app.ServiceRepository(db)
 
-	resolver := catalog.NewResolver()
-	resolver.RegisterStore("allwise", queries)
-	resolver.RegisterStore("gaia", queries)
-	resolver.RegisterStore("erosita", queries)
+	resolver := catalog.NewResolver(queries)
 
 	conesearchService, err := app.ConesearchService(queries, resolver)
 	if err != nil {

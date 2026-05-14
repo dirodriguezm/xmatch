@@ -17,6 +17,7 @@ package parquet_reader
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"reflect"
 
@@ -28,38 +29,56 @@ import (
 	psource "github.com/xitongsys/parquet-go/source"
 )
 
-type ParquetReader[T any] struct {
+type rawRecordFactory interface {
+	NewRawRecord() any
+}
+
+type ParquetReader struct {
 	currentParquetReader *preader.ParquetReader
 	currentFileReader    psource.ParquetFile
 	currentFileName      string
 	src                  *source.Source
+	adapter              rawRecordFactory
+	recordType           reflect.Type
 	batchSize            int
 }
 
-func NewParquetReader[T any](src *source.Source, opts ...ParquetReaderOption[T]) (*ParquetReader[T], error) {
+func NewParquetReader(src *source.Source, adapter rawRecordFactory, opts ...ParquetReaderOption) (*ParquetReader, error) {
+	if adapter == nil {
+		return nil, fmt.Errorf("parquet reader requires a raw record factory")
+	}
+	recordType := reflect.TypeOf(adapter.NewRawRecord())
+	if recordType == nil || recordType.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("raw record factory must return a struct")
+	}
+
 	currentReader, err := src.Next()
 	if err != nil {
 		return nil, fmt.Errorf("could not get next source: %w", err)
 	}
 	currentFileName := currentReader.(*os.File).Name()
-	currentReader.(*os.File).Close()
+	closeErr := currentReader.(*os.File).Close()
+	if closeErr != nil {
+		slog.Error("could not close current file reader", "error", closeErr)
+	}
 
 	fr, err := local.NewLocalFileReader(currentFileName)
 	if err != nil {
-		return nil, fmt.Errorf("Could not create NewLocalFileReader\n%w", err)
+		return nil, fmt.Errorf("could not create NewLocalFileReader\n%w", err)
 	}
 
-	schema := new(T)
-	pr, err := preader.NewParquetReader(fr, schema, 1)
+	pr, err := preader.NewParquetReader(fr, reflect.New(recordType).Interface(), 1)
 	if err != nil {
-		return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
+		return nil, fmt.Errorf("could not create NewParquetReader\n%w", err)
 	}
 
-	newReader := &ParquetReader[T]{
+	newReader := &ParquetReader{
 		currentParquetReader: pr,
 		currentFileReader:    fr,
 		currentFileName:      currentFileName,
 		src:                  src,
+		adapter:              adapter,
+		recordType:           recordType,
 	}
 
 	for _, opt := range opts {
@@ -69,70 +88,89 @@ func NewParquetReader[T any](src *source.Source, opts ...ParquetReaderOption[T])
 	return newReader, nil
 }
 
-func (r *ParquetReader[T]) ReadSingleFile(src *source.Source, currentReader *preader.ParquetReader) ([]any, error) {
+func (r *ParquetReader) newSchema() any {
+	return reflect.New(r.recordType).Interface()
+}
+
+func (r *ParquetReader) newRecordSlice(size int) any {
+	sliceType := reflect.SliceOf(r.recordType)
+	records := reflect.New(sliceType)
+	records.Elem().Set(reflect.MakeSlice(sliceType, size, size))
+	return records.Interface()
+}
+
+func (r *ParquetReader) ReadSingleFile(src *source.Source, currentReader *preader.ParquetReader) ([]any, error) {
 	defer currentReader.ReadStop()
 
-	nrows := currentReader.GetNumRows()
-	records := make([]T, nrows)
-
-	if err := currentReader.Read(&records); err != nil {
+	records := r.newRecordSlice(int(currentReader.GetNumRows()))
+	if err := currentReader.Read(records); err != nil {
 		return nil, reader.NewReadError(err, src, "Failed to read parquet")
 	}
 
 	return convertToInputSchema(records), nil
 }
 
-func convertToInputSchema[T any](records []T) []any {
-	converted := make([]any, len(records))
-	for i := range records {
-		converted[i] = records[i]
+func convertToInputSchema(records any) []any {
+	value := reflect.ValueOf(records)
+	if value.Kind() == reflect.Pointer {
+		value = value.Elem()
+	}
+
+	converted := make([]any, value.Len())
+	for i := range value.Len() {
+		converted[i] = value.Index(i).Interface()
 	}
 	return converted
 }
 
-func (r *ParquetReader[T]) Read() ([]any, error) {
-	rows := make([]any, 0, r.currentParquetReader.GetNumRows())
+func (r *ParquetReader) Read() ([]any, error) {
+	rows := make([]any, 0, int(r.currentParquetReader.GetNumRows()))
 	eof := false
 
 	for !eof {
 		// Read the current file completely
 		currentRows, err := r.ReadSingleFile(r.src, r.currentParquetReader)
 		if err != nil {
-			return nil, fmt.Errorf("Could not read file: %s. %w", r.currentFileName, err)
+			return nil, fmt.Errorf("could not read file: %s. %w", r.currentFileName, err)
 		}
 		rows = append(rows, currentRows...)
 
 		// Get next file if any
 		nextReader, err := r.src.Next()
 		if err == io.EOF {
-			//no more files
+			// no more files
 			return rows, io.EOF
 		}
 		if err != nil {
-			return nil, fmt.Errorf("Could not get next source: %w", err)
+			return nil, fmt.Errorf("could not get next source: %w", err)
 		}
 
 		nextFileName := nextReader.(*os.File).Name()
-		nextReader.(*os.File).Close()
+		closeErr := nextReader.(*os.File).Close()
+		if closeErr != nil {
+			slog.Error("could not close current file reader", "error", closeErr)
+		}
 		// If no more files remaining, the returned error will be EOF
 		eof = err == io.EOF
 
 		// Create a new local file reader from the next file in the Source
 		newFileReader, err := local.NewLocalFileReader(nextFileName)
 		if err != nil {
-			return nil, fmt.Errorf("Could not create NewLocalFileReader\n%w", err)
+			return nil, fmt.Errorf("could not create NewLocalFileReader\n%w", err)
 		}
 
 		// Create a new Parquet File Reader
-		schema := new(T)
-		newParquetReader, err := preader.NewParquetReader(newFileReader, schema, 1)
+		newParquetReader, err := preader.NewParquetReader(newFileReader, r.newSchema(), 1)
 		if err != nil {
-			return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
+			return nil, fmt.Errorf("could not create NewParquetReader\n%w", err)
 		}
 
 		// Update the current file reader and close the previous
 		r.currentParquetReader.ReadStop()
-		r.currentFileReader.Close()
+		closeErr = r.currentFileReader.Close()
+		if closeErr != nil {
+			slog.Error("could not close current file reader", "error", closeErr)
+		}
 		r.currentFileReader = newFileReader
 		r.currentParquetReader = newParquetReader
 		r.currentFileName = nextFileName
@@ -144,10 +182,10 @@ func (r *ParquetReader[T]) Read() ([]any, error) {
 // Reads batch from the passed reader
 // The closing should be handling by the caller
 // Returns io.EOF if there are no more rows to read
-func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]any, error) {
-	records := make([]T, r.batchSize)
+func (r *ParquetReader) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]any, error) {
+	records := r.newRecordSlice(r.batchSize)
 
-	if err := currentReader.Read(&records); err != nil {
+	if err := currentReader.Read(records); err != nil {
 		return nil, reader.NewReadError(err, r.src, "Failed to read parquet in batch")
 	}
 
@@ -159,12 +197,12 @@ func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetRea
 	return convertToInputSchema(records), nil
 }
 
-func (r *ParquetReader[T]) ReadBatch() ([]any, error) {
+func (r *ParquetReader) ReadBatch() ([]any, error) {
 	currentRows, err := r.ReadBatchSingleFile(r.currentParquetReader)
 
 	// Read did not finish successfully
 	if err != nil && err != io.EOF {
-		return nil, fmt.Errorf("Error while reading batch from current parquet reader: %s. %w", r.currentFileName, err)
+		return nil, fmt.Errorf("error while reading batch from current parquet reader: %s. %w", r.currentFileName, err)
 	}
 
 	// EOF means we only finished reading the current file, but more files could remain
@@ -173,7 +211,7 @@ func (r *ParquetReader[T]) ReadBatch() ([]any, error) {
 		nextReader, nextError := r.src.Next()
 		// If error is not EOF it means there has been an error retrieving the next file from the Source
 		if nextError != nil && nextError != io.EOF {
-			return currentRows, fmt.Errorf("Error getting the next file from the Source: %w", nextError)
+			return currentRows, fmt.Errorf("error getting the next file from the Source: %w", nextError)
 		}
 		// If error is EOF, it means that there are no more files to read
 		if nextError == io.EOF {
@@ -184,24 +222,29 @@ func (r *ParquetReader[T]) ReadBatch() ([]any, error) {
 		//
 		// first get the next file name
 		nextFileName := nextReader.(*os.File).Name()
-		nextReader.(*os.File).Close()
+		closeErr := nextReader.(*os.File).Close()
+		if closeErr != nil {
+			slog.Error("could not close current file reader", "error", closeErr)
+		}
 
 		// Create a new local file reader from the next file in the Source
 		newFileReader, err := local.NewLocalFileReader(nextFileName)
 		if err != nil {
-			return nil, fmt.Errorf("Could not create NewLocalFileReader\n%w", err)
+			return nil, fmt.Errorf("could not create NewLocalFileReader\n%w", err)
 		}
 
 		// Create a new Parquet File Reader
-		schema := new(T)
-		newParquetReader, err := preader.NewParquetReader(newFileReader, schema, 1)
+		newParquetReader, err := preader.NewParquetReader(newFileReader, r.newSchema(), 1)
 		if err != nil {
-			return nil, fmt.Errorf("Could not create NewParquetReader\n%w", err)
+			return nil, fmt.Errorf("could not create NewParquetReader\n%w", err)
 		}
 
 		// update the current values
 		r.currentParquetReader.ReadStop()
-		r.currentFileReader.Close()
+		closeErr = r.currentFileReader.Close()
+		if closeErr != nil {
+			slog.Error("could not close current file reader", "error", closeErr)
+		}
 		r.currentFileReader = newFileReader
 		r.currentParquetReader = newParquetReader
 		r.currentFileName = nextFileName
@@ -214,9 +257,14 @@ func (r *ParquetReader[T]) ReadBatch() ([]any, error) {
 	return currentRows, nil
 }
 
-func isZeroValueSlice[T any](s []T) bool {
-	for i := range s {
-		if !isZeroValueInputSchema(s[i]) {
+func isZeroValueSlice(records any) bool {
+	value := reflect.ValueOf(records)
+	if value.Kind() == reflect.Pointer {
+		value = value.Elem()
+	}
+
+	for i := range value.Len() {
+		if !isZeroValueInputSchema(value.Index(i).Interface()) {
 			return false
 		}
 	}
@@ -225,7 +273,7 @@ func isZeroValueSlice[T any](s []T) bool {
 
 func isZeroValueInputSchema(schema any) bool {
 	elem := reflect.ValueOf(schema)
-	if elem.Kind() == reflect.Ptr {
+	if elem.Kind() == reflect.Pointer {
 		elem = elem.Elem()
 	}
 
@@ -264,7 +312,7 @@ func isZeroValue(v any) bool {
 	}
 }
 
-func (r *ParquetReader[T]) Close() error {
+func (r *ParquetReader) Close() error {
 	r.currentParquetReader.ReadStop()
 	return r.currentFileReader.Close()
 }

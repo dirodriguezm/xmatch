@@ -26,31 +26,40 @@ import (
 	pwriter "github.com/xitongsys/parquet-go/writer"
 )
 
-type ParquetWriter[T any] struct {
+type ParquetWriter struct {
 	parquetWriter *pwriter.ParquetWriter
 	pfile         *os.File
+	zeroValue     any
 }
 
-func New[T any](cfg config.WriterConfig, ctx context.Context) (*ParquetWriter[T], error) {
+func New(cfg config.WriterConfig, ctx context.Context, schema any) (*ParquetWriter, error) {
 	slog.Debug("Creating new ParquetWriter")
 
-	schema := new(T)
+	schemaType := reflect.TypeOf(schema)
+	if schemaType == nil {
+		return nil, fmt.Errorf("ParquetWriter schema cannot be nil")
+	}
+	if schemaType.Kind() == reflect.Pointer {
+		schemaType = schemaType.Elem()
+	}
+	writerSchema := reflect.New(schemaType).Interface()
+	zeroValue := reflect.Zero(schemaType).Interface()
 
 	file, err := os.Create(cfg.OutputFile)
 	if err != nil {
 		return nil, fmt.Errorf("ParquetWriter could not create file %s\n%w", cfg.OutputFile, err)
 	}
 
-	parquetWriter, err := pwriter.NewParquetWriterFromWriter(file, schema, 1)
+	parquetWriter, err := pwriter.NewParquetWriterFromWriter(file, writerSchema, 1)
 	if err != nil {
 		return nil, fmt.Errorf("ParquetWriter could not create writer %w", err)
 	}
 
-	w := &ParquetWriter[T]{parquetWriter: parquetWriter, pfile: file}
+	w := &ParquetWriter{parquetWriter: parquetWriter, pfile: file, zeroValue: zeroValue}
 	return w, nil
 }
 
-func (w *ParquetWriter[T]) Write(a *actor.Actor, msg actor.Message) {
+func (w *ParquetWriter) Write(a *actor.Actor, msg actor.Message) {
 	slog.Debug("ParquetWriter received message")
 	if msg.Error != nil {
 		slog.Error("ParquetWriter received error message")
@@ -58,9 +67,8 @@ func (w *ParquetWriter[T]) Write(a *actor.Actor, msg actor.Message) {
 	}
 
 	for i := range msg.Rows {
-		obj := msg.Rows[i].(T)
-
-		if reflect.DeepEqual(obj, *new(T)) {
+		obj := msg.Rows[i]
+		if reflect.DeepEqual(obj, w.zeroValue) {
 			continue // skip empty objects
 		}
 
@@ -71,7 +79,7 @@ func (w *ParquetWriter[T]) Write(a *actor.Actor, msg actor.Message) {
 	}
 }
 
-func (w *ParquetWriter[T]) Stop(a *actor.Actor) {
+func (w *ParquetWriter) Stop(a *actor.Actor) {
 	if err := w.parquetWriter.WriteStop(); err != nil {
 		panic(fmt.Errorf("ParquetWriter could not stop. Error: %w", err))
 	}

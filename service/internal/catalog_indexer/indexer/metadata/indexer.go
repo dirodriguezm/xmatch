@@ -18,14 +18,15 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 )
 
 type Indexer struct {
-	fillMetadata func(any) any
+	adapter catalog.CatalogAdapter
 }
 
-func New(fillMetadata func(any) any) *Indexer {
-	return &Indexer{fillMetadata: fillMetadata}
+func New(adapter catalog.CatalogAdapter) *Indexer {
+	return &Indexer{adapter: adapter}
 }
 
 func (ind *Indexer) Index(a *actor.Actor, msg actor.Message) {
@@ -36,16 +37,24 @@ func (ind *Indexer) Index(a *actor.Actor, msg actor.Message) {
 		return
 	}
 
-	outputBatch := ind.getOutputBatch(msg.Rows)
+	outputBatch, err := ind.getOutputBatch(msg.Rows)
+	if err != nil {
+		a.Broadcast(actor.Message{Error: err, Rows: nil})
+		return
+	}
 
 	slog.Debug("Metadata Indexer Sending Message", "len", len(outputBatch))
 	a.Broadcast(actor.Message{Rows: outputBatch, Error: nil})
 }
 
-func (ind *Indexer) getOutputBatch(rows []any) []any {
+func (ind *Indexer) getOutputBatch(rows []any) ([]any, error) {
 	outputBatch := make([]any, len(rows))
 	for i := range rows {
-		outputBatch[i] = ind.fillMetadata(rows[i])
+		md, err := ind.adapter.ConvertToMetadataFromRaw(rows[i])
+		if err != nil {
+			return nil, err
+		}
+		outputBatch[i] = md
 	}
-	return outputBatch
+	return outputBatch, nil
 }

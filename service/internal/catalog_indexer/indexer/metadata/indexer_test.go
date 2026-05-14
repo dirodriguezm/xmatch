@@ -15,42 +15,88 @@
 package metadata
 
 import (
+	"errors"
 	"strconv"
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var fillMetadata = func(raw any) any {
-	return repository.Allwise{ID: *raw.(repository.AllwiseInputSchema).Source_id}
-}
-
 func TestStart(t *testing.T) {
-	indexer := Indexer{
-		fillMetadata: fillMetadata,
-	}
-	result := make([]actor.Message, 0)
+	adapter := catalog.NewMockCatalogAdapter(t)
+	indexer := New(adapter)
+	received := make(chan actor.Message, 1)
 	ctx := t.Context()
 	testActor := actor.New("receiver", 1, func(a *actor.Actor, m actor.Message) {
-		result = append(result, m)
+		received <- m
 	}, nil, nil, ctx)
-	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
 
 	testActor.Start()
-	indexerActor.Start()
 
 	rows := make([]any, 10)
 	for i := range 10 {
 		id := "test" + strconv.Itoa(i)
 		cntr := int64(i)
-		rows[i] = repository.AllwiseInputSchema{Source_id: &id, Cntr: &cntr}
+		row := allwise.InputSchema{Source_id: &id, Cntr: &cntr}
+		rows[i] = row
+		adapter.EXPECT().ConvertToMetadataFromRaw(row).Return(repository.Allwise{ID: id}, nil).Once()
 	}
-	indexerActor.Send(actor.Message{Rows: rows, Error: nil})
 
-	indexerActor.Stop()
+	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
+	indexer.Index(indexerActor, actor.Message{Rows: rows, Error: nil})
+	result := <-received
 	testActor.Stop()
 
-	require.Len(t, result, 1)
+	require.NoError(t, result.Error)
+	require.Len(t, result.Rows, 10)
+	assert.Equal(t, repository.Allwise{ID: "test0"}, result.Rows[0])
+	assert.Equal(t, repository.Allwise{ID: "test9"}, result.Rows[9])
+}
+
+func TestStart_BroadcastsInputErrorAndReturns(t *testing.T) {
+	adapter := catalog.NewMockCatalogAdapter(t)
+	indexer := New(adapter)
+	received := make(chan actor.Message, 1)
+	ctx := t.Context()
+	testActor := actor.New("receiver", 1, func(a *actor.Actor, m actor.Message) {
+		received <- m
+	}, nil, nil, ctx)
+	testActor.Start()
+
+	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
+	testErr := errors.New("input failed")
+	indexer.Index(indexerActor, actor.Message{Rows: []any{allwise.InputSchema{}}, Error: testErr})
+	result := <-received
+	testActor.Stop()
+
+	assert.Equal(t, testErr, result.Error)
+	assert.Nil(t, result.Rows)
+}
+
+func TestStart_BroadcastsConversionErrorAndStopsBatch(t *testing.T) {
+	adapter := catalog.NewMockCatalogAdapter(t)
+	indexer := New(adapter)
+	received := make(chan actor.Message, 1)
+	ctx := t.Context()
+	testActor := actor.New("receiver", 1, func(a *actor.Actor, m actor.Message) {
+		received <- m
+	}, nil, nil, ctx)
+	testActor.Start()
+
+	row := allwise.InputSchema{}
+	testErr := errors.New("metadata conversion failed")
+	adapter.EXPECT().ConvertToMetadataFromRaw(row).Return(nil, testErr).Once()
+
+	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
+	indexer.Index(indexerActor, actor.Message{Rows: []any{row}, Error: nil})
+	result := <-received
+	testActor.Stop()
+
+	assert.Equal(t, testErr, result.Error)
+	assert.Nil(t, result.Rows)
 }

@@ -14,10 +14,10 @@
 
 package parquet_reader
 
-type ParquetReaderOption[T any] func(r *ParquetReader[T])
+type ParquetReaderOption func(r *ParquetReader)
 
-func WithParquetBatchSize[T any](size int) ParquetReaderOption[T] {
-	return func(r *ParquetReader[T]) {
+func WithParquetBatchSize(size int) ParquetReaderOption {
+	return func(r *ParquetReader) {
 		if size <= 0 {
 			size = 1
 		}

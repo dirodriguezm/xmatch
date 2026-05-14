@@ -6,7 +6,6 @@ package conesearch
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	mock "github.com/stretchr/testify/mock"
@@ -40,16 +39,16 @@ func (_m *MockMastercatStore) EXPECT() *MockMastercatStore_Expecter {
 }
 
 // BulkInsertObject provides a mock function for the type MockMastercatStore
-func (_mock *MockMastercatStore) BulkInsertObject(context1 context.Context, dB *sql.DB, vs []any) error {
-	ret := _mock.Called(context1, dB, vs)
+func (_mock *MockMastercatStore) BulkInsertObject(context1 context.Context, vs []any) error {
+	ret := _mock.Called(context1, vs)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BulkInsertObject")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *sql.DB, []any) error); ok {
-		r0 = returnFunc(context1, dB, vs)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []any) error); ok {
+		r0 = returnFunc(context1, vs)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -63,30 +62,24 @@ type MockMastercatStore_BulkInsertObject_Call struct {
 
 // BulkInsertObject is a helper method to define mock.On call
 //   - context1 context.Context
-//   - dB *sql.DB
 //   - vs []any
-func (_e *MockMastercatStore_Expecter) BulkInsertObject(context1 interface{}, dB interface{}, vs interface{}) *MockMastercatStore_BulkInsertObject_Call {
-	return &MockMastercatStore_BulkInsertObject_Call{Call: _e.mock.On("BulkInsertObject", context1, dB, vs)}
+func (_e *MockMastercatStore_Expecter) BulkInsertObject(context1 interface{}, vs interface{}) *MockMastercatStore_BulkInsertObject_Call {
+	return &MockMastercatStore_BulkInsertObject_Call{Call: _e.mock.On("BulkInsertObject", context1, vs)}
 }
 
-func (_c *MockMastercatStore_BulkInsertObject_Call) Run(run func(context1 context.Context, dB *sql.DB, vs []any)) *MockMastercatStore_BulkInsertObject_Call {
+func (_c *MockMastercatStore_BulkInsertObject_Call) Run(run func(context1 context.Context, vs []any)) *MockMastercatStore_BulkInsertObject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *sql.DB
+		var arg1 []any
 		if args[1] != nil {
-			arg1 = args[1].(*sql.DB)
-		}
-		var arg2 []any
-		if args[2] != nil {
-			arg2 = args[2].([]any)
+			arg1 = args[1].([]any)
 		}
 		run(
 			arg0,
 			arg1,
-			arg2,
 		)
 	})
 	return _c
@@ -97,7 +90,7 @@ func (_c *MockMastercatStore_BulkInsertObject_Call) Return(err error) *MockMaste
 	return _c
 }
 
-func (_c *MockMastercatStore_BulkInsertObject_Call) RunAndReturn(run func(context1 context.Context, dB *sql.DB, vs []any) error) *MockMastercatStore_BulkInsertObject_Call {
+func (_c *MockMastercatStore_BulkInsertObject_Call) RunAndReturn(run func(context1 context.Context, vs []any) error) *MockMastercatStore_BulkInsertObject_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -166,176 +159,6 @@ func (_c *MockMastercatStore_FindObjects_Call) Return(mastercats []repository.Ma
 }
 
 func (_c *MockMastercatStore_FindObjects_Call) RunAndReturn(run func(context1 context.Context, int64s []int64) ([]repository.Mastercat, error)) *MockMastercatStore_FindObjects_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetAllObjects provides a mock function for the type MockMastercatStore
-func (_mock *MockMastercatStore) GetAllObjects(context1 context.Context) ([]repository.Mastercat, error) {
-	ret := _mock.Called(context1)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetAllObjects")
-	}
-
-	var r0 []repository.Mastercat
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]repository.Mastercat, error)); ok {
-		return returnFunc(context1)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) []repository.Mastercat); ok {
-		r0 = returnFunc(context1)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]repository.Mastercat)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(context1)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockMastercatStore_GetAllObjects_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllObjects'
-type MockMastercatStore_GetAllObjects_Call struct {
-	*mock.Call
-}
-
-// GetAllObjects is a helper method to define mock.On call
-//   - context1 context.Context
-func (_e *MockMastercatStore_Expecter) GetAllObjects(context1 interface{}) *MockMastercatStore_GetAllObjects_Call {
-	return &MockMastercatStore_GetAllObjects_Call{Call: _e.mock.On("GetAllObjects", context1)}
-}
-
-func (_c *MockMastercatStore_GetAllObjects_Call) Run(run func(context1 context.Context)) *MockMastercatStore_GetAllObjects_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockMastercatStore_GetAllObjects_Call) Return(mastercats []repository.Mastercat, err error) *MockMastercatStore_GetAllObjects_Call {
-	_c.Call.Return(mastercats, err)
-	return _c
-}
-
-func (_c *MockMastercatStore_GetAllObjects_Call) RunAndReturn(run func(context1 context.Context) ([]repository.Mastercat, error)) *MockMastercatStore_GetAllObjects_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// InsertMastercat provides a mock function for the type MockMastercatStore
-func (_mock *MockMastercatStore) InsertMastercat(context1 context.Context, mastercat repository.Mastercat) error {
-	ret := _mock.Called(context1, mastercat)
-
-	if len(ret) == 0 {
-		panic("no return value specified for InsertMastercat")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, repository.Mastercat) error); ok {
-		r0 = returnFunc(context1, mastercat)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockMastercatStore_InsertMastercat_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertMastercat'
-type MockMastercatStore_InsertMastercat_Call struct {
-	*mock.Call
-}
-
-// InsertMastercat is a helper method to define mock.On call
-//   - context1 context.Context
-//   - mastercat repository.Mastercat
-func (_e *MockMastercatStore_Expecter) InsertMastercat(context1 interface{}, mastercat interface{}) *MockMastercatStore_InsertMastercat_Call {
-	return &MockMastercatStore_InsertMastercat_Call{Call: _e.mock.On("InsertMastercat", context1, mastercat)}
-}
-
-func (_c *MockMastercatStore_InsertMastercat_Call) Run(run func(context1 context.Context, mastercat repository.Mastercat)) *MockMastercatStore_InsertMastercat_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 repository.Mastercat
-		if args[1] != nil {
-			arg1 = args[1].(repository.Mastercat)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockMastercatStore_InsertMastercat_Call) Return(err error) *MockMastercatStore_InsertMastercat_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockMastercatStore_InsertMastercat_Call) RunAndReturn(run func(context1 context.Context, mastercat repository.Mastercat) error) *MockMastercatStore_InsertMastercat_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// RemoveAllObjects provides a mock function for the type MockMastercatStore
-func (_mock *MockMastercatStore) RemoveAllObjects(context1 context.Context) error {
-	ret := _mock.Called(context1)
-
-	if len(ret) == 0 {
-		panic("no return value specified for RemoveAllObjects")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
-		r0 = returnFunc(context1)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockMastercatStore_RemoveAllObjects_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveAllObjects'
-type MockMastercatStore_RemoveAllObjects_Call struct {
-	*mock.Call
-}
-
-// RemoveAllObjects is a helper method to define mock.On call
-//   - context1 context.Context
-func (_e *MockMastercatStore_Expecter) RemoveAllObjects(context1 interface{}) *MockMastercatStore_RemoveAllObjects_Call {
-	return &MockMastercatStore_RemoveAllObjects_Call{Call: _e.mock.On("RemoveAllObjects", context1)}
-}
-
-func (_c *MockMastercatStore_RemoveAllObjects_Call) Run(run func(context1 context.Context)) *MockMastercatStore_RemoveAllObjects_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockMastercatStore_RemoveAllObjects_Call) Return(err error) *MockMastercatStore_RemoveAllObjects_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockMastercatStore_RemoveAllObjects_Call) RunAndReturn(run func(context1 context.Context) error) *MockMastercatStore_RemoveAllObjects_Call {
 	_c.Call.Return(run)
 	return _c
 }

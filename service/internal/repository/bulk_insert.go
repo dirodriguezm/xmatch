@@ -17,10 +17,19 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 )
 
-func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []any) error {
-	tx, err := db.Begin()
+func (q *Queries) beginBulkInsertTx(ctx context.Context) (*sql.Tx, error) {
+	db, ok := q.db.(*sql.DB)
+	if !ok {
+		return nil, fmt.Errorf("bulk inserts require repository backed by *sql.DB")
+	}
+	return db.BeginTx(ctx, nil)
+}
+
+func (q *Queries) BulkInsertObject(ctx context.Context, arg []any) error {
+	tx, err := q.beginBulkInsertTx(ctx)
 	if err != nil {
 		return err
 	}
@@ -35,15 +44,15 @@ func (q *Queries) BulkInsertObject(ctx context.Context, db *sql.DB, arg []any) e
 	return tx.Commit()
 }
 
-func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []any) error {
-	tx, err := db.Begin()
+func (q *Queries) BulkInsertAllwise(ctx context.Context, arg []any) error {
+	tx, err := q.beginBulkInsertTx(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
-		err = qtx.InsertAllwiseWithoutParams(ctx, arg[i].(Allwise))
+		err = qtx.InsertAllwise(ctx, InsertAllwiseParams(arg[i].(Allwise)))
 		if err != nil {
 			return err
 		}
@@ -51,15 +60,15 @@ func (q *Queries) BulkInsertAllwise(ctx context.Context, db *sql.DB, arg []any) 
 	return tx.Commit()
 }
 
-func (q *Queries) BulkInsertGaia(ctx context.Context, db *sql.DB, arg []any) error {
-	tx, err := db.Begin()
+func (q *Queries) BulkInsertGaia(ctx context.Context, arg []any) error {
+	tx, err := q.beginBulkInsertTx(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
-		err = qtx.InsertGaiaWithoutParams(ctx, arg[i].(Gaia))
+		err = qtx.InsertGaia(ctx, InsertGaiaParams(arg[i].(Gaia)))
 		if err != nil {
 			return err
 		}
@@ -67,15 +76,15 @@ func (q *Queries) BulkInsertGaia(ctx context.Context, db *sql.DB, arg []any) err
 	return tx.Commit()
 }
 
-func (q *Queries) BulkInsertErosita(ctx context.Context, db *sql.DB, arg []any) error {
-	tx, err := db.Begin()
+func (q *Queries) BulkInsertErosita(ctx context.Context, arg []any) error {
+	tx, err := q.beginBulkInsertTx(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	qtx := q.WithTx(tx)
 	for i := range arg {
-		err = qtx.InsertErositaWithoutParams(ctx, arg[i].(Erosita))
+		err = qtx.InsertErosita(ctx, InsertErositaParams(arg[i].(Erosita)))
 		if err != nil {
 			return err
 		}

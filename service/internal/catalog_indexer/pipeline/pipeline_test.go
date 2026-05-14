@@ -16,7 +16,6 @@ package pipeline
 
 import (
 	"context"
-	"database/sql"
 	"io"
 	"testing"
 
@@ -56,19 +55,10 @@ func baseConfig(t *testing.T) PipelineConfig {
 				ChannelSize:    10,
 			},
 		},
-		DB:      newTestDB(t),
 		Source:  &source.Source{Sources: []string{"buffer:id\n1"}, CatalogName: "test", Nside: 5},
-		Adapter: catalog.NewMockCatalogIndexAdapter(t),
+		Adapter: catalog.NewMockCatalogAdapter(t),
 		Store:   conesearch.NewMockMastercatStore(t),
 	}
-}
-
-func newTestDB(t *testing.T) *sql.DB {
-	t.Helper()
-
-	db, err := sql.Open("sqlite3", "file:pipeline-test?mode=memory&cache=shared")
-	require.NoError(t, err)
-	return db
 }
 
 type noopReader struct{}
@@ -101,10 +91,6 @@ func TestPipeline_WiringWithoutMetadata(t *testing.T) {
 func TestPipeline_WiringWithMetadata(t *testing.T) {
 	cfg := baseConfig(t)
 	cfg.Config.CatalogIndexer.Source.Metadata = true
-	cfg.Adapter.(*catalog.MockCatalogIndexAdapter).
-		EXPECT().
-		BulkInsertFn().
-		Return(func(context.Context, *sql.DB, []any) error { return nil })
 
 	pipeline, err := New(cfg)
 	require.NoError(t, err)
