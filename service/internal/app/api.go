@@ -1,17 +1,3 @@
-// Copyright 2024-2025 Diego Rodriguez Mancini
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package app
 
 import (
@@ -23,7 +9,9 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/log"
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/api"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -33,8 +21,6 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 
 	_ "github.com/mattn/go-sqlite3"
-
-	"github.com/dirodriguezm/healpix"
 )
 
 func ServiceLogger(getenv func(string) string, stdout io.Writer) *slog.Logger {
@@ -78,20 +64,21 @@ func ServiceDatabase(cfg config.Config) (*sql.DB, error) {
 	return db, nil
 }
 
-func ServiceRepository(db *sql.DB) conesearch.Repository {
+func ServiceRepository(db *sql.DB) *repository.Queries {
 	return repository.New(db)
 }
 
-func ConesearchService(repo conesearch.Repository) (*conesearch.ConesearchService, error) {
+func ConesearchService(queries *repository.Queries, resolver *catalog.Resolver) (*conesearch.ConesearchService, error) {
 	ctx := context.Background()
-	catalogs, err := repo.GetCatalogs(ctx)
+	catalogs, err := queries.GetCatalogs(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not find catalogs in DB when creating conesearch service: %w", err)
 	}
 
 	con, err := conesearch.NewConesearchService(
 		conesearch.WithScheme(healpix.Nest),
-		conesearch.WithRepository(repo),
+		conesearch.WithMastercatStore(queries),
+		conesearch.WithResolver(resolver),
 		conesearch.WithCatalogs(catalogs),
 	)
 	if err != nil {
@@ -100,8 +87,8 @@ func ConesearchService(repo conesearch.Repository) (*conesearch.ConesearchServic
 	return con, nil
 }
 
-func MetadataService(repo conesearch.Repository) (*metadata.MetadataService, error) {
-	service, err := metadata.NewMetadataService(repo)
+func MetadataService(resolver *catalog.Resolver) (*metadata.MetadataService, error) {
+	service, err := metadata.NewMetadataService(resolver)
 	if err != nil {
 		return nil, fmt.Errorf("could not create MetadataService: %w", err)
 	}

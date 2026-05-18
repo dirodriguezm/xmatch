@@ -25,7 +25,7 @@ import (
 )
 
 func TestWrite(t *testing.T) {
-	builder := AWriter[TestStruct](t)
+	builder := AWriter(t, TestStruct{})
 	dir := t.TempDir()
 	outputFile := path.Join(dir, "output.parquet")
 	builder = builder.WithOutputFile(outputFile)

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package source represents a data source for the catalog indexer.
 package source
 
 import (

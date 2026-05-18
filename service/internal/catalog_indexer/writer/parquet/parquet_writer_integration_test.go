@@ -87,7 +87,7 @@ catalog_indexer:
 }
 
 func TestWrite(t *testing.T) {
-	writer, err := parquet_writer.New[repository.Mastercat](cfg.CatalogIndexer.IndexerWriter, t.Context())
+	writer, err := parquet_writer.New(cfg.CatalogIndexer.IndexerWriter, t.Context(), repository.Mastercat{})
 	require.NoError(t, err)
 
 	writer.Write(nil, actor.Message{

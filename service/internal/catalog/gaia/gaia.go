@@ -1,11 +1,17 @@
-package repository
+package gaia
 
 import (
 	"context"
 	"database/sql"
+	"fmt"
+
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
-type GaiaInputSchema struct {
+const displayName = "GAIA/DR3"
+
+type InputSchema struct {
 	SolutionID                  int64   `json:"solution_id" parquet:"name=solution_id, type=INT64"`
 	Designation                 string  `json:"designation" parquet:"name=designation, type=BYTE_ARRAY"`
 	SourceID                    int64   `json:"source_id" parquet:"name=source_id, type=INT64"`
@@ -160,78 +166,121 @@ type GaiaInputSchema struct {
 	LibnameGspphot              string  `json:"libname_gspphot" parquet:"name=libname_gspphot, type=BYTE_ARRAY"`
 }
 
-func (schema GaiaInputSchema) GetId() string {
-	return schema.Designation
+type Adapter struct {
+	repo *repository.Queries
 }
 
-func (schema GaiaInputSchema) GetCoordinates() (float64, float64) {
-	return schema.RA, schema.Dec
+func init() {
+	catalog.Register("gaia", func(repo *repository.Queries) (catalog.CatalogAdapter, error) {
+		return &Adapter{repo: repo}, nil
+	})
 }
 
-func (schema GaiaInputSchema) FillMetadata() Metadata {
-	return Gaia{
-		ID:                  schema.GetId(),
-		PhotGMeanFlux:       NullFloat64{sql.NullFloat64{Float64: schema.PhotGMeanFlux, Valid: true}},
-		PhotGMeanFluxError:  NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanFluxError), Valid: true}},
-		PhotGMeanMag:        NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanMag), Valid: true}},
-		PhotBpMeanFlux:      NullFloat64{sql.NullFloat64{Float64: schema.PhotBpMeanFlux, Valid: true}},
-		PhotBpMeanFluxError: NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanFluxError), Valid: true}},
-		PhotBpMeanMag:       NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanMag), Valid: true}},
-		PhotRpMeanFlux:      NullFloat64{sql.NullFloat64{Float64: schema.PhotRpMeanFlux, Valid: true}},
-		PhotRpMeanFluxError: NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanFluxError), Valid: true}},
-		PhotRpMeanMag:       NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanMag), Valid: true}},
+func (a Adapter) Name() string {
+	return "gaia"
+}
+
+func (a Adapter) NewRawRecord() any {
+	return InputSchema{}
+}
+
+func (a Adapter) NewMetadataRecord() any {
+	return repository.Gaia{}
+}
+
+func (a Adapter) BulkInsertMetadata(ctx context.Context, rows []any) error {
+	if a.repo == nil {
+		return fmt.Errorf("gaia adapter has no repository")
+	}
+	return repository.BulkInsert(ctx, a.repo, rows, func(ctx context.Context, qtx *repository.Queries, row repository.Gaia) error {
+		return qtx.InsertGaia(ctx, repository.InsertGaiaParams(row))
+	})
+}
+
+func (a Adapter) GetByID(ctx context.Context, id string) (any, error) {
+	if a.repo == nil {
+		return nil, fmt.Errorf("gaia adapter has no repository")
+	}
+	return a.repo.GetGaia(ctx, id)
+}
+
+func (a Adapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
+	if a.repo == nil {
+		return nil, fmt.Errorf("gaia adapter has no repository")
+	}
+	return a.repo.BulkGetGaia(ctx, ids)
+}
+
+func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
+	if a.repo == nil {
+		return nil, fmt.Errorf("gaia adapter has no repository")
+	}
+	rows, err := a.repo.GetGaiaFromPixels(ctx, pixels)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]repository.Metadata, len(rows))
+	for i, r := range rows {
+		result[i] = convertGaiaFromPixelsRowToMetadata(r)
+	}
+	return result, nil
+}
+
+func convertGaiaFromPixelsRowToMetadata(r repository.GetGaiaFromPixelsRow) repository.Metadata {
+	return repository.Metadata{
+		ID:      r.ID,
+		Catalog: displayName,
+		Ra:      r.Ra,
+		Dec:     r.Dec,
+		Object: repository.Gaia{
+			ID:                  r.ID,
+			PhotGMeanFlux:       r.PhotGMeanFlux,
+			PhotGMeanFluxError:  r.PhotGMeanFluxError,
+			PhotGMeanMag:        r.PhotGMeanMag,
+			PhotBpMeanFlux:      r.PhotBpMeanFlux,
+			PhotBpMeanFluxError: r.PhotBpMeanFluxError,
+			PhotBpMeanMag:       r.PhotBpMeanMag,
+			PhotRpMeanFlux:      r.PhotRpMeanFlux,
+			PhotRpMeanFluxError: r.PhotRpMeanFluxError,
+			PhotRpMeanMag:       r.PhotRpMeanMag,
+		},
 	}
 }
 
-func (schema GaiaInputSchema) FillMastercat(ipix int64) Mastercat {
-	ra, dec := schema.GetCoordinates()
-	return Mastercat{
-		ID:   schema.GetId(),
+func (a Adapter) GetCoordinates(raw any) (float64, float64, error) {
+	schema, ok := raw.(InputSchema)
+	if !ok {
+		return 0, 0, fmt.Errorf("expected gaia.InputSchema, got %T", raw)
+	}
+	return schema.RA, schema.Dec, nil
+}
+
+func (a Adapter) ConvertToMastercat(raw any, ipix int64) (repository.Mastercat, error) {
+	schema, ok := raw.(InputSchema)
+	if !ok {
+		return repository.Mastercat{}, fmt.Errorf("expected gaia.InputSchema, got %T", raw)
+	}
+	return repository.Mastercat{
+		ID:   schema.Designation,
 		Ipix: ipix,
-		Ra:   ra,
-		Dec:  dec,
+		Ra:   schema.RA,
+		Dec:  schema.Dec,
 		Cat:  "gaia",
-	}
+	}, nil
 }
 
-func (gaia Gaia) GetId() string {
-	return gaia.ID
-}
-
-func (gaia Gaia) GetCatalog() string {
-	return "GAIA/DR3"
-}
-
-func (m InsertGaiaParams) GetId() string {
-	return m.ID
-}
-
-func (q *Queries) InsertGaiaWithoutParams(ctx context.Context, arg Gaia) error {
-	_, err := q.db.ExecContext(
-		ctx,
-		insertGaia,
-		arg.ID,
-		arg.PhotGMeanFlux,
-		arg.PhotGMeanFluxError,
-		arg.PhotGMeanMag,
-		arg.PhotBpMeanFlux,
-		arg.PhotBpMeanFluxError,
-		arg.PhotBpMeanMag,
-		arg.PhotRpMeanFlux,
-		arg.PhotRpMeanFluxError,
-		arg.PhotRpMeanMag,
-	)
-	return err
-}
-
-func (m GetGaiaFromPixelsRow) GetId() string {
-	return m.ID
-}
-
-func (m GetGaiaFromPixelsRow) GetCoordinates() (float64, float64) {
-	return m.Ra, m.Dec
-}
-
-func (m GetGaiaFromPixelsRow) GetCatalog() string {
-	return "GAIA/DR3"
+func (a Adapter) ConvertToMetadataFromRaw(raw any) (any, error) {
+	schema := raw.(InputSchema)
+	return repository.Gaia{
+		ID:                  schema.Designation,
+		PhotGMeanFlux:       repository.NullFloat64{sql.NullFloat64{Float64: schema.PhotGMeanFlux, Valid: true}},
+		PhotGMeanFluxError:  repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanFluxError), Valid: true}},
+		PhotGMeanMag:        repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotGMeanMag), Valid: true}},
+		PhotBpMeanFlux:      repository.NullFloat64{sql.NullFloat64{Float64: schema.PhotBpMeanFlux, Valid: true}},
+		PhotBpMeanFluxError: repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanFluxError), Valid: true}},
+		PhotBpMeanMag:       repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotBpMeanMag), Valid: true}},
+		PhotRpMeanFlux:      repository.NullFloat64{sql.NullFloat64{Float64: schema.PhotRpMeanFlux, Valid: true}},
+		PhotRpMeanFluxError: repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanFluxError), Valid: true}},
+		PhotRpMeanMag:       repository.NullFloat64{sql.NullFloat64{Float64: float64(schema.PhotRpMeanMag), Valid: true}},
+	}, nil
 }

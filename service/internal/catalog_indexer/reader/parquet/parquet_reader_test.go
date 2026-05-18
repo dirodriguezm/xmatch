@@ -42,25 +42,10 @@ type Object struct {
 	Dec float64 `parquet:"name=dec, type=DOUBLE"`
 }
 
-func (o Object) GetId() string {
-	return o.Oid
-}
+type testRawRecordFactory struct{}
 
-func (o Object) GetCoordinates() (float64, float64) {
-	return o.Ra, o.Dec
-}
-
-func (o Object) FillMastercat(ipix int64) repository.Mastercat {
-	return repository.Mastercat{
-		ID:   o.Oid,
-		Ra:   o.Ra,
-		Dec:  o.Dec,
-		Ipix: ipix,
-		Cat:  "test",
-	}
-}
-func (o Object) FillMetadata() repository.Metadata {
-	return nil
+func (testRawRecordFactory) NewRawRecord() any {
+	return Object{}
 }
 
 func Write(t *testing.T, nrows int) string {
@@ -111,7 +96,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +111,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	receivedOids := make([]string, 10)
 	for i, row := range rows {
 		mastercat := repository.Mastercat{
-			ID: row.GetId(),
+			ID: row.(Object).Oid,
 		}
 		receivedOids[i] = mastercat.ID
 	}
@@ -144,7 +129,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +138,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []repository.InputSchema
+	var rows []any
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -162,10 +147,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			mastercat := repository.Mastercat{
-				ID: row.GetId(),
-			}
-			receivedOids = append(receivedOids, mastercat.ID)
+			receivedOids = append(receivedOids, row.(Object).Oid)
 		}
 	}
 	require.Equal(t, 6, batches) // reader reads one extra batch with zero value
@@ -183,7 +165,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +174,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []repository.InputSchema
+	var rows []any
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -201,10 +183,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			mastercat := repository.Mastercat{
-				ID: row.GetId(),
-			}
-			receivedOids = append(receivedOids, mastercat.ID)
+			receivedOids = append(receivedOids, row.(Object).Oid)
 		}
 	}
 	require.Equal(t, 5, batches) // reader reads one extra batch with zero value
@@ -222,7 +201,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, WithParquetBatchSize[Object](2))
+	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +210,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []repository.InputSchema
+	var rows []any
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -240,10 +219,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			mastercat := repository.Mastercat{
-				ID: row.GetId(),
-			}
-			receivedOids = append(receivedOids, mastercat.ID)
+			receivedOids = append(receivedOids, row.(Object).Oid)
 		}
 	}
 	require.Equal(t, 2, batches)

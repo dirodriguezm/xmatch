@@ -1,29 +1,22 @@
-// Copyright 2024-2025 Diego Rodriguez Mancini
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package conesearch
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
-
 	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 )
 
 func TestConesearch(t *testing.T) {
@@ -31,10 +24,10 @@ func TestConesearch(t *testing.T) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &MockRepository{}
+	repo := repository.NewMockMastercatReader(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	result, err := service.Conesearch(1, 1, 1, 1, "all")
@@ -46,10 +39,10 @@ func TestConesearch(t *testing.T) {
 }
 
 func TestConesearch_WithRepositoryError(t *testing.T) {
-	repo := &MockRepository{}
+	repo := repository.NewMockMastercatReader(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(nil, errors.New("Test error"))
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	_, err = service.Conesearch(1, 1, 1, 1, "all")
@@ -67,17 +60,16 @@ func TestConesearch_WithMultipleMappers(t *testing.T) {
 	ztfObjects := []repository.Mastercat{
 		{ID: "ZTFA", Ra: 1, Dec: 1, Cat: "ztf"},
 	}
-	repo := &MockRepository{}
+	repo := repository.NewMockMastercatReader(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(vlassObjects, nil).Once()
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(ztfObjects, nil).Once()
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}, {Name: "ztf", Nside: 12}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	result, err := service.Conesearch(1, 1, 1, 2, "all")
 	repo.AssertExpectations(t)
 
-	// both objects in the result should be in the same coordinates, but different catalog
 	require.Len(t, result, 2)
 	ids := make([]string, 2)
 	cats := make([]string, 2)
@@ -96,10 +88,10 @@ func TestBulkConesearch(t *testing.T) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &MockRepository{}
+	repo := repository.NewMockMastercatReader(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	type testCase struct {
@@ -132,10 +124,10 @@ func TestBulkConesearch(t *testing.T) {
 }
 
 func TestBulkConesearch_WithRepositoryError(t *testing.T) {
-	repo := &MockRepository{}
+	repo := repository.NewMockMastercatReader(t)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(nil, errors.New("repository error"))
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	_, err = service.BulkConesearch([]float64{1, 10}, []float64{1, 10}, 1, 100, "all", 2, 1)
@@ -144,23 +136,67 @@ func TestBulkConesearch_WithRepositoryError(t *testing.T) {
 	require.Equal(t, "repository error", err.Error())
 }
 
+func newAllwiseMetadataRepo(t *testing.T) *repository.Queries {
+	t.Helper()
+	db, err := sql.Open("sqlite3", ":memory:")
+	require.NoError(t, err)
+	db.SetMaxOpenConns(1)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	_, err = db.Exec(`
+		CREATE TABLE mastercat (
+			id text not null,
+			ipix bigint not null,
+			ra double precision not null,
+			dec double precision not null,
+			cat text not null,
+			PRIMARY KEY (id, cat)
+		);
+		CREATE TABLE allwise (
+			id text not null,
+			cntr bigint not null,
+			w1mpro double precision,
+			w1sigmpro double precision,
+			w2mpro double precision,
+			w2sigmpro double precision,
+			w3mpro double precision,
+			w3sigmpro double precision,
+			w4mpro double precision,
+			w4sigmpro double precision,
+			J_m_2mass double precision,
+			J_msig_2mass double precision,
+			H_m_2mass double precision,
+			H_msig_2mass double precision,
+			K_m_2mass double precision,
+			K_msig_2mass double precision,
+			PRIMARY KEY (id)
+		);
+	`)
+	require.NoError(t, err)
+	return repository.New(db)
+}
+
 func TestConesearch_WithMetadata(t *testing.T) {
-	objects := []repository.GetAllwiseFromPixelsRow{
-		{ID: "A", Ra: 1, Dec: 1},
-		{ID: "B", Ra: 10, Dec: 10},
-	}
-	repo := &MockRepository{}
-	repo.On("GetAllwiseFromPixels", mock.Anything, mock.Anything).Return(objects, nil)
+	metadataRepo := newAllwiseMetadataRepo(t)
+	ctx := context.Background()
+	mapper, err := healpix.NewHEALPixMapper(18, healpix.Nest)
+	require.NoError(t, err)
+	require.NoError(t, metadataRepo.InsertObject(ctx, repository.InsertObjectParams{ID: "A", Ipix: mapper.PixelAt(healpix.RADec(1, 1)), Ra: 1, Dec: 1, Cat: "allwise"}))
+	require.NoError(t, metadataRepo.InsertObject(ctx, repository.InsertObjectParams{ID: "B", Ipix: mapper.PixelAt(healpix.RADec(10, 10)), Ra: 10, Dec: 10, Cat: "allwise"}))
+	require.NoError(t, metadataRepo.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: "A"}))
+	require.NoError(t, metadataRepo.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: "B"}))
+	resolver := catalog.NewResolver(metadataRepo)
+
+	repo := repository.NewMockMastercatReader(t)
 	catalogs := []repository.Catalog{{Name: "allwise", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithResolver(resolver), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	result, err := service.FindMetadataByConesearch(1, 1, 1, 1, "allwise")
 	require.NoError(t, err)
-	repo.AssertExpectations(t)
 
 	require.Len(t, result, 1)
-	require.Equal(t, result[0].Data[0].GetId(), "A")
+	require.Equal(t, result[0].Data[0].ID, "A")
 }
 
 func FuzzConesearch(f *testing.F) {
@@ -168,10 +204,10 @@ func FuzzConesearch(f *testing.F) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	repo := &MockRepository{}
+	repo := repository.NewMockMastercatReader(f)
 	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithRepository(repo), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(f, err)
 
 	f.Add(float64(1), float64(1), float64(1), int(1))

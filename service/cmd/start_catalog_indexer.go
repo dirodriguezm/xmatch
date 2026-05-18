@@ -6,8 +6,9 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/dirodriguezm/xmatch/service/internal/actor"
 	"github.com/dirodriguezm/xmatch/service/internal/app"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/pipeline"
 )
 
 func StartCatalogIndexer(
@@ -22,64 +23,51 @@ func StartCatalogIndexer(
 		return err
 	}
 
-	// database
-	repo, err := app.Repository(cfg)
+	db, err := app.IndexerDatabase(cfg)
 	if err != nil {
 		return err
 	}
-
-	// update catalogs table
-	catalogRegister := app.CatalogRegister(ctx, repo, cfg.CatalogIndexer.Source)
-	catalogRegister.RegisterCatalog()
-
-	src, err := app.Source(cfg.CatalogIndexer.Source)
-	if err != nil {
-		return err
-	}
-
-	// initialize mastercatWriter
-	mastercatWriter, err := app.MastercatWriter(ctx, cfg, repo, src)
-	if err != nil {
-		return err
-	}
-	mastercatWriter.Start()
-
-	// initialize metadata writer
-	metadataWriter, err := app.MetadataWriter(ctx, cfg, repo, src)
-	if cfg.CatalogIndexer.Source.Metadata {
-		metadataWriter.Start()
-	}
-
-	// initialize indexer
-	mastercatIndexer, err := app.MastercatIndexer(cfg.CatalogIndexer, mastercatWriter, ctx)
-	if err != nil {
-		return err
-	}
-	mastercatIndexer.Start()
-
-	// initialize metadata indexer
-	var metadataIndexer *actor.Actor
-	if cfg.CatalogIndexer.Source.Metadata {
-		metadataIndexer = app.MetadataIndexer(cfg.CatalogIndexer, metadataWriter, ctx)
-		metadataIndexer.Start()
-	}
-
-	// initialize reader
-	sourceReader, err := app.Reader(src, cfg.CatalogIndexer.Reader, cfg.CatalogIndexer.Source, mastercatIndexer, metadataIndexer)
-	defer func() error {
-		err := sourceReader.Close()
-		if err != nil {
-			return fmt.Errorf("Error closing reader: %w", err)
+	defer func() {
+		closeErr := db.Close()
+		if closeErr != nil {
+			slog.Error("error closing database", "err", closeErr)
 		}
-		return err
 	}()
 
-	sourceReader.Read()
-	mastercatIndexer.Stop()
-	mastercatWriter.Stop()
-	if cfg.CatalogIndexer.Source.Metadata {
-		metadataIndexer.Stop()
-		metadataWriter.Stop()
+	repo := app.IndexerRepository(db)
+
+	resolver := catalog.NewResolver(repo)
+	srcCfg := cfg.CatalogIndexer.Source
+
+	catalogRegister := app.CatalogRegister(ctx, repo, srcCfg)
+	catalogRegister.RegisterCatalog()
+
+	src, err := app.Source(srcCfg)
+	if err != nil {
+		return err
+	}
+
+	adapter, err := resolver.Get(srcCfg.CatalogName)
+	if err != nil {
+		return err
+	}
+
+	pipeline, err := pipeline.New(pipeline.PipelineConfig{
+		Context: ctx,
+		Config:  cfg,
+		Source:  src,
+		Adapter: adapter,
+		Store:   repo,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating pipeline: %w", err)
+	}
+
+	pipeline.Run()
+	pipeline.Stop()
+
+	if err := pipeline.CloseSource(); err != nil {
+		return fmt.Errorf("error closing reader: %w", err)
 	}
 
 	slog.Info("Catalog indexer finished successfully")
