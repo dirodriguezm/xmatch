@@ -16,9 +16,7 @@ package conesearch
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
-	"strings"
 )
 
 type ValidationError struct {
@@ -88,15 +86,6 @@ func ValidateNneighbor(nneighbor int) error {
 	return nil
 }
 
-func ValidateCatalog(catalog string) error {
-	available := []string{"vlass", "ztf", "allwise", "gaia", "all"}
-	if !slices.Contains(available, strings.ToLower(catalog)) {
-		err := NewValidationError("Catalog not available", catalog, "catalog")
-		return err
-	}
-	return nil
-}
-
 func ValidateArguments(ra, dec, radius float64, nneighbor int, catalog string) error {
 	if err := ValidateRa(ra); err != nil {
 		return err
@@ -108,9 +97,6 @@ func ValidateArguments(ra, dec, radius float64, nneighbor int, catalog string) e
 		return err
 	}
 	if err := ValidateNneighbor(nneighbor); err != nil {
-		return err
-	}
-	if err := ValidateCatalog(catalog); err != nil {
 		return err
 	}
 	return nil
@@ -140,9 +126,6 @@ func ValidateBulkArguments(
 		return err
 	}
 	if err := ValidateNneighbor(nneighbor); err != nil {
-		return err
-	}
-	if err := ValidateCatalog(catalog); err != nil {
 		return err
 	}
 	return nil
