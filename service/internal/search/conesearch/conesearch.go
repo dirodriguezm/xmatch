@@ -287,6 +287,9 @@ func (c *ConesearchService) getMetadata(pixelList []int64, catalogName string) (
 
 	catalogList := c.resolveCatalogList(catalogName)
 	for _, name := range catalogList {
+		if !c.resolver.Has(name) {
+			continue
+		}
 		adapter, err := c.resolver.Get(name)
 		if err != nil {
 			return nil, err

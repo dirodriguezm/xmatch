@@ -83,6 +83,22 @@ func TestConesearch_WithMultipleMappers(t *testing.T) {
 	require.Subset(t, cats, []string{"vlass", "ztf"})
 }
 
+func TestConesearch_WithUnknownCatalogReturnsNoResults(t *testing.T) {
+	objects := []repository.Mastercat{
+		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
+	}
+	repo := repository.NewMockMastercatReader(t)
+	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
+	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
+	require.NoError(t, err)
+
+	result, err := service.Conesearch(1, 1, 1, 1, "unknown")
+	require.NoError(t, err)
+	repo.AssertExpectations(t)
+	require.Empty(t, result)
+}
+
 func TestBulkConesearch(t *testing.T) {
 	objects := []repository.Mastercat{
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
@@ -197,6 +213,20 @@ func TestConesearch_WithMetadata(t *testing.T) {
 
 	require.Len(t, result, 1)
 	require.Equal(t, result[0].Data[0].ID, "A")
+}
+
+func TestConesearch_WithMetadataUnknownCatalogReturnsNoResults(t *testing.T) {
+	metadataRepo := newAllwiseMetadataRepo(t)
+	resolver := catalog.NewResolver(metadataRepo)
+
+	repo := repository.NewMockMastercatReader(t)
+	catalogs := []repository.Catalog{{Name: "allwise", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithResolver(resolver), WithCatalogs(catalogs))
+	require.NoError(t, err)
+
+	result, err := service.FindMetadataByConesearch(1, 1, 1, 1, "unknown")
+	require.NoError(t, err)
+	require.Empty(t, result)
 }
 
 func FuzzConesearch(f *testing.F) {

@@ -57,13 +57,10 @@ func TestConesearch_Validation(t *testing.T) {
 			"Reason":   "Could not parse float.",
 			"ErrValue": "",
 		}},
-		"/v1/conesearch?ra=1&dec=1&radius=1": {204, nil},
-		"/v1/conesearch?ra=1&dec=1&radius=1&catalog=a": {400, map[string]string{
-			"Field":    "catalog",
-			"Reason":   "Catalog not available",
-			"ErrValue": "a",
-		}},
+		"/v1/conesearch?ra=1&dec=1&radius=1":                 {204, nil},
+		"/v1/conesearch?ra=1&dec=1&radius=1&catalog=a":       {204, nil},
 		"/v1/conesearch?ra=1&dec=1&radius=1&catalog=allwise": {204, nil},
+		"/v1/conesearch?ra=1&dec=1&radius=1&catalog=erosita": {204, nil},
 		"/v1/conesearch?ra=1&dec=1&radius=1&catalog=allwise&nneighbor=-1": {400, map[string]string{
 			"Field":    "nneighbor",
 			"ErrValue": "-1",
