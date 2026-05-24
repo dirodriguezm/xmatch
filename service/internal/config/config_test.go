@@ -186,6 +186,30 @@ func TestLoadDefaultConfigFallsBackToEmbeddedConfig(t *testing.T) {
 	require.Equal(t, "file:dev.db", cfg.CatalogIndexer.Database.Url)
 }
 
+func TestLoadConfigPathCanDisableMetadata(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.yaml")
+	err := os.WriteFile(configPath, []byte(`
+catalog_indexer:
+  source:
+    metadata: false
+`), 0644)
+	require.NoError(t, err)
+
+	cfg, err := Load(func(key string) string {
+		switch key {
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	})
+
+	require.NoError(t, err)
+	require.False(t, cfg.CatalogIndexer.Source.Metadata)
+	require.Equal(t, "file:dev.db", cfg.CatalogIndexer.Database.Url)
+}
+
 func Test_mergeConfig(t *testing.T) {
 	tests := []struct {
 		name          string
