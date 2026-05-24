@@ -25,7 +25,7 @@ func TestConesearch(t *testing.T) {
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
 	repo := repository.NewMockMastercatReader(t)
-	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
+	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
@@ -40,7 +40,7 @@ func TestConesearch(t *testing.T) {
 
 func TestConesearch_WithRepositoryError(t *testing.T) {
 	repo := repository.NewMockMastercatReader(t)
-	repo.On("FindObjects", mock.Anything, mock.Anything).Return(nil, errors.New("Test error"))
+	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(nil, errors.New("Test error"))
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
@@ -61,8 +61,8 @@ func TestConesearch_WithMultipleMappers(t *testing.T) {
 		{ID: "ZTFA", Ra: 1, Dec: 1, Cat: "ztf"},
 	}
 	repo := repository.NewMockMastercatReader(t)
-	repo.On("FindObjects", mock.Anything, mock.Anything).Return(vlassObjects, nil).Once()
-	repo.On("FindObjects", mock.Anything, mock.Anything).Return(ztfObjects, nil).Once()
+	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(vlassObjects, nil).Once()
+	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(ztfObjects, nil).Once()
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}, {Name: "ztf", Nside: 12}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
@@ -88,7 +88,7 @@ func TestConesearch_WithUnknownCatalogReturnsNoResults(t *testing.T) {
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
 	}
 	repo := repository.NewMockMastercatReader(t)
-	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
+	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
@@ -105,7 +105,7 @@ func TestBulkConesearch(t *testing.T) {
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
 	repo := repository.NewMockMastercatReader(t)
-	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
+	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
@@ -141,7 +141,7 @@ func TestBulkConesearch(t *testing.T) {
 
 func TestBulkConesearch_WithRepositoryError(t *testing.T) {
 	repo := repository.NewMockMastercatReader(t)
-	repo.On("FindObjects", mock.Anything, mock.Anything).Return(nil, errors.New("repository error"))
+	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(nil, errors.New("repository error"))
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
@@ -235,7 +235,7 @@ func FuzzConesearch(f *testing.F) {
 		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
 	}
 	repo := repository.NewMockMastercatReader(f)
-	repo.On("FindObjects", mock.Anything, mock.Anything).Return(objects, nil)
+	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(objects, nil)
 	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(f, err)
