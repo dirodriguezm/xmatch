@@ -1,9 +1,13 @@
 package repository
 
-import "context"
+import (
+	"context"
+
+	"github.com/dirodriguezm/healpix"
+)
 
 type MastercatReader interface {
-	FindObjects(context.Context, []int64) ([]Mastercat, error)
+	FindObjectsInPixelRanges(context.Context, []healpix.PixelRange) ([]Mastercat, error)
 }
 
 type MastercatWriter interface {

@@ -114,8 +114,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 	objects := make([]repository.Mastercat, 0)
 	for _, v := range c.mappers {
 		pixelRanges := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
-		pixelList := pixelRangeToList(pixelRanges)
-		objs, err := c.getObjects(pixelList, catalog)
+		objs, err := c.getObjectsInRanges(pixelRanges, catalog)
 		if err != nil {
 			return nil, err
 		}
@@ -200,8 +199,7 @@ func (c *ConesearchService) BulkConesearch(
 				for j := range chunkRa {
 					point := healpix.RADec(chunkRa[j], chunkDec[j])
 					pixelRange := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
-					pixelList := pixelRangeToList(pixelRange)
-					objs, err := c.getObjects(pixelList, catalog)
+					objs, err := c.getObjectsInRanges(pixelRange, catalog)
 					if err != nil {
 						errChan <- err
 						break
@@ -271,8 +269,8 @@ func pixelRangeToList(pixelRanges []healpix.PixelRange) []int64 {
 	return result
 }
 
-func (c *ConesearchService) getObjects(pixelList []int64, catalog string) ([]repository.Mastercat, error) {
-	objects, err := c.store.FindObjects(c.ctx, pixelList)
+func (c *ConesearchService) getObjectsInRanges(pixelRanges []healpix.PixelRange, catalog string) ([]repository.Mastercat, error) {
+	objects, err := c.store.FindObjectsInPixelRanges(c.ctx, pixelRanges)
 	if err != nil {
 		return nil, err
 	}
