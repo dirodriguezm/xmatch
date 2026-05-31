@@ -3,11 +3,11 @@
 import {
   CopyOutlined,
   DatabaseOutlined,
+  DownloadOutlined,
   EnvironmentOutlined,
   LineChartOutlined,
   QuestionCircleOutlined,
   StarOutlined,
-  TagOutlined,
 } from "@ant-design/icons";
 import {
   App,
@@ -21,31 +21,28 @@ import {
   Row,
   Select,
   Space,
-  Switch,
   Tooltip,
   Typography,
 } from "antd";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useRef } from "react";
 
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
 import { useLightcurve } from "@/app/hooks/queries";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
 import {
+  detectionPointsToCsv,
+  downloadCsv,
   getCatalogLabel,
   groupDetectionsByCatalog,
 } from "@/app/lib/utils/lightcurve";
-import {
-  buildAladinUrl,
-  buildSimbadUrl,
-  buildVizierUrl,
-} from "@/app/lib/utils/urls";
 import type { AladinViewerRef } from "@/types/aladin";
 import type { components } from "@/types/xwave-api";
 
 import { AladinViewer } from "./AladinViewer";
 import { LightCurveChart } from "./LightCurveChart";
 import { LightCurveSkeleton } from "./LightCurveSkeleton";
+import { ObjectArchives } from "./ObjectArchives";
 
 const DSS_SURVEY = "https://alasky.cds.unistra.fr/DSS/DSSColor/";
 
@@ -129,16 +126,11 @@ function toDMS(dec: number): string {
 export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const { message } = App.useApp();
   const aladinRef = useRef<AladinViewerRef>(null);
-  const [gaiaOverlay, setGaiaOverlay] = useState(false);
   const {
     data: lightcurveData,
     isLoading: lightcurveLoading,
     error: lightcurveError,
   } = useLightcurve({ ra: object.ra, dec: object.dec, radius: 1.5 });
-  const simbadUrl = buildSimbadUrl(object.ra, object.dec);
-  const vizierUrl = buildVizierUrl(object.ra, object.dec);
-  const aladinUrl = buildAladinUrl(object.ra, object.dec);
-
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     message.success(`${label} copied to clipboard`);
@@ -188,6 +180,9 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     allLightcurveMjds.length > 0
       ? calculateAxisBounds(allLightcurveMjds, 0.05, 1)
       : undefined;
+  // Stem for downloaded CSV filenames; falls back to coordinates when no objectId
+  const filenameStem =
+    object.objectId || `${object.ra.toFixed(5)}_${object.dec.toFixed(5)}`;
   const surveyPanelItems = Object.entries(lightcurveByCatalog)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([catalog, points]) => ({
@@ -200,6 +195,22 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
             ({points.length} points)
           </Text>
         </Space>
+      ),
+      extra: (
+        <Tooltip title="Download as CSV">
+          <Button
+            type="text"
+            size="small"
+            icon={<DownloadOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              downloadCsv(
+                `${filenameStem}_${getCatalogLabel(catalog)}_lightcurve.csv`,
+                detectionPointsToCsv({ [catalog]: points })
+              );
+            }}
+          />
+        </Tooltip>
       ),
       children: (
         <LightCurveChart
@@ -353,46 +364,6 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
           },
         ]
       : []),
-    {
-      key: "external",
-      label: (
-        <Space>
-          <TagOutlined />
-          <span>External Catalogs</span>
-        </Space>
-      ),
-      children: (
-        <Space wrap>
-          <Button
-            href={simbadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            icon={<TagOutlined />}
-            size="small"
-          >
-            SIMBAD
-          </Button>
-          <Button
-            href={vizierUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            icon={<TagOutlined />}
-            size="small"
-          >
-            VizieR
-          </Button>
-          <Button
-            href={aladinUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            icon={<EnvironmentOutlined />}
-            size="small"
-          >
-            Aladin Lite
-          </Button>
-        </Space>
-      ),
-    },
   ];
 
   return (
@@ -455,34 +426,6 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                   </Flex>
                 </div>
               </div>
-
-              {/* Quick Links */}
-              <Space wrap>
-                <Button
-                  href={simbadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  size="small"
-                >
-                  SIMBAD
-                </Button>
-                <Button
-                  href={vizierUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  size="small"
-                >
-                  VizieR
-                </Button>
-                <Button
-                  href={aladinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  size="small"
-                >
-                  Aladin
-                </Button>
-              </Space>
             </Flex>
           </Card>
         </Col>
@@ -499,24 +442,13 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               </Space>
             }
             extra={
-              <Space size="small">
-                <Tooltip title="Overlay clickable Gaia DR3 sources">
-                  <Switch
-                    size="small"
-                    checked={gaiaOverlay}
-                    onChange={setGaiaOverlay}
-                    checkedChildren="Gaia"
-                    unCheckedChildren="Gaia"
-                  />
-                </Tooltip>
-                <Select
-                  defaultValue={DSS_SURVEY}
-                  size="small"
-                  className="w-[150px]"
-                  options={surveySelectOptions}
-                  onChange={(value) => aladinRef.current?.setSurvey(value)}
-                />
-              </Space>
+              <Select
+                defaultValue={DSS_SURVEY}
+                size="small"
+                className="w-[150px]"
+                options={surveySelectOptions}
+                onChange={(value) => aladinRef.current?.setSurvey(value)}
+              />
             }
           >
             <AladinViewer
@@ -524,11 +456,31 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               center={{ ra: object.ra, dec: object.dec }}
               fov={0.9}
               height={280}
-              gaiaOverlay={gaiaOverlay}
             />
           </Card>
         </Col>
       </Row>
+
+      {surveyPanelItems.length > 0 && (
+        <Flex justify="flex-end" className="mb-2">
+          <Button
+            size="small"
+            icon={<DownloadOutlined />}
+            onClick={() =>
+              downloadCsv(
+                `${filenameStem}_lightcurve.csv`,
+                detectionPointsToCsv(lightcurveByCatalog)
+              )
+            }
+          >
+            Download All
+          </Button>
+        </Flex>
+      )}
+
+      <div className="mb-4">
+        <ObjectArchives ra={object.ra} dec={object.dec} />
+      </div>
 
       {/* Collapsible sections — `key` flips when the lightcurve query settles, so
           the new survey panels auto-expand instead of inheriting the loading default */}

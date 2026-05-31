@@ -11,13 +11,14 @@ export interface CatalogConfig {
   antdColor: string;
 }
 
-export const CATALOG_OPTIONS = ["allwise", "gaia"] as const;
+export const CATALOG_OPTIONS = ["allwise", "gaia", "erosita"] as const;
 
 export type CatalogOption = (typeof CATALOG_OPTIONS)[number];
 
 export const CATALOG_LABELS: Record<CatalogOption, string> = {
   allwise: "AllWISE",
   gaia: "Gaia",
+  erosita: "eROSITA",
 };
 
 export const CATALOG_SELECT_OPTIONS = CATALOG_OPTIONS.map((catalog) => ({
@@ -31,12 +32,13 @@ export const CATALOG_DEFAULT_RADII: Record<
 > = {
   allwise: { radius: 5, unit: "deg" },
   gaia: { radius: 10, unit: "deg" },
+  erosita: { radius: 20, unit: "deg" },
 };
 
 export const CATALOG_COLOR_CLASSES: Record<string, string> = {
   allwise: "bg-purple-600",
   gaia: "bg-blue-500",
-  erosita: "bg-red-500",
+  erosita: "bg-pink-500",
 };
 
 export function buildDefaultCatalogConfigs(): CatalogRadiusConfig[] {
@@ -78,6 +80,12 @@ export const CATALOGS: Record<string, CatalogConfig> = {
     label: "AllWISE",
     color: "#722ed1",
     antdColor: "purple",
+  },
+  EROSITA: {
+    id: "erosita",
+    label: "eROSITA",
+    color: "#eb2f96",
+    antdColor: "pink",
   },
 } as const;
 
