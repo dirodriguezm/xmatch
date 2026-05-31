@@ -461,22 +461,31 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         </Col>
       </Row>
 
-      {surveyPanelItems.length > 0 && (
-        <Flex justify="flex-end" className="mb-2">
-          <Button
-            size="small"
-            icon={<DownloadOutlined />}
-            onClick={() =>
-              downloadCsv(
-                `${filenameStem}_lightcurve.csv`,
-                detectionPointsToCsv(lightcurveByCatalog)
-              )
-            }
-          >
-            Download All
-          </Button>
-        </Flex>
-      )}
+      <Flex justify="flex-end" className="mb-2">
+        <Tooltip
+          title={
+            surveyPanelItems.length > 0
+              ? "Download all light curves as CSV"
+              : "No light curves available for this object"
+          }
+        >
+          <span>
+            <Button
+              size="small"
+              icon={<DownloadOutlined />}
+              disabled={surveyPanelItems.length === 0}
+              onClick={() =>
+                downloadCsv(
+                  `${filenameStem}_lightcurve.csv`,
+                  detectionPointsToCsv(lightcurveByCatalog)
+                )
+              }
+            >
+              Download All Light Curves
+            </Button>
+          </span>
+        </Tooltip>
+      </Flex>
 
       <div className="mb-4">
         <ObjectArchives ra={object.ra} dec={object.dec} />
