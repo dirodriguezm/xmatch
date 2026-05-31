@@ -372,60 +372,94 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       <Row gutter={[24, 24]} className="mb-6">
         {/* Left: Object Info */}
         <Col xs={24} md={14}>
-          <Card className="bg-surface h-full" size="small">
-            <Flex vertical gap={16}>
-              {/* Object Name */}
-              <div>
-                <Title level={3} className="!m-0 !mb-2">
-                  {object.objectId}
-                </Title>
-                <Flex align="center" gap={8}>
-                  <QuestionCircleOutlined className="text-border" />
-                  <Text type="secondary">Unknown type</Text>
-                </Flex>
-              </div>
+          <Card
+            className="bg-surface h-full"
+            size="small"
+            styles={{ body: { height: "100%" } }}
+          >
+            <Flex vertical className="h-full" justify="space-between">
+              <Flex vertical gap={16}>
+                {/* Object Name */}
+                <div>
+                  <Title level={3} className="!m-0 !mb-2">
+                    {object.objectId}
+                  </Title>
+                  <Flex align="center" gap={8}>
+                    <QuestionCircleOutlined className="text-border" />
+                    <Text type="secondary">Unknown type</Text>
+                  </Flex>
+                </div>
 
-              {/* Coordinates */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Text type="secondary" className="text-xs block mb-1">
-                    Right Ascension
-                  </Text>
-                  <Flex align="center" gap={8}>
-                    <Text className="font-mono">{object.ra.toFixed(6)}°</Text>
-                    <Text type="secondary" className="text-xs">
-                      ({toHMS(object.ra)})
+                {/* Coordinates */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Text type="secondary" className="text-xs block mb-1">
+                      Right Ascension
                     </Text>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<CopyOutlined />}
-                      onClick={() =>
-                        copyToClipboard(object.ra.toFixed(6), "RA")
-                      }
-                    />
-                  </Flex>
-                </div>
-                <div>
-                  <Text type="secondary" className="text-xs block mb-1">
-                    Declination
-                  </Text>
-                  <Flex align="center" gap={8}>
-                    <Text className="font-mono">{object.dec.toFixed(6)}°</Text>
-                    <Text type="secondary" className="text-xs">
-                      ({toDMS(object.dec)})
+                    <Flex align="center" gap={8}>
+                      <Text className="font-mono">{object.ra.toFixed(6)}°</Text>
+                      <Text type="secondary" className="text-xs">
+                        ({toHMS(object.ra)})
+                      </Text>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<CopyOutlined />}
+                        onClick={() =>
+                          copyToClipboard(object.ra.toFixed(6), "RA")
+                        }
+                      />
+                    </Flex>
+                  </div>
+                  <div>
+                    <Text type="secondary" className="text-xs block mb-1">
+                      Declination
                     </Text>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<CopyOutlined />}
-                      onClick={() =>
-                        copyToClipboard(object.dec.toFixed(6), "Dec")
-                      }
-                    />
-                  </Flex>
+                    <Flex align="center" gap={8}>
+                      <Text className="font-mono">
+                        {object.dec.toFixed(6)}°
+                      </Text>
+                      <Text type="secondary" className="text-xs">
+                        ({toDMS(object.dec)})
+                      </Text>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<CopyOutlined />}
+                        onClick={() =>
+                          copyToClipboard(object.dec.toFixed(6), "Dec")
+                        }
+                      />
+                    </Flex>
+                  </div>
                 </div>
-              </div>
+              </Flex>
+
+              <Flex justify="flex-end">
+                <Tooltip
+                  title={
+                    surveyPanelItems.length > 0
+                      ? "Download all light curves as CSV"
+                      : "No light curves available for this object"
+                  }
+                >
+                  <span>
+                    <Button
+                      size="small"
+                      icon={<DownloadOutlined />}
+                      disabled={surveyPanelItems.length === 0}
+                      onClick={() =>
+                        downloadCsv(
+                          `${filenameStem}_lightcurve.csv`,
+                          detectionPointsToCsv(lightcurveByCatalog)
+                        )
+                      }
+                    >
+                      Download All Light Curves
+                    </Button>
+                  </span>
+                </Tooltip>
+              </Flex>
             </Flex>
           </Card>
         </Col>
@@ -455,37 +489,11 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               ref={aladinRef}
               center={{ ra: object.ra, dec: object.dec }}
               fov={0.9}
-              height={280}
+              height={200}
             />
           </Card>
         </Col>
       </Row>
-
-      <Flex justify="flex-end" className="mb-2">
-        <Tooltip
-          title={
-            surveyPanelItems.length > 0
-              ? "Download all light curves as CSV"
-              : "No light curves available for this object"
-          }
-        >
-          <span>
-            <Button
-              size="small"
-              icon={<DownloadOutlined />}
-              disabled={surveyPanelItems.length === 0}
-              onClick={() =>
-                downloadCsv(
-                  `${filenameStem}_lightcurve.csv`,
-                  detectionPointsToCsv(lightcurveByCatalog)
-                )
-              }
-            >
-              Download All Light Curves
-            </Button>
-          </span>
-        </Tooltip>
-      </Flex>
 
       <div className="mb-4">
         <ObjectArchives ra={object.ra} dec={object.dec} />
