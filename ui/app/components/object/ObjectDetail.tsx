@@ -27,7 +27,11 @@ import {
 import { type ReactNode, useRef } from "react";
 
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
-import { useLightcurve } from "@/app/hooks/queries";
+import {
+  useDesiSpectrum,
+  useDesiTarget,
+  useLightcurve,
+} from "@/app/hooks/queries";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
 import {
@@ -43,6 +47,7 @@ import { AladinViewer } from "./AladinViewer";
 import { LightCurveChart } from "./LightCurveChart";
 import { LightCurveSkeleton } from "./LightCurveSkeleton";
 import { ObjectArchives } from "./ObjectArchives";
+import { SpectrumChart } from "./SpectrumChart";
 
 const DSS_SURVEY = "https://alasky.cds.unistra.fr/DSS/DSSColor/";
 
@@ -131,6 +136,18 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     isLoading: lightcurveLoading,
     error: lightcurveError,
   } = useLightcurve({ ra: object.ra, dec: object.dec, radius: 1.5 });
+  // DESI spectrum: resolve TARGETID from coordinates (deduped with ObjectArchives'
+  // identical query), then fetch the full-resolution wavelength/flux arrays.
+  const { data: desiTarget } = useDesiTarget({
+    ra: object.ra,
+    dec: object.dec,
+  });
+  const desiTargetid = desiTarget?.targetid ?? null;
+  const {
+    data: spectrumData,
+    isLoading: spectrumLoading,
+    error: spectrumError,
+  } = useDesiSpectrum(desiTargetid);
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     message.success(`${label} copied to clipboard`);
@@ -289,6 +306,47 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     };
   }
 
+  // DESI spectrum panel — only present when coordinates resolve to a DESI target
+  const spectrumNotFound = spectrumData?.found === false;
+  const spectrumReady = spectrumData?.found === true;
+  const spectrumLabel = spectrumLoading
+    ? "(loading…)"
+    : spectrumError
+      ? "(temporarily unavailable)"
+      : spectrumReady
+        ? `(${spectrumData.spectype ?? "spectrum"})`
+        : spectrumNotFound
+          ? "(none)"
+          : "";
+  const spectrumItem = desiTargetid
+    ? {
+        key: "desi-spectrum",
+        label: (
+          <Space>
+            <LineChartOutlined />
+            <span>DESI Spectrum</span>
+            <Text type="secondary" className="text-xs">
+              {spectrumLabel}
+            </Text>
+          </Space>
+        ),
+        children: (
+          <SpectrumChart
+            wavelength={spectrumData?.wavelength}
+            flux={spectrumData?.flux}
+            loading={spectrumLoading}
+            error={spectrumError ?? null}
+            notFound={spectrumNotFound}
+            targetid={desiTargetid}
+            spectype={spectrumData?.spectype}
+            redshift={spectrumData?.redshift}
+            model={spectrumData?.model}
+            ivar={spectrumData?.ivar}
+          />
+        ),
+      }
+    : null;
+
   const collapseItems = [
     {
       key: "photometry",
@@ -330,6 +388,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       ),
     },
     ...(lightcurveStatusItem ? [lightcurveStatusItem] : surveyPanelItems),
+    ...(spectrumItem ? [spectrumItem] : []),
     ...(catalogDetails.length > 0
       ? [
           {
@@ -499,16 +558,18 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         <ObjectArchives ra={object.ra} dec={object.dec} />
       </div>
 
-      {/* Collapsible sections — `key` flips when the lightcurve query settles, so
-          the new survey panels auto-expand instead of inheriting the loading default */}
+      {/* Collapsible sections — `key` flips when the lightcurve or DESI spectrum
+          query settles, so the new panels auto-expand instead of inheriting the
+          loading default */}
       <Collapse
-        key={lightcurveLoading ? "lc-loading" : "lc-loaded"}
+        key={`${lightcurveLoading ? "lc-loading" : "lc-loaded"}-${spectrumReady ? "spec" : "nospec"}`}
         items={collapseItems}
         defaultActiveKey={[
           "photometry",
           ...(lightcurveStatusItem
             ? [lightcurveStatusItem.key]
             : surveyPanelItems.map((item) => item.key)),
+          ...(spectrumReady ? ["desi-spectrum"] : []),
         ]}
         className="bg-surface"
       />

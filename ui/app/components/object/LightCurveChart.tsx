@@ -145,9 +145,11 @@ export function LightCurveChart({
       name: "MJD",
       nameLocation: "middle",
       nameGap: 30,
+      nameTextStyle: { color: "#bfbfbf" },
       min: mjdBounds.min,
       max: mjdBounds.max,
       axisLabel: {
+        color: "#d9d9d9",
         formatter: (value: number) => value.toFixed(0),
       },
       axisLine: { lineStyle: { color: "#303030" } },
@@ -158,10 +160,12 @@ export function LightCurveChart({
       name: "Magnitude",
       nameLocation: "middle",
       nameGap: 40,
+      nameTextStyle: { color: "#bfbfbf" },
       inverse: true, // Brighter = lower magnitude
       min: magBounds.min,
       max: magBounds.max,
       axisLabel: {
+        color: "#d9d9d9",
         formatter: (value: number) => value.toFixed(1),
       },
       axisLine: { lineStyle: { color: "#303030" } },

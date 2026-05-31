@@ -92,6 +92,55 @@ export function expandDetection(det: LightcurveDetection): DetectionPoint[] {
   ];
 }
 
+function escapeCsv(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function csvCell(value: number | string | undefined): string {
+  if (value === undefined) return "";
+  return escapeCsv(String(value));
+}
+
+/**
+ * Serialize grouped detection points into a CSV string with columns
+ * `survey,band,mjd,mag,magerr`. The survey column uses the human-readable
+ * catalog label via {@link getCatalogLabel}.
+ */
+export function detectionPointsToCsv(
+  groups: Record<string, DetectionPoint[]>
+): string {
+  const rows: string[] = ["survey,band,mjd,mag,magerr"];
+  for (const [catalog, points] of Object.entries(groups)) {
+    const survey = getCatalogLabel(catalog);
+    for (const p of points) {
+      rows.push(
+        [
+          csvCell(survey),
+          csvCell(p.band),
+          csvCell(p.mjd),
+          csvCell(p.mag),
+          csvCell(p.magerr),
+        ].join(",")
+      );
+    }
+  }
+  return rows.join("\n");
+}
+
+/** Trigger a client-side download of a CSV string as a file. */
+export function downloadCsv(filename: string, csv: string): void {
+  if (typeof window === "undefined") return;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export function groupDetectionsByCatalog(
   lc: Lightcurve | null | undefined,
   exclude: string[] = []
