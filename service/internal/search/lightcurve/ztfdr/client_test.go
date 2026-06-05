@@ -1,6 +1,7 @@
 package ztfdr
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -117,7 +118,7 @@ func TestFetchLightcurve(t *testing.T) {
 			require.Equal(t, "/light_curve/", r.URL.Path)
 			require.Equal(t, "1", r.URL.Query().Get("ra"))
 			require.Equal(t, "2", r.URL.Query().Get("dec"))
-			require.Equal(t, "3", r.URL.Query().Get("radius"))
+			require.Equal(t, fmt.Sprint(3.0/3600), r.URL.Query().Get("radius"))
 			_, err := w.Write([]byte(`{"_id":1,"filterid":2,"fieldid":3,"nepochs":2,"objra":4.5,"objdec":6.7,"rcid":8,"hmjd":[9.1,9.2],"mag":[20.1,20.2],"magerr":[0.1,0.2]}`))
 			require.NoError(t, err)
 		}))

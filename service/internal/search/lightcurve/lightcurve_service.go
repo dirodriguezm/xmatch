@@ -93,7 +93,7 @@ func New(
 // # Parameters:
 //   - ra: Right ascension coordinate in degrees
 //   - dec: Declination coordinate in degrees
-//   - radius: Search radius in degrees
+//   - radius: Search radius in arcsec
 //   - nobjects: Maximum number of objects to retrieve
 //
 // Returns:

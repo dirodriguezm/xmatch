@@ -40,8 +40,8 @@ func (client *NeowiseClient) FetchLightcurve(ra, dec, radius float64, nobjects i
 		"catalog":  client.catalog,
 		"spatial":  "cone",
 		"objstr":   fmt.Sprintf("%f %f", ra, dec),
-		"radunits": "deg",
-		"radius":   fmt.Sprintf("%f", arcSecToDeg(radius)),
+		"radunits": "arcsec",
+		"radius":   fmt.Sprintf("%f", radius),
 		"outfmt":   "3",
 		"selcols":  strings.Join(client.columns, ","),
 	})
@@ -90,10 +90,6 @@ func addQueryParameters(u *url.URL, params map[string]string) *url.URL {
 	newURL.RawQuery = q.Encode()
 
 	return &newURL
-}
-
-func arcSecToDeg(value float64) float64 {
-	return value / 3600.0
 }
 
 func convertToLightcurveObject(detections *utils.VOTable) ([]lightcurve.LightcurveObject, error) {

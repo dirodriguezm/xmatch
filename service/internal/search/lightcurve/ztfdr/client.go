@@ -43,7 +43,7 @@ func (client *ZtfDrClient) FetchLightcurve(ra, dec, radius float64, _ int) light
 	u = addQueryParameters(u, map[string]string{
 		"ra":     strconv.FormatFloat(ra, 'f', -1, 64),
 		"dec":    strconv.FormatFloat(dec, 'f', -1, 64),
-		"radius": strconv.FormatFloat(radius, 'f', -1, 64),
+		"radius": strconv.FormatFloat(arcsecToDegree(radius), 'f', -1, 64),
 	})
 
 	resp, err := http.Get(u.String())
@@ -130,4 +130,8 @@ func convertToLightcurveObjects(responses []lightCurveResponse) ([]lightcurve.Li
 	}
 
 	return detections, nil
+}
+
+func arcsecToDegree(arcsec float64) float64 {
+	return arcsec / 3600
 }

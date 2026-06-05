@@ -91,7 +91,7 @@ func (api *API) conesearchBulk(c *gin.Context) {
 //		@Produce		json
 //		@Param			ra			query		string	true	"Right ascension in degrees"
 //		@Param			dec			query		string	true	"Declination in degrees"
-//		@Param			radius		query		string	true	"Radius in degrees"
+//		@Param			radius		query		string	true	"Radius in arcsec"
 //		@Param			catalog		query		string	false	"Catalog to search in"
 //		@Param			nneighbor	query		string	false	"Number of neighbors to return"
 //	 @Param			getMetadata	query		string	false	"Return metadata results"
