@@ -116,6 +116,194 @@ sql:
             go_struct_tag: 'parquet:"name=phot_rp_mean_mag, type=DOUBLE" json:"phot_rp_mean_mag"'
             go_type:
               type: "NullFloat64"
+          - column: "gaia.source_id"
+            go_struct_tag: 'parquet:"name=source_id, type=INT64" json:"source_id"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.ra_error"
+            go_struct_tag: 'parquet:"name=ra_error, type=DOUBLE" json:"ra_error"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.dec_error"
+            go_struct_tag: 'parquet:"name=dec_error, type=DOUBLE" json:"dec_error"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.parallax"
+            go_struct_tag: 'parquet:"name=parallax, type=DOUBLE" json:"parallax"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.parallax_error"
+            go_struct_tag: 'parquet:"name=parallax_error, type=DOUBLE" json:"parallax_error"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.pm"
+            go_struct_tag: 'parquet:"name=pm, type=DOUBLE" json:"pm"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.pmra"
+            go_struct_tag: 'parquet:"name=pmra, type=DOUBLE" json:"pmra"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.pmra_error"
+            go_struct_tag: 'parquet:"name=pmra_error, type=DOUBLE" json:"pmra_error"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.pmdec"
+            go_struct_tag: 'parquet:"name=pmdec, type=DOUBLE" json:"pmdec"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.pmdec_error"
+            go_struct_tag: 'parquet:"name=pmdec_error, type=DOUBLE" json:"pmdec_error"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.astrometric_excess_noise"
+            go_struct_tag: 'parquet:"name=astrometric_excess_noise, type=DOUBLE" json:"astrometric_excess_noise"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.astrometric_excess_noise_sig"
+            go_struct_tag: 'parquet:"name=astrometric_excess_noise_sig, type=DOUBLE" json:"astrometric_excess_noise_sig"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.ruwe"
+            go_struct_tag: 'parquet:"name=ruwe, type=DOUBLE" json:"ruwe"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.phot_g_n_obs"
+            go_struct_tag: 'parquet:"name=phot_g_n_obs, type=INT32" json:"phot_g_n_obs"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.phot_g_mean_flux_over_error"
+            go_struct_tag: 'parquet:"name=phot_g_mean_flux_over_error, type=DOUBLE" json:"phot_g_mean_flux_over_error"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.phot_bp_n_obs"
+            go_struct_tag: 'parquet:"name=phot_bp_n_obs, type=INT32" json:"phot_bp_n_obs"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.phot_bp_mean_flux_over_error"
+            go_struct_tag: 'parquet:"name=phot_bp_mean_flux_over_error, type=DOUBLE" json:"phot_bp_mean_flux_over_error"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.phot_rp_n_obs"
+            go_struct_tag: 'parquet:"name=phot_rp_n_obs, type=INT32" json:"phot_rp_n_obs"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.phot_rp_mean_flux_over_error"
+            go_struct_tag: 'parquet:"name=phot_rp_mean_flux_over_error, type=DOUBLE" json:"phot_rp_mean_flux_over_error"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.phot_bp_rp_excess_factor"
+            go_struct_tag: 'parquet:"name=phot_bp_rp_excess_factor, type=DOUBLE" json:"phot_bp_rp_excess_factor"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.phot_proc_mode"
+            go_struct_tag: 'parquet:"name=phot_proc_mode, type=INT32" json:"phot_proc_mode"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.bp_rp"
+            go_struct_tag: 'parquet:"name=bp_rp, type=DOUBLE" json:"bp_rp"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.bp_g"
+            go_struct_tag: 'parquet:"name=bp_g, type=DOUBLE" json:"bp_g"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.g_rp"
+            go_struct_tag: 'parquet:"name=g_rp, type=DOUBLE" json:"g_rp"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.radial_velocity"
+            go_struct_tag: 'parquet:"name=radial_velocity, type=DOUBLE" json:"radial_velocity"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.radial_velocity_error"
+            go_struct_tag: 'parquet:"name=radial_velocity_error, type=DOUBLE" json:"radial_velocity_error"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.rv_method_used"
+            go_struct_tag: 'parquet:"name=rv_method_used, type=INT32" json:"rv_method_used"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.phot_variable_flag"
+            go_struct_tag: 'parquet:"name=phot_variable_flag, type=BYTE_ARRAY" json:"phot_variable_flag"'
+            go_type:
+              type: "NullString"
+          - column: "gaia.in_qso_candidates"
+            go_struct_tag: 'parquet:"name=in_qso_candidates, type=INT32" json:"in_qso_candidates"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.in_galaxy_candidates"
+            go_struct_tag: 'parquet:"name=in_galaxy_candidates, type=INT32" json:"in_galaxy_candidates"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.non_single_star"
+            go_struct_tag: 'parquet:"name=non_single_star, type=INT32" json:"non_single_star"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.has_epoch_photometry"
+            go_struct_tag: 'parquet:"name=has_epoch_photometry, type=INT32" json:"has_epoch_photometry"'
+            go_type:
+              type: "NullInt64"
+          - column: "gaia.classprob_dsc_combmod_quasar"
+            go_struct_tag: 'parquet:"name=classprob_dsc_combmod_quasar, type=DOUBLE" json:"classprob_dsc_combmod_quasar"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.classprob_dsc_combmod_galaxy"
+            go_struct_tag: 'parquet:"name=classprob_dsc_combmod_galaxy, type=DOUBLE" json:"classprob_dsc_combmod_galaxy"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.classprob_dsc_combmod_star"
+            go_struct_tag: 'parquet:"name=classprob_dsc_combmod_star, type=DOUBLE" json:"classprob_dsc_combmod_star"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.teff_gspphot"
+            go_struct_tag: 'parquet:"name=teff_gspphot, type=DOUBLE" json:"teff_gspphot"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.teff_gspphot_lower"
+            go_struct_tag: 'parquet:"name=teff_gspphot_lower, type=DOUBLE" json:"teff_gspphot_lower"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.teff_gspphot_upper"
+            go_struct_tag: 'parquet:"name=teff_gspphot_upper, type=DOUBLE" json:"teff_gspphot_upper"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.logg_gspphot"
+            go_struct_tag: 'parquet:"name=logg_gspphot, type=DOUBLE" json:"logg_gspphot"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.logg_gspphot_lower"
+            go_struct_tag: 'parquet:"name=logg_gspphot_lower, type=DOUBLE" json:"logg_gspphot_lower"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.logg_gspphot_upper"
+            go_struct_tag: 'parquet:"name=logg_gspphot_upper, type=DOUBLE" json:"logg_gspphot_upper"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.mh_gspphot"
+            go_struct_tag: 'parquet:"name=mh_gspphot, type=DOUBLE" json:"mh_gspphot"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.mh_gspphot_lower"
+            go_struct_tag: 'parquet:"name=mh_gspphot_lower, type=DOUBLE" json:"mh_gspphot_lower"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.mh_gspphot_upper"
+            go_struct_tag: 'parquet:"name=mh_gspphot_upper, type=DOUBLE" json:"mh_gspphot_upper"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.distance_gspphot"
+            go_struct_tag: 'parquet:"name=distance_gspphot, type=DOUBLE" json:"distance_gspphot"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.distance_gspphot_lower"
+            go_struct_tag: 'parquet:"name=distance_gspphot_lower, type=DOUBLE" json:"distance_gspphot_lower"'
+            go_type:
+              type: "NullFloat64"
+          - column: "gaia.distance_gspphot_upper"
+            go_struct_tag: 'parquet:"name=distance_gspphot_upper, type=DOUBLE" json:"distance_gspphot_upper"'
+            go_type:
+              type: "NullFloat64"
           - column: "erosita.id"
             go_struct_tag: 'parquet:"name=IAUNAME, type=BYTE_ARRAY" json:"id"'
           - column: "erosita.detuid"
