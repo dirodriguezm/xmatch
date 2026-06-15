@@ -1,4 +1,4 @@
-CREATE TABLE erosita (
+CREATE TABLE IF NOT EXISTS erosita (
     id text NOT NULL,
     detuid text,
     skytile integer,
@@ -115,5 +115,5 @@ CREATE TABLE erosita (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_erosita_ra_dec ON erosita(ra, dec);
-CREATE INDEX idx_erosita_mjd ON erosita(mjd);
+CREATE INDEX IF NOT EXISTS idx_erosita_ra_dec ON erosita(ra, dec);
+CREATE INDEX IF NOT EXISTS idx_erosita_mjd ON erosita(mjd);

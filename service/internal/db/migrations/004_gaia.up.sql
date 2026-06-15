@@ -1,4 +1,4 @@
-CREATE TABLE gaia (
+CREATE TABLE IF NOT EXISTS gaia (
     id text not null,
     source_id bigint,
     ra_error double precision,

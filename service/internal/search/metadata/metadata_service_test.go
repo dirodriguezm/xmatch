@@ -23,7 +23,7 @@ func newAllwiseMetadataService(t *testing.T) (*MetadataService, *repository.Quer
 	t.Cleanup(func() { _ = db.Close() })
 
 	_, err = db.Exec(`
-		CREATE TABLE mastercat (
+		CREATE TABLE IF NOT EXISTS mastercat (
 			id text not null,
 			ipix bigint not null,
 			ra double precision not null,
@@ -31,7 +31,7 @@ func newAllwiseMetadataService(t *testing.T) (*MetadataService, *repository.Quer
 			cat text not null,
 			PRIMARY KEY (id, cat)
 		);
-		CREATE TABLE allwise (
+		CREATE TABLE IF NOT EXISTS allwise (
 			id text not null,
 			cntr bigint not null,
 			w1mpro double precision,

@@ -16,7 +16,7 @@ func TestFindObjectsInPixelRanges(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
 	_, err = db.Exec(`
-		CREATE TABLE mastercat (
+		CREATE TABLE IF NOT EXISTS mastercat (
 			id text not null,
 			ipix bigint not null,
 			ra double precision not null,
@@ -24,7 +24,7 @@ func TestFindObjectsInPixelRanges(t *testing.T) {
 			cat text not null,
 			PRIMARY KEY (id, cat)
 		);
-		CREATE INDEX mastercat_ipix_idx ON mastercat (ipix);
+		CREATE INDEX IF NOT EXISTS mastercat_ipix_idx ON mastercat (ipix);
 	`)
 	require.NoError(t, err)
 
@@ -60,7 +60,7 @@ func TestFindObjectsInPixelRangesAcceptsHealpixRangeList(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
 	_, err = db.Exec(`
-		CREATE TABLE mastercat (
+		CREATE TABLE IF NOT EXISTS mastercat (
 			id text not null,
 			ipix bigint not null,
 			ra double precision not null,
@@ -68,7 +68,7 @@ func TestFindObjectsInPixelRangesAcceptsHealpixRangeList(t *testing.T) {
 			cat text not null,
 			PRIMARY KEY (id, cat)
 		);
-		CREATE INDEX mastercat_ipix_idx ON mastercat (ipix);
+		CREATE INDEX IF NOT EXISTS mastercat_ipix_idx ON mastercat (ipix);
 	`)
 	require.NoError(t, err)
 

@@ -32,15 +32,14 @@ Metadata tables store catalog-specific fields. Coordinates and HEALPix pixels ar
 Example `006_newcatalog.up.sql`:
 
 ```sql
-CREATE TABLE newcatalog (
+CREATE TABLE IF NOT EXISTS newcatalog (
     id text NOT NULL,
     mag_g double precision,
     mag_r double precision,
     flag smallint,
     PRIMARY KEY (id)
 );
-
-CREATE INDEX idx_newcatalog_mag_g ON newcatalog(mag_g);
+CREATE INDEX IF NOT EXISTS idx_newcatalog_mag_g ON newcatalog(mag_g);
 ```
 
 Example `006_newcatalog.down.sql`:

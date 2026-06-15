@@ -1,4 +1,4 @@
-CREATE TABLE catalogs (
+CREATE TABLE IF NOT EXISTS catalogs (
     name text not null,
     nside int not null,
     PRIMARY KEY (name, nside)

@@ -1,4 +1,4 @@
-CREATE TABLE allwise (
+CREATE TABLE IF NOT EXISTS allwise (
     id text not null,
     cntr bigint not null,
     w1mpro double precision,
@@ -18,4 +18,4 @@ CREATE TABLE allwise (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX allwise_cntr_idx ON allwise (cntr);
+CREATE INDEX IF NOT EXISTS allwise_cntr_idx ON allwise (cntr);
