@@ -18,26 +18,17 @@ jobs:
         with:
           submodules: true
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "1.26"
-          cache-dependency-path: service/go.mod
+      - uses: cachix/install-nix-action@v31
 
-      - uses: cachix/install-nix-action@v26
+      - uses: cachix/cachix-action@v16
         with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
+          name: devenv
 
       - name: Install devenv.sh
-        run: |
-          nix profile install nixpkgs#devenv
+        run: nix profile add nixpkgs#devenv
 
       - name: Build
-        run: |
-          nix develop .# --no-pure-eval --accept-flake-config --command init-healpix
-          cd service
-          nix develop .# --no-pure-eval --accept-flake-config --command just build
+        run: devenv shell xwave-build
 
       - name: Release
         uses: softprops/action-gh-release@v2

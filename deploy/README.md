@@ -67,6 +67,6 @@ The directory `~/deployment/configs` contains configuration files (yaml files). 
 │   ├── db
 │   │   └── production.db
 │   └── envfile
-├── flake.nix
+├── devenv.nix
 └── release_script
 ```
