@@ -50,18 +50,19 @@ export function decodeCatalogRadii(str: string): CatalogRadiusConfig[] {
 }
 
 /**
- * Convert a radius value to degrees for API calls.
+ * Convert a radius value to arcseconds for API calls.
+ * The conesearch API expects the radius in arcseconds.
  */
-export function convertRadiusToDegrees(
+export function convertRadiusToArcsec(
   radius: number,
   unit: RadiusUnit
 ): number {
   switch (unit) {
-    case "arcsec":
-      return radius / 3600;
     case "arcmin":
-      return radius / 60;
+      return radius * 60;
     case "deg":
+      return radius * 3600;
+    case "arcsec":
     default:
       return radius;
   }

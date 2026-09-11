@@ -2,7 +2,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 
 import {
   type CatalogRadiusConfig,
-  convertRadiusToDegrees,
+  convertRadiusToArcsec,
 } from "@/app/lib/constants/search";
 import type { components } from "@/types/xwave-api";
 
@@ -102,7 +102,7 @@ export function useParallelConeSearch(
           fetchConeSearch({
             ra: base!.ra,
             dec: base!.dec,
-            radius: convertRadiusToDegrees(c.radius, c.unit),
+            radius: convertRadiusToArcsec(c.radius, c.unit),
             catalog: c.catalog,
           }),
         enabled: base !== null,

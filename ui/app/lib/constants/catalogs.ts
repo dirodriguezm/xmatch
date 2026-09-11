@@ -30,9 +30,9 @@ export const CATALOG_DEFAULT_RADII: Record<
   CatalogOption,
   { radius: number; unit: RadiusUnit }
 > = {
-  allwise: { radius: 5, unit: "deg" },
-  gaia: { radius: 10, unit: "deg" },
-  erosita: { radius: 20, unit: "deg" },
+  allwise: { radius: 3, unit: "arcsec" },
+  gaia: { radius: 3, unit: "arcsec" },
+  erosita: { radius: 20, unit: "arcsec" },
 };
 
 export const CATALOG_COLOR_CLASSES: Record<string, string> = {
