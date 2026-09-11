@@ -5,18 +5,26 @@ import { Flex } from "antd";
 import { useCrossmatchState } from "@/app/store/crossmatch-context";
 
 import { EmptyState } from "./EmptyState";
+import { ErrorState } from "./ErrorState";
 import { LoadingState } from "./LoadingState";
-import type { CrossmatchResult } from "./ResultsTable";
+import type { EnrichedResult, PhotometryStatus } from "./ResultsTable";
 import { ResultsTable } from "./ResultsTable";
 
 export interface ResultsPanelProps {
-  data?: CrossmatchResult[];
+  data?: EnrichedResult[];
   loading?: boolean;
+  /** Message from the failed cone search, shown in the error state. */
+  errorMessage?: string;
+  onRetry?: () => void;
+  photometryStatus?: PhotometryStatus;
 }
 
 export function ResultsPanel({
   data = [],
   loading = false,
+  errorMessage,
+  onRetry,
+  photometryStatus = "idle",
 }: ResultsPanelProps) {
   const { state } = useCrossmatchState();
 
@@ -27,12 +35,16 @@ export function ResultsPanel({
       return (
         <Flex vertical className="h-full">
           <div className="px-8 py-6">
-            <ResultsTable data={data} loading={loading} />
+            <ResultsTable
+              data={data}
+              loading={loading}
+              photometryStatus={photometryStatus}
+            />
           </div>
         </Flex>
       );
     case "error":
-      return <EmptyState />;
+      return <ErrorState message={errorMessage} onRetry={onRetry} />;
     case "empty":
     default:
       return <EmptyState />;

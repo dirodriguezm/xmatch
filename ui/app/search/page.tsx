@@ -1,15 +1,22 @@
 "use client";
 
 import { Layout, Spin } from "antd";
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useMemo } from "react";
 
 import { AppHeader, AppSidebar } from "@/app/components/layout";
 import { ResultsPanel } from "@/app/components/results";
+import type { PhotometryStatus } from "@/app/components/results/ResultsTable";
 import { SidebarSearchForm } from "@/app/components/sidebar";
 import { useParallelConeSearch } from "@/app/hooks/queries";
+import { useBulkMetadata } from "@/app/hooks/queries/useBulkMetadata";
 import { useSearchParams } from "@/app/hooks/useSearchParamsSync";
 import { decodeCatalogRadii } from "@/app/lib/constants/search";
 import { mapConeSearchResults } from "@/app/lib/utils/mapConeSearchResults";
+import {
+  buildBulkMetadataRequests,
+  buildMagIndex,
+  enrichWithPhotometry,
+} from "@/app/lib/utils/mergePhotometry";
 import {
   CrossmatchProvider,
   useCrossmatchState,
@@ -44,9 +51,11 @@ function SearchContent() {
 
   const queryResults = useParallelConeSearch(base, catalogConfigs);
 
-  const allData = useMemo(
-    () => queryResults.flatMap((r) => r.data ?? []),
-    [queryResults]
+  // queryResults[i] pairs with enabledCatalogs[i]: useParallelConeSearch builds
+  // its queries from this same `enabled` filter, in this same order.
+  const enabledCatalogs = useMemo(
+    () => catalogConfigs.filter((c) => c.enabled).map((c) => c.catalog),
+    [catalogConfigs]
   );
 
   const isLoading = queryResults.some((r) => r.isLoading);
@@ -54,11 +63,50 @@ function SearchContent() {
   const isSuccess =
     queryResults.length > 0 && queryResults.every((r) => r.isSuccess);
 
+  const errorMessage = queryResults.find((r) => r.isError)?.error?.message;
+
   const mappedResults = useMemo(
-    () => (allData.length > 0 ? mapConeSearchResults(allData) : []),
-    [allData]
+    () =>
+      queryResults.flatMap((r, i) =>
+        r.data ? mapConeSearchResults(r.data, enabledCatalogs[i]) : []
+      ),
+    [queryResults, enabledCatalogs]
   );
 
+  // Photometry enrichment. Deliberately kept out of the effect below: the table
+  // renders from mappedResults immediately and the Mag column fills in later,
+  // so a slow or failed metadata request must never blank the results.
+  const bulkRequests = useMemo(
+    () => buildBulkMetadataRequests(mappedResults),
+    [mappedResults]
+  );
+  const {
+    groups: metadataGroups,
+    isFetching: photometryFetching,
+    isError: photometryError,
+  } = useBulkMetadata(bulkRequests);
+
+  const enrichedResults = useMemo(
+    () => enrichWithPhotometry(mappedResults, buildMagIndex(metadataGroups)),
+    [mappedResults, metadataGroups]
+  );
+
+  const photometryStatus: PhotometryStatus =
+    bulkRequests.length === 0
+      ? "idle"
+      : photometryFetching
+        ? "pending"
+        : photometryError
+          ? "error"
+          : "ready";
+
+  const handleRetry = useCallback(() => {
+    queryResults.forEach((r) => r.refetch());
+  }, [queryResults]);
+
+  // NOTE: photometry state must never enter this effect or its dependencies —
+  // ResultsPanel switches on resultsState to choose between the table and the
+  // empty/error states.
   useEffect(() => {
     if (isLoading) {
       dispatch({ type: "SET_RESULTS_STATE", payload: "loading" });
@@ -66,10 +114,12 @@ function SearchContent() {
       dispatch({ type: "SET_RESULTS_STATE", payload: "error" });
     } else if (isSuccess) {
       dispatch({ type: "SET_RESULTS_STATE", payload: "success" });
-    } else if (!base) {
+    } else if (!base || queryResults.length === 0) {
+      // Also covers a valid target with every catalog unchecked, which
+      // previously dispatched nothing and left the panel on its last state.
       dispatch({ type: "SET_RESULTS_STATE", payload: "empty" });
     }
-  }, [isLoading, isError, isSuccess, base, dispatch]);
+  }, [isLoading, isError, isSuccess, base, queryResults.length, dispatch]);
 
   return (
     <Layout className="min-h-screen">
@@ -79,7 +129,13 @@ function SearchContent() {
           <SidebarSearchForm />
         </AppSidebar>
         <Content className="bg-background min-h-[calc(100vh-64px)] overflow-auto">
-          <ResultsPanel data={mappedResults} loading={isLoading} />
+          <ResultsPanel
+            data={enrichedResults}
+            loading={isLoading}
+            errorMessage={errorMessage}
+            onRetry={handleRetry}
+            photometryStatus={photometryStatus}
+          />
         </Content>
       </Layout>
     </Layout>

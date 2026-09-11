@@ -2,7 +2,9 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 
 import {
   type CatalogRadiusConfig,
+  CONE_SEARCH_MAX_NEIGHBORS,
   convertRadiusToArcsec,
+  MAX_RADIUS_ARCSEC,
 } from "@/app/lib/constants/search";
 import type { components } from "@/types/xwave-api";
 
@@ -44,6 +46,15 @@ class ConeSearchError extends Error {
 async function fetchConeSearch(
   params: ConeSearchParams
 ): Promise<CatalogGroup[]> {
+  // Refuse radii the backend will not answer rather than leaving the user on a
+  // spinner until the browser gives up. See MAX_RADIUS_ARCSEC for the measurements.
+  if (params.radius > MAX_RADIUS_ARCSEC) {
+    throw new ConeSearchError(
+      `Radius too large: ${params.radius.toFixed(1)}" exceeds the ${MAX_RADIUS_ARCSEC}" limit. Try a smaller radius.`,
+      400
+    );
+  }
+
   const searchParams = new URLSearchParams({
     ra: params.ra.toString(),
     dec: params.dec.toString(),
@@ -97,6 +108,7 @@ export function useParallelConeSearch(
           c.catalog,
           c.radius,
           c.unit,
+          CONE_SEARCH_MAX_NEIGHBORS,
         ],
         queryFn: () =>
           fetchConeSearch({
@@ -104,6 +116,7 @@ export function useParallelConeSearch(
             dec: base!.dec,
             radius: convertRadiusToArcsec(c.radius, c.unit),
             catalog: c.catalog,
+            nneighbor: CONE_SEARCH_MAX_NEIGHBORS,
           }),
         enabled: base !== null,
         retry: (failureCount: number, error: unknown) => {

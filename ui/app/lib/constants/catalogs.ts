@@ -98,6 +98,41 @@ export function getCatalogOptions(): CatalogConfig[] {
 }
 
 /**
+ * Resolve a search-catalog slug (`allwise`, `gaia`, `erosita` — what the API
+ * actually returns) to its display label.
+ *
+ * Distinct from {@link import("../utils/lightcurve").getCatalogLabel}, which
+ * resolves light-curve *survey* names (neowise, ztf, …) from its own table.
+ */
+export function getSearchCatalogLabel(slug: string): string {
+  const key = slug.toLowerCase() as CatalogOption;
+  return CATALOG_LABELS[key] ?? slug.toUpperCase();
+}
+
+/**
+ * Hex color per search-catalog slug, matching the dot colors in
+ * {@link CATALOG_COLOR_CLASSES} so the sidebar and the results table agree.
+ */
+const SEARCH_CATALOG_COLORS: Record<CatalogOption, string> = {
+  allwise: "#722ed1",
+  gaia: "#1890ff",
+  erosita: "#eb2f96",
+};
+
+/**
+ * Hex color for a search-catalog slug.
+ *
+ * {@link getCatalogColor} matches on the legacy `CATALOGS` *label*, so `"gaia"`
+ * resolved to neither `"GAIA DR3"` nor `"Gaia"` and Gaia tags rendered gray.
+ * Keying on the slug removes the label round-trip entirely.
+ */
+export function getSearchCatalogColor(slug: string): string {
+  return (
+    SEARCH_CATALOG_COLORS[slug.toLowerCase() as CatalogOption] ?? "#8c8c8c"
+  );
+}
+
+/**
  * Get the hex color for a catalog by its label
  */
 export function getCatalogColor(catalogLabel: string): string {

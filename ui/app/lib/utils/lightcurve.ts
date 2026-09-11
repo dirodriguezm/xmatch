@@ -1,5 +1,7 @@
 import type { components } from "@/types/xwave-api";
 
+import { csvCell } from "./csv";
+
 type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
 
 const SENTINEL = -999;
@@ -92,15 +94,6 @@ export function expandDetection(det: LightcurveDetection): DetectionPoint[] {
   ];
 }
 
-function escapeCsv(value: string): string {
-  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-}
-
-function csvCell(value: number | string | undefined): string {
-  if (value === undefined) return "";
-  return escapeCsv(String(value));
-}
-
 /**
  * Serialize grouped detection points into a CSV string with columns
  * `survey,band,mjd,mag,magerr`. The survey column uses the human-readable
@@ -127,19 +120,9 @@ export function detectionPointsToCsv(
   return rows.join("\n");
 }
 
-/** Trigger a client-side download of a CSV string as a file. */
-export function downloadCsv(filename: string, csv: string): void {
-  if (typeof window === "undefined") return;
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+// downloadCsv now lives in ./csv alongside the escaping helpers; re-exported
+// here so existing importers keep working.
+export { downloadCsv } from "./csv";
 
 export function groupDetectionsByCatalog(
   lc: Lightcurve | null | undefined,

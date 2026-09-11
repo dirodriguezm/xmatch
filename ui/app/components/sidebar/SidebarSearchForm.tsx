@@ -19,11 +19,28 @@ import { useCrossmatchState } from "@/app/store/crossmatch-context";
 
 const { Title, Text } = Typography;
 
+/**
+ * Always returns one config per known catalog.
+ *
+ * A URL may name only a subset (`?catalogRadii=allwise:5:deg:1`), but the form
+ * renders a row for every catalog and looks its config up by name — so a
+ * partial list used to yield `undefined` and crash the row. Catalogs the URL
+ * omits fall back to their defaults, unchecked, since they were not searched.
+ */
 function initConfigs(catalogRadiiStr: string): CatalogRadiusConfig[] {
-  if (!catalogRadiiStr) return buildDefaultCatalogConfigs();
+  const defaults = buildDefaultCatalogConfigs();
+  if (!catalogRadiiStr) return defaults;
+
   const decoded = decodeCatalogRadii(catalogRadiiStr);
-  if (decoded.length === 0) return buildDefaultCatalogConfigs();
-  return decoded;
+  if (decoded.length === 0) return defaults;
+
+  const byCatalog = new Map(decoded.map((c) => [c.catalog, c]));
+  const merged = defaults.map(
+    (d) => byCatalog.get(d.catalog) ?? { ...d, enabled: false }
+  );
+  // Keep any catalog the URL names that we do not know about.
+  const known = new Set(defaults.map((d) => d.catalog));
+  return [...merged, ...decoded.filter((c) => !known.has(c.catalog))];
 }
 
 export function SidebarSearchForm() {
@@ -138,7 +155,10 @@ export function SidebarSearchForm() {
                   {CATALOG_SELECT_OPTIONS.map((catalog) => {
                     const config = draftConfigs.find(
                       (c) => c.catalog === catalog.value
-                    )!;
+                    );
+                    // initConfigs guarantees one per catalog; skip rather than
+                    // crash the sidebar if that invariant ever breaks.
+                    if (!config) return null;
                     return (
                       <CatalogRadiusRow
                         key={catalog.value}

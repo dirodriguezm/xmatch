@@ -67,3 +67,37 @@ export function convertRadiusToArcsec(
       return radius;
   }
 }
+
+/** Convert an arcsecond value back into `unit`, for display in the form. */
+export function convertArcsecToUnit(arcsec: number, unit: RadiusUnit): number {
+  switch (unit) {
+    case "arcmin":
+      return arcsec / 60;
+    case "deg":
+      return arcsec / 3600;
+    case "arcsec":
+    default:
+      return arcsec;
+  }
+}
+
+/**
+ * Largest radius the conesearch backend answers in reasonable time.
+ * Measured against https://xwave-astro.udp.cl/v1: 120" replies in ~46ms, while
+ * 150", 180" and 240" never reply (still open after 60s). The unit selector
+ * makes it trivially easy to cross that line — 3 arcmin is already 180" — so we
+ * refuse client-side instead of hanging on a request that will not come back.
+ */
+export const MAX_RADIUS_ARCSEC = 120;
+
+/**
+ * Upper bound on objects returned per catalog.
+ *
+ * The backend defaults `nneighbor` to 1, and the UI never sent the parameter,
+ * so a search returned a single object per catalog no matter how large the
+ * radius — making the radius control almost inert. This is a *cap*, not a
+ * count: the backend returns whatever falls inside the radius, up to this many.
+ * Latency is flat with respect to it (~35ms measured at both n=1 and n=500),
+ * so a generous cap costs nothing and hands the radius back its meaning.
+ */
+export const CONE_SEARCH_MAX_NEIGHBORS = 100;
