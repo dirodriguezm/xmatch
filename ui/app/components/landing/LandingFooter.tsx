@@ -13,7 +13,7 @@ export function LandingFooter() {
         className="flex justify-center flex-wrap"
       >
         <Link
-          href="https://ifa.uv.cl/xwave/swagger/index.html#"
+          href="https://xwave-astro.udp.cl/swagger/index.html"
           target="_blank"
           rel="noopener noreferrer"
         >

@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://ifa.uv.cl/xwave/v1";
+export const API_BASE_URL = "https://xwave-astro.udp.cl/v1";
 
 export class ApiError extends Error {
   constructor(
