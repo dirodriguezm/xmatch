@@ -30,6 +30,7 @@ All commands are devenv scripts prefixed with `xwave`, available inside the dev 
 | Command | Description |
 |---------|-------------|
 | `xwave-build` | Build the Go binary (`service/build/main`) |
+| `xwave-release` | Build the fully static release binary (`service/build/main`) |
 | `xwave-run <application> [flags]` | Build and run an application (`server`, `indexer`) |
 | `xwave-live-server` | Run with `air` for live reload |
 | `xwave-docs` | Generate Swagger documentation |

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-{ pkgs, config, ... }:
+{ pkgs, config, lib, ... }:
 let
   root = config.devenv.root;
   service = "${root}/service";
@@ -102,8 +102,84 @@ let
       platforms = platforms.unix;
     };
   };
+
+  # Source tree for the release build. Only the Go module and its local
+  # dependencies are needed. The SWIG wrapper is regenerated inside the
+  # derivation, so it is excluded from the source to keep the build hermetic.
+  releaseSrc = lib.cleanSourceWith {
+    src = lib.cleanSource ./.;
+    filter = path: _type:
+      let
+        rel = lib.removePrefix (toString ./. + "/") (toString path);
+      in
+      !(lib.hasPrefix ".devenv" rel)
+      && !(lib.hasPrefix ".opencode" rel)
+      && !(lib.hasPrefix "deploy" rel)
+      && !(lib.hasPrefix "docs" rel)
+      && !(lib.hasPrefix "openspec" rel)
+      && !(lib.hasPrefix "service/build" rel)
+      && !(lib.hasPrefix "service/data" rel)
+      && !(lib.hasPrefix "service/tmp" rel)
+      && !(lib.hasSuffix ".db" rel)
+      && !(lib.hasSuffix ".db-shm" rel)
+      && !(lib.hasSuffix ".db-wal" rel)
+      && !(lib.hasSuffix "healpix_wrap.cxx" rel);
+  };
+
+  # Fully static release binary, built with the static stdenv so it can run on
+  # any amd64 Linux host (e.g. Ubuntu 24.04) without Nix or any system
+  # libraries. The healpix_cxx/libsharp static archives are linked in (the
+  # SWIG bindings don't use the FITS code, so cfitsio is not needed);
+  # `netgo`/`osusergo` avoid the static libc NSS/DNS pitfalls.
+  release = pkgs.pkgsStatic.buildGoModule {
+    pname = "xmatch";
+    version = "0.1.0";
+    src = releaseSrc;
+    modRoot = "service";
+    vendorHash = "sha256-LkPu5CHB1Fi8zC/H8sGFDRa5dRRPUVsY5RF7nobiE2Q=";
+
+    tags = [ "netgo" "osusergo" ];
+    ldflags = [
+      "-s"
+      "-w"
+      "-linkmode=external"
+      "-extldflags=-static"
+    ];
+
+    nativeBuildInputs = [
+      pkgs.swig
+      pkgs.pkg-config
+    ];
+
+    env = {
+      PKG_CONFIG_PATH = "${healpix}/lib/pkgconfig";
+      CGO_CFLAGS = "-I${healpix}/include -I${healpix}/include/healpix_cxx";
+      CGO_LDFLAGS = "-L${healpix}/lib -lhealpix_cxx -lsharp -lstdc++ -fopenmp -lm";
+    };
+
+    # `go install` names the binary after the package directory ("cmd").
+    postInstall = ''
+      mv $out/bin/cmd $out/bin/xmatch
+    '';
+
+    # Regenerate the SWIG bindings instead of relying on the gitignored file
+    # produced by the xmatch:init-healpix task. This hook also runs for the
+    # go-modules vendor derivation, which inherits postPatch.
+    postPatch = ''
+      pushd healpix/internal/healpix_cxx
+      swig -c++ -go -intgosize 64 \
+        $(pkg-config --cflags-only-I libsharp healpix_cxx) \
+        -o healpix_wrap.cxx healpix_amd64.i
+      popd
+    '';
+  };
 in {
   # https://devenv.sh/reference/options/
+
+  outputs = {
+    # Static binary for deployment: `devenv build outputs.xmatch`
+    xmatch = release;
+  };
 
   packages = with pkgs; [
     healpix
@@ -114,6 +190,7 @@ in {
     go-migrate-sqlite
     grc
     air
+    jq
     tailwindcss_4
     tailwindcss-language-server
   ];
@@ -166,6 +243,18 @@ in {
     xwave-build = {
       exec = "cd ${service} && go build -o build/main cmd/*.go";
       description = "Build the Go binary (service/build/main)";
+    };
+
+    xwave-release = {
+      exec = ''
+        set -eo pipefail
+        cd ${root}
+        out=$(devenv build outputs.xmatch | jq -r '.["outputs.xmatch"]')
+        mkdir -p ${service}/build
+        install -m 0755 "$out/bin/xmatch" ${service}/build/main \
+          && echo "Static release binary written to ${service}/build/main"
+      '';
+      description = "Build the fully static release binary (service/build/main)";
     };
 
     xwave-test = {

@@ -1,17 +1,27 @@
 # Deployment Strategy for the Xmatch Service
-Binaries should be built either on the production machine or on the CI pipeline (Github Actions) and then downloaded to the production server.
+Binaries are built on the CI pipeline (GitHub Actions) and downloaded to the production server. The production server does not need Nix, devenv, or any build toolchain.
+
+## Release artifact
+The release binary is a single, fully static amd64 executable. It is built from the `outputs.xmatch` devenv output with:
+
+```sh
+devenv shell xwave-release   # writes service/build/main
+```
+
+It statically links the HEALPix libraries (healpix_cxx, libsharp) and libc (musl), so it runs on a plain Ubuntu 24.04 server without Nix, system libraries, or `sudo`. The GitHub release workflow uploads it as the `main` asset. The deploy program downloads it to a temporary file, verifies its sha256 digest when the release API provides one, and only then promotes it.
 
 > [!NOTE] Downsides of the current setup
 > Since the server requires a VPN connection to access via SSH we can't directly copy the built binaries using something like `scp`.
 
 The Xmatch service repository has `systemd` files to be copied to the host machine in the required location `~/.config/systemd/user`.
-The systemd files will point to the current production binary located at `~/deployment/production/bin`.
+The unit execs the promoted binary directly (`ExecStart=%h/deployment/production/bin/prod server`) — no shell or Nix profile is involved — and sets `WorkingDirectory` and `EnvironmentFile` to `~/deployment/production`.
 
 Other versions of the application binaries are located at `~/deployment/binaries` and there's a script that handles promotion and rollback of a binary. In pseudocode it does this:
 
 ```python
-function deploy(commit_hash, instances):
-    binary_path = find_file("deployment/binaries", pattern="*{commit_hash}*")
+function deploy(instances):
+    release = get_latest_release(RELEASE_URL)
+    binary_path = download("deployment/binaries/{release.tag}", asset="main", digest=release.digest)
     previous_binary = resolve_symlink("deployment/production/bin/prod")
 
     # Promote new binary
@@ -57,16 +67,14 @@ The directory `~/deployment/configs` contains configuration files (yaml files). 
 ```
 /home/user/deployment
 ├── binaries
-│   ├── main_SHA1
-│   └── main_SHA2
-├── production
-│   ├── bin
-│   │   └── prod -> ../../binaries/main_SHA2
-│   ├── configs
-│   │   └── config.yaml
-│   ├── db
-│   │   └── production.db
-│   └── envfile
-├── devenv.nix
-└── release_script
+│   ├── v1.0.0
+│   └── v1.0.1
+└── production
+    ├── bin
+    │   └── prod -> ../../binaries/v1.0.1
+    ├── configs
+    │   └── config.yaml
+    ├── db
+    │   └── production.db
+    └── envfile
 ```

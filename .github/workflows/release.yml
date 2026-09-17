@@ -27,8 +27,8 @@ jobs:
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
 
-      - name: Build
-        run: devenv shell xwave-build
+      - name: Build static binary
+        run: devenv shell xwave-release
 
       - name: Release
         uses: softprops/action-gh-release@v2
