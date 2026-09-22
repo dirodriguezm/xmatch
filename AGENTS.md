@@ -5,42 +5,49 @@
 - **Language**: Go (1.24+)
 - **Framework**: Gin web framework, actor pattern
 - **Database**: SQLite, Parquet
-- **Build tool**: Just (command runner), Nix/Devenv for environment
+- **Build tool**: Devenv (scripts for tasks, Nix for the environment)
 
 ## Environment Setup
 
-The project uses Nix/Devenv for reproducible development environments. Ensure you have Nix installed and then run:
+The project uses [Devenv](https://devenv.sh) for reproducible development environments (no flakes, no direnv). Ensure you have Nix installed, then enable auto-activation by adding the hook to your shell config (e.g. `~/.bashrc` or `~/.zshrc`):
 
 ```bash
-nix develop
+eval "$(devenv hook bash)"
 ```
 
-This will drop you into a shell with all dependencies (Go, golangci-lint, healpix libraries, etc.) and run the `init-healpix` script automatically.
+Then trust the project directory once:
+
+```bash
+devenv allow
+```
+
+The environment now activates automatically when you enter the project directory. Without the hook, use `devenv shell` to enter it manually. The `xmatch:init-healpix` task runs automatically on shell entry when needed (submodule init + SWIG bindings generation).
 
 ## Build Commands
 
-All commands are defined in the `justfile`. Most commands assume you are in the `service/` directory (they set `working-directory`). Use `just` to run them from the repository root.
+All commands are devenv scripts prefixed with `xwave`, available inside the dev shell (run them from anywhere in the repo; they `cd` into the right directory themselves). Outside the shell, prefix with `devenv shell`, e.g. `devenv shell xwave-build`.
 
-| Command | Description | Working Directory |
-|---------|-------------|-------------------|
-| `just build` | Build the Go binary (`build/main`) | `service/` |
-| `just run application flags=''` | Build and run a specific application (e.g., `server`, `indexer`) | `service/` |
-| `just live-server` | Run with `air` for live reload | `service/` |
-| `just build-css` | Compile Tailwind CSS | `service/` |
-| `just build-css-watch` | Watch and compile CSS | `service/` |
-| `just docs` | Generate Swagger documentation | `service/` |
-| `just mock` | Generate mocks with mockery | `service/` |
-| `just migrate db` | Run database migrations on `db`.db | root |
-| `just clean-build` | Remove `service/build/` | root |
-| `just clean-all` | Clean Go caches and build artifacts | `service/` |
-| `just clean-db db` | Remove the specified database file | root |
+| Command | Description |
+|---------|-------------|
+| `xwave-build` | Build the Go binary (`service/build/main`) |
+| `xwave-release` | Build the fully static release binary (`service/build/main`) |
+| `xwave-run <application> [flags]` | Build and run an application (`server`, `indexer`) |
+| `xwave-live-server` | Run with `air` for live reload |
+| `xwave-docs` | Generate Swagger documentation |
+| `xwave-mock` | Generate mocks with mockery |
+| `xwave-migrate <db>` | Run database migrations on `<db>.db` |
+| `xwave-clean-build` | Remove `service/build/` |
+| `xwave-clean-all` | Clean Go caches and build artifacts |
+| `xwave-clean-db <db>` | Remove the specified database file |
+| `xwave-init-healpix` | Initialize healpix submodule and generate SWIG bindings manually |
 
 ## Testing
 
 | Command | Description |
 |---------|-------------|
-| `just test` | Run all tests with `grc` colorization and race detector |
-| `just test-verbose` | Run all tests verbosely with race detector |
+| `xwave-test` | Run all tests with `grc` colorization and race detector |
+| `xwave-test-verbose` | Run all tests verbosely with race detector |
+| `devenv shell xwave-test` | Run the test suite from outside the shell (used in CI) |
 
 To run a single test or a specific package, use Go directly:
 
