@@ -23,8 +23,8 @@ jobs:
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
 
-      - name: Run build
-        run: devenv shell xwave-build
-
       - name: Run the tests
         run: devenv shell xwave-test
+
+      - name: Build static binary
+        run: devenv shell xwave-release

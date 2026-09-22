@@ -136,7 +136,7 @@ let
     version = "0.1.0";
     src = releaseSrc;
     modRoot = "service";
-    vendorHash = "sha256-LkPu5CHB1Fi8zC/H8sGFDRa5dRRPUVsY5RF7nobiE2Q=";
+    vendorHash = "sha256-j1S9Y8A/SFdz1CytpX5yNzfHiGXhoNKEZKpy/WeEdf8=";
 
     tags = [ "netgo" "osusergo" ];
     ldflags = [
