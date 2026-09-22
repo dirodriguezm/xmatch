@@ -188,11 +188,8 @@ in {
     golangci-lint
     sqlite
     go-migrate-sqlite
-    grc
     air
     jq
-    tailwindcss_4
-    tailwindcss-language-server
   ];
 
   env = {
@@ -204,30 +201,6 @@ in {
     PKG_CONFIG_PATH = "${healpix}/lib/pkgconfig";
     CGO_CFLAGS = "-I${healpix}/include -I${healpix}/include/healpix_cxx -I${pkgs.cfitsio}/include ";
     CGO_LDFLAGS = "-L${healpix}/lib -L${pkgs.cfitsio}/lib  -lhealpix_cxx -lcfitsio ";
-    GRC_CONFIG = ''
-      # Regla para "go test" y "make test"
-      \b(go test)\b
-      regexp==== RUN .*
-      colour=bright_blue
-      -
-      regexp=--- PASS: .* (\(\d+\.\d+s\))
-      colour=green, yellow
-      -
-      regexp=^PASS$
-      colour=bold white on_green
-      -
-      regexp=^(ok|FAIL)\s+.*
-      colour=default, magenta
-      -
-      regexp=--- FAIL: .* (\(\d+\.\d+s\))
-      colour=red, yellow
-      -
-      regexp=^FAIL$
-      colour=bold white on_red
-      -
-      regexp=[^\s]+\.go(:\d+)?
-      colour=cyan
-    '';
   };
 
   languages.go = {
@@ -258,12 +231,12 @@ in {
     };
 
     xwave-test = {
-      exec = "cd ${service} && grc go test ./... -race";
+      exec = "cd ${service} && go test ./... -race";
       description = "Run all tests with race detector";
     };
 
     xwave-test-verbose = {
-      exec = "cd ${service} && grc go test -v ./... -race";
+      exec = "cd ${service} && go test -v ./... -race";
       description = "Run all tests verbosely with race detector";
     };
 
