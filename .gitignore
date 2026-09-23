@@ -8,3 +8,4 @@ configs/
 .devenv
 service/ui/static/css/output.css
 healpix/internal/healpix_cxx/healpix_wrap.cxx
+openspec/
