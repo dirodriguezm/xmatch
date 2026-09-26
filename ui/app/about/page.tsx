@@ -50,6 +50,12 @@ const DATA_SOURCES = [
       "published photometry from every VizieR catalog within 2″, merged per filter in the SED",
   },
   {
+    name: "IRSA Galactic Dust Reddening service (NASA/IPAC)",
+    href: "https://irsa.ipac.caltech.edu/applications/DUST/",
+    usedFor:
+      "E(B−V) at the position (Schlafly & Finkbeiner 2011) for the SED's extinction correction",
+  },
+  {
     name: "ALeRCE broker",
     href: "https://alerce.online/",
     usedFor: "ZTF light curves",
