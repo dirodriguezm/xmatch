@@ -23,12 +23,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/di"
+	"github.com/dirodriguezm/xmatch/service/internal/app"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
-	"github.com/dirodriguezm/xmatch/service/internal/utils"
-	"github.com/golobby/container/v3"
+	"github.com/dirodriguezm/xmatch/service/internal/testutils"
+
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
+	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -37,33 +40,43 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var ctr container.Container
+var configPath string
+var dbFile string
 
 func TestMain(m *testing.M) {
-	rootPath, err := utils.FindRootModulePath(5)
+	rootPath, err := testutils.FindRootModulePath(5)
 	if err != nil {
 		panic(err)
 	}
 
 	// remove test database, ignore errors
-	dbFile := filepath.Join(rootPath, "test.db")
-	os.Remove(dbFile)
-
-	// create a config file
-	tmpDir, err := os.MkdirTemp("", "server_test_*")
+	dbDir, err := os.MkdirTemp("", "conesearch_test_db_*")
 	if err != nil {
-		slog.Error("could not make temp dir")
 		panic(err)
 	}
-	configPath := filepath.Join(tmpDir, "config.yaml")
-	config := `
+	dbFile = filepath.Join(dbDir, "test.db")
+
+	// create temporary directory for config
+	tmpDir, err := os.MkdirTemp("", "xmatch-test-*")
+	if err != nil {
+		panic(err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// create config file
+	configPath = filepath.Join(tmpDir, "config.yaml")
+	config := fmt.Sprintf(`
 service:
   database:
     url: "file:%s?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000"
+  host: "localhost:8080"
+  base_path: "/v1"
   bulk_chunk_size: 500
   max_bulk_concurrency: 1
-`
-	config = fmt.Sprintf(config, dbFile)
+  lightcurve_service:
+    neowise:
+      use_cntr_filter: true
+`, dbFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)
 	if err != nil {
 		panic(fmt.Errorf("could not write config file: %w", err))
@@ -79,6 +92,24 @@ service:
 		panic(fmt.Errorf("Error during migrations: %w", err))
 	}
 
+	err = test_helpers.RegisterCatalogsInDB(context.Background(), dbFile)
+	if err != nil {
+		panic(fmt.Errorf("registering catalogs: %w", err))
+	}
+
+	// run tests
+	code := m.Run()
+
+	// cleanup
+	os.Remove(configPath)
+	os.Remove(dbFile)
+	os.Remove(dbDir)
+	os.Remove(tmpDir)
+
+	os.Exit(code)
+}
+
+func TestConesearch(t *testing.T) {
 	getenv := func(key string) string {
 		switch key {
 		case "LOG_LEVEL":
@@ -89,41 +120,39 @@ service:
 			return ""
 		}
 	}
-	ctx := context.Background()
 	stdout := &strings.Builder{}
 
-	test_helpers.RegisterCatalogsInDB(ctx, dbFile)
-
-	// build DI container
-	ctr = di.BuildServiceContainer(ctx, getenv, stdout)
-
-	// run tests
-	m.Run()
-
-	// cleanup
-	os.Remove(configPath)
-	os.Remove(dbFile)
-	os.Remove(tmpDir)
-}
-
-func TestConesearch(t *testing.T) {
-	var service *conesearch.ConesearchService
-	err := ctr.Resolve(&service)
+	cfg, err := app.Config(getenv)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	queries := app.ServiceRepository(db)
+	defer CleanDB(t, queries)
+
+	resolver := catalog.NewResolver(queries)
+	service, err := app.ConesearchService(queries, resolver)
+	if err != nil {
+		t.Fatalf("creating conesearch service: %v", err)
 	}
 
 	objects := []repository.Mastercat{
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	var repo conesearch.Repository
-	err = ctr.Resolve(&repo)
-	if err != nil {
-		t.Error(err)
-	}
 	for _, obj := range objects {
-		repo.InsertMastercat(context.Background(), obj)
+		err = queries.InsertObject(context.Background(), repository.InsertObjectParams(obj))
+		if err != nil {
+			t.Fatalf("inserting object: %v", err)
+		}
 	}
 
 	result, err := service.Conesearch(0, 0, 1, 10, "all")
@@ -131,30 +160,57 @@ func TestConesearch(t *testing.T) {
 		t.Error(err)
 	}
 	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result))
-
-	CleanDB(t, repo)
 }
 
 func TestConesearch_WithMetadata(t *testing.T) {
-	var service *conesearch.ConesearchService
-	err := ctr.Resolve(&service)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	queries := app.ServiceRepository(db)
+	defer CleanDB(t, queries)
+
+	resolver := catalog.NewResolver(queries)
+	service, err := app.ConesearchService(queries, resolver)
+	if err != nil {
+		t.Fatalf("creating conesearch service: %v", err)
 	}
 
 	objects := []repository.Mastercat{
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	var repo conesearch.Repository
-	err = ctr.Resolve(&repo)
-	if err != nil {
-		t.Error(err)
-	}
 	for _, obj := range objects {
 		ctx := context.Background()
-		repo.InsertMastercat(ctx, obj)
-		repo.InsertAllwiseWithoutParams(ctx, repository.Allwise{ID: obj.ID})
+		err = queries.InsertObject(ctx, repository.InsertObjectParams(obj))
+		if err != nil {
+			t.Fatalf("inserting mastercat: %v", err)
+		}
+		err = queries.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: obj.ID})
+		if err != nil {
+			t.Fatalf("inserting allwise: %v", err)
+		}
 	}
 
 	result, err := service.FindMetadataByConesearch(0, 0, 1, 10, "allwise")
@@ -162,16 +218,41 @@ func TestConesearch_WithMetadata(t *testing.T) {
 		t.Error(err)
 	}
 	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result))
-
-	CleanDB(t, repo)
 }
 
 func TestBulkConesearch(t *testing.T) {
-	// initialize service
-	var service *conesearch.ConesearchService
-	err := ctr.Resolve(&service)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	queries := app.ServiceRepository(db)
+	defer CleanDB(t, queries)
+
+	resolver := catalog.NewResolver(queries)
+	service, err := app.ConesearchService(queries, resolver)
+	if err != nil {
+		t.Fatalf("creating conesearch service: %v", err)
 	}
 
 	// insert objects
@@ -179,13 +260,11 @@ func TestBulkConesearch(t *testing.T) {
 		{ID: "A", Ipix: 326417514496, Ra: 0, Dec: 0, Cat: "vlass"},
 		{ID: "B", Ipix: 327879198247, Ra: 10, Dec: 10, Cat: "vlass"},
 	}
-	var repo conesearch.Repository
-	err = ctr.Resolve(&repo)
-	if err != nil {
-		t.Error(err)
-	}
 	for _, obj := range objects {
-		repo.InsertMastercat(context.Background(), obj)
+		err = queries.InsertObject(context.Background(), repository.InsertObjectParams(obj))
+		if err != nil {
+			t.Fatalf("inserting object: %v", err)
+		}
 	}
 
 	// set up test cases
@@ -210,19 +289,89 @@ func TestBulkConesearch(t *testing.T) {
 			t.Error(err)
 		}
 
-		require.Len(t, tc.expected, len(result), "testCase: %v | result: %v", tc, result)
+		foundIDs := make(map[string]bool)
 		for i := range result {
 			for j := range result[i].Data {
 				id := result[i].Data[j].ID
 				require.Contains(t, tc.expected, id, "testCase: %v | result: %v", tc, result)
+				foundIDs[id] = true
 			}
+		}
+		for _, expectedID := range tc.expected {
+			require.True(t, foundIDs[expectedID], "expected ID %s not found in result for testCase: %v", expectedID, tc)
 		}
 	}
 
-	CleanDB(t, repo)
+	// test that coordinates with no matches are properly handled
+	t.Run("coordinates with no matches return empty results", func(t *testing.T) {
+		noMatchResult, err := service.BulkConesearch(
+			[]float64{100, 200}, // coordinates with no objects nearby
+			[]float64{50, 60},
+			1,
+			10,
+			"all",
+			1,
+			1,
+		)
+		require.NoError(t, err)
+		require.Len(t, noMatchResult, 0, "expected no matches for coordinates with no nearby objects, got: %v", noMatchResult)
+	})
+
+	// test that Index field is correctly set
+	t.Run("index field is correctly set for matched coordinates", func(t *testing.T) {
+		multiMatchResult, err := service.BulkConesearch(
+			[]float64{0, 10}, // first matches A, second matches B
+			[]float64{0, 10},
+			1,
+			10,
+			"all",
+			1,
+			1,
+		)
+		require.NoError(t, err)
+		require.Len(t, multiMatchResult, 2, "expected 2 results, got: %v", multiMatchResult)
+
+		indexMap := make(map[int][]string)
+		for _, r := range multiMatchResult {
+			for _, d := range r.Data {
+				indexMap[r.Index] = append(indexMap[r.Index], d.ID)
+			}
+		}
+		require.Contains(t, indexMap[0], "A", "index 0 should contain ID A")
+		require.Contains(t, indexMap[1], "B", "index 1 should contain ID B")
+	})
+
+	// test that non-matching coordinates in the middle are handled correctly
+	t.Run("non-matching coordinates in the middle preserve index correctness", func(t *testing.T) {
+		middleNoMatchResult, err := service.BulkConesearch(
+			[]float64{0, 50, 10, 60},
+			[]float64{0, 50, 10, 60},
+			1,
+			10,
+			"all",
+			1,
+			1,
+		)
+		require.NoError(t, err)
+		require.Len(t, middleNoMatchResult, 2, "expected 2 results, got: %v", middleNoMatchResult)
+
+		indexMap := make(map[int][]string)
+		for _, r := range middleNoMatchResult {
+			for _, d := range r.Data {
+				indexMap[r.Index] = append(indexMap[r.Index], d.ID)
+			}
+		}
+		require.Contains(t, indexMap[0], "A", "index 0 should contain ID A")
+		require.Contains(t, indexMap[2], "B", "index 2 should contain ID B")
+		require.NotContains(t, indexMap, 1, "index 1 should have no matches")
+		require.NotContains(t, indexMap, 3, "index 3 should have no matches")
+	})
+
 }
 
-func CleanDB(t *testing.T, repo conesearch.Repository) {
+func CleanDB(t *testing.T, repo interface {
+	RemoveAllObjects(context.Context) error
+}) {
 	err := repo.RemoveAllObjects(context.Background())
 	require.NoError(t, err)
 }

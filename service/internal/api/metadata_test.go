@@ -16,13 +16,16 @@ package api_test
 
 import (
 	"bytes"
-	"database/sql"
+
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/stretchr/testify/require"
@@ -31,8 +34,32 @@ import (
 func TestMetadata_FindByID(t *testing.T) {
 	beforeTest(t)
 
-	var db *sql.DB
-	ctr.Resolve(&db)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	test_helpers.InsertAllwiseMastercat(10, db)
 	test_helpers.InsertAllwiseMetadata(10, db)
 
 	for i := range 10 {
@@ -42,7 +69,7 @@ func TestMetadata_FindByID(t *testing.T) {
 		router.ServeHTTP(recorder, req)
 
 		require.Equal(t, http.StatusOK, recorder.Code)
-		var result repository.Allwise
+		var result repository.GetAllwiseRow
 		if err := json.Unmarshal(recorder.Body.Bytes(), &result); err != nil {
 			t.Fatalf("could not unmarshal response: %v\n%v\nOn id: %v", err, recorder.Body.String(), i)
 		}
@@ -71,8 +98,32 @@ func TestMetadata_Validation(t *testing.T) {
 func TestMetadata_BulkFindByID(t *testing.T) {
 	beforeTest(t)
 
-	var db *sql.DB
-	ctr.Resolve(&db)
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	test_helpers.InsertAllwiseMastercat(10, db)
 	test_helpers.InsertAllwiseMetadata(10, db)
 
 	ids := make([]string, 10)
@@ -96,7 +147,7 @@ func TestMetadata_BulkFindByID(t *testing.T) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code, "Request: %v | Response: %v", body, w.Body.String())
 
-	var result []repository.Allwise
+	var result []repository.BulkGetAllwiseRow
 
 	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
 		t.Fatalf("could not unmarshal response: %v\n%v", err, w.Body.String())

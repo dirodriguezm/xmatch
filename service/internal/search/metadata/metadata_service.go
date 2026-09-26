@@ -12,42 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package metadata provides a metadata service to query metadata from catalogs
 package metadata
 
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"slices"
 	"strings"
 
-	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 )
 
 type MetadataService struct {
-	repository conesearch.Repository
+	resolver *catalog.Resolver
 }
 
-func NewMetadataService(repo conesearch.Repository) (*MetadataService, error) {
-	if repo == nil {
-		return nil, fmt.Errorf("Repository was nil while creating MetadataService")
+func NewMetadataService(resolver *catalog.Resolver) (*MetadataService, error) {
+	if resolver == nil {
+		return nil, fmt.Errorf("resolver was nil while creating MetadataService")
 	}
-	return &MetadataService{repository: repo}, nil
+	return &MetadataService{resolver: resolver}, nil
 }
 
-func (m *MetadataService) FindByID(ctx context.Context, id string, catalog string) (any, error) {
-	if err := m.validateCatalog(catalog); err != nil {
+func (m *MetadataService) FindByID(ctx context.Context, id string, catalogName string) (any, error) {
+	if err := m.validateCatalog(catalogName); err != nil {
 		return nil, err
 	}
 	if err := m.validateID(id); err != nil {
 		return nil, err
 	}
 
-	return m.queryCatalog(ctx, id, catalog)
+	return m.queryCatalog(ctx, id, catalogName)
 }
 
-func (m *MetadataService) BulkFindByID(ctx context.Context, ids []string, catalog string) (any, error) {
-	if err := m.validateCatalog(catalog); err != nil {
+func (m *MetadataService) BulkFindByID(ctx context.Context, ids []string, catalogName string) (any, error) {
+	if err := m.validateCatalog(catalogName); err != nil {
 		return nil, err
 	}
 	for i := range ids {
@@ -56,62 +55,31 @@ func (m *MetadataService) BulkFindByID(ctx context.Context, ids []string, catalo
 		}
 	}
 
-	return m.bulkQueryCatalog(ctx, ids, catalog)
+	return m.bulkQueryCatalog(ctx, ids, catalogName)
 }
 
-func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalog string) (any, error) {
-	switch strings.ToLower(catalog) {
-	case "allwise":
-		result, err := m.repository.GetAllwise(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	case "gaia":
-		result, err := m.repository.GetGaia(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	case "vlass":
-		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
-	case "ztf":
-		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
-	default:
-		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Unknown catalog"}
+func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalogName string) (any, error) {
+	adapter, err := m.resolver.Get(catalogName)
+	if err != nil {
+		return nil, ArgumentError{Name: "catalog", Value: catalogName, Reason: err.Error()}
 	}
+	return adapter.GetByID(ctx, id)
 }
 
-func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, catalog string) (any, error) {
-	switch strings.ToLower(catalog) {
-	case "allwise":
-		result, err := m.repository.BulkGetAllwise(ctx, ids)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	case "gaia":
-		result, err := m.repository.BulkGetGaia(ctx, ids)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	case "vlass":
-		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
-	case "ztf":
-		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Search not yet implemented for catalog"}
-	default:
-		return nil, ArgumentError{Name: "catalog", Value: catalog, Reason: "Unknown catalog"}
+func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, catalogName string) (any, error) {
+	adapter, err := m.resolver.Get(catalogName)
+	if err != nil {
+		return nil, ArgumentError{Name: "catalog", Value: catalogName, Reason: err.Error()}
 	}
+	return adapter.BulkGetByID(ctx, ids)
 }
 
-func (m *MetadataService) validateCatalog(catalog string) error {
-	allowedCatalogs := []string{"allwise", "vlass", "ztf", "gaia"}
-	if !slices.Contains(allowedCatalogs, strings.ToLower(catalog)) {
+func (m *MetadataService) validateCatalog(catalogName string) error {
+	if !m.resolver.Has(catalogName) {
 		return ValidationError{
 			Field:  "catalog",
-			Reason: fmt.Sprintf("Allowed catalogs are %v", allowedCatalogs),
-			Value:  catalog,
+			Reason: fmt.Sprintf("unknown catalog: %s", catalogName),
+			Value:  catalogName,
 		}
 	}
 	return nil
@@ -119,20 +87,11 @@ func (m *MetadataService) validateCatalog(catalog string) error {
 
 func (m *MetadataService) validateID(id string) error {
 	if err := ensureNoSQLInjection(id); err != nil {
-		return err
-	}
-
-	if err := ensureAlphanumeric(id); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ensureAlphanumeric(s string) error {
-	validIDPattern := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
-	if !validIDPattern.MatchString(s) {
-		return fmt.Errorf("id must contain only alphanumeric characters, underscores, or hyphens")
+		return ValidationError{
+			Field:  "id",
+			Reason: err.Error(),
+			Value:  id,
+		}
 	}
 
 	return nil

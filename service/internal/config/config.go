@@ -12,17 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package config contains the configuration for the service and catalog indexer.
 package config
 
 import (
+	"embed"
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/utils"
 	"gopkg.in/yaml.v3"
 )
+
+//go:embed config.yaml
+var embeddedConfig embed.FS
 
 type Config struct {
 	CatalogIndexer CatalogIndexerConfig `yaml:"catalog_indexer"`
@@ -96,10 +101,16 @@ type DatabaseConfig struct {
 
 type LightcurveServiceConfig struct {
 	NeowiseConfig NeowiseConfig `yaml:"neowise"`
+	ZtfDrConfig   ZtfDrConfig   `yaml:"ztf_dr"`
 }
 
 type NeowiseConfig struct {
+	UseIdFilter   bool `yaml:"use_id_filter"`
 	UseCntrFilter bool `yaml:"use_cntr_filter"`
+}
+
+type ZtfDrConfig struct {
+	UseIdFilter bool `yaml:"use_id_filter"`
 }
 
 func Load(getEnv func(string) string) (Config, error) {
@@ -113,17 +124,22 @@ func Load(getEnv func(string) string) (Config, error) {
 		return defaultConfig, nil
 	}
 
-	customConfig, err := LoadFile(customConfigPath)
+	data, err := embeddedConfig.ReadFile("config.yaml")
 	if err != nil {
-		return Config{}, fmt.Errorf("loading custom config: %w", err)
+		return Config{}, fmt.Errorf("reading embedded config: %w", err)
 	}
 
-	merged, err := mergeConfig(defaultConfig, customConfig)
+	customData, err := os.ReadFile(customConfigPath)
+	if err != nil {
+		return Config{}, fmt.Errorf("loading custom config: reading config file: %w", err)
+	}
+
+	customConfig, err := mergeYAMLConfig(data, customData)
 	if err != nil {
 		return Config{}, fmt.Errorf("merging config: %w", err)
 	}
 
-	return merged, nil
+	return customConfig, nil
 }
 
 func mergeConfig(defaultConfig Config, customConfig Config) (Config, error) {
@@ -135,27 +151,82 @@ func mergeConfig(defaultConfig Config, customConfig Config) (Config, error) {
 }
 
 func loadDefaultConfig() (Config, error) {
-	rootPath, err := utils.FindRootModulePath(5)
-	if err != nil {
-		return Config{}, err
-	}
-	configPath, err := searchDefaultLocations(rootPath)
-	return LoadFile(configPath)
+	return loadEmbeddedConfig()
 }
 
-func searchDefaultLocations(rootPath string) (string, error) {
-	locations := []string{
-		filepath.Join(rootPath, "config.yml"),
-		filepath.Join(rootPath, "config.yaml"),
+func loadEmbeddedConfig() (Config, error) {
+	data, err := embeddedConfig.ReadFile("config.yaml")
+	if err != nil {
+		return Config{}, fmt.Errorf("reading embedded config: %w", err)
 	}
 
-	for _, loc := range locations {
-		if _, err := os.Stat(loc); err == nil {
-			return loc, nil
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return Config{}, fmt.Errorf("parsing embedded config: %w", err)
+	}
+
+	return cfg, nil
+}
+
+func mergeYAMLConfig(defaultData, customData []byte) (Config, error) {
+	defaultMap, err := unmarshalConfigMap(defaultData)
+	if err != nil {
+		return Config{}, fmt.Errorf("parsing embedded config: %w", err)
+	}
+
+	customMap, err := unmarshalConfigMap(customData)
+	if err != nil {
+		return Config{}, fmt.Errorf("parsing config file: %w", err)
+	}
+
+	mergedMap := mergeConfigMaps(defaultMap, customMap)
+	mergedData, err := yaml.Marshal(mergedMap)
+	if err != nil {
+		return Config{}, fmt.Errorf("marshaling merged config: %w", err)
+	}
+
+	var cfg Config
+	if err := yaml.Unmarshal(mergedData, &cfg); err != nil {
+		return Config{}, fmt.Errorf("parsing merged config: %w", err)
+	}
+
+	return cfg, nil
+}
+
+func unmarshalConfigMap(data []byte) (map[string]any, error) {
+	if strings.TrimSpace(string(data)) == "" {
+		return map[string]any{}, nil
+	}
+
+	var cfg map[string]any
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+	if cfg == nil {
+		return map[string]any{}, nil
+	}
+
+	return cfg, nil
+}
+
+func mergeConfigMaps(defaultMap, customMap map[string]any) map[string]any {
+	merged := make(map[string]any, len(defaultMap)+len(customMap))
+	for key, value := range defaultMap {
+		merged[key] = value
+	}
+
+	for key, customValue := range customMap {
+		customNested, customIsMap := customValue.(map[string]any)
+		defaultNested, defaultIsMap := merged[key].(map[string]any)
+		if customIsMap && defaultIsMap {
+			merged[key] = mergeConfigMaps(defaultNested, customNested)
+			continue
 		}
+
+		merged[key] = customValue
 	}
 
-	return "", fmt.Errorf("Could not find configuration file")
+	return merged
 }
 
 func LoadFile(path string) (Config, error) {

@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
@@ -49,7 +50,7 @@ func WithResolution(res int) ConesearchOption {
 
 func WithCatalogs(catalogs []repository.Catalog) ConesearchOption {
 	return func(service *ConesearchService) error {
-		allowed := []string{"vlass", "allwise", "ztf", "gaia"}
+		allowed := []string{"vlass", "allwise", "ztf", "gaia", "erosita"}
 		for i := range catalogs {
 			catName := strings.ToLower(catalogs[i].Name)
 			if !slices.Contains(allowed, catName) {
@@ -62,9 +63,16 @@ func WithCatalogs(catalogs []repository.Catalog) ConesearchOption {
 	}
 }
 
-func WithRepository(repository Repository) ConesearchOption {
+func WithMastercatStore(store repository.MastercatReader) ConesearchOption {
 	return func(service *ConesearchService) error {
-		service.repository = repository
+		service.store = store
+		return nil
+	}
+}
+
+func WithResolver(resolver *catalog.Resolver) ConesearchOption {
+	return func(service *ConesearchService) error {
+		service.resolver = resolver
 		return nil
 	}
 }

@@ -4,27 +4,23 @@
 
 package repository
 
-import (
-	"database/sql"
-)
-
 type Allwise struct {
-	ID         string          `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
-	Cntr       int64           `json:"cntr" parquet:"name=cntr, type=INT64"`
-	W1mpro     sql.NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE" swaggertype:"primitive,number"`
-	W1sigmpro  sql.NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE" swaggertype:"primitive,number"`
-	W2mpro     sql.NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE" swaggertype:"primitive,number"`
-	W2sigmpro  sql.NullFloat64 `json:"w2sigmpro" parquet:"name=w2sigmpro, type=DOUBLE" swaggertype:"primitive,number"`
-	W3mpro     sql.NullFloat64 `json:"w3mpro" parquet:"name=w3mpro, type=DOUBLE" swaggertype:"primitive,number"`
-	W3sigmpro  sql.NullFloat64 `json:"w3sigmpro" parquet:"name=w3sigmpro, type=DOUBLE" swaggertype:"primitive,number"`
-	W4mpro     sql.NullFloat64 `json:"w4mpro" parquet:"name=w4mpro, type=DOUBLE" swaggertype:"primitive,number"`
-	W4sigmpro  sql.NullFloat64 `json:"w4sigmpro" parquet:"name=w4sigmpro, type=DOUBLE" swaggertype:"primitive,number"`
-	JM2mass    sql.NullFloat64 `json:"j_m_2mass" parquet:"name=j_m_2mass, type=DOUBLE" swaggertype:"primitive,number"`
-	JMsig2mass sql.NullFloat64 `json:"j_msig_2mass" parquet:"name=j_msig_2mass, type=DOUBLE" swaggertype:"primitive,number"`
-	HM2mass    sql.NullFloat64 `json:"h_m_2mass" parquet:"name=h_m_2mass, type=DOUBLE" swaggertype:"primitive,number"`
-	HMsig2mass sql.NullFloat64 `json:"h_msig_2mass" parquet:"name=h_msig_2mass, type=DOUBLE" swaggertype:"primitive,number"`
-	KM2mass    sql.NullFloat64 `json:"k_m_2mass" parquet:"name=k_m_2mass, type=DOUBLE" swaggertype:"primitive,number"`
-	KMsig2mass sql.NullFloat64 `json:"k_msig_2mass" parquet:"name=k_msig_2mass, type=DOUBLE" swaggertype:"primitive,number"`
+	ID         string      `json:"id" parquet:"name=source_id, type=BYTE_ARRAY"`
+	Cntr       int64       `json:"cntr" parquet:"name=cntr, type=INT64"`
+	W1mpro     NullFloat64 `json:"w1mpro" parquet:"name=w1mpro, type=DOUBLE"`
+	W1sigmpro  NullFloat64 `json:"w1sigmpro" parquet:"name=w1sigmpro, type=DOUBLE"`
+	W2mpro     NullFloat64 `json:"w2mpro" parquet:"name=w2mpro, type=DOUBLE"`
+	W2sigmpro  NullFloat64 `json:"w2sigmpro" parquet:"name=w2sigmpro, type=DOUBLE"`
+	W3mpro     NullFloat64 `json:"w3mpro" parquet:"name=w3mpro, type=DOUBLE"`
+	W3sigmpro  NullFloat64 `json:"w3sigmpro" parquet:"name=w3sigmpro, type=DOUBLE"`
+	W4mpro     NullFloat64 `json:"w4mpro" parquet:"name=w4mpro, type=DOUBLE"`
+	W4sigmpro  NullFloat64 `json:"w4sigmpro" parquet:"name=w4sigmpro, type=DOUBLE"`
+	JM2mass    NullFloat64 `json:"j_m_2mass" parquet:"name=j_m_2mass, type=DOUBLE"`
+	JMsig2mass NullFloat64 `json:"j_msig_2mass" parquet:"name=j_msig_2mass, type=DOUBLE"`
+	HM2mass    NullFloat64 `json:"h_m_2mass" parquet:"name=h_m_2mass, type=DOUBLE"`
+	HMsig2mass NullFloat64 `json:"h_msig_2mass" parquet:"name=h_msig_2mass, type=DOUBLE"`
+	KM2mass    NullFloat64 `json:"k_m_2mass" parquet:"name=k_m_2mass, type=DOUBLE"`
+	KMsig2mass NullFloat64 `json:"k_msig_2mass" parquet:"name=k_msig_2mass, type=DOUBLE"`
 }
 
 type Catalog struct {
@@ -32,17 +28,180 @@ type Catalog struct {
 	Nside int64
 }
 
+type Erosita struct {
+	ID             string      `json:"id" parquet:"name=IAUNAME, type=BYTE_ARRAY"`
+	Detuid         NullString  `parquet:"name=DETUID, type=BYTE_ARRAY"`
+	Skytile        NullInt64   `parquet:"name=SKYTILE, type=INT32"`
+	IDSrc          NullInt64   `parquet:"name=ID_SRC, type=INT32"`
+	Uid            NullInt64   `parquet:"name=UID, type=INT64"`
+	UidHard        NullInt64   `parquet:"name=UID_Hard, type=INT64"`
+	IDCluster      NullInt64   `parquet:"name=ID_CLUSTER, type=INT32"`
+	Ra             NullFloat64 `parquet:"name=RA, type=DOUBLE"`
+	Dec            NullFloat64 `parquet:"name=DEC, type=DOUBLE"`
+	RaLowerr       NullFloat64 `parquet:"name=RA_LOWERR, type=FLOAT"`
+	RaUperr        NullFloat64 `parquet:"name=RA_UPERR, type=FLOAT"`
+	DecLowerr      NullFloat64 `parquet:"name=DEC_LOWERR, type=FLOAT"`
+	DecUperr       NullFloat64 `parquet:"name=DEC_UPERR, type=FLOAT"`
+	PosErr         NullFloat64 `parquet:"name=POS_ERR, type=FLOAT"`
+	Mjd            NullFloat64 `json:"mjd" parquet:"name=MJD, type=FLOAT"`
+	MjdMin         NullFloat64 `parquet:"name=MJD_MIN, type=FLOAT"`
+	MjdMax         NullFloat64 `parquet:"name=MJD_MAX, type=FLOAT"`
+	Ext            NullFloat64 `parquet:"name=EXT, type=FLOAT"`
+	ExtErr         NullFloat64 `parquet:"name=EXT_ERR, type=FLOAT"`
+	ExtLike        NullFloat64 `parquet:"name=EXT_LIKE, type=FLOAT"`
+	DetLike0       NullFloat64 `parquet:"name=DET_LIKE_0, type=FLOAT"`
+	MlCts1         NullFloat64 `parquet:"name=ML_CTS_1, type=FLOAT"`
+	MlCtsErr1      NullFloat64 `parquet:"name=ML_CTS_ERR_1, type=FLOAT"`
+	MlRate1        NullFloat64 `parquet:"name=ML_RATE_1, type=FLOAT"`
+	MlRateErr1     NullFloat64 `parquet:"name=ML_RATE_ERR_1, type=FLOAT"`
+	MlFlux1        NullFloat64 `json:"ml_flux_1" parquet:"name=ML_FLUX_1, type=FLOAT"`
+	MlFluxErr1     NullFloat64 `parquet:"name=ML_FLUX_ERR_1, type=FLOAT"`
+	MlBkg1         NullFloat64 `parquet:"name=ML_BKG_1, type=FLOAT"`
+	MlExp1         NullFloat64 `parquet:"name=ML_EXP_1, type=FLOAT"`
+	ApeBkg1        NullFloat64 `parquet:"name=APE_BKG_1, type=FLOAT"`
+	ApeRadius1     NullFloat64 `parquet:"name=APE_RADIUS_1, type=FLOAT"`
+	ApePois1       NullFloat64 `parquet:"name=APE_POIS_1, type=FLOAT"`
+	DetLikeP1      NullFloat64 `parquet:"name=DET_LIKE_P1, type=FLOAT"`
+	MlCtsP1        NullFloat64 `parquet:"name=ML_CTS_P1, type=FLOAT"`
+	MlCtsErrP1     NullFloat64 `parquet:"name=ML_CTS_ERR_P1, type=FLOAT"`
+	MlRateP1       NullFloat64 `parquet:"name=ML_RATE_P1, type=FLOAT"`
+	MlRateErrP1    NullFloat64 `parquet:"name=ML_RATE_ERR_P1, type=FLOAT"`
+	MlFluxP1       NullFloat64 `parquet:"name=ML_FLUX_P1, type=FLOAT"`
+	MlFluxErrP1    NullFloat64 `parquet:"name=ML_FLUX_ERR_P1, type=FLOAT"`
+	MlBkgP1        NullFloat64 `parquet:"name=ML_BKG_P1, type=FLOAT"`
+	MlExpP1        NullFloat64 `parquet:"name=ML_EXP_P1, type=FLOAT"`
+	ApeBkgP1       NullFloat64 `parquet:"name=APE_BKG_P1, type=FLOAT"`
+	ApeRadiusP1    NullFloat64 `parquet:"name=APE_RADIUS_P1, type=FLOAT"`
+	ApePoisP1      NullFloat64 `parquet:"name=APE_POIS_P1, type=FLOAT"`
+	DetLikeP2      NullFloat64 `parquet:"name=DET_LIKE_P2, type=FLOAT"`
+	MlCtsP2        NullFloat64 `parquet:"name=ML_CTS_P2, type=FLOAT"`
+	MlCtsErrP2     NullFloat64 `parquet:"name=ML_CTS_ERR_P2, type=FLOAT"`
+	MlRateP2       NullFloat64 `parquet:"name=ML_RATE_P2, type=FLOAT"`
+	MlRateErrP2    NullFloat64 `parquet:"name=ML_RATE_ERR_P2, type=FLOAT"`
+	MlFluxP2       NullFloat64 `parquet:"name=ML_FLUX_P2, type=FLOAT"`
+	MlFluxErrP2    NullFloat64 `parquet:"name=ML_FLUX_ERR_P2, type=FLOAT"`
+	MlBkgP2        NullFloat64 `parquet:"name=ML_BKG_P2, type=FLOAT"`
+	MlExpP2        NullFloat64 `parquet:"name=ML_EXP_P2, type=FLOAT"`
+	ApeBkgP2       NullFloat64 `parquet:"name=APE_BKG_P2, type=FLOAT"`
+	ApeRadiusP2    NullFloat64 `parquet:"name=APE_RADIUS_P2, type=FLOAT"`
+	ApePoisP2      NullFloat64 `parquet:"name=APE_POIS_P2, type=FLOAT"`
+	DetLikeP3      NullFloat64 `parquet:"name=DET_LIKE_P3, type=FLOAT"`
+	MlCtsP3        NullFloat64 `parquet:"name=ML_CTS_P3, type=FLOAT"`
+	MlCtsErrP3     NullFloat64 `parquet:"name=ML_CTS_ERR_P3, type=FLOAT"`
+	MlRateP3       NullFloat64 `parquet:"name=ML_RATE_P3, type=FLOAT"`
+	MlRateErrP3    NullFloat64 `parquet:"name=ML_RATE_ERR_P3, type=FLOAT"`
+	MlFluxP3       NullFloat64 `parquet:"name=ML_FLUX_P3, type=FLOAT"`
+	MlFluxErrP3    NullFloat64 `parquet:"name=ML_FLUX_ERR_P3, type=FLOAT"`
+	MlBkgP3        NullFloat64 `parquet:"name=ML_BKG_P3, type=FLOAT"`
+	MlExpP3        NullFloat64 `parquet:"name=ML_EXP_P3, type=FLOAT"`
+	ApeBkgP3       NullFloat64 `parquet:"name=APE_BKG_P3, type=FLOAT"`
+	ApeRadiusP3    NullFloat64 `parquet:"name=APE_RADIUS_P3, type=FLOAT"`
+	ApePoisP3      NullFloat64 `parquet:"name=APE_POIS_P3, type=FLOAT"`
+	DetLikeP4      NullFloat64 `parquet:"name=DET_LIKE_P4, type=FLOAT"`
+	MlCtsP4        NullFloat64 `parquet:"name=ML_CTS_P4, type=FLOAT"`
+	MlCtsErrP4     NullFloat64 `parquet:"name=ML_CTS_ERR_P4, type=FLOAT"`
+	MlRateP4       NullFloat64 `parquet:"name=ML_RATE_P4, type=FLOAT"`
+	MlRateErrP4    NullFloat64 `parquet:"name=ML_RATE_ERR_P4, type=FLOAT"`
+	MlFluxP4       NullFloat64 `parquet:"name=ML_FLUX_P4, type=FLOAT"`
+	MlFluxErrP4    NullFloat64 `parquet:"name=ML_FLUX_ERR_P4, type=FLOAT"`
+	MlBkgP4        NullFloat64 `parquet:"name=ML_BKG_P4, type=FLOAT"`
+	MlExpP4        NullFloat64 `parquet:"name=ML_EXP_P4, type=FLOAT"`
+	ApeBkgP4       NullFloat64 `parquet:"name=APE_BKG_P4, type=FLOAT"`
+	ApeRadiusP4    NullFloat64 `parquet:"name=APE_RADIUS_P4, type=FLOAT"`
+	ApePoisP4      NullFloat64 `parquet:"name=APE_POIS_P4, type=FLOAT"`
+	DetLikeP5      NullFloat64 `parquet:"name=DET_LIKE_P5, type=FLOAT"`
+	MlCtsP5        NullFloat64 `parquet:"name=ML_CTS_P5, type=FLOAT"`
+	MlCtsErrP5     NullFloat64 `parquet:"name=ML_CTS_ERR_P5, type=FLOAT"`
+	MlRateP5       NullFloat64 `parquet:"name=ML_RATE_P5, type=FLOAT"`
+	MlRateErrP5    NullFloat64 `parquet:"name=ML_RATE_ERR_P5, type=FLOAT"`
+	MlFluxP5       NullFloat64 `parquet:"name=ML_FLUX_P5, type=FLOAT"`
+	MlFluxErrP5    NullFloat64 `parquet:"name=ML_FLUX_ERR_P5, type=FLOAT"`
+	MlBkgP5        NullFloat64 `parquet:"name=ML_BKG_P5, type=FLOAT"`
+	MlExpP5        NullFloat64 `parquet:"name=ML_EXP_P5, type=FLOAT"`
+	ApeBkgP5       NullFloat64 `parquet:"name=APE_BKG_P5, type=FLOAT"`
+	ApeRadiusP5    NullFloat64 `parquet:"name=APE_RADIUS_P5, type=FLOAT"`
+	ApePoisP5      NullFloat64 `parquet:"name=APE_POIS_P5, type=FLOAT"`
+	DetLikeP6      NullFloat64 `parquet:"name=DET_LIKE_P6, type=FLOAT"`
+	MlCtsP6        NullFloat64 `parquet:"name=ML_CTS_P6, type=FLOAT"`
+	MlCtsErrP6     NullFloat64 `parquet:"name=ML_CTS_ERR_P6, type=FLOAT"`
+	MlRateP6       NullFloat64 `parquet:"name=ML_RATE_P6, type=FLOAT"`
+	MlRateErrP6    NullFloat64 `parquet:"name=ML_RATE_ERR_P6, type=FLOAT"`
+	MlFluxP6       NullFloat64 `parquet:"name=ML_FLUX_P6, type=FLOAT"`
+	MlFluxErrP6    NullFloat64 `parquet:"name=ML_FLUX_ERR_P6, type=FLOAT"`
+	MlBkgP6        NullFloat64 `parquet:"name=ML_BKG_P6, type=FLOAT"`
+	MlExpP6        NullFloat64 `parquet:"name=ML_EXP_P6, type=FLOAT"`
+	ApeBkgP6       NullFloat64 `parquet:"name=APE_BKG_P6, type=FLOAT"`
+	ApeRadiusP6    NullFloat64 `parquet:"name=APE_RADIUS_P6, type=FLOAT"`
+	ApePoisP6      NullFloat64 `parquet:"name=APE_POIS_P6, type=FLOAT"`
+	FlagSpSnr      NullInt64   `parquet:"name=FLAG_SP_SNR, type=INT32"`
+	FlagSpBps      NullInt64   `parquet:"name=FLAG_SP_BPS, type=INT32"`
+	FlagSpScl      NullInt64   `parquet:"name=FLAG_SP_SCL, type=INT32"`
+	FlagSpLga      NullInt64   `parquet:"name=FLAG_SP_LGA, type=INT32"`
+	FlagSpGcCons   NullInt64   `parquet:"name=FLAG_SP_GC_CONS, type=INT32"`
+	FlagNoRadecErr NullInt64   `parquet:"name=FLAG_NO_RADEC_ERR, type=INT32"`
+	FlagNoExtErr   NullInt64   `parquet:"name=FLAG_NO_EXT_ERR, type=INT32"`
+	FlagNoCtsErr   NullInt64   `parquet:"name=FLAG_NO_CTS_ERR, type=INT32"`
+	FlagOpt        NullInt64   `parquet:"name=FLAG_OPT, type=INT32"`
+}
+
 type Gaia struct {
-	ID                  string          `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
-	PhotGMeanFlux       sql.NullFloat64 `json:"phot_g_mean_flux" parquet:"name=phot_g_mean_flux, type=DOUBLE"`
-	PhotGMeanFluxError  sql.NullFloat64 `json:"phot_g_mean_flux_error" parquet:"name=phot_g_mean_flux_error, type=DOUBLE"`
-	PhotGMeanMag        sql.NullFloat64 `json:"phot_g_mean_mag" parquet:"name=phot_g_mean_mag, type=DOUBLE"`
-	PhotBpMeanFlux      sql.NullFloat64 `json:"phot_bp_mean_flux" parquet:"name=phot_bp_mean_flux, type=DOUBLE"`
-	PhotBpMeanFluxError sql.NullFloat64 `json:"phot_bp_mean_flux_error" parquet:"name=phot_bp_mean_flux_error, type=DOUBLE"`
-	PhotBpMeanMag       sql.NullFloat64 `json:"phot_bp_mean_mag" parquet:"name=phot_bp_mean_mag, type=DOUBLE"`
-	PhotRpMeanFlux      sql.NullFloat64 `json:"phot_rp_mean_flux" parquet:"name=phot_rp_mean_flux, type=DOUBLE"`
-	PhotRpMeanFluxError sql.NullFloat64 `json:"phot_rp_mean_flux_error" parquet:"name=phot_rp_mean_flux_error, type=DOUBLE"`
-	PhotRpMeanMag       sql.NullFloat64 `json:"phot_rp_mean_mag" parquet:"name=phot_rp_mean_mag, type=DOUBLE"`
+	ID                        string      `json:"id" parquet:"name=id, type=BYTE_ARRAY"`
+	SourceID                  NullInt64   `json:"source_id" parquet:"name=source_id, type=INT64"`
+	RaError                   NullFloat64 `json:"ra_error" parquet:"name=ra_error, type=DOUBLE"`
+	DecError                  NullFloat64 `json:"dec_error" parquet:"name=dec_error, type=DOUBLE"`
+	Parallax                  NullFloat64 `json:"parallax" parquet:"name=parallax, type=DOUBLE"`
+	ParallaxError             NullFloat64 `json:"parallax_error" parquet:"name=parallax_error, type=DOUBLE"`
+	Pm                        NullFloat64 `json:"pm" parquet:"name=pm, type=DOUBLE"`
+	Pmra                      NullFloat64 `json:"pmra" parquet:"name=pmra, type=DOUBLE"`
+	PmraError                 NullFloat64 `json:"pmra_error" parquet:"name=pmra_error, type=DOUBLE"`
+	Pmdec                     NullFloat64 `json:"pmdec" parquet:"name=pmdec, type=DOUBLE"`
+	PmdecError                NullFloat64 `json:"pmdec_error" parquet:"name=pmdec_error, type=DOUBLE"`
+	AstrometricExcessNoise    NullFloat64 `json:"astrometric_excess_noise" parquet:"name=astrometric_excess_noise, type=DOUBLE"`
+	AstrometricExcessNoiseSig NullFloat64 `json:"astrometric_excess_noise_sig" parquet:"name=astrometric_excess_noise_sig, type=DOUBLE"`
+	Ruwe                      NullFloat64 `json:"ruwe" parquet:"name=ruwe, type=DOUBLE"`
+	PhotGNObs                 NullInt64   `json:"phot_g_n_obs" parquet:"name=phot_g_n_obs, type=INT32"`
+	PhotGMeanFlux             NullFloat64 `json:"phot_g_mean_flux" parquet:"name=phot_g_mean_flux, type=DOUBLE"`
+	PhotGMeanFluxError        NullFloat64 `json:"phot_g_mean_flux_error" parquet:"name=phot_g_mean_flux_error, type=DOUBLE"`
+	PhotGMeanFluxOverError    NullFloat64 `json:"phot_g_mean_flux_over_error" parquet:"name=phot_g_mean_flux_over_error, type=DOUBLE"`
+	PhotGMeanMag              NullFloat64 `json:"phot_g_mean_mag" parquet:"name=phot_g_mean_mag, type=DOUBLE"`
+	PhotBpNObs                NullInt64   `json:"phot_bp_n_obs" parquet:"name=phot_bp_n_obs, type=INT32"`
+	PhotBpMeanFlux            NullFloat64 `json:"phot_bp_mean_flux" parquet:"name=phot_bp_mean_flux, type=DOUBLE"`
+	PhotBpMeanFluxError       NullFloat64 `json:"phot_bp_mean_flux_error" parquet:"name=phot_bp_mean_flux_error, type=DOUBLE"`
+	PhotBpMeanFluxOverError   NullFloat64 `json:"phot_bp_mean_flux_over_error" parquet:"name=phot_bp_mean_flux_over_error, type=DOUBLE"`
+	PhotBpMeanMag             NullFloat64 `json:"phot_bp_mean_mag" parquet:"name=phot_bp_mean_mag, type=DOUBLE"`
+	PhotRpNObs                NullInt64   `json:"phot_rp_n_obs" parquet:"name=phot_rp_n_obs, type=INT32"`
+	PhotRpMeanFlux            NullFloat64 `json:"phot_rp_mean_flux" parquet:"name=phot_rp_mean_flux, type=DOUBLE"`
+	PhotRpMeanFluxError       NullFloat64 `json:"phot_rp_mean_flux_error" parquet:"name=phot_rp_mean_flux_error, type=DOUBLE"`
+	PhotRpMeanFluxOverError   NullFloat64 `json:"phot_rp_mean_flux_over_error" parquet:"name=phot_rp_mean_flux_over_error, type=DOUBLE"`
+	PhotRpMeanMag             NullFloat64 `json:"phot_rp_mean_mag" parquet:"name=phot_rp_mean_mag, type=DOUBLE"`
+	PhotBpRpExcessFactor      NullFloat64 `json:"phot_bp_rp_excess_factor" parquet:"name=phot_bp_rp_excess_factor, type=DOUBLE"`
+	PhotProcMode              NullInt64   `json:"phot_proc_mode" parquet:"name=phot_proc_mode, type=INT32"`
+	BpRp                      NullFloat64 `json:"bp_rp" parquet:"name=bp_rp, type=DOUBLE"`
+	BpG                       NullFloat64 `json:"bp_g" parquet:"name=bp_g, type=DOUBLE"`
+	GRp                       NullFloat64 `json:"g_rp" parquet:"name=g_rp, type=DOUBLE"`
+	RadialVelocity            NullFloat64 `json:"radial_velocity" parquet:"name=radial_velocity, type=DOUBLE"`
+	RadialVelocityError       NullFloat64 `json:"radial_velocity_error" parquet:"name=radial_velocity_error, type=DOUBLE"`
+	RvMethodUsed              NullInt64   `json:"rv_method_used" parquet:"name=rv_method_used, type=INT32"`
+	PhotVariableFlag          NullString  `json:"phot_variable_flag" parquet:"name=phot_variable_flag, type=BYTE_ARRAY"`
+	InQsoCandidates           NullInt64   `json:"in_qso_candidates" parquet:"name=in_qso_candidates, type=INT32"`
+	InGalaxyCandidates        NullInt64   `json:"in_galaxy_candidates" parquet:"name=in_galaxy_candidates, type=INT32"`
+	NonSingleStar             NullInt64   `json:"non_single_star" parquet:"name=non_single_star, type=INT32"`
+	HasEpochPhotometry        NullInt64   `json:"has_epoch_photometry" parquet:"name=has_epoch_photometry, type=INT32"`
+	ClassprobDscCombmodQuasar NullFloat64 `json:"classprob_dsc_combmod_quasar" parquet:"name=classprob_dsc_combmod_quasar, type=DOUBLE"`
+	ClassprobDscCombmodGalaxy NullFloat64 `json:"classprob_dsc_combmod_galaxy" parquet:"name=classprob_dsc_combmod_galaxy, type=DOUBLE"`
+	ClassprobDscCombmodStar   NullFloat64 `json:"classprob_dsc_combmod_star" parquet:"name=classprob_dsc_combmod_star, type=DOUBLE"`
+	TeffGspphot               NullFloat64 `json:"teff_gspphot" parquet:"name=teff_gspphot, type=DOUBLE"`
+	TeffGspphotLower          NullFloat64 `json:"teff_gspphot_lower" parquet:"name=teff_gspphot_lower, type=DOUBLE"`
+	TeffGspphotUpper          NullFloat64 `json:"teff_gspphot_upper" parquet:"name=teff_gspphot_upper, type=DOUBLE"`
+	LoggGspphot               NullFloat64 `json:"logg_gspphot" parquet:"name=logg_gspphot, type=DOUBLE"`
+	LoggGspphotLower          NullFloat64 `json:"logg_gspphot_lower" parquet:"name=logg_gspphot_lower, type=DOUBLE"`
+	LoggGspphotUpper          NullFloat64 `json:"logg_gspphot_upper" parquet:"name=logg_gspphot_upper, type=DOUBLE"`
+	MhGspphot                 NullFloat64 `json:"mh_gspphot" parquet:"name=mh_gspphot, type=DOUBLE"`
+	MhGspphotLower            NullFloat64 `json:"mh_gspphot_lower" parquet:"name=mh_gspphot_lower, type=DOUBLE"`
+	MhGspphotUpper            NullFloat64 `json:"mh_gspphot_upper" parquet:"name=mh_gspphot_upper, type=DOUBLE"`
+	DistanceGspphot           NullFloat64 `json:"distance_gspphot" parquet:"name=distance_gspphot, type=DOUBLE"`
+	DistanceGspphotLower      NullFloat64 `json:"distance_gspphot_lower" parquet:"name=distance_gspphot_lower, type=DOUBLE"`
+	DistanceGspphotUpper      NullFloat64 `json:"distance_gspphot_upper" parquet:"name=distance_gspphot_upper, type=DOUBLE"`
 }
 
 type Mastercat struct {

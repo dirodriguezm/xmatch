@@ -17,7 +17,6 @@ package knn
 import (
 	"fmt"
 	"math"
-	"strings"
 
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 
@@ -27,8 +26,7 @@ import (
 
 type knnObject struct {
 	Obj         repository.Mastercat
-	MetadataObj repository.MetadataWithCoordinates
-	catalog     string
+	MetadataObj repository.Metadata
 }
 
 func (knn knnObject) Dimensions() int {
@@ -37,12 +35,11 @@ func (knn knnObject) Dimensions() int {
 
 func (knn knnObject) Dimension(i int) float64 {
 	var dimensions []float64
-	switch strings.ToLower(knn.catalog) {
-	case "":
-		dimensions = []float64{knn.Obj.Ra, knn.Obj.Dec}
+	switch {
+	case knn.Obj == (repository.Mastercat{}):
+		dimensions = []float64{knn.MetadataObj.Ra, knn.MetadataObj.Dec}
 	default:
-		ra, dec := knn.MetadataObj.GetCoordinates()
-		dimensions = []float64{ra, dec}
+		dimensions = []float64{knn.Obj.Ra, knn.Obj.Dec}
 	}
 	return dimensions[i]
 }
@@ -79,14 +76,13 @@ func NearestNeighborSearch(
 }
 
 func NearestNeighborSearchForMetadata(
-	objects []repository.MetadataWithCoordinates,
+	objects []repository.Metadata,
 	ra, dec, radius float64,
 	maxNeighbors int,
-	catalog string,
 ) KnnResult[repository.Metadata] {
 	pts := []kdtree.Point{}
 	for _, obj := range objects {
-		pts = append(pts, knnObject{MetadataObj: obj, catalog: catalog})
+		pts = append(pts, knnObject{MetadataObj: obj})
 	}
 	tree := kdtree.New(pts)
 
@@ -100,52 +96,9 @@ func NearestNeighborSearchForMetadata(
 			continue
 		}
 		result.Distance = append(result.Distance, dist)
-		switch m := obj.(knnObject).MetadataObj; m.(type) {
-		case repository.GetAllwiseFromPixelsRow:
-			result.Data = append(result.Data, convertToAllwise(obj.(knnObject).MetadataObj.(repository.GetAllwiseFromPixelsRow)))
-		case repository.GetGaiaFromPixelsRow:
-			result.Data = append(result.Data, convertToGaia(obj.(knnObject).MetadataObj.(repository.GetGaiaFromPixelsRow)))
-		default:
-			panic("Unknown catalog to KNN Search for Metadata")
-		}
+		result.Data = append(result.Data, obj.(knnObject).MetadataObj)
 	}
 	return result
-}
-
-func convertToAllwise(obj repository.GetAllwiseFromPixelsRow) repository.Allwise {
-	return repository.Allwise{
-		ID:         obj.ID,
-		Cntr:       obj.Cntr,
-		W1mpro:     obj.W1mpro,
-		W1sigmpro:  obj.W1sigmpro,
-		W2mpro:     obj.W2mpro,
-		W2sigmpro:  obj.W2sigmpro,
-		W3mpro:     obj.W3mpro,
-		W3sigmpro:  obj.W3sigmpro,
-		W4mpro:     obj.W4mpro,
-		W4sigmpro:  obj.W4sigmpro,
-		JM2mass:    obj.JM2mass,
-		JMsig2mass: obj.JMsig2mass,
-		HM2mass:    obj.HM2mass,
-		HMsig2mass: obj.HMsig2mass,
-		KM2mass:    obj.KM2mass,
-		KMsig2mass: obj.KMsig2mass,
-	}
-}
-
-func convertToGaia(obj repository.GetGaiaFromPixelsRow) repository.Gaia {
-	return repository.Gaia{
-		ID:                  obj.ID,
-		PhotGMeanFlux:       obj.PhotGMeanFlux,
-		PhotGMeanFluxError:  obj.PhotGMeanFluxError,
-		PhotGMeanMag:        obj.PhotGMeanMag,
-		PhotBpMeanFlux:      obj.PhotBpMeanFlux,
-		PhotBpMeanFluxError: obj.PhotBpMeanFluxError,
-		PhotBpMeanMag:       obj.PhotBpMeanMag,
-		PhotRpMeanFlux:      obj.PhotRpMeanFlux,
-		PhotRpMeanFluxError: obj.PhotRpMeanFluxError,
-		PhotRpMeanMag:       obj.PhotRpMeanMag,
-	}
 }
 
 // Return the distance in arcsec, between two points in a sphere, using the Haversine Formula

@@ -89,7 +89,7 @@ func (api *API) conesearchBulk(c *gin.Context) {
 //	@Produce		json
 //	@Param			ra			query		number	true	"Right Ascension (J2000) in degrees"			minimum(0) maximum(360) example(180.5)
 //	@Param			dec			query		number	true	"Declination (J2000) in degrees"				minimum(-90) maximum(90) example(-45.0)
-//	@Param			radius		query		number	true	"Search radius in degrees"						minimum(0) example(0.01)
+//	@Param			radius		query		number	true	"Search radius in arcseconds"					minimum(0) example(5.0)
 //	@Param			catalog		query		string	false	"Catalog to search in"							default(all)
 //	@Param			nneighbor	query		integer	false	"Maximum number of neighbors to return"			default(1) minimum(1)
 //	@Param			getMetadata	query		boolean	false	"Include full metadata in response"				default(false)

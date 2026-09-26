@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 var BINARIES_PATH = "/home/drodriguez/deployment/binaries"
@@ -33,12 +36,13 @@ func deploy(instances int, client *http.Client, url string) {
 	// Get asset data from release
 	assetData, tag, err := getAssetData(client, url)
 	if err != nil {
-		panic(fmt.Errorf("Could not get release data from url %s. %w", url, err))
+		panic(fmt.Errorf("could not get release data from url %s. %w", url, err))
 	}
 
-	err = downloadRelease(filepath.Join(BINARIES_PATH, tag), client, assetData.BrowserDownloadURL)
+	binaryPath := filepath.Join(BINARIES_PATH, tag)
+	err = downloadRelease(binaryPath, client, assetData.BrowserDownloadURL, assetData.Digest)
 	if err != nil {
-		panic(fmt.Errorf("Could not download new binary from the release. %w", err))
+		panic(fmt.Errorf("could not download new binary from the release. %w", err))
 	}
 	slog.Info("Downloaded binary from release", "tag", tag)
 
@@ -46,27 +50,27 @@ func deploy(instances int, client *http.Client, url string) {
 	if _, err = os.Stat(PROD_BINARY); !os.IsNotExist(err) {
 		previousBinary, err = filepath.EvalSymlinks(PROD_BINARY)
 		if err != nil {
-			panic(fmt.Errorf("Could not resolve symlink for %s", PROD_BINARY))
+			panic(fmt.Errorf("could not resolve symlink for %s", PROD_BINARY))
 		}
-		slog.Info("Binaries", "previous binary", previousBinary, "new binary", filepath.Join(BINARIES_PATH, tag))
+		slog.Info("Binaries", "previous binary", previousBinary, "new binary", binaryPath)
 	}
 
-	if previousBinary == filepath.Join(BINARIES_PATH, tag) {
+	if previousBinary == binaryPath {
 		slog.Info("Current production binary is the latest", "binary", previousBinary)
 		os.Exit(0)
 	}
 
 	// Promote binary to prod
-	err = os.Symlink(filepath.Join(BINARIES_PATH, tag), PROD_BINARY)
+	err = replaceSymlink(binaryPath, PROD_BINARY)
 	if err != nil {
-		panic(fmt.Errorf("Could not create symlink %s -> %s. %w", filepath.Join(BINARIES_PATH, tag), PROD_BINARY, err))
+		panic(fmt.Errorf("could not create symlink %s -> %s. %w", binaryPath, PROD_BINARY, err))
 	}
-	slog.Info("Promoted binary to prod", "binary", filepath.Join(BINARIES_PATH, tag))
+	slog.Info("Promoted binary to prod", "binary", binaryPath)
 
 	// Make binary executable
 	err = os.Chmod(PROD_BINARY, 0755)
 	if err != nil {
-		panic(fmt.Errorf("Could not make binary executable %s. %w", PROD_BINARY, err))
+		panic(fmt.Errorf("could not make binary executable %s. %w", PROD_BINARY, err))
 	}
 
 	// Restart every instance of the service (systemd)
@@ -75,20 +79,28 @@ func deploy(instances int, client *http.Client, url string) {
 	if err != nil {
 		slog.Error("Failed to restart services", "error", err)
 		slog.Info("Rolling back")
-		// Rollback: restore previous symlink
-		if rollbackErr := os.Symlink(previousBinary, PROD_BINARY); rollbackErr != nil {
+		// Rollback: restore the previous symlink, or remove it on a first deploy
+		var rollbackErr error
+		if previousBinary == "" {
+			rollbackErr = os.Remove(PROD_BINARY)
+		} else {
+			rollbackErr = replaceSymlink(previousBinary, PROD_BINARY)
+		}
+		if rollbackErr != nil {
 			slog.Error("Failed to rollback symlink", "error", rollbackErr)
 		}
-		panic(fmt.Errorf("Could not restart services: %w", err))
+		panic(fmt.Errorf("could not restart services: %w", err))
 	}
 
 	// Successful restart means we are done
 	slog.Info("Successfully restarted services")
 }
 
-// Downloads a binary file from the release URL (github releases).
-// It places the downloaded file in the specified directory.
-func downloadRelease(path string, client *http.Client, url string) error {
+// Downloads a binary file from the release URL (github releases) and verifies
+// its sha256 digest when the release API provides one.
+// The download goes to a temporary file that is renamed into place only after
+// a complete transfer, so a failed download never leaves a truncated binary.
+func downloadRelease(path string, client *http.Client, url, digest string) error {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		slog.Info("Release binary already exists. Skipping download")
 		return nil
@@ -96,24 +108,75 @@ func downloadRelease(path string, client *http.Client, url string) error {
 	// Make the GET request to download the executable asset
 	resp, err := client.Get(url)
 	if err != nil {
-		return fmt.Errorf("Could not download file from url %s. %w", url, err)
+		return fmt.Errorf("could not download file from url %s. %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
-	// Create the output file
-	out, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("Could not create file %s. %w", path, err)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("could not download file from url %s. Status code: %d", url, resp.StatusCode)
 	}
-	defer out.Close()
 
-	// Copy the response body to file
-	_, err = io.Copy(out, resp.Body)
+	// Create the temporary output file
+	tmpPath := path + ".part"
+	out, err := os.Create(tmpPath)
 	if err != nil {
-		return fmt.Errorf("Could not copy file from url %s to %s. %w", url, path, err)
+		return fmt.Errorf("could not create file %s. %w", tmpPath, err)
+	}
+	defer func() { _ = os.Remove(tmpPath) }()
+
+	// Copy the response body to file while hashing it
+	hasher := sha256.New()
+	_, err = io.Copy(io.MultiWriter(out, hasher), resp.Body)
+	if err != nil {
+		_ = out.Close()
+		return fmt.Errorf("could not copy file from url %s to %s. %w", url, tmpPath, err)
+	}
+	if err = out.Close(); err != nil {
+		return fmt.Errorf("could not write file %s. %w", tmpPath, err)
+	}
+
+	if err = verifyDigest(hasher.Sum(nil), digest); err != nil {
+		return fmt.Errorf("downloaded file from url %s failed verification. %w", url, err)
+	}
+
+	if err = os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("could not move %s to %s. %w", tmpPath, path, err)
 	}
 
 	return nil
+}
+
+// verifyDigest compares the sha256 sum of a download against the digest
+// reported by the GitHub releases API ("sha256:<hex>"). Verification is
+// skipped when the API does not provide a supported digest.
+func verifyDigest(sum []byte, digest string) error {
+	if digest == "" {
+		slog.Warn("Release asset has no digest, skipping checksum verification")
+		return nil
+	}
+	algo, expected, ok := strings.Cut(digest, ":")
+	if !ok || algo != "sha256" {
+		slog.Warn("Unsupported release asset digest, skipping checksum verification", "digest", digest)
+		return nil
+	}
+	actual := hex.EncodeToString(sum)
+	if !strings.EqualFold(actual, expected) {
+		return fmt.Errorf("sha256 mismatch: expected %s, got %s", expected, actual)
+	}
+	return nil
+}
+
+// replaceSymlink atomically points link at target, replacing any existing
+// symlink or file. os.Symlink alone fails when link already exists.
+func replaceSymlink(target, link string) error {
+	tmp := link + ".tmp"
+	if err := os.Remove(tmp); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.Symlink(target, tmp); err != nil {
+		return err
+	}
+	return os.Rename(tmp, link)
 }
 
 // Obtains Asset metadata and Tag from the release.
@@ -123,22 +186,22 @@ func downloadRelease(path string, client *http.Client, url string) error {
 func getAssetData(client *http.Client, url string) (Asset, string, error) {
 	resp, err := client.Get(url)
 	if err != nil {
-		return Asset{}, "", fmt.Errorf("Could not download file from url %s. %w", url, err)
+		return Asset{}, "", fmt.Errorf("could not download file from url %s. %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return Asset{}, "", fmt.Errorf("Could not download file from url %s. Status code: %d", url, resp.StatusCode)
+		return Asset{}, "", fmt.Errorf("could not download file from url %s. Status code: %d", url, resp.StatusCode)
 	}
 
 	var result ReleaseResponse
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return Asset{}, "", fmt.Errorf("Could not read response from url %s. %w", url, err)
+		return Asset{}, "", fmt.Errorf("could not read response from url %s. %w", url, err)
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return Asset{}, "", fmt.Errorf("Could not parse response from url %s. %w\nData: %s", url, err, body)
+		return Asset{}, "", fmt.Errorf("could not parse response from url %s. %w\nData: %s", url, err, body)
 	}
 
 	for _, asset := range result.Assets {
@@ -147,7 +210,7 @@ func getAssetData(client *http.Client, url string) (Asset, string, error) {
 		}
 	}
 
-	return Asset{}, "", fmt.Errorf("Could not find main binary in release %s", url)
+	return Asset{}, "", fmt.Errorf("could not find main binary in release %s", url)
 }
 
 func restartServiceInstances(instances int) error {
@@ -171,4 +234,5 @@ type ReleaseResponse struct {
 type Asset struct {
 	BrowserDownloadURL string `json:"browser_download_url"`
 	Name               string `json:"name"`
+	Digest             string `json:"digest"`
 }

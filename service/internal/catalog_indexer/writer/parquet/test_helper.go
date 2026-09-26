@@ -27,41 +27,43 @@ type TestStruct struct {
 	Dec float64 `parquet:"name=dec, type=DOUBLE"`
 }
 
-type ParquetWriterBuilder[T any] struct {
+type ParquetWriterBuilder struct {
 	t *testing.T
 
-	cfg config.WriterConfig
-	ctx context.Context
+	cfg    config.WriterConfig
+	ctx    context.Context
+	schema any
 }
 
-func AWriter[T any](t *testing.T) *ParquetWriterBuilder[T] {
+func AWriter(t *testing.T, schema any) *ParquetWriterBuilder {
 	t.Helper()
 
-	return &ParquetWriterBuilder[T]{
-		t:   t,
-		cfg: config.WriterConfig{OutputFile: "test.parquet"},
-		ctx: context.Background(),
+	return &ParquetWriterBuilder{
+		t:      t,
+		cfg:    config.WriterConfig{OutputFile: "test.parquet"},
+		ctx:    context.Background(),
+		schema: schema,
 	}
 }
 
-func (b *ParquetWriterBuilder[T]) WithOutputFile(file string) *ParquetWriterBuilder[T] {
+func (b *ParquetWriterBuilder) WithOutputFile(file string) *ParquetWriterBuilder {
 	b.t.Helper()
 
 	b.cfg.OutputFile = file
 	return b
 }
 
-func (b *ParquetWriterBuilder[T]) WithContext(ctx context.Context) *ParquetWriterBuilder[T] {
+func (b *ParquetWriterBuilder) WithContext(ctx context.Context) *ParquetWriterBuilder {
 	b.t.Helper()
 
 	b.ctx = ctx
 	return b
 }
 
-func (b *ParquetWriterBuilder[T]) Build() *ParquetWriter[T] {
+func (b *ParquetWriterBuilder) Build() *ParquetWriter {
 	b.t.Helper()
 
-	w, err := New[T](b.cfg, b.ctx)
+	w, err := New(b.cfg, b.ctx, b.schema)
 	if err != nil {
 		b.t.Fatal(err)
 	}

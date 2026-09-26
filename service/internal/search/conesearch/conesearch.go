@@ -16,7 +16,6 @@ package conesearch
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"math"
@@ -24,38 +23,29 @@ import (
 	"sync"
 
 	"github.com/dirodriguezm/xmatch/service/internal/assertions"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/knn"
-	"github.com/dirodriguezm/xmatch/service/internal/utils"
 
 	"github.com/dirodriguezm/healpix"
 )
 
-type Repository interface {
-	FindObjects(context.Context, []int64) ([]repository.Mastercat, error)
-	InsertMastercat(context.Context, repository.Mastercat) error
-	GetAllObjects(context.Context) ([]repository.Mastercat, error)
+type CatalogRegistry interface {
 	GetCatalogs(context.Context) ([]repository.Catalog, error)
 	InsertCatalog(context.Context, repository.InsertCatalogParams) error
-	GetDbInstance() *sql.DB
-	InsertAllwiseWithoutParams(context.Context, repository.Allwise) error
-	GetAllwise(context.Context, string) (repository.Allwise, error)
-	GetGaia(context.Context, string) (repository.Gaia, error)
-	BulkInsertAllwise(context.Context, *sql.DB, []any) error
-	BulkInsertGaia(context.Context, *sql.DB, []any) error
-	BulkInsertObject(context.Context, *sql.DB, []any) error
-	RemoveAllObjects(context.Context) error
-	BulkGetAllwise(context.Context, []string) ([]repository.Allwise, error)
-	BulkGetGaia(context.Context, []string) ([]repository.Gaia, error)
-	GetAllwiseFromPixels(context.Context, []int64) ([]repository.GetAllwiseFromPixelsRow, error)
-	GetGaiaFromPixels(context.Context, []int64) ([]repository.GetGaiaFromPixelsRow, error)
+}
+
+type indexedResult struct {
+	index  int
+	result knn.KnnResult[repository.Mastercat]
 }
 
 type ConesearchService struct {
 	Scheme     healpix.OrderingScheme
 	Resolution int
 	Catalogs   []repository.Catalog
-	repository Repository
+	store      repository.MastercatReader
+	resolver   *catalog.Resolver
 	mappers    map[int64]*healpix.HEALPixMapper
 	ctx        context.Context
 }
@@ -66,7 +56,8 @@ func NewConesearchService(options ...ConesearchOption) (*ConesearchService, erro
 		Scheme:     healpix.Nest,
 		Resolution: 4,
 		Catalogs:   []repository.Catalog{},
-		repository: nil,
+		store:      nil,
+		resolver:   nil,
 		mappers:    map[int64]*healpix.HEALPixMapper{},
 		ctx:        ctx,
 	}
@@ -76,7 +67,7 @@ func NewConesearchService(options ...ConesearchOption) (*ConesearchService, erro
 			return nil, err
 		}
 	}
-	assertions.NotNil(service.repository)
+	assertions.NotNil(service.store)
 	assertions.NotZero(service.Catalogs)
 	assertions.NotZero(service.Scheme)
 
@@ -123,15 +114,14 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 	objects := make([]repository.Mastercat, 0)
 	for _, v := range c.mappers {
 		pixelRanges := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
-		pixelList := pixelRangeToList(pixelRanges)
-		objs, err := c.getObjects(pixelList, catalog)
+		objs, err := c.getObjectsInRanges(pixelRanges, catalog)
 		if err != nil {
 			return nil, err
 		}
 		objects = append(objects, objs...)
 	}
 
-	return ResultFromKnn(knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor)), nil
+	return ResultFromKnn(knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor), 0), nil
 }
 
 func (c *ConesearchService) FindMetadataByConesearch(
@@ -148,7 +138,7 @@ func (c *ConesearchService) FindMetadataByConesearch(
 		return nil, fmt.Errorf("could not find allwise metadata: %w", err)
 	}
 
-	return ResultFromKnnMetadata(knn.NearestNeighborSearchForMetadata(objects, ra, dec, radius, nneighbor, catalog)), nil
+	return ResultFromKnnMetadata(knn.NearestNeighborSearchForMetadata(objects, ra, dec, radius, nneighbor)), nil
 }
 
 func findMetadata(
@@ -156,8 +146,8 @@ func findMetadata(
 	radius_radians float64,
 	c *ConesearchService,
 	catalog string,
-) ([]repository.MetadataWithCoordinates, error) {
-	objects := make([]repository.MetadataWithCoordinates, 0)
+) ([]repository.Metadata, error) {
+	objects := make([]repository.Metadata, 0)
 	for _, v := range c.mappers {
 		pixelRanges := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
 		pixelList := pixelRangeToList(pixelRanges)
@@ -184,7 +174,7 @@ func (c *ConesearchService) BulkConesearch(
 
 	radius_radians := arcsecToRadians(radius)
 	numChunks := (len(ra) + chunkSize - 1) / chunkSize
-	resultsChan := make(chan knn.KnnResult[repository.Mastercat], numChunks)
+	resultsChan := make(chan indexedResult, numChunks)
 	errChan := make(chan error, numChunks)
 	var wg sync.WaitGroup
 
@@ -198,7 +188,7 @@ func (c *ConesearchService) BulkConesearch(
 			chunkRa := ra[i:end]
 			chunkDec := dec[i:end]
 
-			go func(chunkRa, chunkDec []float64) {
+			go func(chunkRa, chunkDec []float64, baseIndex int) {
 				sem <- struct{}{}
 
 				defer func() {
@@ -209,16 +199,19 @@ func (c *ConesearchService) BulkConesearch(
 				for j := range chunkRa {
 					point := healpix.RADec(chunkRa[j], chunkDec[j])
 					pixelRange := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
-					pixelList := pixelRangeToList(pixelRange)
-					objs, err := c.getObjects(pixelList, catalog)
+					objs, err := c.getObjectsInRanges(pixelRange, catalog)
 					if err != nil {
 						errChan <- err
+						break
 					}
 
-					resultsChan <- knn.NearestNeighborSearch(objs, chunkRa[j], chunkDec[j], radius, nneighbor)
+					resultsChan <- indexedResult{
+						index:  baseIndex + j,
+						result: knn.NearestNeighborSearch(objs, chunkRa[j], chunkDec[j], radius, nneighbor),
+					}
 				}
 
-			}(chunkRa, chunkDec)
+			}(chunkRa, chunkDec, i)
 		}
 	}
 
@@ -228,21 +221,34 @@ func (c *ConesearchService) BulkConesearch(
 		close(errChan)
 	}()
 
-	allObjects := make([]MastercatResult, 0)
-	for result := range resultsChan {
-		allObjects = append(allObjects, ResultFromKnn(result)...)
+	resultsByIndex := make([][]MastercatResult, len(ra))
+	for indexed := range resultsChan {
+		resultsByIndex[indexed.index] = ResultFromKnn(indexed.result, indexed.index)
 	}
 	for err := range errChan {
 		return nil, err
 	}
 
 	uniqueObjects := make([]MastercatResult, 0)
-	ids := utils.Set{}
-	for i := range allObjects {
-		for j := range allObjects[i].Data {
-			if !ids.Contains(allObjects[i].Data[j].ID) {
-				uniqueObjects = append(uniqueObjects, allObjects[i])
-				ids.Add(allObjects[i].Data[j].ID)
+	seenIDs := make(map[int]map[string]bool)
+	for i := range resultsByIndex {
+		if resultsByIndex[i] == nil {
+			resultsByIndex[i] = []MastercatResult{}
+		}
+		if seenIDs[i] == nil {
+			seenIDs[i] = make(map[string]bool)
+		}
+		for _, mastercatResult := range resultsByIndex[i] {
+			for j := range mastercatResult.Data {
+				id := mastercatResult.Data[j].ID
+				if !seenIDs[i][id] {
+					seenIDs[i][id] = true
+					uniqueObjects = append(uniqueObjects, MastercatResult{
+						Catalog: mastercatResult.Catalog,
+						Data:    []MastercatExtended{mastercatResult.Data[j]},
+						Index:   i,
+					})
+				}
 			}
 		}
 	}
@@ -263,8 +269,8 @@ func pixelRangeToList(pixelRanges []healpix.PixelRange) []int64 {
 	return result
 }
 
-func (c *ConesearchService) getObjects(pixelList []int64, catalog string) ([]repository.Mastercat, error) {
-	objects, err := c.repository.FindObjects(c.ctx, pixelList)
+func (c *ConesearchService) getObjectsInRanges(pixelRanges []healpix.PixelRange, catalog string) ([]repository.Mastercat, error) {
+	objects, err := c.store.FindObjectsInPixelRanges(c.ctx, pixelRanges)
 	if err != nil {
 		return nil, err
 	}
@@ -274,70 +280,36 @@ func (c *ConesearchService) getObjects(pixelList []int64, catalog string) ([]rep
 	return objects, nil
 }
 
-func (c *ConesearchService) getMetadata(pixelList []int64, catalog string) ([]repository.MetadataWithCoordinates, error) {
-	objects := make([]repository.MetadataWithCoordinates, 0)
+func (c *ConesearchService) getMetadata(pixelList []int64, catalogName string) ([]repository.Metadata, error) {
+	objects := make([]repository.Metadata, 0)
 
-	switch catalog {
-	case "all":
-		objects, err := c.getAllwiseMetadata(objects, pixelList)
+	catalogList := c.resolveCatalogList(catalogName)
+	for _, name := range catalogList {
+		if !c.resolver.Has(name) {
+			continue
+		}
+		adapter, err := c.resolver.Get(name)
 		if err != nil {
 			return nil, err
 		}
-
-		objects, err = c.getGaiaMetadata(objects, pixelList)
+		objs, err := adapter.GetFromPixels(c.ctx, pixelList)
 		if err != nil {
 			return nil, err
 		}
-		return objects, nil
-	case "allwise":
-		objects, err := c.getAllwiseMetadata(objects, pixelList)
-		if err != nil {
-			return nil, err
-		}
-		return objects, nil
-	case "gaia":
-		objects, err := c.getGaiaMetadata(objects, pixelList)
-		if err != nil {
-			return nil, err
-		}
-		return objects, nil
-	default:
-		return nil, fmt.Errorf("catalog %s not supported", catalog)
+		objects = append(objects, objs...)
 	}
+	return objects, nil
 }
 
-func (c *ConesearchService) getGaiaMetadata(
-	objects []repository.MetadataWithCoordinates,
-	pixelList []int64,
-) ([]repository.MetadataWithCoordinates, error) {
-	objectsCopy := make([]repository.MetadataWithCoordinates, len(objects))
-	copy(objectsCopy, objects)
-
-	gaia, err := c.repository.GetGaiaFromPixels(c.ctx, pixelList)
-	if err != nil {
-		return nil, err
+func (c *ConesearchService) resolveCatalogList(catalogName string) []string {
+	if strings.ToLower(catalogName) == "all" {
+		names := make([]string, len(c.Catalogs))
+		for i, cat := range c.Catalogs {
+			names[i] = cat.Name
+		}
+		return names
 	}
-	for _, g := range gaia {
-		objectsCopy = append(objectsCopy, g)
-	}
-	return objectsCopy, nil
-}
-
-func (c *ConesearchService) getAllwiseMetadata(
-	objects []repository.MetadataWithCoordinates,
-	pixelList []int64,
-) ([]repository.MetadataWithCoordinates, error) {
-	objectsCopy := make([]repository.MetadataWithCoordinates, len(objects))
-	copy(objectsCopy, objects)
-
-	allwise, err := c.repository.GetAllwiseFromPixels(c.ctx, pixelList)
-	if err != nil {
-		return nil, err
-	}
-	for _, aw := range allwise {
-		objectsCopy = append(objectsCopy, aw)
-	}
-	return objectsCopy, nil
+	return []string{catalogName}
 }
 
 func filterByCatalog(objects []repository.Mastercat, catalog string) []repository.Mastercat {

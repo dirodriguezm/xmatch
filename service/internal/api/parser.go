@@ -16,7 +16,9 @@ package api
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
+	"strings"
 )
 
 type ParseError struct {
@@ -69,4 +71,22 @@ func parseNneighbor(nneighbor string) (int, error) {
 		return -999, NewParseError(nneighbor, "nneighbor", "Could not parse int.")
 	}
 	return parsedNneighbor, nil
+}
+
+func parseLightcurveCatalog(catalog string) (string, error) {
+	normalizedCatalog := strings.ToLower(strings.TrimSpace(catalog))
+	if normalizedCatalog == "" {
+		return "all", nil
+	}
+
+	availableCatalogs := []string{"all", "ztf", "neowise", "allwise"}
+	if !slices.Contains(availableCatalogs, normalizedCatalog) {
+		return "", NewParseError(catalog, "catalog", "Catalog must be one of all, ztf, neowise, allwise.")
+	}
+
+	if normalizedCatalog == "allwise" {
+		return "neowise", nil
+	}
+
+	return normalizedCatalog, nil
 }

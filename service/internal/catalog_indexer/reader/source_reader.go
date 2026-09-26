@@ -19,12 +19,11 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type Reader interface {
-	Read() ([]repository.InputSchema, error)
-	ReadBatch() ([]repository.InputSchema, error)
+	Read() ([]any, error)
+	ReadBatch() ([]any, error)
 	Close() error
 }
 
@@ -51,12 +50,8 @@ func (r *SourceReader) Read() {
 		// We update the eof variable so that we can stop the loop when all files are read
 		eof = err == io.EOF
 		// Now we can send the actual rows to all the receivers
-		anyRows := make([]any, len(rows))
-		for i := range rows {
-			anyRows[i] = rows[i]
-		}
 		readResult := actor.Message{
-			Rows:  anyRows,
+			Rows:  rows,
 			Error: nil,
 		}
 		slog.Debug("Reader sending message", "len", len(rows))

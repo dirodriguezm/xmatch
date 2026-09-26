@@ -1,4 +1,4 @@
-CREATE TABLE mastercat (
+CREATE TABLE IF NOT EXISTS mastercat (
     id text not null,
     ipix bigint not null,
     ra double precision not null,
@@ -7,4 +7,4 @@ CREATE TABLE mastercat (
     PRIMARY KEY (id, cat)
 );
 
-CREATE INDEX mastercat_ipix_idx ON mastercat (ipix);
+CREATE INDEX IF NOT EXISTS mastercat_ipix_idx ON mastercat (ipix);
