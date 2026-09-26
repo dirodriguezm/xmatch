@@ -31,6 +31,7 @@ import {
   useDesiSpectrum,
   useDesiTarget,
   useLightcurve,
+  useZtfLightcurve,
 } from "@/app/hooks/queries";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
@@ -133,9 +134,18 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const aladinRef = useRef<AladinViewerRef>(null);
   const {
     data: lightcurveData,
-    isLoading: lightcurveLoading,
-    error: lightcurveError,
+    isLoading: backendLightcurveLoading,
+    error: backendLightcurveError,
   } = useLightcurve({ ra: object.ra, dec: object.dec, radius: 1.5 });
+  // ZTF comes straight from ALeRCE: the backend's ZTF client sends the radius
+  // in the wrong unit and never returns detections (see /api/ztf-lightcurve).
+  const {
+    data: ztfLightcurveData,
+    isLoading: ztfLightcurveLoading,
+    error: ztfLightcurveError,
+  } = useZtfLightcurve({ ra: object.ra, dec: object.dec, radius: 1.5 });
+  const lightcurveLoading = backendLightcurveLoading || ztfLightcurveLoading;
+  const lightcurveError = backendLightcurveError ?? ztfLightcurveError;
   // DESI spectrum: resolve TARGETID from coordinates (deduped with ObjectArchives'
   // identical query), then fetch the full-resolution wavelength/flux arrays.
   const { data: desiTarget } = useDesiTarget({
@@ -186,8 +196,12 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         }))
     : [];
 
-  // Per-catalog light curve panels from the unified /lightcurve endpoint
-  const lightcurveByCatalog = groupDetectionsByCatalog(lightcurveData);
+  // Per-catalog light curve panels: the unified /lightcurve endpoint for every
+  // survey except ZTF, which is taken from the ALeRCE proxy instead
+  const lightcurveByCatalog = {
+    ...groupDetectionsByCatalog(lightcurveData, ["ztf"]),
+    ...groupDetectionsByCatalog(ztfLightcurveData),
+  };
   // Shared MJD range across all surveys so panels can be visually compared along the time axis
   const allLightcurveMjds = Object.values(lightcurveByCatalog)
     .flat()
@@ -236,14 +250,14 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
             non_detections: [],
             forced_photometry: [],
           }}
-          loading={lightcurveLoading}
-          error={lightcurveError ?? null}
           mjdRange={sharedMjdRange}
         />
       ),
     }));
 
-  // Placeholder shown while the unified /lightcurve request is in flight, errored, or returned no detections
+  // Placeholder shown while the light curve requests are in flight, or when
+  // no survey returned detections (errored or empty). One source failing still
+  // shows the panels from the other.
   let lightcurveStatusItem: {
     key: string;
     label: ReactNode;
@@ -263,7 +277,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       ),
       children: <LightCurveSkeleton />,
     };
-  } else if (lightcurveError) {
+  } else if (surveyPanelItems.length === 0 && lightcurveError) {
     lightcurveStatusItem = {
       key: "lightcurve-error",
       label: (
