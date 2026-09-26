@@ -33,7 +33,7 @@ export interface ConeSearchParams {
   getMetadata?: boolean;
 }
 
-class ConeSearchError extends Error {
+export class ConeSearchError extends Error {
   constructor(
     message: string,
     public readonly status: number
@@ -43,7 +43,7 @@ class ConeSearchError extends Error {
   }
 }
 
-async function fetchConeSearch(
+export async function fetchConeSearch(
   params: ConeSearchParams
 ): Promise<CatalogGroup[]> {
   // Refuse radii the backend will not answer rather than leaving the user on a

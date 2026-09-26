@@ -4,6 +4,12 @@ export {
   useParallelConeSearch,
 } from "./useConeSearch";
 export {
+  type Counterpart,
+  COUNTERPART_RADIUS_ARCSEC,
+  type CounterpartsParams,
+  useCounterparts,
+} from "./useCounterparts";
+export {
   type DesiSpectrumParams,
   type DesiSpectrumResult,
   useDesiSpectrum,

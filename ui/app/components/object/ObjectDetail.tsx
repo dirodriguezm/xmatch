@@ -28,12 +28,18 @@ import { type ReactNode, useRef } from "react";
 
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
 import {
+  type Counterpart,
+  useCounterparts,
   useDesiSpectrum,
   useDesiTarget,
   useLightcurve,
   useZtfLightcurve,
 } from "@/app/hooks/queries";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
+import {
+  CATALOG_COLOR_CLASSES,
+  getSearchCatalogLabel,
+} from "@/app/lib/constants/catalogs";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
 import {
   detectionPointsToCsv,
@@ -41,6 +47,11 @@ import {
   getCatalogLabel,
   groupDetectionsByCatalog,
 } from "@/app/lib/utils/lightcurve";
+import {
+  buildSedPoints,
+  type PhotometrySource,
+  type SedPoint,
+} from "@/app/lib/utils/sed";
 import type { AladinViewerRef } from "@/types/aladin";
 import type { components } from "@/types/xwave-api";
 
@@ -48,6 +59,7 @@ import { AladinViewer } from "./AladinViewer";
 import { LightCurveChart } from "./LightCurveChart";
 import { LightCurveSkeleton } from "./LightCurveSkeleton";
 import { ObjectArchives } from "./ObjectArchives";
+import { SedChart } from "./SedChart";
 import { SpectrumChart } from "./SpectrumChart";
 
 const DSS_SURVEY = "https://alasky.cds.unistra.fr/DSS/DSSColor/";
@@ -106,9 +118,27 @@ interface ObjectDetailProps {
   metadata?: Allwise | null;
 }
 
-function mag(field?: number): number | null {
-  if (field == null) return null;
-  return field;
+function counterpartStatus(c: Counterpart): string {
+  switch (c.status) {
+    case "loading":
+      return "checking…";
+    case "error":
+      return "lookup failed";
+    case "none":
+      return `none within ${c.radiusArcsec}″`;
+    case "found":
+      return c.separationArcsec != null
+        ? `${c.separationArcsec.toFixed(1)}″`
+        : "found";
+  }
+}
+
+function formatChipTooltip(p: SedPoint | undefined, survey: string): string {
+  if (!p) return `${survey} — no measurement`;
+  const origin = p.isSelf
+    ? "this object"
+    : `${getSearchCatalogLabel(p.catalog)} counterpart at ${p.separationArcsec.toFixed(1)}″`;
+  return `${survey}${p.upperLimit ? " upper limit" : ""} · ${origin}`;
 }
 
 // Convert decimal degrees to sexagesimal
@@ -163,26 +193,43 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     message.success(`${label} copied to clipboard`);
   };
 
-  // Map metadata fields to photometry bands (supports multiple catalogs)
   const meta = metadata as Record<string, unknown> | undefined;
-  const bandMagMap: Record<string, number | null> = {
-    G: mag(meta?.phot_g_mean_mag as number | undefined),
-    BP: mag(meta?.phot_bp_mean_mag as number | undefined),
-    RP: mag(meta?.phot_rp_mean_mag as number | undefined),
-    J: mag(metadata?.j_m_2mass),
-    H: mag(metadata?.h_m_2mass),
-    K: mag(metadata?.k_m_2mass),
-    W1: mag(metadata?.w1mpro),
-    W2: mag(metadata?.w2mpro),
-    W3: mag(metadata?.w3mpro),
-    W4: mag(metadata?.w4mpro),
-  };
 
-  const photometryData = PHOTOMETRY_BANDS.map((band) => ({
-    band: band.band,
-    survey: band.survey,
-    mag: bandMagMap[band.band] ?? null,
-  }));
+  // The detail page only loads the catalog the object came from; the other
+  // catalogs' photometry comes from the nearest counterpart in each.
+  const counterparts = useCounterparts({
+    ra: object.ra,
+    dec: object.dec,
+    sourceCatalog: object.catalog,
+  });
+  const photometrySources: PhotometrySource[] = [
+    {
+      catalog: object.catalog,
+      id: object.objectId,
+      record: meta ?? {},
+      isSelf: true,
+      separationArcsec: 0,
+    },
+    ...counterparts
+      .filter((c) => c.status === "found" && c.record)
+      .map((c) => ({
+        catalog: c.catalog,
+        id: c.id,
+        record: c.record!,
+        isSelf: false,
+        separationArcsec: c.separationArcsec ?? 0,
+      })),
+  ];
+  const sedPoints = buildSedPoints(photometrySources);
+
+  const photometryData = PHOTOMETRY_BANDS.map((band) => {
+    // Prefer the object's own measurement over a counterpart's.
+    const point =
+      sedPoints.find((p) => p.band === band.band && p.isSelf) ??
+      sedPoints.find((p) => p.band === band.band);
+    return { band: band.band, survey: band.survey, point };
+  });
+  const measuredBands = photometryData.filter((p) => p.point).length;
 
   // Build catalog details from all metadata fields (exclude id, ra, dec already shown)
   const excludedFields = new Set(["id", "ra", "dec"]);
@@ -369,35 +416,34 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
           <StarOutlined />
           <span>Photometry</span>
           <Text type="secondary" className="text-xs">
-            ({photometryData.filter((p) => p.mag !== null).length} bands)
+            ({measuredBands} bands)
           </Text>
         </Space>
       ),
       children: (
-        <Flex wrap="wrap" gap={8}>
-          {photometryData.map((p) => (
-            <Tooltip key={p.band} title={p.survey}>
-              <div
-                className={`text-center px-3 py-2 rounded border ${
-                  p.mag !== null
-                    ? "border-primary bg-primary/10"
-                    : "border-border bg-surface"
-                }`}
-              >
-                <Text
-                  strong
-                  className={p.mag === null ? "text-border" : undefined}
-                >
-                  {p.band}
-                </Text>
-                <div
-                  className={`font-mono text-sm ${p.mag === null ? "text-border" : ""}`}
-                >
-                  {p.mag !== null ? p.mag.toFixed(2) : "—"}
+        <Flex vertical gap={16}>
+          <Flex wrap="wrap" gap={8}>
+            {photometryData.map(({ band, survey, point }) => (
+              <Tooltip key={band} title={formatChipTooltip(point, survey)}>
+                <div className="text-center px-3 py-1 rounded border border-border bg-surface">
+                  <Text
+                    type={point ? "secondary" : undefined}
+                    className={`text-xs ${point ? "" : "text-border"}`}
+                  >
+                    {band}
+                  </Text>
+                  <div
+                    className={`font-mono text-sm ${point ? "" : "text-border"}`}
+                  >
+                    {point
+                      ? `${point.upperLimit ? ">" : ""}${point.mag.toFixed(2)}`
+                      : "—"}
+                  </div>
                 </div>
-              </div>
-            </Tooltip>
-          ))}
+              </Tooltip>
+            ))}
+          </Flex>
+          <SedChart points={sedPoints} />
         </Flex>
       ),
     },
@@ -505,6 +551,36 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                       />
                     </Flex>
                   </div>
+                </div>
+
+                {/* Nearest counterpart in every other catalog */}
+                <div>
+                  <Text type="secondary" className="text-xs block mb-1">
+                    Counterparts
+                  </Text>
+                  <Flex vertical gap={2}>
+                    {counterparts.map((c) => (
+                      <Flex key={c.catalog} align="center" gap={8}>
+                        <span
+                          className={`inline-block w-2 h-2 rounded-full ${CATALOG_COLOR_CLASSES[c.catalog]}`}
+                        />
+                        <Text className="text-sm">
+                          {getSearchCatalogLabel(c.catalog)}
+                        </Text>
+                        {c.status === "found" && c.id && (
+                          <Text className="font-mono text-xs truncate">
+                            {c.id}
+                          </Text>
+                        )}
+                        <Text
+                          type={c.status === "error" ? "danger" : "secondary"}
+                          className="text-xs"
+                        >
+                          {counterpartStatus(c)}
+                        </Text>
+                      </Flex>
+                    ))}
+                  </Flex>
                 </div>
               </Flex>
 

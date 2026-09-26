@@ -75,13 +75,32 @@ export interface MagValue {
 }
 
 /**
- * A magnitude of exactly 0 is legal, so this tests for finiteness rather than
- * truthiness — `!0` would silently drop a real measurement.
+ * Catalogs whose indexer stores missing values as 0 instead of null. The Gaia
+ * ingest schema (service/internal/catalog/gaia/gaia.go) reads non-pointer
+ * parquet fields and wraps every one as Valid, so a source with no BP/RP or no
+ * parallax comes back with 0. Drop this entry once Gaia is re-indexed with
+ * nullable fields.
  */
-function isMeasured(value: unknown): value is number {
-  return (
-    typeof value === "number" && Number.isFinite(value) && value !== SENTINEL
-  );
+const ZERO_MEANS_MISSING = new Set(["gaia"]);
+
+/**
+ * A magnitude of exactly 0 is legal in general, so this tests for finiteness
+ * rather than truthiness — `!0` would silently drop a real measurement. The
+ * exception is a catalog listed in {@link ZERO_MEANS_MISSING}.
+ */
+export function isMeasured(
+  value: unknown,
+  catalogSlug?: string
+): value is number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return false;
+  if (value === SENTINEL) return false;
+  if (
+    value === 0 &&
+    catalogSlug &&
+    ZERO_MEANS_MISSING.has(catalogSlug.toLowerCase())
+  )
+    return false;
+  return true;
 }
 
 /**
@@ -97,12 +116,12 @@ export function pickMag(
 
   for (const spec of specs) {
     const value = meta[spec.field];
-    if (!isMeasured(value)) continue;
+    if (!isMeasured(value, catalogSlug)) continue;
     const err = spec.errField ? meta[spec.errField] : undefined;
     return {
       band: spec.band,
       mag: value,
-      magErr: isMeasured(err) ? err : undefined,
+      magErr: isMeasured(err, catalogSlug) ? err : undefined,
       description: spec.description,
     };
   }
