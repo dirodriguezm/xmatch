@@ -22,7 +22,10 @@ import {
   VectorFromSphere,
 } from "astronomy-engine";
 
-import type { Observatory } from "@/app/lib/constants/observatories";
+import {
+  type Observatory,
+  OBSERVATORY_TIME_ZONE,
+} from "@/app/lib/constants/observatories";
 
 /** Sun altitude at which astronomical twilight begins/ends. */
 const ASTRONOMICAL_TWILIGHT_DEG = -18;
@@ -214,4 +217,38 @@ export function tonightInTimeZone(timeZone: string, now = new Date()): Date {
   const get = (type: string) =>
     Number(parts.find((p) => p.type === type)?.value);
   return new Date(get("year"), get("month") - 1, get("day"));
+}
+
+const chileTime = new Intl.DateTimeFormat("en-GB", {
+  timeZone: OBSERVATORY_TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** HH:mm in Chile time, where every offered observatory is. */
+export function formatChileTime(date: Date): string {
+  return chileTime.format(date);
+}
+
+/** One-line description of a night's visibility, times in Chile time. */
+export function summarizeVisibility(
+  v: NightVisibility,
+  siteLabel: string,
+  minAltitudeDeg = DEFAULT_MIN_ALTITUDE_DEG
+): string {
+  const hhmm = formatChileTime;
+  if (v.window && v.best) {
+    const am =
+      v.best.airmass != null ? ` (airmass ${v.best.airmass.toFixed(2)})` : "";
+    return `Observable ${hhmm(v.window.start)}–${hhmm(v.window.end)} above ${minAltitudeDeg}° · peaks at ${v.best.altitude.toFixed(0)}°${am} at ${hhmm(v.best.time)}`;
+  }
+  if (v.maxPossibleAltitude < minAltitudeDeg) {
+    return v.maxPossibleAltitude <= 0
+      ? `Never rises from ${siteLabel}.`
+      : `Never rises above ${minAltitudeDeg}° from ${siteLabel} (max ${v.maxPossibleAltitude.toFixed(0)}° at transit).`;
+  }
+  const best = v.best
+    ? ` Best: ${v.best.altitude.toFixed(0)}° at ${hhmm(v.best.time)}.`
+    : "";
+  return `Not above ${minAltitudeDeg}° during astronomical night on this date.${best}`;
 }

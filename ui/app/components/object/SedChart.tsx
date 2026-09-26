@@ -1,6 +1,7 @@
 "use client";
 
-import { Flex, Switch, Typography } from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
+import { Button, Flex, Switch, Tooltip, Typography } from "antd";
 import type {
   CustomSeriesOption,
   CustomSeriesRenderItem,
@@ -14,7 +15,12 @@ import {
   getSearchCatalogColor,
   getSearchCatalogLabel,
 } from "@/app/lib/constants/catalogs";
+import { equatorialToGalactic } from "@/app/lib/utils/coordinates";
+import { downloadCsv } from "@/app/lib/utils/csv";
+import { dereddenFactor, dereddeningBlocker } from "@/app/lib/utils/extinction";
+import type { GalacticReddening } from "@/app/lib/utils/irsaDust";
 import type { SedPoint } from "@/app/lib/utils/sed";
+import { sedToCsv } from "@/app/lib/utils/sedCsv";
 import { buildVizierSedViewerUrl } from "@/app/lib/utils/urls";
 import type { VizierSedPoint } from "@/app/lib/utils/vizierSed";
 
@@ -42,11 +48,30 @@ export interface VizierSedState {
   error: Error | null;
 }
 
+export interface ReddeningState {
+  value?: GalacticReddening;
+  loading: boolean;
+  error: Error | null;
+}
+
 interface SedChartProps {
   ra: number;
   dec: number;
   points: SedPoint[];
   vizier: VizierSedState;
+  reddening: ReddeningState;
+  /** Download filename without extension. */
+  filenameStem: string;
+}
+
+/** Why dereddening is unavailable, or null when it can be applied. */
+function reddeningBlocker(
+  reddening: ReddeningState,
+  galacticLatitude: number
+): string | null {
+  if (reddening.loading) return "loading E(B−V)…";
+  if (reddening.error || !reddening.value) return "E(B−V) unavailable";
+  return dereddeningBlocker(reddening.value.ebvSF11, galacticLatitude);
 }
 
 type Datum = {
@@ -111,12 +136,44 @@ function formatPoint(p: SedPoint): string {
   ].join("<br/>");
 }
 
-export function SedChart({ ra, dec, points, vizier }: SedChartProps) {
+export function SedChart({
+  ra,
+  dec,
+  points: observedPoints,
+  vizier,
+  reddening,
+  filenameStem,
+}: SedChartProps) {
   const [showVizier, setShowVizier] = useState(true);
   const [showInconsistent, setShowInconsistent] = useState(false);
+  const [deredden, setDeredden] = useState(false);
+
+  const galacticLatitude = equatorialToGalactic(ra, dec).b;
+  const blocker = reddeningBlocker(reddening, galacticLatitude);
+  const ebv = blocker ? null : reddening.value!.ebvSF11;
+  const applied = deredden && ebv != null;
+
+  // Dereddening scales flux and error alike; the chart then plots intrinsic νFν.
+  const correct = <
+    T extends { wavelengthUm: number; nuFnu: number; nuFnuErr?: number },
+  >(
+    p: T
+  ): T => {
+    if (!applied) return p;
+    const f = dereddenFactor(p.wavelengthUm, ebv!);
+    return {
+      ...p,
+      nuFnu: p.nuFnu * f,
+      nuFnuErr: p.nuFnuErr != null ? p.nuFnuErr * f : undefined,
+    };
+  };
+  const points = observedPoints.map(correct);
+
   const inconsistentCount = vizier.points.filter((p) => p.inconsistent).length;
   const vizierShown = showVizier
-    ? vizier.points.filter((p) => showInconsistent || !p.inconsistent)
+    ? vizier.points
+        .filter((p) => showInconsistent || !p.inconsistent)
+        .map(correct)
     : [];
   const sources = (
     <SedSources
@@ -124,6 +181,8 @@ export function SedChart({ ra, dec, points, vizier }: SedChartProps) {
       dec={dec}
       points={points}
       vizier={vizier}
+      reddening={reddening}
+      filenameStem={filenameStem}
       inconsistentCount={showVizier ? inconsistentCount : 0}
       showInconsistent={showInconsistent}
       onToggleInconsistent={() => setShowInconsistent((v) => !v)}
@@ -276,26 +335,65 @@ export function SedChart({ ra, dec, points, vizier }: SedChartProps) {
     series: [errorBars, ...scatter, ...(vizierSeries ? [vizierSeries] : [])],
   };
 
+  let extinctionNote: string;
+  if (applied)
+    extinctionNote = `Corrected for Galactic extinction: E(B−V) = ${ebv!.toFixed(3)} (Schlafly & Finkbeiner 2011), CCM89 law with R_V = 3.1.`;
+  else if (ebv != null)
+    extinctionNote = `Not corrected for extinction (E(B−V) = ${ebv.toFixed(3)} here).`;
+  else if (reddening.loading || reddening.error)
+    extinctionNote = "Not corrected for extinction.";
+  else extinctionNote = `Not corrected for extinction: ${blocker}.`;
+
   return (
     <Flex vertical gap={4}>
-      {vizier.points.length > 0 && (
-        <Flex justify="flex-end" align="center" gap={8}>
-          <Text type="secondary" className="text-xs">
-            VizieR photometry ({vizier.points.length} filters)
-          </Text>
-          <Switch
-            size="small"
-            checked={showVizier}
-            onChange={setShowVizier}
-            aria-label="Show VizieR photometry"
-          />
+      <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+        <Button
+          size="small"
+          type="text"
+          icon={<DownloadOutlined />}
+          onClick={() =>
+            downloadCsv(
+              `${filenameStem}_sed.csv`,
+              sedToCsv(observedPoints, vizier.points, ebv)
+            )
+          }
+        >
+          SED as CSV
+        </Button>
+        <Flex align="center" gap={16} wrap="wrap">
+          <Tooltip title={blocker ?? undefined}>
+            <Flex align="center" gap={8}>
+              <Text type="secondary" className="text-xs">
+                Deredden
+              </Text>
+              <Switch
+                size="small"
+                checked={applied}
+                disabled={ebv == null}
+                onChange={setDeredden}
+                aria-label="Correct for Galactic extinction"
+              />
+            </Flex>
+          </Tooltip>
+          {vizier.points.length > 0 && (
+            <Flex align="center" gap={8}>
+              <Text type="secondary" className="text-xs">
+                VizieR photometry ({vizier.points.length} filters)
+              </Text>
+              <Switch
+                size="small"
+                checked={showVizier}
+                onChange={setShowVizier}
+                aria-label="Show VizieR photometry"
+              />
+            </Flex>
+          )}
         </Flex>
-      )}
+      </Flex>
       <ReactECharts option={option} className="h-64 w-full" />
       <Text type="secondary" className="text-xs block">
         Filled: this object · hollow: nearest counterpart · ▼ upper limit
-        {vizierShown.length > 0 ? " · grey: VizieR" : ""}. Not corrected for
-        extinction.
+        {vizierShown.length > 0 ? " · grey: VizieR" : ""}. {extinctionNote}
       </Text>
       {sources}
     </Flex>
@@ -308,6 +406,7 @@ function SedSources({
   dec,
   points,
   vizier,
+  reddening,
   inconsistentCount,
   showInconsistent,
   onToggleInconsistent,
@@ -341,6 +440,19 @@ function SedSources({
         VizieR SED, CDS Strasbourg ↗
       </Link>{" "}
       ({vizierText})
+      {reddening.value && (
+        <>
+          {" · E(B−V): "}
+          <Link
+            href="https://irsa.ipac.caltech.edu/applications/DUST/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs"
+          >
+            IRSA Galactic Dust ↗
+          </Link>
+        </>
+      )}
       {inconsistentCount > 0 && (
         <>
           {" · "}

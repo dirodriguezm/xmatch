@@ -9,6 +9,7 @@ import { ErrorState } from "./ErrorState";
 import { LoadingState } from "./LoadingState";
 import type { EnrichedResult, PhotometryStatus } from "./ResultsTable";
 import { ResultsTable } from "./ResultsTable";
+import { TonightSummary } from "./TonightSummary";
 
 export interface ResultsPanelProps {
   data?: EnrichedResult[];
@@ -17,6 +18,8 @@ export interface ResultsPanelProps {
   errorMessage?: string;
   onRetry?: () => void;
   photometryStatus?: PhotometryStatus;
+  /** Searched position; every match lies within the radius of it. */
+  target?: { ra: number; dec: number } | null;
 }
 
 export function ResultsPanel({
@@ -25,6 +28,7 @@ export function ResultsPanel({
   errorMessage,
   onRetry,
   photometryStatus = "idle",
+  target = null,
 }: ResultsPanelProps) {
   const { state } = useCrossmatchState();
 
@@ -35,6 +39,11 @@ export function ResultsPanel({
       return (
         <Flex vertical className="h-full">
           <div className="px-8 py-6">
+            {target && (
+              <div className="mb-3">
+                <TonightSummary ra={target.ra} dec={target.dec} />
+              </div>
+            )}
             <ResultsTable
               data={data}
               loading={loading}

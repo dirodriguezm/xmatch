@@ -15,6 +15,7 @@ export {
   useDesiSpectrum,
 } from "./useDesiSpectrum";
 export { type DesiTargetParams, useDesiTarget } from "./useDesiTarget";
+export { useGalacticReddening } from "./useGalacticReddening";
 export { type LightcurveParams, useLightcurve } from "./useLightcurve";
 export { type MetadataParams, useMetadata } from "./useMetadata";
 export { useVizierSed, type VizierSedParams } from "./useVizierSed";

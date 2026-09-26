@@ -14,7 +14,8 @@ import {
 import {
   computeNightVisibility,
   DEFAULT_MIN_ALTITUDE_DEG,
-  type NightVisibility,
+  formatChileTime,
+  summarizeVisibility,
   tonightInTimeZone,
 } from "@/app/lib/utils/observability";
 
@@ -34,11 +35,6 @@ const AIRMASS_GUIDES = [
   { altitude: 19.3, label: "X 3" },
 ];
 
-const timeFormat = new Intl.DateTimeFormat("en-GB", {
-  timeZone: OBSERVATORY_TIME_ZONE,
-  hour: "2-digit",
-  minute: "2-digit",
-});
 const dateFormat = new Intl.DateTimeFormat("en-GB", {
   weekday: "short",
   day: "numeric",
@@ -46,7 +42,7 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
 });
 
-const hhmm = (d: Date) => timeFormat.format(d);
+const hhmm = formatChileTime;
 
 function addDays(date: Date, days: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
@@ -58,24 +54,6 @@ function sameDay(a: Date, b: Date): boolean {
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
   );
-}
-
-function summary(v: NightVisibility, siteLabel: string): string {
-  const min = DEFAULT_MIN_ALTITUDE_DEG;
-  if (v.window && v.best) {
-    const am =
-      v.best.airmass != null ? ` (airmass ${v.best.airmass.toFixed(2)})` : "";
-    return `Observable ${hhmm(v.window.start)}–${hhmm(v.window.end)} above ${min}° · peaks at ${v.best.altitude.toFixed(0)}°${am} at ${hhmm(v.best.time)}`;
-  }
-  if (v.maxPossibleAltitude < min) {
-    return v.maxPossibleAltitude <= 0
-      ? `Never rises from ${siteLabel}.`
-      : `Never rises above ${min}° from ${siteLabel} (max ${v.maxPossibleAltitude.toFixed(0)}° at transit).`;
-  }
-  const best = v.best
-    ? ` Best: ${v.best.altitude.toFixed(0)}° at ${hhmm(v.best.time)}.`
-    : "";
-  return `Not above ${min}° during astronomical night on this date.${best}`;
 }
 
 interface ObservabilityPanelProps {
@@ -272,7 +250,9 @@ export function ObservabilityPanel({ ra, dec }: ObservabilityPanelProps) {
       </Flex>
 
       <div>
-        <Text className="block">{summary(visibility, site.label)}</Text>
+        <Text className="block">
+          {summarizeVisibility(visibility, site.label)}
+        </Text>
         <Text type="secondary" className="text-xs block">
           Astronomical night {hhmm(visibility.duskAstronomical)}–
           {hhmm(visibility.dawnAstronomical)} · Moon {moonPct}% illuminated,{" "}

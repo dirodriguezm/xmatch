@@ -135,6 +135,7 @@ function SearchContent() {
             errorMessage={errorMessage}
             onRetry={handleRetry}
             photometryStatus={photometryStatus}
+            target={base}
           />
         </Content>
       </Layout>

@@ -142,3 +142,66 @@ export function parseCoordinates(
 
   return null;
 }
+
+const DEG = Math.PI / 180;
+
+/**
+ * ICRS → Galactic rotation (Hipparcos, ESA 1997 vol. 1 §1.5.3). Rows are the
+ * Galactic x/y/z axes expressed in ICRS.
+ */
+const ICRS_TO_GALACTIC = [
+  [-0.0548755604162154, -0.873437090234885, -0.4838350155487132],
+  [0.4941094278755837, -0.4448296299600112, 0.7469822444972189],
+  [-0.8676661490190047, -0.1980763734312015, 0.4559837761750669],
+];
+
+/** Mean obliquity of the ecliptic at J2000.0 (IAU 2006), degrees. */
+const OBLIQUITY_J2000_DEG = 23.4392911;
+
+function wrap360(deg: number): number {
+  return ((deg % 360) + 360) % 360;
+}
+
+/**
+ * Galactic longitude/latitude (degrees) for ICRS (J2000) RA/Dec in degrees.
+ */
+export function equatorialToGalactic(
+  ra: number,
+  dec: number
+): { l: number; b: number } {
+  const v = [
+    Math.cos(dec * DEG) * Math.cos(ra * DEG),
+    Math.cos(dec * DEG) * Math.sin(ra * DEG),
+    Math.sin(dec * DEG),
+  ];
+  const [x, y, z] = ICRS_TO_GALACTIC.map(
+    (row) => row[0] * v[0] + row[1] * v[1] + row[2] * v[2]
+  );
+  return {
+    l: wrap360(Math.atan2(y, x) / DEG),
+    b: Math.asin(Math.max(-1, Math.min(1, z))) / DEG,
+  };
+}
+
+/**
+ * Mean ecliptic longitude/latitude of J2000 (degrees) for ICRS RA/Dec in
+ * degrees.
+ */
+export function equatorialToEcliptic(
+  ra: number,
+  dec: number
+): { lambda: number; beta: number } {
+  const eps = OBLIQUITY_J2000_DEG * DEG;
+  const a = ra * DEG;
+  const d = dec * DEG;
+  const sinBeta =
+    Math.sin(d) * Math.cos(eps) - Math.cos(d) * Math.sin(eps) * Math.sin(a);
+  const lambda = Math.atan2(
+    Math.sin(a) * Math.cos(eps) + Math.tan(d) * Math.sin(eps),
+    Math.cos(a)
+  );
+  return {
+    lambda: wrap360(lambda / DEG),
+    beta: Math.asin(Math.max(-1, Math.min(1, sinBeta))) / DEG,
+  };
+}

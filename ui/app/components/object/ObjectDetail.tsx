@@ -35,6 +35,7 @@ import {
   useCounterparts,
   useDesiSpectrum,
   useDesiTarget,
+  useGalacticReddening,
   useLightcurve,
   useVizierSed,
   useZtfLightcurve,
@@ -44,6 +45,10 @@ import {
   CATALOG_COLOR_CLASSES,
   getSearchCatalogLabel,
 } from "@/app/lib/constants/catalogs";
+import {
+  equatorialToEcliptic,
+  equatorialToGalactic,
+} from "@/app/lib/utils/coordinates";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
 import {
   detectionPointsToCsv,
@@ -129,6 +134,10 @@ interface ObjectDetailProps {
   metadata?: Allwise | null;
 }
 
+function formatSigned(value: number, decimals: number): string {
+  return `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(decimals)}`;
+}
+
 function counterpartStatus(c: Counterpart): string {
   switch (c.status) {
     case "loading":
@@ -209,6 +218,8 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   };
 
   const meta = metadata as Record<string, unknown> | undefined;
+  const galactic = equatorialToGalactic(object.ra, object.dec);
+  const ecliptic = equatorialToEcliptic(object.ra, object.dec);
 
   // The detail page only loads the catalog the object came from; the other
   // catalogs' photometry comes from the nearest counterpart in each.
@@ -237,6 +248,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   ];
   const sedPoints = buildSedPoints(photometrySources);
   const vizierSed = useVizierSed({ ra: object.ra, dec: object.dec });
+  const reddening = useGalacticReddening({ ra: object.ra, dec: object.dec });
 
   const photometryData = PHOTOMETRY_BANDS.map((band) => {
     // Prefer the object's own measurement over a counterpart's.
@@ -469,6 +481,12 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               loading: vizierSed.isPending,
               error: vizierSed.error,
             }}
+            reddening={{
+              value: reddening.data,
+              loading: reddening.isPending,
+              error: reddening.error,
+            }}
+            filenameStem={filenameStem}
           />
         </Flex>
       ),
@@ -608,6 +626,24 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                         }
                       />
                     </Flex>
+                  </div>
+                  <div>
+                    <Text type="secondary" className="text-xs block mb-1">
+                      Galactic
+                    </Text>
+                    <Text className="font-mono text-sm">
+                      l {galactic.l.toFixed(4)}°, b{" "}
+                      {formatSigned(galactic.b, 4)}°
+                    </Text>
+                  </div>
+                  <div>
+                    <Text type="secondary" className="text-xs block mb-1">
+                      Ecliptic (J2000)
+                    </Text>
+                    <Text className="font-mono text-sm">
+                      λ {ecliptic.lambda.toFixed(4)}°, β{" "}
+                      {formatSigned(ecliptic.beta, 4)}°
+                    </Text>
                   </div>
                 </div>
 
