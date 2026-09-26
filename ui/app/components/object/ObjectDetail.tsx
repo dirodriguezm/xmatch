@@ -5,6 +5,7 @@ import {
   DatabaseOutlined,
   DownloadOutlined,
   EnvironmentOutlined,
+  FieldTimeOutlined,
   LineChartOutlined,
   QuestionCircleOutlined,
   StarOutlined,
@@ -24,8 +25,9 @@ import {
   Tooltip,
   Typography,
 } from "antd";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { type ReactNode, useRef } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
 import {
@@ -63,6 +65,12 @@ import { LightCurveSkeleton } from "./LightCurveSkeleton";
 import { ObjectArchives } from "./ObjectArchives";
 import { SedChart } from "./SedChart";
 import { SpectrumChart } from "./SpectrumChart";
+
+// Split out so astronomy-engine only loads when the panel is first opened.
+const ObservabilityPanel = dynamic(
+  () => import("./ObservabilityPanel").then((m) => m.ObservabilityPanel),
+  { ssr: false }
+);
 
 const DSS_SURVEY = "https://alasky.cds.unistra.fr/DSS/DSSColor/";
 
@@ -164,6 +172,10 @@ function toDMS(dec: number): string {
 export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const { message } = App.useApp();
   const aladinRef = useRef<AladinViewerRef>(null);
+  const [panels, setPanels] = useState<{
+    open: string[];
+    autoOpened: string[];
+  }>({ open: [], autoOpened: [] });
   const {
     data: lightcurveData,
     isLoading: backendLightcurveLoading,
@@ -449,6 +461,19 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         </Flex>
       ),
     },
+    {
+      key: "observability",
+      label: (
+        <Space>
+          <FieldTimeOutlined />
+          <span>Observability</span>
+          <Text type="secondary" className="text-xs">
+            (Chilean observatories)
+          </Text>
+        </Space>
+      ),
+      children: <ObservabilityPanel ra={object.ra} dec={object.dec} />,
+    },
     ...(lightcurveStatusItem ? [lightcurveStatusItem] : surveyPanelItems),
     ...(spectrumItem ? [spectrumItem] : []),
     ...(catalogDetails.length > 0
@@ -486,6 +511,25 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         ]
       : []),
   ];
+
+  // Panels open themselves the first time their data arrives. Tracking which
+  // keys were already auto-opened (instead of remounting the Collapse) keeps
+  // whatever the user opened or closed in the meantime.
+  const autoOpenKeys = [
+    "photometry",
+    ...(lightcurveStatusItem
+      ? [lightcurveStatusItem.key]
+      : surveyPanelItems.map((item) => item.key)),
+    ...(spectrumReady ? ["desi-spectrum"] : []),
+  ];
+  const freshKeys = autoOpenKeys.filter((k) => !panels.autoOpened.includes(k));
+  if (freshKeys.length > 0) {
+    // Adjusting state during render: React re-renders before committing.
+    setPanels((p) => ({
+      open: [...p.open, ...freshKeys],
+      autoOpened: [...p.autoOpened, ...freshKeys],
+    }));
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -653,19 +697,12 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         <ObjectArchives ra={object.ra} dec={object.dec} />
       </div>
 
-      {/* Collapsible sections — `key` flips when the lightcurve or DESI spectrum
-          query settles, so the new panels auto-expand instead of inheriting the
-          loading default */}
       <Collapse
-        key={`${lightcurveLoading ? "lc-loading" : "lc-loaded"}-${spectrumReady ? "spec" : "nospec"}`}
         items={collapseItems}
-        defaultActiveKey={[
-          "photometry",
-          ...(lightcurveStatusItem
-            ? [lightcurveStatusItem.key]
-            : surveyPanelItems.map((item) => item.key)),
-          ...(spectrumReady ? ["desi-spectrum"] : []),
-        ]}
+        activeKey={panels.open}
+        onChange={(keys) =>
+          setPanels((p) => ({ ...p, open: ([] as string[]).concat(keys) }))
+        }
         className="bg-surface"
       />
     </div>
