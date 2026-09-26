@@ -24,6 +24,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
+import Link from "next/link";
 import { type ReactNode, useRef } from "react";
 
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
@@ -52,6 +53,7 @@ import {
   type PhotometrySource,
   type SedPoint,
 } from "@/app/lib/utils/sed";
+import { buildObjectUrl } from "@/app/lib/utils/urls";
 import type { AladinViewerRef } from "@/types/aladin";
 import type { components } from "@/types/xwave-api";
 
@@ -568,9 +570,12 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                           {getSearchCatalogLabel(c.catalog)}
                         </Text>
                         {c.status === "found" && c.id && (
-                          <Text className="font-mono text-xs truncate">
+                          <Link
+                            href={buildObjectUrl(c.id, c.catalog)}
+                            className="font-mono text-xs truncate"
+                          >
                             {c.id}
-                          </Text>
+                          </Link>
                         )}
                         <Text
                           type={c.status === "error" ? "danger" : "secondary"}

@@ -76,3 +76,12 @@ export function buildPanstarrsUrl(ra: number, dec: number): string {
 export function buildDesiSpectrumUrl(targetid: string | number): string {
   return `https://www.legacysurvey.org/viewer/desi-spectrum/dr1/targetid${targetid}`;
 }
+
+/**
+ * Build the in-app detail page URL for a catalog object
+ * @param objectId - Catalog identifier (Gaia designations contain spaces)
+ * @param catalog - Search-catalog slug: `gaia`, `allwise`, `erosita`
+ */
+export function buildObjectUrl(objectId: string, catalog: string): string {
+  return `/object/${encodeURIComponent(objectId)}?catalog=${encodeURIComponent(catalog)}`;
+}

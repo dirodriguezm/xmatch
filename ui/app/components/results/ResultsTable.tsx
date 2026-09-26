@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/constants/catalogs";
 import type { MagValue } from "@/app/lib/constants/photometry";
 import { downloadCsv, toCsv } from "@/app/lib/utils/csv";
+import { buildObjectUrl } from "@/app/lib/utils/urls";
 
 const { Text } = Typography;
 
@@ -288,9 +289,7 @@ export function ResultsTable({
         size="small"
         onRow={(record) => ({
           onClick: () =>
-            router.push(
-              `/object/${encodeURIComponent(record.objectId)}?catalog=${encodeURIComponent(record.catalog)}`
-            ),
+            router.push(buildObjectUrl(record.objectId, record.catalog)),
           className: "cursor-pointer",
         })}
         rowClassName="hover:bg-surface-elevated transition-colors"
