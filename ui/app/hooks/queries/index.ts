@@ -17,4 +17,5 @@ export {
 export { type DesiTargetParams, useDesiTarget } from "./useDesiTarget";
 export { type LightcurveParams, useLightcurve } from "./useLightcurve";
 export { type MetadataParams, useMetadata } from "./useMetadata";
+export { useVizierSed, type VizierSedParams } from "./useVizierSed";
 export { useZtfLightcurve, type ZtfLightcurveParams } from "./useZtfLightcurve";

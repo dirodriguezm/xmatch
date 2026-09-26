@@ -85,3 +85,18 @@ export function buildDesiSpectrumUrl(targetid: string | number): string {
 export function buildObjectUrl(objectId: string, catalog: string): string {
   return `/object/${encodeURIComponent(objectId)}?catalog=${encodeURIComponent(catalog)}`;
 }
+
+/**
+ * Build the VizieR photometry viewer URL (interactive SED) for a position
+ * @param ra - Right Ascension in degrees
+ * @param dec - Declination in degrees
+ * @param radius - Search radius in arcseconds (default: 2)
+ */
+export function buildVizierSedViewerUrl(
+  ra: number,
+  dec: number,
+  radius = 2
+): string {
+  const c = encodeURIComponent(`${ra} ${dec}`);
+  return `https://vizier.cds.unistra.fr/vizier/sed/?submitSimbad=Photometry&-c=${c}&-c.r=${radius}&-c.u=arcsec&show_settings=1`;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Typography } from "antd";
+import { Flex, Switch, Typography } from "antd";
 import type {
   CustomSeriesOption,
   CustomSeriesRenderItem,
@@ -8,24 +8,45 @@ import type {
   ScatterSeriesOption,
 } from "echarts";
 import dynamic from "next/dynamic";
+import { useState } from "react";
 
 import {
   getSearchCatalogColor,
   getSearchCatalogLabel,
 } from "@/app/lib/constants/catalogs";
 import type { SedPoint } from "@/app/lib/utils/sed";
+import { buildVizierSedViewerUrl } from "@/app/lib/utils/urls";
+import type { VizierSedPoint } from "@/app/lib/utils/vizierSed";
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
-const { Text } = Typography;
+const { Text, Link } = Typography;
 
 /** An SED needs at least two points to show a shape. */
 export const MIN_SED_POINTS = 2;
 
 const SYMBOL_SIZE = 9;
+const VIZIER_SYMBOL_SIZE = 6;
+const COLOR_VIZIER = "#8c8c8c";
+
+/** Where each of our own catalogs' SED bands comes from. */
+const OWN_SOURCE_LABELS: Record<string, string> = {
+  gaia: "Gaia DR3",
+  allwise: "AllWISE (with its 2MASS associations)",
+};
+
+export interface VizierSedState {
+  points: VizierSedPoint[];
+  rowCount: number;
+  loading: boolean;
+  error: Error | null;
+}
 
 interface SedChartProps {
+  ra: number;
+  dec: number;
   points: SedPoint[];
+  vizier: VizierSedState;
 }
 
 type Datum = {
@@ -53,6 +74,26 @@ function toDatum(p: SedPoint): Datum {
   };
 }
 
+type VizierDatum = { value: [number, number]; vizier: VizierSedPoint };
+
+function formatVizierPoint(p: VizierSedPoint): string {
+  const shown = p.tables.slice(0, 4).join(", ");
+  const more = p.tables.length > 4 ? ` +${p.tables.length - 4} more` : "";
+  const rejected =
+    p.nRejected > 0
+      ? ` (${p.nRejected} outlier${p.nRejected > 1 ? "s" : ""} dropped)`
+      : "";
+  return [
+    `<b>${p.filter}</b> · ${p.wavelengthUm.toFixed(2)} µm`,
+    `νFν: ${p.nuFnu.toExponential(2)} erg s⁻¹ cm⁻²`,
+    ...(p.inconsistent
+      ? [`<span style="color:#faad14">>30× off neighbouring filters</span>`]
+      : []),
+    `median of ${p.nMeasurements} measurement${p.nMeasurements > 1 ? "s" : ""}${rejected}`,
+    `<span style="color:#999">VizieR: ${shown}${more}</span>`,
+  ].join("<br/>");
+}
+
 function formatPoint(p: SedPoint): string {
   const mag = p.upperLimit
     ? `> ${p.mag.toFixed(2)} (upper limit)`
@@ -70,12 +111,35 @@ function formatPoint(p: SedPoint): string {
   ].join("<br/>");
 }
 
-export function SedChart({ points }: SedChartProps) {
-  if (points.length < MIN_SED_POINTS) {
+export function SedChart({ ra, dec, points, vizier }: SedChartProps) {
+  const [showVizier, setShowVizier] = useState(true);
+  const [showInconsistent, setShowInconsistent] = useState(false);
+  const inconsistentCount = vizier.points.filter((p) => p.inconsistent).length;
+  const vizierShown = showVizier
+    ? vizier.points.filter((p) => showInconsistent || !p.inconsistent)
+    : [];
+  const sources = (
+    <SedSources
+      ra={ra}
+      dec={dec}
+      points={points}
+      vizier={vizier}
+      inconsistentCount={showVizier ? inconsistentCount : 0}
+      showInconsistent={showInconsistent}
+      onToggleInconsistent={() => setShowInconsistent((v) => !v)}
+    />
+  );
+
+  if (points.length + vizierShown.length < MIN_SED_POINTS) {
     return (
-      <Text type="secondary" className="text-xs block">
-        Not enough photometry for an SED.
-      </Text>
+      <Flex vertical gap={4}>
+        <Text type="secondary" className="text-xs block">
+          {vizier.loading
+            ? "Not enough photometry for an SED yet — loading VizieR photometry…"
+            : "Not enough photometry for an SED."}
+        </Text>
+        {sources}
+      </Flex>
     );
   }
 
@@ -143,6 +207,25 @@ export function SedChart({ points }: SedChartProps) {
     z: 2,
   };
 
+  // Drawn small, grey and behind our own photometry so XWave's data keeps
+  // the visual weight.
+  const vizierSeries: ScatterSeriesOption | null =
+    vizierShown.length > 0
+      ? {
+          name: "VizieR",
+          type: "scatter",
+          symbolSize: VIZIER_SYMBOL_SIZE,
+          z: 1,
+          itemStyle: { color: COLOR_VIZIER, opacity: 0.7 },
+          data: vizierShown.map(
+            (p): VizierDatum => ({
+              value: [p.wavelengthUm, p.nuFnu],
+              vizier: p,
+            })
+          ),
+        }
+      : null;
+
   const axisCommon = {
     nameLocation: "middle" as const,
     nameTextStyle: { color: "#bfbfbf" },
@@ -159,7 +242,10 @@ export function SedChart({ points }: SedChartProps) {
       itemWidth: 10,
       itemHeight: 10,
       textStyle: { color: "#999" },
-      data: scatter.map((s) => s.name as string),
+      data: [
+        ...scatter.map((s) => s.name as string),
+        ...(vizierSeries ? ["VizieR"] : []),
+      ],
     },
     xAxis: {
       ...axisCommon,
@@ -181,20 +267,92 @@ export function SedChart({ points }: SedChartProps) {
     tooltip: {
       trigger: "item",
       formatter: (params: unknown) => {
-        const data = (params as { data?: Partial<Datum> }).data;
-        return data?.point ? formatPoint(data.point) : "";
+        const data = (params as { data?: Partial<Datum & VizierDatum> }).data;
+        if (data?.point) return formatPoint(data.point);
+        if (data?.vizier) return formatVizierPoint(data.vizier);
+        return "";
       },
     },
-    series: [errorBars, ...scatter],
+    series: [errorBars, ...scatter, ...(vizierSeries ? [vizierSeries] : [])],
   };
 
   return (
-    <div>
+    <Flex vertical gap={4}>
+      {vizier.points.length > 0 && (
+        <Flex justify="flex-end" align="center" gap={8}>
+          <Text type="secondary" className="text-xs">
+            VizieR photometry ({vizier.points.length} filters)
+          </Text>
+          <Switch
+            size="small"
+            checked={showVizier}
+            onChange={setShowVizier}
+            aria-label="Show VizieR photometry"
+          />
+        </Flex>
+      )}
       <ReactECharts option={option} className="h-64 w-full" />
       <Text type="secondary" className="text-xs block">
-        Filled: this object · hollow: nearest counterpart · ▼ upper limit. Not
-        corrected for extinction.
+        Filled: this object · hollow: nearest counterpart · ▼ upper limit
+        {vizierShown.length > 0 ? " · grey: VizieR" : ""}. Not corrected for
+        extinction.
       </Text>
-    </div>
+      {sources}
+    </Flex>
+  );
+}
+
+/** Attribution for every dataset drawn in the SED. */
+function SedSources({
+  ra,
+  dec,
+  points,
+  vizier,
+  inconsistentCount,
+  showInconsistent,
+  onToggleInconsistent,
+}: SedChartProps & {
+  inconsistentCount: number;
+  showInconsistent: boolean;
+  onToggleInconsistent: () => void;
+}) {
+  const own = [...new Set(points.map((p) => p.catalog))]
+    .map((c) => OWN_SOURCE_LABELS[c] ?? getSearchCatalogLabel(c))
+    .join(", ");
+  const tableCount = new Set(vizier.points.flatMap((p) => p.tables)).size;
+
+  let vizierText: string;
+  if (vizier.loading) vizierText = "loading…";
+  else if (vizier.error) vizierText = "unavailable right now";
+  else if (vizier.points.length === 0)
+    vizierText = "no published photometry within 2″";
+  else
+    vizierText = `${vizier.rowCount} measurements from ${tableCount} catalogs, merged per filter`;
+
+  return (
+    <Text type="secondary" className="text-xs block">
+      Sources: {own ? `${own} via XWave · ` : ""}
+      <Link
+        href={buildVizierSedViewerUrl(ra, dec)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xs"
+      >
+        VizieR SED, CDS Strasbourg ↗
+      </Link>{" "}
+      ({vizierText})
+      {inconsistentCount > 0 && (
+        <>
+          {" · "}
+          {inconsistentCount} filter{inconsistentCount > 1 ? "s" : ""}{" "}
+          {showInconsistent ? "shown" : "hidden"} as &gt;30× off neighbouring
+          filters (
+          <Link onClick={onToggleInconsistent} className="text-xs">
+            {showInconsistent ? "hide" : "show"}
+          </Link>
+          )
+        </>
+      )}
+    </Text>
   );
 }

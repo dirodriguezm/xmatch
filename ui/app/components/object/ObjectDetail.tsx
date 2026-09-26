@@ -36,6 +36,7 @@ import {
   useDesiSpectrum,
   useDesiTarget,
   useLightcurve,
+  useVizierSed,
   useZtfLightcurve,
 } from "@/app/hooks/queries";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
@@ -235,6 +236,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       })),
   ];
   const sedPoints = buildSedPoints(photometrySources);
+  const vizierSed = useVizierSed({ ra: object.ra, dec: object.dec });
 
   const photometryData = PHOTOMETRY_BANDS.map((band) => {
     // Prefer the object's own measurement over a counterpart's.
@@ -457,7 +459,17 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               </Tooltip>
             ))}
           </Flex>
-          <SedChart points={sedPoints} />
+          <SedChart
+            ra={object.ra}
+            dec={object.dec}
+            points={sedPoints}
+            vizier={{
+              points: vizierSed.data?.points ?? [],
+              rowCount: vizierSed.data?.rowCount ?? 0,
+              loading: vizierSed.isPending,
+              error: vizierSed.error,
+            }}
+          />
         </Flex>
       ),
     },

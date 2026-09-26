@@ -6,6 +6,7 @@ import {
   DatabaseOutlined,
   GithubOutlined,
   NodeIndexOutlined,
+  ReadOutlined,
 } from "@ant-design/icons";
 import { Card, Layout, Tag, Typography } from "antd";
 import type { ReactNode } from "react";
@@ -24,6 +25,58 @@ const { Title, Paragraph, Text, Link } = Typography;
 
 const SWAGGER_URL = "https://xwave-astro.udp.cl/swagger/index.html";
 const REPO_URL = "https://github.com/dirodriguezm/xmatch";
+
+const DATA_SOURCES = [
+  {
+    name: "Gaia DR3 (ESA)",
+    href: "https://www.cosmos.esa.int/web/gaia/dr3",
+    usedFor: "astrometry and G/BP/RP photometry, indexed by XWave",
+  },
+  {
+    name: "AllWISE (NASA/IPAC)",
+    href: "https://wise2.ipac.caltech.edu/docs/release/allwise/",
+    usedFor:
+      "mid-infrared W1–W4 photometry and 2MASS J/H/K associations, indexed by XWave",
+  },
+  {
+    name: "eROSITA",
+    href: "https://erosita.mpe.mpg.de/",
+    usedFor: "X-ray sources, indexed by XWave",
+  },
+  {
+    name: "VizieR SED service (CDS)",
+    href: "https://vizier.cds.unistra.fr/vizier/sed/",
+    usedFor:
+      "published photometry from every VizieR catalog within 2″, merged per filter in the SED",
+  },
+  {
+    name: "ALeRCE broker",
+    href: "https://alerce.online/",
+    usedFor: "ZTF light curves",
+  },
+  {
+    name: "NOIRLab Astro Data Lab and SPARCL",
+    href: "https://datalab.noirlab.edu/",
+    usedFor: "DESI DR1 target lookup and spectra",
+  },
+  {
+    name: "Sesame name resolver (CDS)",
+    href: "https://cds.unistra.fr/cgi-bin/Sesame",
+    usedFor: "turning object names into coordinates",
+  },
+  {
+    name: "Aladin Lite and HiPS surveys",
+    href: "https://aladin.cds.unistra.fr/AladinLite/",
+    usedFor:
+      "the sky view (DSS, 2MASS, AllWISE, XMM, Chandra, NVSS, SUMSS, RACS, VLASS)",
+  },
+  {
+    name: "Astronomy Engine",
+    href: "https://github.com/cosinekitty/astronomy",
+    usedFor:
+      "Sun, Moon and target positions in the observability panel, computed in your browser",
+  },
+];
 
 interface StepProps {
   index: number;
@@ -264,6 +317,29 @@ export default function AboutPage() {
               >
                 Open the API documentation →
               </Link>
+            </Paragraph>
+          </Section>
+
+          <Section title="Data sources" icon={<ReadOutlined />}>
+            <Paragraph className="text-muted">
+              Cross-match results come from XWave&apos;s own index. The object
+              page also shows data fetched live from these public services:
+            </Paragraph>
+            <ul className="text-muted space-y-3 pl-5 list-disc marker:text-border">
+              {DATA_SOURCES.map(({ name, href, usedFor }) => (
+                <li key={name}>
+                  <Link href={href} target="_blank" rel="noopener noreferrer">
+                    {name}
+                  </Link>{" "}
+                  — {usedFor}
+                </li>
+              ))}
+            </ul>
+            <Paragraph className="text-muted !mb-0 !mt-4">
+              This research has made use of the VizieR catalogue access tool,
+              CDS, Strasbourg, France (DOI: 10.26093/cds/vizier), and of the
+              SIMBAD database and the Aladin sky atlas, operated at CDS,
+              Strasbourg, France.
             </Paragraph>
           </Section>
 

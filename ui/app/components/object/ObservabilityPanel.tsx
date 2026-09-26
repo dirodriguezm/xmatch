@@ -20,7 +20,7 @@ import {
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
-const { Text } = Typography;
+const { Text, Link } = Typography;
 
 const COLOR_TARGET = "#4096ff";
 const COLOR_MOON = "#8c8c8c";
@@ -277,6 +277,17 @@ export function ObservabilityPanel({ ra, dec }: ObservabilityPanelProps) {
           Astronomical night {hhmm(visibility.duskAstronomical)}–
           {hhmm(visibility.dawnAstronomical)} · Moon {moonPct}% illuminated,{" "}
           {visibility.moon.separationDeg.toFixed(0)}° away · times in Chile time
+          <br />
+          Computed in your browser with{" "}
+          <Link
+            href="https://github.com/cosinekitty/astronomy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs"
+          >
+            Astronomy Engine ↗
+          </Link>
+          ; J2000 coordinates precessed to date, refraction included.
         </Text>
       </div>
 
