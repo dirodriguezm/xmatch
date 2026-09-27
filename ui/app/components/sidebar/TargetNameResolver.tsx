@@ -38,6 +38,7 @@ export function TargetNameResolver({ onResolve }: TargetNameResolverProps) {
 
         <Flex vertical gap="small">
           <Input.Search
+            data-search-input
             placeholder="e.g., M31, NGC 1234"
             value={state.resolver.targetName}
             onChange={(e) =>

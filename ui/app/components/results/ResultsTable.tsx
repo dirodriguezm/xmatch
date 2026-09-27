@@ -6,6 +6,7 @@ import { Button, Flex, Skeleton, Table, Tag, Tooltip, Typography } from "antd";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { BasketButton } from "@/app/components/basket/BasketButton";
 import {
   CATALOG_LABELS,
   CATALOG_OPTIONS,
@@ -110,6 +111,23 @@ function buildColumns(
   catalogFilter: string[] | null
 ): TableProps<EnrichedResult>["columns"] {
   return [
+    {
+      title: "",
+      key: "basket",
+      width: 44,
+      align: "center" as const,
+      render: (_: unknown, record: EnrichedResult) => (
+        <BasketButton
+          size="small"
+          item={{
+            objectId: record.objectId,
+            catalog: rowSlug(record),
+            ra: record.ra,
+            dec: record.dec,
+          }}
+        />
+      ),
+    },
     {
       title: "Object ID",
       dataIndex: "objectId",
@@ -283,9 +301,9 @@ export function ResultsTable({
           showTotal: (total, range) =>
             `${range[0]}-${range[1]} of ${total} results`,
         }}
-        // Fixed widths now sum to 920; leaving this at 800 would make antd
+        // Fixed widths now sum to 964; a smaller value would make antd
         // compress every column instead of scrolling.
-        scroll={{ x: 930 }}
+        scroll={{ x: 974 }}
         size="small"
         onRow={(record) => ({
           onClick: () =>

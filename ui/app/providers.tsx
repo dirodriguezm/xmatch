@@ -6,6 +6,7 @@ import { App, ConfigProvider } from "antd";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { useState } from "react";
 
+import { CommandPalette } from "@/app/components/command/CommandPalette";
 import { darkTheme } from "@/app/lib/theme/antd-theme";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -26,7 +27,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ConfigProvider theme={darkTheme}>
         <App>
           <QueryClientProvider client={queryClient}>
-            <NuqsAdapter>{children}</NuqsAdapter>
+            <NuqsAdapter>
+              {children}
+              <CommandPalette />
+            </NuqsAdapter>
           </QueryClientProvider>
         </App>
       </ConfigProvider>

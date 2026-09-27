@@ -33,7 +33,7 @@ export function PrecisionMode() {
           <Alert
             type="info"
             showIcon={false}
-            message={
+            title={
               isHighPrecision
                 ? "High precision mode uses exact spherical trigonometry for cross-matching. Recommended for small search radii."
                 : "Standard mode uses optimized algorithms suitable for most use cases."
