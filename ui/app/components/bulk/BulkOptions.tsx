@@ -53,16 +53,17 @@ export function BulkOptions({
       </label>
       <label className="flex flex-col gap-1">
         <Text className="text-neutral-400 text-xs">
-          Radius (max {MAX_RADIUS_ARCSEC}″)
+          Radius (arcsec, max {MAX_RADIUS_ARCSEC}″)
         </Text>
+        {/* No suffix: with the step handles it squeezed the input to zero
+            width on focus. `!` is needed to beat antd's own width. */}
         <InputNumber
           value={radius}
           min={0.1}
           max={MAX_RADIUS_ARCSEC}
           step={0.5}
           onChange={(v) => v != null && onRadiusChange(v)}
-          suffix="arcsec"
-          className="w-40"
+          className="!w-40"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -75,7 +76,7 @@ export function BulkOptions({
           max={BULK_MAX_NNEIGHBOR}
           precision={0}
           onChange={(v) => v != null && onNneighborChange(v)}
-          className="w-24"
+          className="!w-24"
         />
       </label>
       <Tooltip title={disabledReason}>
