@@ -1,12 +1,14 @@
 "use client";
 
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { App, Button, Flex, Input, Space, Tag, Typography } from "antd";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { CatalogRadiusRow } from "@/app/components/common";
 import { Logo } from "@/app/components/common";
+import { useRandomObject } from "@/app/components/explore/useRandomObject";
 import { parseCoordinates, resolveObjectName } from "@/app/lib/api/sesame";
 import {
   buildDefaultCatalogConfigs,
@@ -23,6 +25,14 @@ interface QuickExample {
   name: string;
   query: string;
 }
+
+/** Always-shown chips; clicking one fills the box and runs the search. */
+const PINNED_EXAMPLES: QuickExample[] = [
+  { name: "M31", query: "M31" },
+  { name: "Betelgeuse", query: "Betelgeuse" },
+  { name: "Vega", query: "Vega" },
+  { name: "RA/Dec 83.82, −5.39", query: "83.82 -5.39" },
+];
 
 const ALL_EXAMPLES: QuickExample[] = [
   { name: "M31 (Andromeda)", query: "M31" },
@@ -42,7 +52,7 @@ const ALL_EXAMPLES: QuickExample[] = [
   { name: "Sombrero Galaxy", query: "M104" },
 ];
 
-const EXAMPLES_TO_SHOW = 4;
+const EXAMPLES_TO_SHOW = 3;
 
 function pickRandom(items: QuickExample[], n: number): QuickExample[] {
   const shuffled = [...items].sort(() => Math.random() - 0.5);
@@ -57,6 +67,7 @@ export function LandingSearch() {
     buildDefaultCatalogConfigs
   );
   const [isLoading, setIsLoading] = useState(false);
+  const { go: goRandom, loading: randomLoading } = useRandomObject();
   const [quickExamples, setQuickExamples] = useState(
     ALL_EXAMPLES.slice(0, EXAMPLES_TO_SHOW)
   );
@@ -64,7 +75,14 @@ export function LandingSearch() {
   useEffect(() => {
     // Randomize on client mount to avoid SSR hydration mismatch
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setQuickExamples(pickRandom(ALL_EXAMPLES, EXAMPLES_TO_SHOW));
+    setQuickExamples(
+      pickRandom(
+        ALL_EXAMPLES.filter(
+          (e) => !PINNED_EXAMPLES.some((p) => p.query === e.query)
+        ),
+        EXAMPLES_TO_SHOW
+      )
+    );
   }, []);
 
   const updateConfig = (
@@ -76,8 +94,8 @@ export function LandingSearch() {
     );
   };
 
-  const handleSubmit = async () => {
-    if (!query.trim()) {
+  const handleSubmit = async (input: string = query) => {
+    if (!input.trim()) {
       message.warning("Please enter coordinates or an object name");
       return;
     }
@@ -94,14 +112,14 @@ export function LandingSearch() {
       let ra: number;
       let dec: number;
 
-      const coords = parseCoordinates(query);
+      const coords = parseCoordinates(input);
       if (coords) {
         ra = coords.ra;
         dec = coords.dec;
       } else {
-        const resolved = await resolveObjectName(query);
+        const resolved = await resolveObjectName(input);
         if (!resolved) {
-          message.error(`Could not resolve "${query}" to coordinates`);
+          message.error(`Could not resolve "${input}" to coordinates`);
           setIsLoading(false);
           return;
         }
@@ -124,6 +142,7 @@ export function LandingSearch() {
 
   const handleExampleClick = (example: QuickExample) => {
     setQuery(example.query);
+    void handleSubmit(example.query);
   };
 
   return (
@@ -151,12 +170,13 @@ export function LandingSearch() {
         <Space.Compact className="w-full">
           <Button icon={<PlusOutlined />} size="large" title="Upload file" />
           <Input.Search
+            data-search-input
             placeholder="Coordinates or name (e.g., 12:30:00 -45:00:00 or M31)"
             size="large"
             enterButton
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onSearch={handleSubmit}
+            onSearch={(value) => handleSubmit(value)}
             loading={isLoading}
             className="flex-1"
           />
@@ -183,19 +203,41 @@ export function LandingSearch() {
 
         {/* Quick examples */}
         <Flex vertical align="center" gap="small">
-          <Text type="secondary">Quick examples:</Text>
-          <Space size="small" wrap>
-            {quickExamples.map((example) => (
+          <Text type="secondary">Try an example:</Text>
+          <Space size="small" wrap className="justify-center">
+            {[...PINNED_EXAMPLES, ...quickExamples].map((example) => (
               <Tag
                 key={example.name}
                 color="default"
+                role="button"
+                tabIndex={0}
                 className="cursor-pointer py-1 px-3"
                 onClick={() => handleExampleClick(example)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleExampleClick(example);
+                  }
+                }}
               >
                 {example.name}
               </Tag>
             ))}
           </Space>
+          <Flex gap="middle" wrap justify="center" className="mt-1">
+            <Button
+              type="link"
+              size="small"
+              icon={<ThunderboltOutlined />}
+              loading={randomLoading}
+              onClick={() => goRandom("sky")}
+            >
+              Surprise me
+            </Button>
+            <Link href="/explore" className="text-sm leading-6">
+              Explore featured objects
+            </Link>
+          </Flex>
         </Flex>
       </Flex>
     </Flex>
