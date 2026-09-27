@@ -43,6 +43,6 @@ describe("llms-full.txt", () => {
     expect(full).toContain("## GET /metadata");
     expect(full).toContain("## POST /bulk-metadata");
     expect(full).toContain("## GET /lightcurve");
-    expect(full).toContain("xwave-mcp");
+    expect(full).not.toContain("mcp");
   });
 });

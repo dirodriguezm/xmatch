@@ -195,19 +195,6 @@ export function DeveloperGuide() {
             (every parameter, response schema and error) in one plain-text file
             to paste into a prompt.
           </li>
-          <li>
-            <strong>MCP server</strong> — <Code>xwave-mcp</Code> exposes cone
-            search, metadata and light curves as tools for Claude, Cursor and
-            other MCP clients. It lives in{" "}
-            <a
-              href={`${REPO_URL}/tree/main/mcp`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              mcp/
-            </a>{" "}
-            in the repository.
-          </li>
         </ul>
       </Section>
 

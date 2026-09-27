@@ -75,7 +75,6 @@ ${catalogLines()}
 ## Optional
 
 - [Web app search](${SITE_URL}/search?ra=${EX.ra}&dec=${EX.dec}): interactive results for a position (params \`ra\`, \`dec\`)
-- [MCP server](${REPO_URL}/tree/main/mcp): \`xwave-mcp\`, exposes the API as tools for AI agents
 - [Source code](${REPO_URL}): Go backend and Next.js frontend
 `;
 }
@@ -231,6 +230,5 @@ print(df.sort_values("distance"))
 - Resolve object names (e.g. "M31", "Betelgeuse") to coordinates first, e.g. with CDS Sesame (https://cds.unistra.fr/cgi-bin/nph-sesame/-oJ/SNV?M31), then call /conesearch.
 - Pick the radius from catalog astrometry: 1–3″ for Gaia/AllWISE, 15–30″ for eROSITA.
 - Link users to the web view: ${SITE_URL}/search?ra=<ra>&dec=<dec>
-- An MCP server, \`xwave-mcp\`, wraps these endpoints as tools: ${REPO_URL}/tree/main/mcp
 `;
 }
