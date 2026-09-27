@@ -29,6 +29,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type ReactNode, useRef, useState } from "react";
 
+import { ObjectActions } from "@/app/components/actions/ObjectActions";
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
 import {
   type Counterpart,
@@ -715,6 +716,14 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                     dec={object.dec}
                     radiusArcsec={simbadRadiusArcsec}
                   />
+                  <div className="mt-3">
+                    <ObjectActions
+                      objectId={object.objectId}
+                      catalog={object.catalog}
+                      ra={object.ra}
+                      dec={object.dec}
+                    />
+                  </div>
                 </div>
 
                 {/* Coordinates */}
