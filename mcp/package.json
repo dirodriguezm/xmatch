@@ -1,0 +1,33 @@
+{
+  "name": "xwave-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for the XWave astronomical cross-match API (Gaia DR3, AllWISE, eROSITA eRASS1)",
+  "type": "module",
+  "bin": {
+    "xwave-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run",
+    "smoke": "npm run build && node scripts/smoke.mjs"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}
