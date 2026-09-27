@@ -205,3 +205,22 @@ export function equatorialToEcliptic(
     beta: Math.asin(Math.max(-1, Math.min(1, sinBeta))) / DEG,
   };
 }
+
+/**
+ * Position angle (degrees, east of north, 0–360) of the point (ra2, dec2) as
+ * seen from (ra1, dec1). All inputs in degrees.
+ */
+export function positionAngle(
+  ra1: number,
+  dec1: number,
+  ra2: number,
+  dec2: number
+): number {
+  const dRa = (ra2 - ra1) * DEG;
+  const d1 = dec1 * DEG;
+  const d2 = dec2 * DEG;
+  const y = Math.sin(dRa) * Math.cos(d2);
+  const x =
+    Math.cos(d1) * Math.sin(d2) - Math.sin(d1) * Math.cos(d2) * Math.cos(dRa);
+  return wrap360(Math.atan2(y, x) / DEG);
+}

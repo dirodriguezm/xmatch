@@ -7,7 +7,7 @@ import {
   EnvironmentOutlined,
   FieldTimeOutlined,
   LineChartOutlined,
-  QuestionCircleOutlined,
+  RadarChartOutlined,
   StarOutlined,
 } from "@ant-design/icons";
 import {
@@ -32,18 +32,22 @@ import { type ReactNode, useRef, useState } from "react";
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
 import {
   type Counterpart,
+  COUNTERPART_RADIUS_ARCSEC,
   type GaiaEpochParams,
+  NEIGHBOR_RADIUS_ARCSEC,
   useCounterparts,
   useDesiSpectrum,
   useDesiTarget,
   useGaiaEpochPhotometry,
   useGalacticReddening,
   useLightcurve,
+  useNeighbors,
   usePs1Lightcurve,
   useVizierSed,
   useZtfLightcurve,
 } from "@/app/hooks/queries";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
+import { describeCatalogField } from "@/app/lib/constants/catalogFields";
 import {
   CATALOG_COLOR_CLASSES,
   getSearchCatalogLabel,
@@ -73,8 +77,10 @@ import type { components } from "@/types/xwave-api";
 import { AladinViewer } from "./AladinViewer";
 import { LightCurveChart } from "./LightCurveChart";
 import { LightCurveSkeleton } from "./LightCurveSkeleton";
+import { NearbySources } from "./NearbySources";
 import { ObjectArchives } from "./ObjectArchives";
 import { SedChart } from "./SedChart";
+import { SimbadIdentity } from "./SimbadIdentity";
 import { SpectrumChart } from "./SpectrumChart";
 
 // Split out so astronomy-engine only loads when the panel is first opened.
@@ -86,48 +92,91 @@ const ObservabilityPanel = dynamic(
 const DSS_SURVEY = "https://alasky.cds.unistra.fr/DSS/DSSColor/";
 
 const SURVEY_OPTIONS = [
-  { label: "DSS Optical", value: DSS_SURVEY, category: "Optical" },
+  {
+    label: "DSS Optical",
+    value: DSS_SURVEY,
+    category: "Optical",
+    description: "Digitized photographic plates (POSS/UKST), whole sky",
+  },
   {
     label: "DESI DR10",
     value: "CDS/P/DESI-Legacy-Surveys/DR10/color",
     category: "Optical",
+    description: "Deep Legacy Surveys g/r/z imaging, partial sky",
   },
-  { label: "DSS2 Color", value: "CDS/P/DSS2/color", category: "Optical" },
-  { label: "2MASS", value: "CDS/P/2MASS/color", category: "Infrared" },
-  { label: "AllWISE", value: "CDS/P/allWISE/color", category: "Infrared" },
-  { label: "XMM-Newton", value: "xcatdb/P/XMM/PN/color", category: "X-ray" },
+  {
+    label: "DSS2 Color",
+    value: "CDS/P/DSS2/color",
+    category: "Optical",
+    description: "Second-epoch DSS plates, red/blue color composite",
+  },
+  {
+    label: "2MASS",
+    value: "CDS/P/2MASS/color",
+    category: "Infrared",
+    description: "Near-infrared J/H/Ks (1.2–2.2 µm), whole sky",
+  },
+  {
+    label: "AllWISE",
+    value: "CDS/P/allWISE/color",
+    category: "Infrared",
+    description: "Mid-infrared W1–W4 (3.4–22 µm), whole sky",
+  },
+  {
+    label: "XMM-Newton",
+    value: "xcatdb/P/XMM/PN/color",
+    category: "X-ray",
+    description: "EPIC-pn 0.2–12 keV, pointed fields only",
+  },
   {
     label: "Chandra",
     value: "cxc.harvard.edu/P/cda/hips/allsky/rgb",
     category: "X-ray",
+    description: "ACIS 0.5–7 keV, arcsecond resolution, pointed fields only",
   },
-  { label: "NVSS 1.4 GHz", value: "CDS/P/NVSS", category: "Radio" },
-  { label: "SUMSS 843 MHz", value: "CDS/P/SUMSS", category: "Radio" },
+  {
+    label: "NVSS 1.4 GHz",
+    value: "CDS/P/NVSS",
+    category: "Radio",
+    description: "VLA 1.4 GHz, 45″ beam, dec > −40°",
+  },
+  {
+    label: "SUMSS 843 MHz",
+    value: "CDS/P/SUMSS",
+    category: "Radio",
+    description: "Molonglo 843 MHz, 45″ beam, dec < −30°",
+  },
   {
     label: "RACS 887 MHz",
     value: "https://casda.csiro.au/hips/RACS/low/I/",
     category: "Radio",
+    description: "ASKAP 887.5 MHz, ~15–25″ beam, dec < +41°",
   },
   {
     label: "RACS-mid 1.4 GHz",
     value: "https://casda.csiro.au/hips/RACSmidb_I1/",
     category: "Radio",
+    description: "ASKAP 1367.5 MHz, ~10″ beam, dec < +49°",
   },
   {
     label: "VLASS 3 GHz",
     value: "https://vlass-dl.nrao.edu/vlass/HiPS/MedianStack/Quicklook/",
     category: "Radio",
+    description: "VLA 2–4 GHz, 2.5″ beam, dec > −40°",
   },
 ];
 
+type SurveyOption = { label: string; value: string };
+
+const SURVEY_DESCRIPTIONS = new Map(
+  SURVEY_OPTIONS.map((s) => [s.value, s.description])
+);
+
 const surveySelectOptions = Object.entries(
-  SURVEY_OPTIONS.reduce<Record<string, { label: string; value: string }[]>>(
-    (acc, s) => {
-      (acc[s.category] ??= []).push({ label: s.label, value: s.value });
-      return acc;
-    },
-    {}
-  )
+  SURVEY_OPTIONS.reduce<Record<string, SurveyOption[]>>((acc, s) => {
+    (acc[s.category] ??= []).push({ label: s.label, value: s.value });
+    return acc;
+  }, {})
 ).map(([category, options]) => ({ label: category, options }));
 
 const { Text, Title } = Typography;
@@ -233,6 +282,19 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     dec: object.dec,
     sourceCatalog: object.catalog,
   });
+  // SIMBAD positions are good to ~1″, so never search tighter than 2″ even
+  // for Gaia; for AllWISE/eROSITA use the catalog's own positional budget.
+  const simbadRadiusArcsec = Math.max(
+    2,
+    COUNTERPART_RADIUS_ARCSEC[
+      object.catalog.toLowerCase() as keyof typeof COUNTERPART_RADIUS_ARCSEC
+    ] ?? 2
+  );
+  const nearby = useNeighbors({
+    ra: object.ra,
+    dec: object.dec,
+    self: { id: object.objectId, catalog: object.catalog },
+  });
   const photometrySources: PhotometrySource[] = [
     {
       catalog: object.catalog,
@@ -301,6 +363,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         .map(([key, value]) => ({
           key,
           label: key,
+          description: describeCatalogField(object.catalog, key),
           value: value == null ? "—" : String(value),
         }))
     : [];
@@ -543,6 +606,29 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       ),
       children: <ObservabilityPanel ra={object.ra} dec={object.dec} />,
     },
+    {
+      key: "nearby",
+      label: (
+        <Space>
+          <RadarChartOutlined />
+          <span>Nearby Sources</span>
+          <Text type="secondary" className="text-xs">
+            {nearby.isLoading && nearby.neighbors.length === 0
+              ? `(within ${NEIGHBOR_RADIUS_ARCSEC}″)`
+              : `(${nearby.neighbors.length} within ${NEIGHBOR_RADIUS_ARCSEC}″)`}
+          </Text>
+        </Space>
+      ),
+      children: (
+        <NearbySources
+          neighbors={nearby.neighbors}
+          radiusArcsec={NEIGHBOR_RADIUS_ARCSEC}
+          loading={nearby.isLoading}
+          failedCatalogs={nearby.failedCatalogs}
+          truncatedCatalogs={nearby.truncatedCatalogs}
+        />
+      ),
+    },
     ...(lightcurveStatusItem ? [lightcurveStatusItem] : surveyPanelItems),
     ...(spectrumItem ? [spectrumItem] : []),
     ...(catalogDetails.length > 0
@@ -568,7 +654,13 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                   <Descriptions.Item
                     key={field.key}
                     label={
-                      <Text className="font-mono text-xs">{field.label}</Text>
+                      <Tooltip title={field.description}>
+                        <Text
+                          className={`font-mono text-xs ${field.description ? "cursor-help underline decoration-dotted underline-offset-2" : ""}`}
+                        >
+                          {field.label}
+                        </Text>
+                      </Tooltip>
                     }
                   >
                     <Text className="font-mono text-xs">{field.value}</Text>
@@ -618,10 +710,11 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                   <Title level={3} className="!m-0 !mb-2">
                     {object.objectId}
                   </Title>
-                  <Flex align="center" gap={8}>
-                    <QuestionCircleOutlined className="text-border" />
-                    <Text type="secondary">Unknown type</Text>
-                  </Flex>
+                  <SimbadIdentity
+                    ra={object.ra}
+                    dec={object.dec}
+                    radiusArcsec={simbadRadiusArcsec}
+                  />
                 </div>
 
                 {/* Coordinates */}
@@ -752,8 +845,15 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         {/* Right: Aladin Viewer */}
         <Col xs={24} md={10}>
           <Card
-            className="bg-surface h-full"
-            styles={{ body: { padding: 0 } }}
+            className="bg-surface h-full flex flex-col"
+            styles={{
+              body: {
+                padding: 0,
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+              },
+            }}
             title={
               <Space>
                 <EnvironmentOutlined />
@@ -766,6 +866,15 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                 size="small"
                 className="w-[150px]"
                 options={surveySelectOptions}
+                popupMatchSelectWidth={false}
+                optionRender={(option) => (
+                  <div className="max-w-[280px]">
+                    <div>{option.label}</div>
+                    <div className="text-xs text-foreground/60 whitespace-normal">
+                      {SURVEY_DESCRIPTIONS.get(option.value as string)}
+                    </div>
+                  </div>
+                )}
                 onChange={(value) => aladinRef.current?.setSurvey(value)}
               />
             }
@@ -774,7 +883,8 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               ref={aladinRef}
               center={{ ra: object.ra, dec: object.dec }}
               fov={0.9}
-              height={200}
+              height="auto"
+              className="flex-1 min-h-[200px]"
             />
           </Card>
         </Col>

@@ -19,6 +19,13 @@ export { useGalacticReddening } from "./useGalacticReddening";
 export { type LightcurveParams, useLightcurve } from "./useLightcurve";
 export { type MetadataParams, useMetadata } from "./useMetadata";
 export {
+  type Neighbor,
+  NEIGHBOR_RADIUS_ARCSEC,
+  type NeighborsParams,
+  useNeighbors,
+} from "./useNeighbors";
+export { type SimbadParams, useSimbad } from "./useSimbad";
+export {
   type GaiaEpochParams,
   useGaiaEpochPhotometry,
   usePs1Lightcurve,
