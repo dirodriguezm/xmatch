@@ -41,6 +41,13 @@ export const CATALOG_COLOR_CLASSES: Record<string, string> = {
   erosita: "bg-pink-500",
 };
 
+/** Same colours as CATALOG_COLOR_CLASSES, for SVG marks. */
+export const CATALOG_FILL_CLASSES: Record<string, string> = {
+  allwise: "fill-purple-600",
+  gaia: "fill-blue-500",
+  erosita: "fill-pink-500",
+};
+
 export function buildDefaultCatalogConfigs(): CatalogRadiusConfig[] {
   return CATALOG_OPTIONS.map((catalog) => ({
     catalog,
