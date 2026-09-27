@@ -3,95 +3,56 @@
 import {
   ApiOutlined,
   BulbOutlined,
+  CompassOutlined,
   DatabaseOutlined,
   GithubOutlined,
   NodeIndexOutlined,
   ReadOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
-import { Card, Layout, Tag, Typography } from "antd";
+import { Card, Tag, Typography } from "antd";
+import NextLink from "next/link";
 import type { ReactNode } from "react";
 
-import { AppHeader } from "@/app/components/layout";
+import {
+  CDS_ACKNOWLEDGEMENT,
+  EXTERNAL_SOURCES,
+  formatDefaultRadius,
+} from "@/app/components/catalogs";
+import { PageShell } from "@/app/components/layout";
 import { API_BASE_URL } from "@/app/lib/api/client";
+import { CATALOG_META } from "@/app/lib/constants/catalogMeta";
 import {
   CATALOG_COLOR_CLASSES,
-  CATALOG_LABELS,
   CATALOG_OPTIONS,
 } from "@/app/lib/constants/catalogs";
 import { MAX_RADIUS_ARCSEC } from "@/app/lib/constants/search";
+import { API_ORIGIN, REPO_URL, SWAGGER_URL } from "@/app/lib/constants/site";
 
-const { Content } = Layout;
 const { Title, Paragraph, Text, Link } = Typography;
 
-const SWAGGER_URL = "https://xwave-astro.udp.cl/swagger/index.html";
-const REPO_URL = "https://github.com/dirodriguezm/xmatch";
+/** Pages that go deeper than this overview. */
+const MORE_LINKS: { href: string; label: string; desc: string }[] = [
+  {
+    href: "/catalogs",
+    label: "Catalogs",
+    desc: "coverage, precision, columns and known issues",
+  },
+  {
+    href: "/learn#methods",
+    label: "Methods",
+    desc: "choosing radii and reading match results",
+  },
+  { href: "/developers", label: "API playground", desc: "try every endpoint" },
+  { href: "/changelog", label: "Changelog", desc: "what changed and when" },
+  { href: "/contact", label: "Contact", desc: "questions, bugs, requests" },
+];
 
-const DATA_SOURCES = [
-  {
-    name: "Gaia DR3 (ESA)",
-    href: "https://www.cosmos.esa.int/web/gaia/dr3",
-    usedFor: "astrometry and G/BP/RP photometry, indexed by XWave",
-  },
-  {
-    name: "AllWISE (NASA/IPAC)",
-    href: "https://wise2.ipac.caltech.edu/docs/release/allwise/",
-    usedFor:
-      "mid-infrared W1–W4 photometry and 2MASS J/H/K associations, indexed by XWave",
-  },
-  {
-    name: "eROSITA",
-    href: "https://erosita.mpe.mpg.de/",
-    usedFor: "X-ray sources, indexed by XWave",
-  },
-  {
-    name: "VizieR SED service (CDS)",
-    href: "https://vizier.cds.unistra.fr/vizier/sed/",
-    usedFor:
-      "published photometry from every VizieR catalog within 2″, merged per filter in the SED",
-  },
-  {
-    name: "IRSA Galactic Dust Reddening service (NASA/IPAC)",
-    href: "https://irsa.ipac.caltech.edu/applications/DUST/",
-    usedFor:
-      "E(B−V) at the position (Schlafly & Finkbeiner 2011) for the SED's extinction correction",
-  },
-  {
-    name: "Gaia Archive (ESA)",
-    href: "https://gea.esac.esa.int/archive/",
-    usedFor: "Gaia DR3 epoch photometry (G, BP, RP per transit)",
-  },
-  {
-    name: "Pan-STARRS1 DR2 via MAST (STScI)",
-    href: "https://catalogs.mast.stsci.edu/panstarrs/",
-    usedFor: "per-epoch grizy detections for light curves (δ > −30°)",
-  },
-  {
-    name: "ALeRCE broker",
-    href: "https://alerce.online/",
-    usedFor: "ZTF light curves",
-  },
-  {
-    name: "NOIRLab Astro Data Lab and SPARCL",
-    href: "https://datalab.noirlab.edu/",
-    usedFor: "DESI DR1 target lookup and spectra",
-  },
-  {
-    name: "Sesame name resolver (CDS)",
-    href: "https://cds.unistra.fr/cgi-bin/Sesame",
-    usedFor: "turning object names into coordinates",
-  },
-  {
-    name: "Aladin Lite and HiPS surveys",
-    href: "https://aladin.cds.unistra.fr/AladinLite/",
-    usedFor:
-      "the sky view (DSS, 2MASS, AllWISE, XMM, Chandra, NVSS, SUMSS, RACS, VLASS)",
-  },
-  {
-    name: "Astronomy Engine",
-    href: "https://github.com/cosinekitty/astronomy",
-    usedFor:
-      "Sun, Moon and target positions in the observability panel, computed in your browser",
-  },
+/** Contributors, from the repository's git history. */
+const CONTRIBUTORS = [
+  "Diego Rodríguez Mancini",
+  "Javier Arredondo Contreras",
+  "Matías Medina",
 ];
 
 interface StepProps {
@@ -141,236 +102,282 @@ function Section({
 
 export default function AboutPage() {
   return (
-    <Layout className="min-h-screen">
-      <AppHeader />
-      <Content className="bg-background">
-        <div className="max-w-3xl mx-auto px-6 py-12">
-          <Title level={2} className="!mb-2 text-foreground">
-            About XWave
-          </Title>
-          <Paragraph className="text-muted !text-base">
-            XWave is a positional cross-match service for astronomical catalogs.
-            Give it a coordinate and a search radius, and it returns the objects
-            each indexed catalog has at that position, along with their angular
-            separation from your target.
+    <PageShell
+      title="About XWave"
+      description="XWave is a positional cross-match service for astronomical catalogs. Give it a coordinate and a search radius, and it returns the objects each indexed catalog has at that position, along with their angular separation from your target."
+    >
+      <div>
+        <Section title="How the cross-match works" icon={<NodeIndexOutlined />}>
+          <Paragraph className="text-muted">
+            Comparing a target against every row of a catalog does not scale, so
+            the search runs in two stages: a cheap spatial pre-filter that
+            narrows millions of objects down to a handful of candidates, then an
+            exact distance computation on just those.
           </Paragraph>
 
-          <Section
-            title="How the cross-match works"
-            icon={<NodeIndexOutlined />}
-          >
-            <Paragraph className="text-muted">
-              Comparing a target against every row of a catalog does not scale,
-              so the search runs in two stages: a cheap spatial pre-filter that
-              narrows millions of objects down to a handful of candidates, then
-              an exact distance computation on just those.
-            </Paragraph>
-
-            <div className="mt-6">
-              <Step index={1} title="Catalogs are indexed onto a HEALPix grid">
-                <Paragraph className="text-muted !mb-0">
-                  When a catalog is ingested, every object&apos;s sky position
-                  is mapped to a{" "}
-                  <Link
-                    href="https://healpix.sourceforge.io/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    HEALPix
-                  </Link>{" "}
-                  pixel using the <Text code>NESTED</Text> ordering scheme, and
-                  that pixel index is stored alongside the object. HEALPix
-                  divides the sphere into equal-area pixels, so &quot;which
-                  objects are near this point&quot; becomes an indexed lookup
-                  rather than a scan. That index is the <Text code>IPix</Text>{" "}
-                  column you see in the results table.
-                </Paragraph>
-              </Step>
-
-              <Step
-                index={2}
-                title="The search disc is resolved to a set of pixels"
-              >
-                <Paragraph className="text-muted !mb-0">
-                  Your coordinate and radius define a disc on the sphere. The
-                  service asks HEALPix for every pixel that the disc touches —
-                  inclusively, so pixels that only partially overlap are kept —
-                  and fetches the objects stored in those pixels. This step is
-                  deliberately generous: it may return objects outside the
-                  radius, but it will not miss any inside it.
-                </Paragraph>
-              </Step>
-
-              <Step index={3} title="Candidates are ranked by proximity">
-                <Paragraph className="text-muted !mb-0">
-                  The candidates from step 2 are loaded into a 2-D k-d tree
-                  keyed on right ascension and declination, and a
-                  nearest-neighbour query returns the closest ones to your
-                  target. This bounds how much work the final step has to do.
-                </Paragraph>
-              </Step>
-
-              <Step
-                index={4}
-                title="Exact separations are computed and filtered"
-              >
-                <Paragraph className="text-muted !mb-0">
-                  For each remaining candidate the service computes the
-                  great-circle separation from your target using the haversine
-                  formula, and discards anything beyond your radius. What
-                  survives is the result set, and that separation is the{" "}
-                  <Text code>Ang. Dist</Text> column — reported in arcseconds.
-                </Paragraph>
-              </Step>
-            </div>
-
-            <Card size="small" className="bg-surface border-border mt-2">
-              <Text strong className="text-foreground">
-                Why results are capped
-              </Text>
-              <Paragraph className="text-muted !mb-0 !mt-2">
-                The proximity ranking in step 3 happens <em>before</em> the
-                radius filter in step 4, so the neighbour limit bounds how many
-                objects can come back at all. This interface requests a generous
-                limit so that in practice the radius is what determines your
-                results — but for a very crowded field, a large radius can still
-                hit that ceiling.
-              </Paragraph>
-            </Card>
-          </Section>
-
-          <Section title="Catalogs" icon={<DatabaseOutlined />}>
-            <Paragraph className="text-muted">
-              Each catalog is indexed independently and searched with its own
-              radius, since the positional uncertainty that makes sense for an
-              infrared source is not the one that makes sense for an X-ray
-              detection.
-            </Paragraph>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {CATALOG_OPTIONS.map((catalog) => (
-                <span
-                  key={catalog}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-border bg-surface"
+          <div className="mt-6">
+            <Step index={1} title="Catalogs are indexed onto a HEALPix grid">
+              <Paragraph className="text-muted !mb-0">
+                When a catalog is ingested, every object&apos;s sky position is
+                mapped to a{" "}
+                <Link
+                  href="https://healpix.sourceforge.io/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  <span
-                    className={`w-2 h-2 rounded-full inline-block ${CATALOG_COLOR_CLASSES[catalog] ?? "bg-gray-500"}`}
-                  />
-                  <Text className="text-foreground">
-                    {CATALOG_LABELS[catalog]}
-                  </Text>
-                </span>
-              ))}
-            </div>
-            <Paragraph className="text-muted !mb-0">
-              An object page pulls in more than the positional match: available
-              photometry, time-series photometry from the surveys that cover the
-              position, and direct links out to SIMBAD, VizieR, NED, Aladin,
-              Legacy Survey, SDSS and Pan-STARRS for the same coordinate.
-            </Paragraph>
-          </Section>
+                  HEALPix
+                </Link>{" "}
+                pixel using the <Text code>NESTED</Text> ordering scheme, and
+                that pixel index is stored alongside the object. HEALPix divides
+                the sphere into equal-area pixels, so &quot;which objects are
+                near this point&quot; becomes an indexed lookup rather than a
+                scan. That index is the <Text code>IPix</Text> column you see in
+                the results table.
+              </Paragraph>
+            </Step>
 
-          <Section title="Practical notes" icon={<BulbOutlined />}>
-            <ul className="text-muted space-y-3 pl-5 list-disc marker:text-border">
-              <li>
-                <Text strong className="text-foreground">
-                  Radii are in arcseconds.
-                </Text>{" "}
-                The form lets you enter arcmin or degrees and converts for you;
-                the API itself always takes arcseconds.
-              </li>
-              <li>
-                <Text strong className="text-foreground">
-                  Searches are capped at {MAX_RADIUS_ARCSEC}
-                  &Prime;.
-                </Text>{" "}
-                Past roughly that point the service stops answering in
-                reasonable time, so the interface refuses the request rather
-                than leaving you waiting on one that will not return.
-              </li>
-              <li>
-                <Text strong className="text-foreground">
-                  An empty result is not an error.
-                </Text>{" "}
-                A catalog with nothing at your position returns no content —
-                that is a real answer about the sky, not a failure.
-              </li>
-              <li>
-                <Text strong className="text-foreground">
-                  Separations are great-circle distances,
-                </Text>{" "}
-                not projected ones, so they stay correct near the poles.
-              </li>
-            </ul>
-          </Section>
+            <Step
+              index={2}
+              title="The search disc is resolved to a set of pixels"
+            >
+              <Paragraph className="text-muted !mb-0">
+                Your coordinate and radius define a disc on the sphere. The
+                service asks HEALPix for every pixel that the disc touches —
+                inclusively, so pixels that only partially overlap are kept —
+                and fetches the objects stored in those pixels. This step is
+                deliberately generous: it may return objects outside the radius,
+                but it will not miss any inside it.
+              </Paragraph>
+            </Step>
 
-          <Section title="API" icon={<ApiOutlined />}>
-            <Paragraph className="text-muted">
-              Everything this interface does is available over HTTP. The service
-              is at <Text code>{API_BASE_URL}</Text>, and the full schema is
-              browsable:
+            <Step index={3} title="Candidates are ranked by proximity">
+              <Paragraph className="text-muted !mb-0">
+                The candidates from step 2 are loaded into a 2-D k-d tree keyed
+                on right ascension and declination, and a nearest-neighbour
+                query returns the closest ones to your target. This bounds how
+                much work the final step has to do.
+              </Paragraph>
+            </Step>
+
+            <Step index={4} title="Exact separations are computed and filtered">
+              <Paragraph className="text-muted !mb-0">
+                For each remaining candidate the service computes the
+                great-circle separation from your target using the haversine
+                formula, and discards anything beyond your radius. What survives
+                is the result set, and that separation is the{" "}
+                <Text code>Ang. Dist</Text> column — reported in arcseconds.
+              </Paragraph>
+            </Step>
+          </div>
+
+          <Card size="small" className="bg-surface border-border mt-2">
+            <Text strong className="text-foreground">
+              Why results are capped
+            </Text>
+            <Paragraph className="text-muted !mb-0 !mt-2">
+              The proximity ranking in step 3 happens <em>before</em> the radius
+              filter in step 4, so the neighbour limit bounds how many objects
+              can come back at all. This interface requests a generous limit so
+              that in practice the radius is what determines your results — but
+              for a very crowded field, a large radius can still hit that
+              ceiling.
             </Paragraph>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {[
-                { path: "/conesearch", desc: "single position" },
-                { path: "/bulk-conesearch", desc: "many positions at once" },
-                { path: "/metadata", desc: "one object" },
-                { path: "/bulk-metadata", desc: "many objects" },
-                { path: "/lightcurve", desc: "time-series photometry" },
-              ].map(({ path, desc }) => (
-                <Tag key={path} className="!mr-0 !bg-surface !border-border">
-                  <Text code className="!text-foreground">
-                    {path}
-                  </Text>
-                  <Text className="text-muted ml-2 text-xs">{desc}</Text>
-                </Tag>
-              ))}
-            </div>
-            <Paragraph className="!mb-0">
-              <Link
-                href={SWAGGER_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+          </Card>
+        </Section>
+
+        <Section title="Catalogs" icon={<DatabaseOutlined />}>
+          <Paragraph className="text-muted">
+            Each catalog is indexed independently and searched with its own
+            radius, since the positional uncertainty that makes sense for an
+            infrared source is not the one that makes sense for an X-ray
+            detection.
+          </Paragraph>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+            {CATALOG_OPTIONS.map((catalog) => {
+              const meta = CATALOG_META[catalog];
+              return (
+                <NextLink
+                  key={catalog}
+                  href={`/catalogs#${catalog}`}
+                  className="block px-3 py-2.5 rounded border border-border bg-surface hover:bg-surface-elevated"
+                >
+                  <span className="flex items-center gap-2 text-foreground">
+                    <span
+                      className={`w-2 h-2 rounded-full inline-block ${CATALOG_COLOR_CLASSES[catalog] ?? "bg-gray-500"}`}
+                    />
+                    {meta.name}
+                    <span className="text-neutral-500 text-xs">
+                      {meta.release}
+                    </span>
+                  </span>
+                  <span className="block text-xs text-neutral-400 mt-1">
+                    {meta.coverage} · {formatDefaultRadius(catalog)} default
+                  </span>
+                </NextLink>
+              );
+            })}
+          </div>
+          <Paragraph className="text-muted !mb-0">
+            Coverage maps, astrometric precision, columns and known issues for
+            each one are on the{" "}
+            <NextLink href="/catalogs">Catalogs page</NextLink>. An object page
+            pulls in more than the positional match: photometry, light curves
+            from the surveys that cover the position, and links out to SIMBAD,
+            VizieR, NED, Aladin, Legacy Survey, SDSS and Pan-STARRS for the same
+            coordinate.
+          </Paragraph>
+        </Section>
+
+        <Section title="Practical notes" icon={<BulbOutlined />}>
+          <ul className="text-muted space-y-3 pl-5 list-disc marker:text-border">
+            <li>
+              <Text strong className="text-foreground">
+                Radii are in arcseconds.
+              </Text>{" "}
+              The form lets you enter arcmin or degrees and converts for you;
+              the API itself always takes arcseconds.
+            </li>
+            <li>
+              <Text strong className="text-foreground">
+                Searches are capped at {MAX_RADIUS_ARCSEC}
+                &Prime;.
+              </Text>{" "}
+              Past roughly that point the service stops answering in reasonable
+              time, so the interface refuses the request rather than leaving you
+              waiting on one that will not return.
+            </li>
+            <li>
+              <Text strong className="text-foreground">
+                An empty result is not an error.
+              </Text>{" "}
+              A catalog with nothing at your position returns no content — that
+              is a real answer about the sky, not a failure.
+            </li>
+            <li>
+              <Text strong className="text-foreground">
+                Separations are great-circle distances,
+              </Text>{" "}
+              not projected ones, so they stay correct near the poles.
+            </li>
+          </ul>
+        </Section>
+
+        <Section title="API" icon={<ApiOutlined />}>
+          <Paragraph className="text-muted">
+            Everything this interface does is available over HTTP. The service
+            is at <Text code>{API_BASE_URL}</Text>, and the full schema is
+            browsable:
+          </Paragraph>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {[
+              { path: "/conesearch", desc: "single position" },
+              { path: "/bulk-conesearch", desc: "many positions at once" },
+              { path: "/metadata", desc: "one object" },
+              { path: "/bulk-metadata", desc: "many objects" },
+              { path: "/lightcurve", desc: "time-series photometry" },
+            ].map(({ path, desc }) => (
+              <Tag key={path} className="!mr-0 !bg-surface !border-border">
+                <Text code className="!text-foreground">
+                  {path}
+                </Text>
+                <Text className="text-muted ml-2 text-xs">{desc}</Text>
+              </Tag>
+            ))}
+          </div>
+          <Paragraph className="!mb-0">
+            <Link href={SWAGGER_URL} target="_blank" rel="noopener noreferrer">
+              Open the API documentation →
+            </Link>
+            <Text className="text-muted mx-2">·</Text>
+            <NextLink href="/developers">
+              Try it in the API playground →
+            </NextLink>
+          </Paragraph>
+        </Section>
+
+        <Section title="Data sources" icon={<ReadOutlined />}>
+          <Paragraph className="text-muted">
+            Cross-match results come from XWave&apos;s own index of{" "}
+            {CATALOG_OPTIONS.map((c) => CATALOG_META[c].name).join(", ")}. The
+            object page also shows data fetched live from these public services:
+          </Paragraph>
+          <ul className="text-muted space-y-3 pl-5 list-disc marker:text-border">
+            {EXTERNAL_SOURCES.map(({ name, href, usedFor }) => (
+              <li key={name}>
+                <Link href={href} target="_blank" rel="noopener noreferrer">
+                  {name}
+                </Link>{" "}
+                — {usedFor}
+              </li>
+            ))}
+          </ul>
+          <Paragraph className="text-muted !mb-0 !mt-4">
+            {CDS_ACKNOWLEDGEMENT} If XWave helped your work, the Cite button on
+            any object or results page gives the references and acknowledgement
+            text for XWave and each catalog.
+          </Paragraph>
+        </Section>
+
+        <Section title="Team & funding" icon={<TeamOutlined />}>
+          <Paragraph className="text-muted">
+            XWave is developed as part of the{" "}
+            <Link
+              href="https://alerce.online/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ALeRCE
+            </Link>{" "}
+            ecosystem (the repository&apos;s working name is ALeRCE xmatch), and
+            the public API is served by Universidad Diego Portales at{" "}
+            <Text code>{API_ORIGIN.replace(/^https?:\/\//, "")}</Text>.
+          </Paragraph>
+          <Paragraph className="text-muted">
+            Code contributors, from the git history: {CONTRIBUTORS.join(", ")},
+            and{" "}
+            <Link
+              href={`${REPO_URL}/graphs/contributors`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              others on GitHub
+            </Link>
+            .
+          </Paragraph>
+          <Paragraph className="text-muted !mb-0">
+            Funding acknowledgements are not listed here yet. If you need them
+            for a report or a paper, please{" "}
+            <NextLink href="/contact">get in touch</NextLink>.
+          </Paragraph>
+        </Section>
+
+        <Section title="Open source" icon={<GithubOutlined />}>
+          <Paragraph className="text-muted !mb-0">
+            XWave is released under the Apache License 2.0. The indexer, the
+            search service and this interface all live in{" "}
+            <Link href={REPO_URL} target="_blank" rel="noopener noreferrer">
+              the project repository
+            </Link>
+            ; see the <NextLink href="/changelog">changelog</NextLink> for what
+            has shipped recently.
+          </Paragraph>
+        </Section>
+
+        <Section title="Go deeper" icon={<CompassOutlined />}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {MORE_LINKS.map(({ href, label, desc }) => (
+              <NextLink
+                key={href}
+                href={href}
+                className="block px-3 py-2.5 rounded border border-border bg-surface hover:bg-surface-elevated"
               >
-                Open the API documentation →
-              </Link>
-            </Paragraph>
-          </Section>
-
-          <Section title="Data sources" icon={<ReadOutlined />}>
-            <Paragraph className="text-muted">
-              Cross-match results come from XWave&apos;s own index. The object
-              page also shows data fetched live from these public services:
-            </Paragraph>
-            <ul className="text-muted space-y-3 pl-5 list-disc marker:text-border">
-              {DATA_SOURCES.map(({ name, href, usedFor }) => (
-                <li key={name}>
-                  <Link href={href} target="_blank" rel="noopener noreferrer">
-                    {name}
-                  </Link>{" "}
-                  — {usedFor}
-                </li>
-              ))}
-            </ul>
-            <Paragraph className="text-muted !mb-0 !mt-4">
-              This research has made use of the VizieR catalogue access tool,
-              CDS, Strasbourg, France (DOI: 10.26093/cds/vizier), and of the
-              SIMBAD database and the Aladin sky atlas, operated at CDS,
-              Strasbourg, France.
-            </Paragraph>
-          </Section>
-
-          <Section title="Open source" icon={<GithubOutlined />}>
-            <Paragraph className="text-muted !mb-0">
-              XWave is released under the Apache License 2.0. The indexer, the
-              search service and this interface all live in{" "}
-              <Link href={REPO_URL} target="_blank" rel="noopener noreferrer">
-                the project repository
-              </Link>
-              .
-            </Paragraph>
-          </Section>
-        </div>
-      </Content>
-    </Layout>
+                <span className="block text-foreground">{label} →</span>
+                <span className="block text-xs text-neutral-400">{desc}</span>
+              </NextLink>
+            ))}
+          </div>
+        </Section>
+      </div>
+    </PageShell>
   );
 }
