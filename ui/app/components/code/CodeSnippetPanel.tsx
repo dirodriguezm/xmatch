@@ -114,6 +114,7 @@ export function CodeSnippetPanel({
       />
       <CodeBlock
         code={buildSnippet(request, lang)}
+        language={lang === "curl" ? "bash" : lang}
         copyLabel={`${SNIPPET_LANGUAGES.find((l) => l.key === lang)?.label} snippet`}
       />
 

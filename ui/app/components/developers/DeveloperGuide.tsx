@@ -154,9 +154,18 @@ export function DeveloperGuide() {
         <Text className="text-neutral-400">
           <Code>pip install requests pandas</Code>
         </Text>
-        <CodeBlock code={PYTHON_QUICKSTART} copyLabel="Python quickstart" />
+        <CodeBlock
+          code={PYTHON_QUICKSTART}
+          copyLabel="Python quickstart"
+          language="python"
+        />
         <Text className="text-neutral-400">Or, as a pandas one-liner:</Text>
-        <CodeBlock code={PANDAS_ONELINER} copyLabel="One-liner" wrap />
+        <CodeBlock
+          code={PANDAS_ONELINER}
+          copyLabel="One-liner"
+          language="python"
+          wrap
+        />
       </Section>
 
       <Section
@@ -172,6 +181,7 @@ export function DeveloperGuide() {
         <CodeBlock
           code={ASTROQUERY_STYLE}
           copyLabel="astroquery-style wrapper"
+          language="python"
           size="lg"
         />
       </Section>
