@@ -56,6 +56,16 @@ const DATA_SOURCES = [
       "E(B−V) at the position (Schlafly & Finkbeiner 2011) for the SED's extinction correction",
   },
   {
+    name: "Gaia Archive (ESA)",
+    href: "https://gea.esac.esa.int/archive/",
+    usedFor: "Gaia DR3 epoch photometry (G, BP, RP per transit)",
+  },
+  {
+    name: "Pan-STARRS1 DR2 via MAST (STScI)",
+    href: "https://catalogs.mast.stsci.edu/panstarrs/",
+    usedFor: "per-epoch grizy detections for light curves (δ > −30°)",
+  },
+  {
     name: "ALeRCE broker",
     href: "https://alerce.online/",
     usedFor: "ZTF light curves",

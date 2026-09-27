@@ -32,11 +32,14 @@ import { type ReactNode, useRef, useState } from "react";
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
 import {
   type Counterpart,
+  type GaiaEpochParams,
   useCounterparts,
   useDesiSpectrum,
   useDesiTarget,
+  useGaiaEpochPhotometry,
   useGalacticReddening,
   useLightcurve,
+  usePs1Lightcurve,
   useVizierSed,
   useZtfLightcurve,
 } from "@/app/hooks/queries";
@@ -50,10 +53,12 @@ import {
   equatorialToGalactic,
 } from "@/app/lib/utils/coordinates";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
+import { gaiaSourceIdFromDesignation } from "@/app/lib/utils/gaiaEpoch";
 import {
   detectionPointsToCsv,
   downloadCsv,
   getCatalogLabel,
+  getMagSystem,
   groupDetectionsByCatalog,
 } from "@/app/lib/utils/lightcurve";
 import {
@@ -247,6 +252,35 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       })),
   ];
   const sedPoints = buildSedPoints(photometrySources);
+
+  // Gaia epoch photometry is fetched by source_id. Take it from the object
+  // itself or its Gaia counterpart (from the designation: the numeric
+  // source_id field has lost precision), and skip the request when Gaia says
+  // there is none. With no Gaia counterpart, the route cone-searches the
+  // Gaia archive by position instead.
+  const gaiaCounterpart = counterparts.find((c) => c.catalog === "gaia");
+  const gaiaSource =
+    object.catalog.toLowerCase() === "gaia"
+      ? { id: object.objectId, record: meta }
+      : gaiaCounterpart?.status === "found"
+        ? { id: gaiaCounterpart.id, record: gaiaCounterpart.record }
+        : null;
+  let gaiaEpochParams: GaiaEpochParams | null = null;
+  if (gaiaSource) {
+    const sourceId = gaiaSource.id
+      ? gaiaSourceIdFromDesignation(gaiaSource.id)
+      : null;
+    const flag = gaiaSource.record?.has_epoch_photometry;
+    if (sourceId && flag !== 0 && flag !== false)
+      gaiaEpochParams = { sourceId };
+  } else if (
+    gaiaCounterpart?.status === "none" ||
+    gaiaCounterpart?.status === "error"
+  ) {
+    gaiaEpochParams = { ra: object.ra, dec: object.dec };
+  }
+  const gaiaEpoch = useGaiaEpochPhotometry(gaiaEpochParams);
+  const ps1Lightcurve = usePs1Lightcurve({ ra: object.ra, dec: object.dec });
   const vizierSed = useVizierSed({ ra: object.ra, dec: object.dec });
   const reddening = useGalacticReddening({ ra: object.ra, dec: object.dec });
 
@@ -273,9 +307,13 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
 
   // Per-catalog light curve panels: the unified /lightcurve endpoint for every
   // survey except ZTF, which is taken from the ALeRCE proxy instead
+  // Gaia and Pan-STARRS come from their own archives and appear as they
+  // arrive, without holding back the panels above.
   const lightcurveByCatalog = {
     ...groupDetectionsByCatalog(lightcurveData, ["ztf"]),
     ...groupDetectionsByCatalog(ztfLightcurveData),
+    ...(gaiaEpoch.data?.found ? { gaia: gaiaEpoch.data.points } : {}),
+    ...(ps1Lightcurve.data?.found ? { ps1: ps1Lightcurve.data.points } : {}),
   };
   // Shared MJD range across all surveys so panels can be visually compared along the time axis
   const allLightcurveMjds = Object.values(lightcurveByCatalog)
@@ -326,6 +364,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
             forced_photometry: [],
           }}
           mjdRange={sharedMjdRange}
+          magSystem={getMagSystem(catalog)}
         />
       ),
     }));

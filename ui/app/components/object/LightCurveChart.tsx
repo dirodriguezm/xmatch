@@ -20,6 +20,8 @@ interface LightCurveChartProps {
   loading?: boolean;
   error?: Error | null;
   mjdRange?: { min: number; max: number };
+  /** Shown on the magnitude axis, e.g. "AB" or "Vega". */
+  magSystem?: string;
 }
 
 // Detection point structure (assumed based on common light curve formats)
@@ -55,6 +57,7 @@ export function LightCurveChart({
   loading,
   error,
   mjdRange,
+  magSystem,
 }: LightCurveChartProps) {
   if (loading) {
     return (
@@ -157,7 +160,7 @@ export function LightCurveChart({
     },
     yAxis: {
       type: "value",
-      name: "Magnitude",
+      name: magSystem ? `Magnitude (${magSystem})` : "Magnitude",
       nameLocation: "middle",
       nameGap: 40,
       nameTextStyle: { color: "#bfbfbf" },

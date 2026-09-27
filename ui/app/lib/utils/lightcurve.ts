@@ -7,7 +7,9 @@ type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
 const SENTINEL = -999;
 
 const CATALOG_LABELS: Record<string, string> = {
+  gaia: "Gaia DR3",
   neowise: "NEOWISE",
+  ps1: "Pan-STARRS DR2",
   swift: "Swift",
   vlass: "VLASS",
   ztf: "ZTF",
@@ -15,6 +17,21 @@ const CATALOG_LABELS: Record<string, string> = {
 
 export function getCatalogLabel(catalog: string): string {
   return CATALOG_LABELS[catalog.toLowerCase()] ?? catalog.toUpperCase();
+}
+
+/**
+ * Magnitude system of each light-curve survey. Panels are per survey, so AB
+ * and Vega never share an axis, but the axis and the CSV say which is which.
+ */
+const MAG_SYSTEMS: Record<string, "AB" | "Vega"> = {
+  gaia: "Vega",
+  neowise: "Vega",
+  ps1: "AB",
+  ztf: "AB",
+};
+
+export function getMagSystem(catalog: string): "AB" | "Vega" | undefined {
+  return MAG_SYSTEMS[catalog.toLowerCase()];
 }
 
 export interface LightcurveDetection {
@@ -96,13 +113,13 @@ export function expandDetection(det: LightcurveDetection): DetectionPoint[] {
 
 /**
  * Serialize grouped detection points into a CSV string with columns
- * `survey,band,mjd,mag,magerr`. The survey column uses the human-readable
+ * `survey,band,mag_system,mjd,mag,magerr`. The survey column uses the human-readable
  * catalog label via {@link getCatalogLabel}.
  */
 export function detectionPointsToCsv(
   groups: Record<string, DetectionPoint[]>
 ): string {
-  const rows: string[] = ["survey,band,mjd,mag,magerr"];
+  const rows: string[] = ["survey,band,mag_system,mjd,mag,magerr"];
   for (const [catalog, points] of Object.entries(groups)) {
     const survey = getCatalogLabel(catalog);
     for (const p of points) {
@@ -110,6 +127,7 @@ export function detectionPointsToCsv(
         [
           csvCell(survey),
           csvCell(p.band),
+          csvCell(getMagSystem(catalog)),
           csvCell(p.mjd),
           csvCell(p.mag),
           csvCell(p.magerr),

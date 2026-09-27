@@ -18,6 +18,7 @@ export const BAND_COLORS: Record<string, string> = {
   r: "#ff4d4f", // red
   i: "#722ed1", // purple
   z: "#fa8c16", // orange
+  y: "#a0d911", // lime (Pan-STARRS)
 
   // ZTF filter IDs
   "1": "#52c41a", // ZTF g
