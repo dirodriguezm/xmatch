@@ -27,6 +27,7 @@ export {
 export { type SimbadParams, useSimbad } from "./useSimbad";
 export {
   type GaiaEpochParams,
+  useCrtsLightcurve,
   useGaiaEpochPhotometry,
   usePs1Lightcurve,
 } from "./useSurveyLightcurves";

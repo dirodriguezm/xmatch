@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import type { CrtsLightcurveResponse } from "@/app/api/crts-lightcurve/route";
 import type { GaiaEpochResponse } from "@/app/api/gaia-epoch/route";
 import type { Ps1LightcurveResponse } from "@/app/api/ps1-lightcurve/route";
 
@@ -53,6 +54,24 @@ export function usePs1Lightcurve(params: { ra: number; dec: number } | null) {
       ),
     enabled: params !== null,
     // PS1 DR2 is frozen.
+    staleTime: Infinity,
+    retry: 1,
+  });
+}
+
+export function useCrtsLightcurve(params: { ra: number; dec: number } | null) {
+  return useQuery({
+    queryKey: ["crts-lightcurve", params?.ra, params?.dec],
+    queryFn: () =>
+      getJson<CrtsLightcurveResponse>(
+        `/api/crts-lightcurve?${new URLSearchParams({
+          ra: String(params!.ra),
+          dec: String(params!.dec),
+        })}`,
+        "Catalina light curve"
+      ),
+    enabled: params !== null,
+    // The CRTS data release is frozen.
     staleTime: Infinity,
     retry: 1,
   });

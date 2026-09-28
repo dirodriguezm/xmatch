@@ -37,6 +37,7 @@ import {
   type GaiaEpochParams,
   NEIGHBOR_RADIUS_ARCSEC,
   useCounterparts,
+  useCrtsLightcurve,
   useDesiSpectrum,
   useDesiTarget,
   useGaiaEpochPhotometry,
@@ -344,6 +345,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   }
   const gaiaEpoch = useGaiaEpochPhotometry(gaiaEpochParams);
   const ps1Lightcurve = usePs1Lightcurve({ ra: object.ra, dec: object.dec });
+  const crtsLightcurve = useCrtsLightcurve({ ra: object.ra, dec: object.dec });
   const vizierSed = useVizierSed({ ra: object.ra, dec: object.dec });
   const reddening = useGalacticReddening({ ra: object.ra, dec: object.dec });
 
@@ -378,7 +380,36 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     ...groupDetectionsByCatalog(ztfLightcurveData),
     ...(gaiaEpoch.data?.found ? { gaia: gaiaEpoch.data.points } : {}),
     ...(ps1Lightcurve.data?.found ? { ps1: ps1Lightcurve.data.points } : {}),
+    ...(crtsLightcurve.data?.found ? { crts: crtsLightcurve.data.points } : {}),
   };
+  // Caveats shown next to a survey's panel title.
+  const lightcurveNotes: Record<string, ReactNode> = {};
+  if (crtsLightcurve.data?.found) {
+    const { outliers, saturated } = crtsLightcurve.data;
+    lightcurveNotes.crts = (
+      <>
+        <Tooltip title="Catalina observes without a filter; magnitudes are calibrated to Johnson V. Colours mark the telescope: CSS (0.7 m), MLS (1.5 m), SSS (0.5 m).">
+          <Text type="secondary" className="text-xs">
+            unfiltered, V-calibrated
+          </Text>
+        </Tooltip>
+        {outliers > 0 && (
+          <Tooltip title="Single exposures more than 1 mag from the median that the other exposures of the same night don't confirm.">
+            <Text type="secondary" className="text-xs">
+              · {outliers} spurious point{outliers === 1 ? "" : "s"} hidden
+            </Text>
+          </Tooltip>
+        )}
+        {saturated && (
+          <Tooltip title="The median is brighter than V ≈ 12.5, where Catalina saturates; the variability may not be real.">
+            <Text type="warning" className="text-xs">
+              · possibly saturated
+            </Text>
+          </Tooltip>
+        )}
+      </>
+    );
+  }
   // Shared MJD range across all surveys so panels can be visually compared along the time axis
   const allLightcurveMjds = Object.values(lightcurveByCatalog)
     .flat()
@@ -402,6 +433,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
           <Text type="secondary" className="text-xs">
             ({points.length} points)
           </Text>
+          {lightcurveNotes[catalog]}
         </Space>
       ),
       extra: (

@@ -45,6 +45,14 @@ export const EXTERNAL_SOURCES: ExternalSource[] = [
     usedFor: "per-epoch grizy detections for light curves (δ > −30°)",
   },
   {
+    name: "Catalina Real-time Transient Survey (Caltech)",
+    href: "http://nunuku.caltech.edu/cgi-bin/getcssconedb_release_img.cgi",
+    kind: "light curve",
+    usedFor:
+      "Unfiltered, V-calibrated CSS/MLS/SSS photometry, 2005–2016 (Drake et al. 2009)",
+  },
+
+  {
     name: "NOIRLab Astro Data Lab and SPARCL",
     href: "https://datalab.noirlab.edu/",
     kind: "spectra",

@@ -25,6 +25,11 @@ export const BAND_COLORS: Record<string, string> = {
   "2": "#ff4d4f", // ZTF r
   "3": "#722ed1", // ZTF i
 
+  // Catalina telescopes (unfiltered, V-calibrated)
+  CSS: "#faad14", // gold
+  MLS: "#13c2c2", // cyan
+  SSS: "#eb2f96", // magenta
+
   // Gaia bands
   G: "#1890ff", // blue
   BP: "#52c41a", // green

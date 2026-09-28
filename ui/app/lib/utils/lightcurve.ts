@@ -7,6 +7,7 @@ type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
 const SENTINEL = -999;
 
 const CATALOG_LABELS: Record<string, string> = {
+  crts: "Catalina (CRTS)",
   gaia: "Gaia DR3",
   neowise: "NEOWISE",
   ps1: "Pan-STARRS DR2",
@@ -24,6 +25,8 @@ export function getCatalogLabel(catalog: string): string {
  * and Vega never share an axis, but the axis and the CSV say which is which.
  */
 const MAG_SYSTEMS: Record<string, "AB" | "Vega"> = {
+  // Unfiltered, calibrated to Johnson V.
+  crts: "Vega",
   gaia: "Vega",
   neowise: "Vega",
   ps1: "AB",
