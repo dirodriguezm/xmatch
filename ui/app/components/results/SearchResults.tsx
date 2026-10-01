@@ -56,9 +56,20 @@ export function SearchResults({
   const [opened, setOpened] = useState<Set<string>>(() => new Set());
   const [mapView, setMapView] = useState<"offsets" | "sky">("offsets");
 
+  // Catalogs that returned nothing are left out entirely — no empty group,
+  // tab or search circle.
   const groups = useMemo(
-    () => summarizeCatalogs(sources, radii),
+    () => summarizeCatalogs(sources, radii).filter((g) => g.sources.length > 0),
     [sources, radii]
+  );
+  const matchedRadii = useMemo(
+    () =>
+      Object.fromEntries(
+        groups
+          .filter((g) => g.radius !== undefined)
+          .map((g) => [g.slug, g.radius as number])
+      ),
+    [groups]
   );
   const activeGroup = groups.find((g) => g.slug === active);
   const visibleGroups = activeGroup ? [activeGroup] : groups;
@@ -67,8 +78,8 @@ export function SearchResults({
     () =>
       active !== ALL && radii[active] !== undefined
         ? { [active]: radii[active] }
-        : radii,
-    [active, radii]
+        : matchedRadii,
+    [active, radii, matchedRadii]
   );
 
   // Chance of an unrelated source at least as close as each catalog's nearest
