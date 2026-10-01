@@ -7,8 +7,8 @@ import { useState } from "react";
 
 import {
   DEFAULT_OBSERVATORY_ID,
-  OBSERVATORIES,
-  OBSERVATORY_TIME_ZONE,
+  getObservatory,
+  OBSERVATORY_OPTIONS,
 } from "@/app/lib/constants/observatories";
 
 const { Text } = Typography;
@@ -25,16 +25,16 @@ interface TonightSummaryProps {
  */
 export function TonightSummary({ ra, dec }: TonightSummaryProps) {
   const [siteId, setSiteId] = useState(DEFAULT_OBSERVATORY_ID);
-  const site = OBSERVATORIES.find((o) => o.id === siteId) ?? OBSERVATORIES[0];
+  const site = getObservatory(siteId);
 
   const { data, isError } = useQuery({
     queryKey: ["tonight-summary", ra, dec, siteId],
     queryFn: async () => {
       const m = await import("@/app/lib/utils/observability");
-      const night = m.tonightInTimeZone(OBSERVATORY_TIME_ZONE);
+      const night = m.tonightInTimeZone(site.timeZone);
       return m.summarizeVisibility(
         m.computeNightVisibility(ra, dec, site, night),
-        site.label
+        site
       );
     },
     staleTime: 10 * 60 * 1000,
@@ -52,10 +52,11 @@ export function TonightSummary({ ra, dec }: TonightSummaryProps) {
         value={siteId}
         onChange={setSiteId}
         popupMatchSelectWidth={false}
-        options={OBSERVATORIES.map((o) => ({ label: o.label, value: o.id }))}
+        options={OBSERVATORY_OPTIONS}
         aria-label="Observatory"
       />
-      <Text className="text-sm">
+      {/* Context, not the result: kept quieter than the match list. */}
+      <Text type="secondary" className="text-sm">
         {isError ? "visibility unavailable" : (data ?? "…")}
       </Text>
     </Flex>
