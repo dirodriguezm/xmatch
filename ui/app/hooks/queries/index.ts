@@ -32,4 +32,5 @@ export {
   usePs1Lightcurve,
 } from "./useSurveyLightcurves";
 export { useVizierSed, type VizierSedParams } from "./useVizierSed";
+export { HILIGT_MISSION_IDS, useHiligt, useXmmSource } from "./useXray";
 export { useZtfLightcurve, type ZtfLightcurveParams } from "./useZtfLightcurve";

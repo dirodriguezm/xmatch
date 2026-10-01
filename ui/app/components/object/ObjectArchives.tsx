@@ -7,8 +7,9 @@ import {
 } from "@ant-design/icons";
 import { Button, Card, Flex, Space, Tooltip, Typography } from "antd";
 
-import { useDesiTarget } from "@/app/hooks/queries";
+import { useDesiTarget, useSimbad } from "@/app/hooks/queries";
 import {
+  buildAdsObjectUrl,
   buildAladinUrl,
   buildDesiSpectrumUrl,
   buildLegacySurveyViewerUrl,
@@ -24,6 +25,8 @@ const { Text } = Typography;
 interface ObjectArchivesProps {
   ra: number;
   dec: number;
+  /** Radius of the page's SIMBAD lookup, so this shares its cached result. */
+  simbadRadiusArcsec: number;
 }
 
 // Buttons are grouped by what the destination service returns:
@@ -32,7 +35,11 @@ interface ObjectArchivesProps {
 //   - Spectra        → 1-D spectrum plot (flux vs. wavelength)  (LineChartOutlined)
 // Order within each group is intentional: catalogs by CDS prominence,
 // image viewers from general → optical → DESI/imaging → PS, spectra by survey.
-export function ObjectArchives({ ra, dec }: ObjectArchivesProps) {
+export function ObjectArchives({
+  ra,
+  dec,
+  simbadRadiusArcsec,
+}: ObjectArchivesProps) {
   const simbadUrl = buildSimbadUrl(ra, dec);
   const vizierUrl = buildVizierUrl(ra, dec);
   const nedUrl = buildNedUrl(ra, dec);
@@ -56,6 +63,15 @@ export function ObjectArchives({ ra, dec }: ObjectArchivesProps) {
   else if (desiTargetid)
     desiTooltip = `Open DESI DR1 spectrum (offset ${(desi?.separationArcsec ?? 0).toFixed(2)}″)`;
   else desiTooltip = "No DESI DR1 spectrum at this position";
+
+  // ADS searches papers by object name, so it needs a SIMBAD identifier.
+  const simbad = useSimbad({ ra, dec, radius: simbadRadiusArcsec });
+  const simbadName = simbad.data?.match?.mainId;
+  const adsTooltip = simbad.isPending
+    ? "Looking up the SIMBAD name…"
+    : simbadName
+      ? `Papers about ${simbadName} in NASA ADS, newest first`
+      : "No SIMBAD name here; ADS searches papers by object name";
 
   const groups = [
     {
@@ -90,6 +106,18 @@ export function ObjectArchives({ ra, dec }: ObjectArchivesProps) {
           >
             NED
           </Button>
+          <Tooltip title={adsTooltip}>
+            <Button
+              href={simbadName ? buildAdsObjectUrl(simbadName) : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              icon={<TagOutlined />}
+              size="small"
+              disabled={!simbadName}
+            >
+              ADS papers
+            </Button>
+          </Tooltip>
         </>
       ),
     },

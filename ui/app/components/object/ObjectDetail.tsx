@@ -9,6 +9,7 @@ import {
   LineChartOutlined,
   RadarChartOutlined,
   StarOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import {
   App,
@@ -46,6 +47,7 @@ import {
   useNeighbors,
   usePs1Lightcurve,
   useVizierSed,
+  useXmmSource,
   useZtfLightcurve,
 } from "@/app/hooks/queries";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
@@ -84,6 +86,8 @@ import { ObjectArchives } from "./ObjectArchives";
 import { SedChart } from "./SedChart";
 import { SimbadIdentity } from "./SimbadIdentity";
 import { SpectrumChart } from "./SpectrumChart";
+import { XmmSourcePanel } from "./XmmSourcePanel";
+import { XrayHistoryPanel } from "./XrayHistoryPanel";
 
 // Split out so astronomy-engine only loads when the panel is first opened.
 const ObservabilityPanel = dynamic(
@@ -346,6 +350,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const gaiaEpoch = useGaiaEpochPhotometry(gaiaEpochParams);
   const ps1Lightcurve = usePs1Lightcurve({ ra: object.ra, dec: object.dec });
   const crtsLightcurve = useCrtsLightcurve({ ra: object.ra, dec: object.dec });
+  const xmmSource = useXmmSource({ ra: object.ra, dec: object.dec });
   const vizierSed = useVizierSed({ ra: object.ra, dec: object.dec });
   const reddening = useGalacticReddening({ ra: object.ra, dec: object.dec });
 
@@ -663,6 +668,45 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       ),
     },
     ...(lightcurveStatusItem ? [lightcurveStatusItem] : surveyPanelItems),
+    ...(xmmSource.data?.found && xmmSource.data.source
+      ? [
+          {
+            key: "xmm-source",
+            label: (
+              <Space>
+                <ThunderboltOutlined />
+                <span>X-ray source (5XMM-DR15)</span>
+                <Text type="secondary" className="text-xs">
+                  {xmmSource.data.source.name}
+                </Text>
+              </Space>
+            ),
+            children: <XmmSourcePanel source={xmmSource.data.source} />,
+          },
+        ]
+      : []),
+    {
+      key: "xray-history",
+      label: (
+        <Space>
+          <ThunderboltOutlined />
+          <span>X-ray history (fluxes & upper limits)</span>
+          <Text type="secondary" className="text-xs">
+            XMM-Newton, ROSAT · loads when opened
+          </Text>
+        </Space>
+      ),
+      // Collapse mounts children on first open, so the slow HILIGT queries
+      // only start when someone asks for them.
+      children: (
+        <XrayHistoryPanel
+          ra={object.ra}
+          dec={object.dec}
+          mjdRange={sharedMjdRange}
+          filenameStem={filenameStem}
+        />
+      ),
+    },
     ...(spectrumItem ? [spectrumItem] : []),
     ...(catalogDetails.length > 0
       ? [
@@ -715,6 +759,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       ? [lightcurveStatusItem.key]
       : surveyPanelItems.map((item) => item.key)),
     ...(spectrumReady ? ["desi-spectrum"] : []),
+    ...(xmmSource.data?.found ? ["xmm-source"] : []),
   ];
   const freshKeys = autoOpenKeys.filter((k) => !panels.autoOpened.includes(k));
   if (freshKeys.length > 0) {
@@ -932,7 +977,11 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       </Row>
 
       <div className="mb-4">
-        <ObjectArchives ra={object.ra} dec={object.dec} />
+        <ObjectArchives
+          ra={object.ra}
+          dec={object.dec}
+          simbadRadiusArcsec={simbadRadiusArcsec}
+        />
       </div>
 
       <Collapse

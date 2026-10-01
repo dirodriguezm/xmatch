@@ -65,6 +65,14 @@ export const UPSTREAM_CHECKS: UpstreamCheck[] = [
     usedFor: "ZTF time series on the object page",
     path: `/api/ztf-lightcurve?ra=${M31.ra}&dec=${M31.dec}&radius=1`,
   },
+  {
+    id: "xmm-source",
+    name: "5XMM-DR15 X-ray catalogue",
+    provider: "ESA XMM-Newton Science Archive",
+    usedFor: "X-ray source summary on the object page",
+    path: `/api/xmm-source?ra=${M31.ra}&dec=${M31.dec}`,
+    cached: true,
+  },
 ];
 
 /** Above this the service answers but is slow enough to notice. */

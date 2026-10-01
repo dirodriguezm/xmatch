@@ -100,3 +100,12 @@ export function buildVizierSedViewerUrl(
   const c = encodeURIComponent(`${ra} ${dec}`);
   return `https://vizier.cds.unistra.fr/vizier/sed/?submitSimbad=Photometry&-c=${c}&-c.r=${radius}&-c.u=arcsec&show_settings=1`;
 }
+
+/**
+ * Build an ADS search for papers about an object, newest first. ADS resolves
+ * `object:` names through SIMBAD/NED, so pass a SIMBAD identifier.
+ */
+export function buildAdsObjectUrl(name: string): string {
+  const q = encodeURIComponent(`object:"${name}"`);
+  return `https://ui.adsabs.harvard.edu/search/q=${q}&sort=date%20desc`;
+}

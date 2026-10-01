@@ -51,6 +51,20 @@ export const EXTERNAL_SOURCES: ExternalSource[] = [
     usedFor:
       "Unfiltered, V-calibrated CSS/MLS/SSS photometry, 2005–2016 (Drake et al. 2009)",
   },
+  {
+    name: "HILIGT upper limit server (ESA)",
+    href: "https://xmmuls.esac.esa.int/hiligt/",
+    kind: "light curve",
+    usedFor:
+      "X-ray fluxes and upper limits from XMM-Newton (pointed and slew) and the ROSAT All-Sky Survey (Saxton et al. 2022; König et al. 2022)",
+  },
+  {
+    name: "5XMM-DR15 via the XMM-Newton Science Archive (ESA)",
+    href: "http://xmmssc.irap.omp.eu/Catalogue/5XMM-DR15/5XMM_DR15.html",
+    kind: "context",
+    usedFor:
+      "Stacked X-ray source fluxes, hardness ratios and variability, compiled by the XMM-Newton Survey Science Centre and XMM2ATHENA (Webb, Traulsen et al. 2026)",
+  },
 
   {
     name: "NOIRLab Astro Data Lab and SPARCL",
