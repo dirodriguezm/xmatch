@@ -3,9 +3,8 @@
 import { Layout, Spin } from "antd";
 import { Suspense, useCallback, useEffect, useMemo } from "react";
 
-import { AppHeader, AppSidebar } from "@/app/components/layout";
-import { ResultsPanel } from "@/app/components/results";
-import type { PhotometryStatus } from "@/app/components/results/ResultsTable";
+import { AppHeader } from "@/app/components/layout";
+import { SearchResults } from "@/app/components/results/SearchResults";
 import { SidebarSearchForm } from "@/app/components/sidebar";
 import { useParallelConeSearch } from "@/app/hooks/queries";
 import { useBulkMetadata } from "@/app/hooks/queries/useBulkMetadata";
@@ -80,33 +79,20 @@ function SearchContent() {
     () => buildBulkMetadataRequests(mappedResults),
     [mappedResults]
   );
-  const {
-    groups: metadataGroups,
-    isFetching: photometryFetching,
-    isError: photometryError,
-  } = useBulkMetadata(bulkRequests);
+  const { groups: metadataGroups } = useBulkMetadata(bulkRequests);
 
   const enrichedResults = useMemo(
     () => enrichWithPhotometry(mappedResults, buildMagIndex(metadataGroups)),
     [mappedResults, metadataGroups]
   );
 
-  const photometryStatus: PhotometryStatus =
-    bulkRequests.length === 0
-      ? "idle"
-      : photometryFetching
-        ? "pending"
-        : photometryError
-          ? "error"
-          : "ready";
-
   const handleRetry = useCallback(() => {
     queryResults.forEach((r) => r.refetch());
   }, [queryResults]);
 
   // NOTE: photometry state must never enter this effect or its dependencies —
-  // ResultsPanel switches on resultsState to choose between the table and the
-  // empty/error states.
+  // SearchResults switches on resultsState to choose between the results and
+  // the empty/error states.
   useEffect(() => {
     if (isLoading) {
       dispatch({ type: "SET_RESULTS_STATE", payload: "loading" });
@@ -124,21 +110,13 @@ function SearchContent() {
   return (
     <Layout className="min-h-screen">
       <AppHeader />
-      <Layout>
-        <AppSidebar>
-          <SidebarSearchForm />
-        </AppSidebar>
-        <Content className="bg-background min-h-[calc(100vh-64px)] overflow-auto">
-          <ResultsPanel
-            data={enrichedResults}
-            loading={isLoading}
-            errorMessage={errorMessage}
-            onRetry={handleRetry}
-            photometryStatus={photometryStatus}
-            target={base}
-          />
-        </Content>
-      </Layout>
+      <SearchResults
+        data={enrichedResults}
+        errorMessage={errorMessage}
+        onRetry={handleRetry}
+        target={base}
+        searchForm={<SidebarSearchForm />}
+      />
     </Layout>
   );
 }

@@ -234,6 +234,8 @@ export interface AladinCatalogLayer {
   color: string;
   /** Each source's `data.label`, if set, is drawn next to it. */
   sources: AladinCatalogSource[];
+  /** Draw the labels (default true); off for crowded fields. */
+  labels?: boolean;
 }
 
 export interface AladinViewerProps {

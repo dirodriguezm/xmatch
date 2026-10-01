@@ -36,19 +36,23 @@ export function MapPanel({
   mapClassName = "h-auto w-full max-w-[320px]",
 }: MapPanelProps) {
   const outer = maxRadius(radii, sources);
-  const zoomLevels = useMemo(
-    () =>
-      [...new Set([...Object.values(radii), outer])]
-        .filter((r) => r > 0)
-        .sort((a, b) => a - b),
-    [radii, outer]
-  );
+  // Each catalog's radius, plus a tight "fit" level when every match sits
+  // well inside the smallest one (e.g. 100 Gaia sources within 13″ of a 30″
+  // search) — otherwise they'd bunch up in the middle.
+  const farthest = Math.max(0, ...sources.map((s) => s.sepArcsec));
+  const zoomLevels = useMemo(() => {
+    const levels = [...Object.values(radii), outer].filter((r) => r > 0);
+    const smallest = Math.min(...levels);
+    const fit = Math.ceil(farthest * 1.1);
+    if (farthest > 0 && fit < smallest * 0.7) levels.push(fit);
+    return [...new Set(levels)].sort((a, b) => a - b);
+  }, [radii, outer, farthest]);
   // Open on the tightest zoom that still shows every match: with Gaia at 3″
   // and eROSITA at 20″ but only Gaia matches, 20″ would bunch them up.
-  const fitting = useMemo(() => {
-    const farthest = Math.max(0, ...sources.map((s) => s.sepArcsec));
-    return zoomLevels.find((r) => r >= farthest) ?? outer;
-  }, [sources, zoomLevels, outer]);
+  const fitting = useMemo(
+    () => zoomLevels.find((r) => r >= farthest) ?? outer,
+    [zoomLevels, farthest, outer]
+  );
   const [extent, setExtent] = useState<number | null>(null);
   const current = extent && zoomLevels.includes(extent) ? extent : fitting;
   const catalogs = [...new Set(sources.map((s) => s.slug))];

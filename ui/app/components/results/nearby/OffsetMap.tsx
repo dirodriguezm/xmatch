@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { type KeyboardEvent, useId } from "react";
 
 import { getSearchCatalogLabel } from "@/app/lib/constants/catalogs";
 
@@ -48,6 +48,8 @@ function ringStep(extent: number): number {
  * as on the object page's NeighborMap, plus each catalog's search radius and
  * the 1σ error of every source.
  */
+const DENSE_THRESHOLD = 30;
+
 export function OffsetMap({
   sources,
   radii,
@@ -62,7 +64,11 @@ export function OffsetMap({
   className = "",
 }: OffsetMapProps) {
   const half = size / 2;
+  /** Beyond this many marks, shrink them and drop the 1σ halos. */
+  const dense = sources.length > DENSE_THRESHOLD;
+  const drawOrder = [...sources].sort((a, b) => b.sepArcsec - a.sepArcsec);
   const pad = compact ? 3 : 18;
+  const clipId = `offset-map-clip-${useId().replace(/:/g, "")}`;
   const scale = (half - pad) / extentArcsec;
   const step = ringStep(extentArcsec);
   const rings = Array.from(
@@ -104,6 +110,13 @@ export function OffsetMap({
       role={interactive ? "group" : "img"}
       aria-label={`Sky offsets of ${sources.length} matches from the searched position, north up, east left`}
     >
+      <defs>
+        {/* Keeps 1σ halos larger than the zoomed field (eROSITA's 4.5″ at a
+            2″ zoom) inside the map instead of flooding the panel. */}
+        <clipPath id={clipId}>
+          <circle r={half - pad} />
+        </clipPath>
+      </defs>
       <circle
         r={half - pad}
         className="fill-surface"
@@ -181,31 +194,36 @@ export function OffsetMap({
         <line y1={3} y2={8} />
       </g>
 
-      {showErrors &&
-        sources.map((s) => {
-          const { x, y, outside } = place(s);
-          const r = s.sigma * scale;
-          if (outside || r < 2) return null;
-          return (
-            <circle
-              key={`err-${s.key}`}
-              cx={x}
-              cy={y}
-              r={r}
-              className={`${fillClass(s.slug)} ${strokeClass(s.slug)}`}
-              fillOpacity={s.key === activeKey ? 0.22 : 0.08}
-              strokeOpacity={0.35}
-              pointerEvents="none"
-            />
-          );
-        })}
+      <g clipPath={`url(#${clipId})`}>
+        {showErrors &&
+          sources.map((s) => {
+            const { x, y, outside } = place(s);
+            const r = s.sigma * scale;
+            // In a crowded field the halos merge into one blob; keep only the
+            // active source's.
+            if (outside || r < 2 || (dense && s.key !== activeKey)) return null;
+            return (
+              <circle
+                key={`err-${s.key}`}
+                cx={x}
+                cy={y}
+                r={r}
+                className={`${fillClass(s.slug)} ${strokeClass(s.slug)}`}
+                fillOpacity={s.key === activeKey ? 0.22 : 0.08}
+                strokeOpacity={0.35}
+                pointerEvents="none"
+              />
+            );
+          })}
+      </g>
 
-      {sources.map((s) => {
+      {/* Farthest first, so the nearest (likeliest) counterparts sit on top. */}
+      {drawOrder.map((s) => {
         const { x, y, outside } = place(s);
         const active = s.key === activeKey;
         const selected = s.key === selectedKey;
         const dim = activeKey !== null && !active;
-        const r = compact ? 2.5 : active ? 6.5 : 5;
+        const r = compact || dense ? (active ? 5 : 2.5) : active ? 6.5 : 5;
         const label = `${getSearchCatalogLabel(s.slug)} ${s.objectId}, ${formatArcsec(s.sepArcsec)} ${compassPoint(s.pa)}, ${sigmaRatio(s).toFixed(1)}σ (${AGREEMENT_LABEL[agreement(s)]})`;
         return (
           <g
@@ -227,7 +245,9 @@ export function OffsetMap({
             onKeyDown={interactive ? (e) => onKey(e, s.key) : undefined}
           >
             {/* Larger invisible hit area for small marks */}
-            {interactive && <circle cx={x} cy={y} r={10} fill="transparent" />}
+            {interactive && (
+              <circle cx={x} cy={y} r={dense ? 5 : 10} fill="transparent" />
+            )}
             {selected && !compact && (
               <circle
                 cx={x}

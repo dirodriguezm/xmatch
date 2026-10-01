@@ -244,7 +244,7 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
           // Aladin marks a clicked source in green, which reads as another
           // catalog; white doesn't clash with any catalog colour.
           selectionColor: "#ffffff",
-          displayLabel: true,
+          displayLabel: layer.labels !== false,
           labelColumn: "label",
           // Light labels stay legible on dark sky; the ring colour carries
           // the catalog.

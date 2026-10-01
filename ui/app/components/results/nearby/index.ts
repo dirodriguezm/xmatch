@@ -1,3 +1,2 @@
-export { nearbyCsv } from "./LinkedTable";
-export { NearbySplit } from "./NearbySplit";
+export { nearbyCsv } from "./csv";
 export { radiiFromParam, toNearbySources } from "./shared";
