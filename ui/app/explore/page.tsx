@@ -146,7 +146,7 @@ export default function ExplorePage() {
         </LinkCard>
         <LinkCard href="/catalogs" icon={<DatabaseOutlined />} title="Catalogs">
           What Gaia DR3, AllWISE and eROSITA cover, their astrometric accuracy
-          and how to cite them.
+          and which radius to match with.
         </LinkCard>
       </div>
     </PageShell>

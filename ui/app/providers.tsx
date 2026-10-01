@@ -23,7 +23,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <AntdRegistry>
+    // antd's styles go in their own CSS layer, below Tailwind's utilities, so
+    // a utility class on an antd component (padding, width…) actually applies.
+    <AntdRegistry layer>
       <ConfigProvider theme={darkTheme}>
         <App>
           <QueryClientProvider client={queryClient}>

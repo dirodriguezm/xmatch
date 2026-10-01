@@ -1,3 +1,7 @@
+/* antd (wrapped in @layer antd by AntdRegistry) sits below Tailwind's
+   utilities, so utility classes win over antd's component styles. */
+@layer theme, base, antd, components, utilities;
+
 @import "tailwindcss";
 
 /* Dark theme CSS variables */

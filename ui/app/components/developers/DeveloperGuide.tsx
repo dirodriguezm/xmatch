@@ -31,7 +31,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-20">
+    <section id={id} className="scroll-mt-20 min-w-0">
       <Title level={4} className="!mb-3 flex items-center gap-2">
         <span className="text-neutral-400">{icon}</span>
         <a href={`#${id}`} className="!text-foreground no-underline">
@@ -108,7 +108,7 @@ t.pprint()`;
 /** Reference sections under the playground. */
 export function DeveloperGuide() {
   return (
-    <div className="mt-14 grid gap-12 lg:grid-cols-2">
+    <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-2">
       <Section id="base-url" icon={<LockOutlined />} title="Base URL & auth">
         <CodeBlock code={API_BASE_URL} copyLabel="Base URL" />
         <Paragraph className="!mb-0 text-neutral-300">
