@@ -1,7 +1,7 @@
 "use client";
 
 import { CodeOutlined } from "@ant-design/icons";
-import { Button, Modal } from "antd";
+import { Button, Modal, Tooltip } from "antd";
 import { useState } from "react";
 
 import { CodeSnippetPanel, type LabeledRequest } from "./CodeSnippetPanel";
@@ -12,22 +12,28 @@ export type { LabeledRequest } from "./CodeSnippetPanel";
 export function CodeSnippetButton({
   title = "Use the API",
   requests,
+  iconOnly = false,
 }: {
   title?: string;
   requests: LabeledRequest[];
+  /** Icon with a tooltip instead of a labelled button, for tight headers. */
+  iconOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button
-        size="small"
-        icon={<CodeOutlined />}
-        onClick={() => setOpen(true)}
-        disabled={requests.length === 0}
-      >
-        Code
-      </Button>
+      <Tooltip title={iconOnly ? "Code: run this via the API" : undefined}>
+        <Button
+          size="small"
+          icon={<CodeOutlined />}
+          onClick={() => setOpen(true)}
+          disabled={requests.length === 0}
+          aria-label={iconOnly ? "Code" : undefined}
+        >
+          {iconOnly ? null : "Code"}
+        </Button>
+      </Tooltip>
       <Modal
         title={title}
         open={open}

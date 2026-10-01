@@ -6,7 +6,16 @@ import {
   ShareAltOutlined,
   XOutlined,
 } from "@ant-design/icons";
-import { App, Button, Flex, Input, Modal, Tabs, Typography } from "antd";
+import {
+  App,
+  Button,
+  Flex,
+  Input,
+  Modal,
+  Tabs,
+  Tooltip,
+  Typography,
+} from "antd";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { SITE_URL } from "@/app/lib/constants/site";
@@ -24,6 +33,8 @@ interface ShareButtonProps {
   title: string;
   /** App-relative embed path, when the view can be embedded. */
   embedPath?: string;
+  /** Icon with a tooltip instead of a labelled button, for tight headers. */
+  iconOnly?: boolean;
 }
 
 const noopSubscribe = () => () => {};
@@ -110,7 +121,12 @@ function CopyField({
 }
 
 /** "Share" button: copy link, native share, social intents and an embed snippet. */
-export function ShareButton({ path, title, embedPath }: ShareButtonProps) {
+export function ShareButton({
+  path,
+  title,
+  embedPath,
+  iconOnly = false,
+}: ShareButtonProps) {
   const [open, setOpen] = useState(false);
   const origin = useOrigin();
   const canNativeShare = useCanNativeShare();
@@ -154,13 +170,16 @@ export function ShareButton({ path, title, embedPath }: ShareButtonProps) {
 
   return (
     <>
-      <Button
-        size="small"
-        icon={<ShareAltOutlined />}
-        onClick={() => setOpen(true)}
-      >
-        Share
-      </Button>
+      <Tooltip title={iconOnly ? "Share a link to this view" : undefined}>
+        <Button
+          size="small"
+          icon={<ShareAltOutlined />}
+          onClick={() => setOpen(true)}
+          aria-label={iconOnly ? "Share" : undefined}
+        >
+          {iconOnly ? null : "Share"}
+        </Button>
+      </Tooltip>
       <Modal
         title={`Share ${title}`}
         open={open}
