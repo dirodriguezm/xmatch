@@ -30,6 +30,7 @@
     "aladin-lite": "^3.7.3-beta",
     "antd": "^6.3.0",
     "astronomy-engine": "^2.1.19",
+    "dayjs": "^1.11.11",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.6",
     "next": "16.1.6",

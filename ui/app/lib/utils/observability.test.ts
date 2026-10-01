@@ -5,6 +5,7 @@ import { OBSERVATORIES } from "@/app/lib/constants/observatories";
 import {
   airmass,
   computeNightVisibility,
+  observableHours,
   tonightInTimeZone,
 } from "./observability";
 
@@ -102,5 +103,21 @@ describe("tonightInTimeZone", () => {
     // 2026-09-27 11:00 in Chile
     const d = tonightInTimeZone(tz, new Date("2026-09-27T14:00:00Z"));
     expect([d.getFullYear(), d.getMonth(), d.getDate()]).toEqual([2026, 8, 27]);
+  });
+});
+
+describe("observableHours", () => {
+  it("is the length of the observable window, and 0 without one", () => {
+    const v = computeNightVisibility(0, -30, site("lasilla"), NIGHT);
+    expect(observableHours(v)).toBeCloseTo(
+      (v.window!.end.getTime() - v.window!.start.getTime()) / 3_600_000,
+      6
+    );
+    // An object opposite the Sun at a good declination stays up most of the
+    // ~9 h September night.
+    expect(observableHours(v)).toBeGreaterThan(5);
+    expect(
+      observableHours(computeNightVisibility(0, 70, site("paranal"), NIGHT))
+    ).toBe(0);
   });
 });

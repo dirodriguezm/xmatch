@@ -206,6 +206,13 @@ export function computeNightVisibility(
  * Calendar date of "tonight" in `timeZone`. Before 08:00 local the night in
  * progress (which started yesterday evening) is still the relevant one.
  */
+/** Hours of astronomical night with the target above the minimum altitude. */
+export function observableHours(v: NightVisibility): number {
+  return v.window
+    ? (v.window.end.getTime() - v.window.start.getTime()) / 3_600_000
+    : 0;
+}
+
 export function tonightInTimeZone(timeZone: string, now = new Date()): Date {
   const shifted = new Date(now.getTime() - 8 * 3_600_000);
   const parts = new Intl.DateTimeFormat("en-CA", {

@@ -1,10 +1,11 @@
 "use client";
 
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
-import { Button, Flex, Select, Typography } from "antd";
+import { Button, DatePicker, Flex, Select, Typography } from "antd";
+import dayjs, { type Dayjs } from "dayjs";
 import type { EChartsOption, LineSeriesOption } from "echarts";
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
 import {
   DEFAULT_OBSERVATORY_ID,
@@ -15,6 +16,7 @@ import {
   computeNightVisibility,
   DEFAULT_MIN_ALTITUDE_DEG,
   formatChileTime,
+  observableHours,
   summarizeVisibility,
   tonightInTimeZone,
 } from "@/app/lib/utils/observability";
@@ -35,12 +37,33 @@ const AIRMASS_GUIDES = [
   { altitude: 19.3, label: "X 3" },
 ];
 
-const dateFormat = new Intl.DateTimeFormat("en-GB", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
+/** Calendar dot per night: how long the target is above the minimum altitude. */
+function hoursDotClass(hours: number): string | null {
+  if (hours >= 4) return "bg-green-500";
+  if (hours >= 1) return "bg-amber-400";
+  if (hours > 0) return "bg-amber-700";
+  return null;
+}
+
+function CalendarLegend() {
+  const items = [
+    { cls: "bg-green-500", label: "≥ 4 h" },
+    { cls: "bg-amber-400", label: "1–4 h" },
+    { cls: "bg-amber-700", label: "< 1 h" },
+  ];
+  return (
+    <Flex gap={12} wrap className="py-1 text-xs text-neutral-400">
+      <span>Above {DEFAULT_MIN_ALTITUDE_DEG}° at night:</span>
+      {items.map((i) => (
+        <span key={i.label} className="inline-flex items-center gap-1">
+          <span className={`inline-block w-1.5 h-1.5 rounded-full ${i.cls}`} />
+          {i.label}
+        </span>
+      ))}
+      <span>no dot: not observable</span>
+    </Flex>
+  );
+}
 
 const hhmm = formatChileTime;
 
@@ -71,6 +94,52 @@ export function ObservabilityPanel({ ra, dec }: ObservabilityPanelProps) {
     () => computeNightVisibility(ra, dec, site, night),
     [ra, dec, site, night]
   );
+
+  // Hours observable per night for the month the calendar shows, plus the
+  // neighbouring days it greys in (~1.5 ms a night, so ~80 ms a month).
+  // Stable identity: a fresh dayjs each render would make the picker snap its
+  // panel back to this month whenever the user browses to another.
+  const nightValue = useMemo(() => dayjs(night), [night]);
+  const [panelMonth, setPanelMonth] = useState(() =>
+    dayjs(night).startOf("month")
+  );
+  const monthHours = useMemo(() => {
+    const hours = new Map<string, number>();
+    const first = panelMonth.subtract(7, "day");
+    const last = panelMonth.endOf("month").add(14, "day");
+    for (let d = first; !d.isAfter(last, "day"); d = d.add(1, "day")) {
+      hours.set(
+        d.format("YYYY-MM-DD"),
+        observableHours(computeNightVisibility(ra, dec, site, d.toDate()))
+      );
+    }
+    return hours;
+  }, [ra, dec, site, panelMonth]);
+  const hoursOn = (d: Dayjs): number =>
+    monthHours.get(d.format("YYYY-MM-DD")) ??
+    observableHours(computeNightVisibility(ra, dec, site, d.toDate()));
+
+  const renderCell = (current: Dayjs, originNode: ReactNode): ReactNode => {
+    const hours = hoursOn(current);
+    const dot = hoursDotClass(hours);
+    return (
+      <div
+        className="relative"
+        title={
+          hours > 0
+            ? `${hours.toFixed(1)} h above ${DEFAULT_MIN_ALTITUDE_DEG}°`
+            : `Not above ${DEFAULT_MIN_ALTITUDE_DEG}° at night`
+        }
+      >
+        {originNode}
+        {dot && (
+          <span
+            className={`absolute left-1/2 -translate-x-1/2 -bottom-0.5 w-1 h-1 rounded-full ${dot}`}
+          />
+        )}
+      </div>
+    );
+  };
 
   const start = visibility.samples[0].time;
   const end = visibility.samples[visibility.samples.length - 1].time;
@@ -229,9 +298,27 @@ export function ObservabilityPanel({ ra, dec }: ObservabilityPanelProps) {
             aria-label="Previous night"
             onClick={() => setNight((d) => addDays(d, -1))}
           />
-          <Text className="text-sm tabular-nums min-w-[130px] text-center">
-            Night of {dateFormat.format(night)}
-          </Text>
+          <DatePicker
+            size="small"
+            value={nightValue}
+            onChange={(d) =>
+              d && setNight(new Date(d.year(), d.month(), d.date()))
+            }
+            allowClear={false}
+            format={(d) => `Night of ${d.format("ddd, D MMM YYYY")}`}
+            cellRender={(current, info) =>
+              info.type === "date" && dayjs.isDayjs(current)
+                ? renderCell(current, info.originNode)
+                : info.originNode
+            }
+            renderExtraFooter={() => <CalendarLegend />}
+            onOpenChange={(open) =>
+              open && setPanelMonth(dayjs(night).startOf("month"))
+            }
+            onPanelChange={(d) => setPanelMonth(d.startOf("month"))}
+            aria-label="Choose a night"
+            className="!w-[210px]"
+          />
           <Button
             size="small"
             type="text"
