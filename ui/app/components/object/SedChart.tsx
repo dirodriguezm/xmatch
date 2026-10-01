@@ -311,7 +311,7 @@ export function SedChart({
       type: "log",
       name: "Wavelength (µm)",
       nameGap: 30,
-      axisLabel: { color: "#d9d9d9" },
+      axisLabel: { color: "#d9d9d9", hideOverlap: true },
     },
     yAxis: {
       ...axisCommon,

@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { OBSERVATORIES } from "@/app/lib/constants/observatories";
+import {
+  OBSERVATORIES,
+  OBSERVATORY_OPTIONS,
+} from "@/app/lib/constants/observatories";
 
 import {
   airmass,
   computeNightVisibility,
+  formatSiteTime,
   observableHours,
+  timeZoneAbbreviation,
   tonightInTimeZone,
 } from "./observability";
 
@@ -119,5 +124,30 @@ describe("observableHours", () => {
     expect(
       observableHours(computeNightVisibility(0, 70, site("paranal"), NIGHT))
     ).toBe(0);
+  });
+});
+
+describe("site time zones", () => {
+  const instant = new Date("2026-10-01T06:00:00Z");
+
+  it("formats times in each site's own zone", () => {
+    expect(formatSiteTime(instant, "America/Santiago")).toBe("03:00");
+    expect(formatSiteTime(instant, "Pacific/Honolulu")).toBe("20:00");
+    expect(timeZoneAbbreviation(instant, "Pacific/Honolulu")).toBe("HST");
+  });
+
+  it("lists valid, unique observatories grouped Chile first", () => {
+    const ids = OBSERVATORIES.map((o) => o.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const o of OBSERVATORIES) {
+      expect(() => formatSiteTime(instant, o.timeZone)).not.toThrow();
+      expect(Math.abs(o.latitude)).toBeLessThanOrEqual(90);
+      expect(Math.abs(o.longitude)).toBeLessThanOrEqual(180);
+    }
+    expect(OBSERVATORY_OPTIONS.map((g) => g.label)).toEqual([
+      "Chile",
+      "Rest of the world",
+    ]);
+    expect(OBSERVATORY_OPTIONS[1].options.length).toBeGreaterThanOrEqual(10);
   });
 });

@@ -9,13 +9,18 @@ import { hasItem } from "@/app/lib/utils/basket";
 import type { BasketItem } from "./types";
 import { basketStore, useBasket } from "./useBasket";
 
-/** Adds/removes one object from the basket. */
+/**
+ * Adds/removes one object from the basket. Icon-only by default (table rows);
+ * `labeled` renders a bordered "Save" button to match a toolbar.
+ */
 export function BasketButton({
   item,
   size = "middle",
+  labeled = false,
 }: {
   item: BasketItem;
   size?: "small" | "middle";
+  labeled?: boolean;
 }) {
   const items = useBasket();
   const inBasket = hasItem(items, item);
@@ -30,7 +35,7 @@ export function BasketButton({
   return (
     <Tooltip title={label}>
       <Button
-        type="text"
+        type={labeled ? "default" : "text"}
         size={size}
         aria-label={label}
         aria-pressed={inBasket}
@@ -42,7 +47,9 @@ export function BasketButton({
             <StarOutlined />
           )
         }
-      />
+      >
+        {labeled ? (inBasket ? "Saved" : "Save") : null}
+      </Button>
     </Tooltip>
   );
 }

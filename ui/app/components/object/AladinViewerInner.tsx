@@ -13,6 +13,7 @@ import type {
   AladinCatalog,
   AladinCatalogSource,
   AladinGlobal,
+  AladinGraphicOverlay,
   AladinInstance,
   AladinMarker,
   AladinViewerProps,
@@ -38,6 +39,8 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
       projection = DEFAULT_OPTIONS.projection,
       markers = [],
       catalogSources = [],
+      catalogLayers,
+      ringArcsec,
       catalogName = "Sources",
       catalogColor = "#1677ff",
       height = 400,
@@ -58,6 +61,11 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
     const aladinRef = useRef<AladinInstance | null>(null);
     const aladinGlobalRef = useRef<AladinGlobal | null>(null);
     const catalogRef = useRef<AladinCatalog | null>(null);
+    const layerRefs = useRef<AladinCatalog[]>([]);
+    const ringRef = useRef<AladinGraphicOverlay | null>(null);
+    // Primitives, so a new `center` object each render doesn't redraw the ring.
+    const centerRa = center?.ra;
+    const centerDec = center?.dec;
     const markerCatalogRef = useRef<AladinCatalog | null>(null);
     const gaiaCatalogRef = useRef<AladinCatalog | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
@@ -215,6 +223,71 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
         markerCatalogRef.current = markerCatalog;
       }
     }, [markers, isInitialized]);
+
+    // Handle coloured catalog layers
+    useEffect(() => {
+      if (!isInitialized || !aladinRef.current || !aladinGlobalRef.current)
+        return;
+      const A = aladinGlobalRef.current;
+      const aladin = aladinRef.current;
+
+      for (const layer of layerRefs.current) aladin.removeOverlay(layer);
+      layerRefs.current = [];
+
+      for (const layer of catalogLayers ?? []) {
+        if (layer.sources.length === 0) continue;
+        const catalog = A.catalog({
+          name: layer.name,
+          color: layer.color,
+          sourceSize: 16,
+          shape: "circle",
+          // Aladin marks a clicked source in green, which reads as another
+          // catalog; white doesn't clash with any catalog colour.
+          selectionColor: "#ffffff",
+          displayLabel: true,
+          labelColumn: "label",
+          // Light labels stay legible on dark sky; the ring colour carries
+          // the catalog.
+          labelColor: "#e6e6e6",
+          labelFont: "11px sans-serif",
+          onClick: "showPopup",
+        });
+        catalog.addSources(
+          layer.sources.map((s) =>
+            A.source(s.ra, s.dec, { name: s.name, ...s.data })
+          )
+        );
+        aladin.addOverlay(catalog);
+        layerRefs.current.push(catalog);
+      }
+    }, [catalogLayers, isInitialized]);
+
+    // Dashed ring around the centre (e.g. the nearby-sources search radius)
+    useEffect(() => {
+      if (!isInitialized || !aladinRef.current || !aladinGlobalRef.current)
+        return;
+      const A = aladinGlobalRef.current;
+      const aladin = aladinRef.current;
+      if (ringRef.current) {
+        aladin.removeOverlay(ringRef.current);
+        ringRef.current = null;
+      }
+      if (
+        !ringArcsec ||
+        centerRa === undefined ||
+        centerDec === undefined ||
+        typeof A.graphicOverlay !== "function"
+      )
+        return;
+      const overlay = A.graphicOverlay({
+        color: "rgba(255, 255, 255, 0.55)",
+        lineWidth: 1,
+        lineDash: [4, 4],
+      });
+      aladin.addOverlay(overlay);
+      overlay.add(A.circle(centerRa, centerDec, ringArcsec / 3600));
+      ringRef.current = overlay;
+    }, [ringArcsec, centerRa, centerDec, isInitialized]);
 
     // Handle catalog sources updates
     useEffect(() => {

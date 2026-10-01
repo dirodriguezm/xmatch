@@ -38,6 +38,8 @@ export interface AladinGlobal {
     radius: number,
     options?: ShapeOptions
   ) => AladinShape;
+  /** Create a layer for shapes such as circles */
+  graphicOverlay: (options?: GraphicOverlayOptions) => AladinGraphicOverlay;
   /** Create a polyline overlay */
   polyline: (coords: [number, number][], options?: ShapeOptions) => AladinShape;
   /** Create a progressive HiPS catalog (e.g. Gaia DR3, Simbad) */
@@ -108,9 +110,13 @@ export interface AladinInstance {
   /** Set image layer by HiPS ID or URL (v3 API) */
   setImageLayer: (surveyId: string) => void;
   /** Add overlay (catalog, shapes) */
-  addOverlay: (overlay: AladinCatalog | AladinShape) => void;
+  addOverlay: (
+    overlay: AladinCatalog | AladinShape | AladinGraphicOverlay
+  ) => void;
   /** Remove overlay */
-  removeOverlay: (overlay: AladinCatalog | AladinShape) => void;
+  removeOverlay: (
+    overlay: AladinCatalog | AladinShape | AladinGraphicOverlay
+  ) => void;
   /** Show/hide coordinate grid */
   showCooGrid: (show: boolean) => void;
   /** Show/hide reticle */
@@ -143,6 +149,27 @@ export interface CatalogOptions {
   onClick?: "showTable" | "showPopup" | ((source: AladinSource) => void);
   /** Maximum number of sources (passed to VizieR as -out.max) */
   limit?: number;
+  /** Colour of a clicked source; Aladin defaults to green. */
+  selectionColor?: string;
+  hoverColor?: string;
+  /** Draw a text label next to each source, read from `labelColumn`. */
+  displayLabel?: boolean;
+  labelColumn?: string;
+  labelColor?: string;
+  labelFont?: string;
+}
+
+export interface GraphicOverlayOptions {
+  name?: string;
+  color?: string;
+  lineWidth?: number;
+  /** Canvas dash pattern, e.g. [4, 4]. */
+  lineDash?: number[];
+}
+
+export interface AladinGraphicOverlay {
+  add: (shape: AladinShape) => void;
+  removeAll: () => void;
 }
 
 export interface AladinCatalog {
@@ -201,6 +228,14 @@ export interface AladinCatalogSource {
   data?: Record<string, unknown>;
 }
 
+/** One coloured overlay of sources, e.g. a catalog's matches. */
+export interface AladinCatalogLayer {
+  name: string;
+  color: string;
+  /** Each source's `data.label`, if set, is drawn next to it. */
+  sources: AladinCatalogSource[];
+}
+
 export interface AladinViewerProps {
   /** Initial center coordinates */
   center?: { ra: number; dec: number };
@@ -214,6 +249,13 @@ export interface AladinViewerProps {
   markers?: AladinMarker[];
   /** Catalog sources to overlay */
   catalogSources?: AladinCatalogSource[];
+  /**
+   * Several catalogs, each in its own colour (drawn as circles). Pass a
+   * memoised array: a new one re-draws every layer.
+   */
+  catalogLayers?: AladinCatalogLayer[];
+  /** Dashed ring of this radius (arcsec) around the centre, e.g. a search radius. */
+  ringArcsec?: number;
   /** Catalog name */
   catalogName?: string;
   /** Catalog source color */

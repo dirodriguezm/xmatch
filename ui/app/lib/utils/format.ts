@@ -31,3 +31,19 @@ export const FLUX_UNIT = "erg s⁻¹ cm⁻²";
 export function formatFlux(value: number, digits = 2): string {
   return `${formatScientific(value, digits)} ${FLUX_UNIT}`;
 }
+
+/** MJD of the Unix epoch, 1970-01-01T00:00Z. */
+const MJD_UNIX_EPOCH = 40587;
+
+/** MJD → calendar date, "2012-07-16" (UTC). */
+export function formatMjdDate(mjd: number): string {
+  return new Date((mjd - MJD_UNIX_EPOCH) * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** MJD → calendar date and time, "2012-07-16 22:52 UTC". */
+export function formatMjdDateTime(mjd: number): string {
+  const iso = new Date((mjd - MJD_UNIX_EPOCH) * 86_400_000).toISOString();
+  return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
+}

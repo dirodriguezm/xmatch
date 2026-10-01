@@ -8,6 +8,7 @@ import {
   FieldTimeOutlined,
   LineChartOutlined,
   RadarChartOutlined,
+  ReadOutlined,
   StarOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
@@ -23,12 +24,13 @@ import {
   Row,
   Select,
   Space,
+  Switch,
   Tooltip,
   Typography,
 } from "antd";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 
 import { ObjectActions } from "@/app/components/actions/ObjectActions";
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
@@ -46,6 +48,7 @@ import {
   useLightcurve,
   useNeighbors,
   usePs1Lightcurve,
+  useSimbad,
   useVizierSed,
   useXmmSource,
   useZtfLightcurve,
@@ -54,6 +57,8 @@ import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
 import { describeCatalogField } from "@/app/lib/constants/catalogFields";
 import {
   CATALOG_COLOR_CLASSES,
+  CATALOG_OPTIONS,
+  getSearchCatalogColor,
   getSearchCatalogLabel,
 } from "@/app/lib/constants/catalogs";
 import {
@@ -63,6 +68,7 @@ import {
 import { calculateAxisBounds } from "@/app/lib/utils/data";
 import { gaiaSourceIdFromDesignation } from "@/app/lib/utils/gaiaEpoch";
 import {
+  compareLightcurveCatalogs,
   detectionPointsToCsv,
   downloadCsv,
   getCatalogLabel,
@@ -81,6 +87,7 @@ import type { components } from "@/types/xwave-api";
 import { AladinViewer } from "./AladinViewer";
 import { LightCurveChart } from "./LightCurveChart";
 import { LightCurveSkeleton } from "./LightCurveSkeleton";
+import { LiteraturePanel } from "./LiteraturePanel";
 import { NearbySources } from "./NearbySources";
 import { ObjectArchives } from "./ObjectArchives";
 import { SedChart } from "./SedChart";
@@ -96,6 +103,18 @@ const ObservabilityPanel = dynamic(
 );
 
 const DSS_SURVEY = "https://alasky.cds.unistra.fr/DSS/DSSColor/";
+
+/** Sky view field: wide for context, or zoomed to show the nearby sources. */
+const SKY_FOV_WIDE_DEG = 0.9;
+// Wide enough that the 30″ ring fits the view's (shorter) height.
+const SKY_FOV_NEARBY_DEG = 1.6 / 60;
+
+/** Legend rings in the catalog colours (layers are keyed by label). */
+const CATALOG_BORDER_CLASSES: Record<string, string> = {
+  AllWISE: "border-[#722ed1]",
+  Gaia: "border-[#1890ff]",
+  eROSITA: "border-[#eb2f96]",
+};
 
 const SURVEY_OPTIONS = [
   {
@@ -301,6 +320,33 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     dec: object.dec,
     self: { id: object.objectId, catalog: object.catalog },
   });
+  // Nearby sources drawn on the sky view, one coloured layer per catalog.
+  const [showNearbyOnSky, setShowNearbyOnSky] = useState(true);
+  const skyLayers = useMemo(
+    () =>
+      showNearbyOnSky
+        ? CATALOG_OPTIONS.map((catalog) => ({
+            name: getSearchCatalogLabel(catalog),
+            color: getSearchCatalogColor(catalog),
+            sources: nearby.neighbors
+              .filter((n) => n.catalog === catalog)
+              .map((n) => ({
+                ra: n.ra,
+                dec: n.dec,
+                name: n.id,
+                // `label` is drawn next to the circle; the rest shows in the
+                // popup when the circle is clicked.
+                data: {
+                  label: `${n.separationArcsec.toFixed(1)}″`,
+                  Catalog: getSearchCatalogLabel(catalog),
+                  Separation: `${n.separationArcsec.toFixed(2)}″`,
+                  "Position angle": `${n.positionAngle.toFixed(0)}° E of N`,
+                },
+              })),
+          }))
+        : [],
+    [showNearbyOnSky, nearby.neighbors]
+  );
   const photometrySources: PhotometrySource[] = [
     {
       catalog: object.catalog,
@@ -351,6 +397,12 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const ps1Lightcurve = usePs1Lightcurve({ ra: object.ra, dec: object.dec });
   const crtsLightcurve = useCrtsLightcurve({ ra: object.ra, dec: object.dec });
   const xmmSource = useXmmSource({ ra: object.ra, dec: object.dec });
+  // Same query as SimbadIdentity's, so it comes from the cache.
+  const simbadMatch = useSimbad({
+    ra: object.ra,
+    dec: object.dec,
+    radius: simbadRadiusArcsec,
+  }).data?.match;
   const vizierSed = useVizierSed({ ra: object.ra, dec: object.dec });
   const reddening = useGalacticReddening({ ra: object.ra, dec: object.dec });
 
@@ -428,7 +480,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const filenameStem =
     object.objectId || `${object.ra.toFixed(5)}_${object.dec.toFixed(5)}`;
   const surveyPanelItems = Object.entries(lightcurveByCatalog)
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => compareLightcurveCatalogs(a, b))
     .map(([catalog, points]) => ({
       key: `lightcurve-${catalog}`,
       label: (
@@ -638,7 +690,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
           <FieldTimeOutlined />
           <span>Observability</span>
           <Text type="secondary" className="text-xs">
-            (Chilean observatories)
+            (Chile and major observatories worldwide)
           </Text>
         </Space>
       ),
@@ -708,6 +760,28 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       ),
     },
     ...(spectrumItem ? [spectrumItem] : []),
+    ...(simbadMatch
+      ? [
+          {
+            key: "literature",
+            label: (
+              <Space>
+                <ReadOutlined />
+                <span>Literature</span>
+                <Text type="secondary" className="text-xs">
+                  papers about {simbadMatch.mainId} (SIMBAD)
+                </Text>
+              </Space>
+            ),
+            children: (
+              <LiteraturePanel
+                oid={simbadMatch.oid}
+                mainId={simbadMatch.mainId}
+              />
+            ),
+          },
+        ]
+      : []),
     ...(catalogDetails.length > 0
       ? [
           {
@@ -775,7 +849,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       {/* Main two-column layout */}
       <Row gutter={[24, 24]} className="mb-6">
         {/* Left: Object Info */}
-        <Col xs={24} md={14}>
+        <Col xs={24} lg={12}>
           <Card
             className="bg-surface h-full"
             size="small"
@@ -799,6 +873,31 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                       catalog={object.catalog}
                       ra={object.ra}
                       dec={object.dec}
+                      extra={
+                        <Tooltip
+                          title={
+                            surveyPanelItems.length > 0
+                              ? "Download every light curve on this page as one CSV"
+                              : "No light curves available for this object"
+                          }
+                        >
+                          <span>
+                            <Button
+                              size="small"
+                              icon={<DownloadOutlined />}
+                              disabled={surveyPanelItems.length === 0}
+                              onClick={() =>
+                                downloadCsv(
+                                  `${filenameStem}_lightcurve.csv`,
+                                  detectionPointsToCsv(lightcurveByCatalog)
+                                )
+                              }
+                            >
+                              Light curves CSV
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      }
                     />
                   </div>
                 </div>
@@ -810,7 +909,9 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                       Right Ascension
                     </Text>
                     <Flex align="center" gap={8}>
-                      <Text className="font-mono">{object.ra.toFixed(6)}°</Text>
+                      <Text className="tabular-nums">
+                        {object.ra.toFixed(6)}°
+                      </Text>
                       <Text type="secondary" className="text-xs">
                         ({toHMS(object.ra)})
                       </Text>
@@ -829,7 +930,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                       Declination
                     </Text>
                     <Flex align="center" gap={8}>
-                      <Text className="font-mono">
+                      <Text className="tabular-nums">
                         {object.dec.toFixed(6)}°
                       </Text>
                       <Text type="secondary" className="text-xs">
@@ -849,7 +950,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                     <Text type="secondary" className="text-xs block mb-1">
                       Galactic
                     </Text>
-                    <Text className="font-mono text-sm">
+                    <Text className="tabular-nums text-sm">
                       l {galactic.l.toFixed(4)}°, b{" "}
                       {formatSigned(galactic.b, 4)}°
                     </Text>
@@ -858,7 +959,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                     <Text type="secondary" className="text-xs block mb-1">
                       Ecliptic (J2000)
                     </Text>
-                    <Text className="font-mono text-sm">
+                    <Text className="tabular-nums text-sm">
                       λ {ecliptic.lambda.toFixed(4)}°, β{" "}
                       {formatSigned(ecliptic.beta, 4)}°
                     </Text>
@@ -898,38 +999,18 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                   </Flex>
                 </div>
               </Flex>
-
-              <Flex justify="flex-end">
-                <Tooltip
-                  title={
-                    surveyPanelItems.length > 0
-                      ? "Download all light curves as CSV"
-                      : "No light curves available for this object"
-                  }
-                >
-                  <span>
-                    <Button
-                      size="small"
-                      icon={<DownloadOutlined />}
-                      disabled={surveyPanelItems.length === 0}
-                      onClick={() =>
-                        downloadCsv(
-                          `${filenameStem}_lightcurve.csv`,
-                          detectionPointsToCsv(lightcurveByCatalog)
-                        )
-                      }
-                    >
-                      Download All Light Curves
-                    </Button>
-                  </span>
-                </Tooltip>
-              </Flex>
+              <ObjectArchives
+                ra={object.ra}
+                dec={object.dec}
+                simbadRadiusArcsec={simbadRadiusArcsec}
+                bare
+              />
             </Flex>
           </Card>
         </Col>
 
         {/* Right: Aladin Viewer */}
-        <Col xs={24} md={10}>
+        <Col xs={24} lg={12}>
           <Card
             className="bg-surface h-full flex flex-col"
             styles={{
@@ -947,42 +1028,97 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               </Space>
             }
             extra={
-              <Select
-                defaultValue={DSS_SURVEY}
-                size="small"
-                className="w-[150px]"
-                options={surveySelectOptions}
-                popupMatchSelectWidth={false}
-                optionRender={(option) => (
-                  <div className="max-w-[280px]">
-                    <div>{option.label}</div>
-                    <div className="text-xs text-foreground/60 whitespace-normal">
-                      {SURVEY_DESCRIPTIONS.get(option.value as string)}
+              <Space size={12}>
+                <Tooltip
+                  title={`Circle every indexed source within 30″ (coloured by catalog) and zoom to ${(SKY_FOV_NEARBY_DEG * 60).toFixed(1)}′`}
+                >
+                  <Space size={6}>
+                    <Switch
+                      size="small"
+                      checked={showNearbyOnSky}
+                      onChange={(checked) => {
+                        setShowNearbyOnSky(checked);
+                        aladinRef.current?.goTo(
+                          object.ra,
+                          object.dec,
+                          checked ? SKY_FOV_NEARBY_DEG : SKY_FOV_WIDE_DEG
+                        );
+                      }}
+                      aria-label="Show nearby sources on the sky view"
+                    />
+                    <Text type="secondary" className="text-xs">
+                      Nearby
+                    </Text>
+                  </Space>
+                </Tooltip>
+                <Select
+                  defaultValue={DSS_SURVEY}
+                  size="small"
+                  className="w-[150px]"
+                  options={surveySelectOptions}
+                  popupMatchSelectWidth={false}
+                  optionRender={(option) => (
+                    <div className="max-w-[280px]">
+                      <div>{option.label}</div>
+                      <div className="text-xs text-foreground/60 whitespace-normal">
+                        {SURVEY_DESCRIPTIONS.get(option.value as string)}
+                      </div>
                     </div>
-                  </div>
-                )}
-                onChange={(value) => aladinRef.current?.setSurvey(value)}
-              />
+                  )}
+                  onChange={(value) => aladinRef.current?.setSurvey(value)}
+                />
+              </Space>
             }
           >
             <AladinViewer
               ref={aladinRef}
               center={{ ra: object.ra, dec: object.dec }}
-              fov={0.9}
+              // Initial field only; the Nearby switch zooms afterwards.
+              fov={SKY_FOV_NEARBY_DEG}
+              catalogLayers={skyLayers}
+              ringArcsec={showNearbyOnSky ? NEIGHBOR_RADIUS_ARCSEC : undefined}
               height="auto"
-              className="flex-1 min-h-[200px]"
+              className="flex-1 min-h-[380px]"
             />
+            {showNearbyOnSky && (
+              <Flex
+                wrap
+                gap={12}
+                align="center"
+                className="!px-3 !py-2 border-t border-border text-xs"
+              >
+                {skyLayers.map((layer) => {
+                  const n = layer.sources.length;
+                  const nearest = nearby.neighbors.find(
+                    (s) => getSearchCatalogLabel(s.catalog) === layer.name
+                  );
+                  return (
+                    <span
+                      key={layer.name}
+                      className="inline-flex items-center gap-1.5"
+                    >
+                      <span
+                        className={`inline-block w-2.5 h-2.5 rounded-full border-2 ${CATALOG_BORDER_CLASSES[layer.name] ?? "border-neutral-400"}`}
+                      />
+                      <span className="text-foreground">{layer.name}</span>
+                      <Text type="secondary" className="text-xs">
+                        {n === 0
+                          ? "none"
+                          : `${n} · nearest ${nearest!.separationArcsec.toFixed(1)}″`}
+                      </Text>
+                    </span>
+                  );
+                })}
+                <Text type="secondary" className="text-xs">
+                  {nearby.isLoading
+                    ? "Loading nearby sources…"
+                    : `Ring: ${NEIGHBOR_RADIUS_ARCSEC}″ · labels: separation · click a circle for details`}
+                </Text>
+              </Flex>
+            )}
           </Card>
         </Col>
       </Row>
-
-      <div className="mb-4">
-        <ObjectArchives
-          ra={object.ra}
-          dec={object.dec}
-          simbadRadiusArcsec={simbadRadiusArcsec}
-        />
-      </div>
 
       <Collapse
         items={collapseItems}

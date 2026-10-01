@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 
 import { getBandColor } from "@/app/lib/constants/bands";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
+import { formatMjdDateTime } from "@/app/lib/utils/format";
 import type { components } from "@/types/xwave-api";
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
@@ -154,6 +155,11 @@ export function LightCurveChart({
       axisLabel: {
         color: "#d9d9d9",
         formatter: (value: number) => value.toFixed(0),
+        // The axis spans a shared MJD range whose ends aren't round numbers;
+        // their labels would collide with the neighbouring ticks.
+        showMinLabel: false,
+        showMaxLabel: false,
+        hideOverlap: true,
       },
       axisLine: { lineStyle: { color: "#303030" } },
       splitLine: { lineStyle: { color: "#202020" } },
@@ -169,7 +175,13 @@ export function LightCurveChart({
       max: magBounds.max,
       axisLabel: {
         color: "#d9d9d9",
-        formatter: (value: number) => value.toFixed(1),
+        // Up to two decimals, trimmed: ticks 0.05 apart must not round to
+        // the same label.
+        formatter: (value: number) => String(Number(value.toFixed(2))),
+        // The padded data bounds aren't round either; show only nice ticks.
+        showMinLabel: false,
+        showMaxLabel: false,
+        hideOverlap: true,
       },
       axisLine: { lineStyle: { color: "#303030" } },
       splitLine: { lineStyle: { color: "#202020" } },
@@ -178,7 +190,7 @@ export function LightCurveChart({
       trigger: "item",
       formatter: (params: unknown) => {
         const p = params as { seriesName: string; value: [number, number] };
-        return `<b>${p.seriesName}</b><br/>MJD: ${p.value[0].toFixed(2)}<br/>Mag: ${p.value[1].toFixed(3)}`;
+        return `<b>${p.seriesName}</b><br/>${formatMjdDateTime(p.value[0])}<br/>MJD: ${p.value[0].toFixed(2)}<br/>Mag: ${p.value[1].toFixed(3)}`;
       },
     },
     dataZoom: [

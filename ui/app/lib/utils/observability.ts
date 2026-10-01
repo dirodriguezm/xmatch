@@ -22,10 +22,7 @@ import {
   VectorFromSphere,
 } from "astronomy-engine";
 
-import {
-  type Observatory,
-  OBSERVATORY_TIME_ZONE,
-} from "@/app/lib/constants/observatories";
+import type { Observatory } from "@/app/lib/constants/observatories";
 
 /** Sun altitude at which astronomical twilight begins/ends. */
 const ASTRONOMICAL_TWILIGHT_DEG = -18;
@@ -226,24 +223,39 @@ export function tonightInTimeZone(timeZone: string, now = new Date()): Date {
   return new Date(get("year"), get("month") - 1, get("day"));
 }
 
-const chileTime = new Intl.DateTimeFormat("en-GB", {
-  timeZone: OBSERVATORY_TIME_ZONE,
-  hour: "2-digit",
-  minute: "2-digit",
-});
+const timeFormats = new Map<string, Intl.DateTimeFormat>();
 
-/** HH:mm in Chile time, where every offered observatory is. */
-export function formatChileTime(date: Date): string {
-  return chileTime.format(date);
+/** HH:mm in `timeZone` (an IANA zone such as a site's). */
+export function formatSiteTime(date: Date, timeZone: string): string {
+  let fmt = timeFormats.get(timeZone);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    timeFormats.set(timeZone, fmt);
+  }
+  return fmt.format(date);
 }
 
-/** One-line description of a night's visibility, times in Chile time. */
+/** Short zone name at `date`, e.g. "HST" or "GMT-3". */
+export function timeZoneAbbreviation(date: Date, timeZone: string): string {
+  return (
+    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" })
+      .formatToParts(date)
+      .find((p) => p.type === "timeZoneName")?.value ?? timeZone
+  );
+}
+
+/** One-line description of a night's visibility, in the site's local time. */
 export function summarizeVisibility(
   v: NightVisibility,
-  siteLabel: string,
+  site: { label: string; timeZone: string },
   minAltitudeDeg = DEFAULT_MIN_ALTITUDE_DEG
 ): string {
-  const hhmm = formatChileTime;
+  const siteLabel = site.label;
+  const hhmm = (d: Date) => formatSiteTime(d, site.timeZone);
   if (v.window && v.best) {
     const am =
       v.best.airmass != null ? ` (airmass ${v.best.airmass.toFixed(2)})` : "";

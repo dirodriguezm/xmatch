@@ -2,16 +2,16 @@
 
 import { Descriptions, Flex, Tooltip, Typography } from "antd";
 
-import { formatFlux, formatScientific } from "@/app/lib/utils/format";
+import {
+  formatFlux,
+  formatMjdDate,
+  formatScientific,
+} from "@/app/lib/utils/format";
 import type { XmmSource, XmmValue } from "@/app/lib/utils/xmm5";
 
 const { Text, Link } = Typography;
 
 const XSA_URL = "https://nxsa.esac.esa.int/nxsa-web/#search";
-
-function mjdToDate(mjd: number): string {
-  return new Date((mjd - 40587) * 86_400_000).toISOString().slice(0, 10);
-}
 
 function fluxText(v?: XmmValue): string {
   if (!v) return "—";
@@ -72,7 +72,7 @@ export function XmmSourcePanel({ source: s }: { source: XmmSource }) {
               s.observations !== undefined
                 ? `${s.observations}${
                     s.mjdFirst !== undefined && s.mjdLast !== undefined
-                      ? ` · ${mjdToDate(s.mjdFirst)} → ${mjdToDate(s.mjdLast)}`
+                      ? ` · ${formatMjdDate(s.mjdFirst)} → ${formatMjdDate(s.mjdLast)}`
                       : ""
                   }`
                 : "—",

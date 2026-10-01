@@ -1,4 +1,5 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, type UseQueryResult } from "@tanstack/react-query";
+import { useCallback } from "react";
 
 import {
   CATALOG_OPTIONS,
@@ -6,7 +7,11 @@ import {
 } from "@/app/lib/constants/catalogs";
 import { positionAngle } from "@/app/lib/utils/coordinates";
 
-import { ConeSearchError, fetchConeSearch } from "./useConeSearch";
+import {
+  type CatalogGroup,
+  ConeSearchError,
+  fetchConeSearch,
+} from "./useConeSearch";
 
 /** Radius of the "Nearby sources" search around an object, in arcsec. */
 export const NEIGHBOR_RADIUS_ARCSEC = 30;
@@ -23,6 +28,8 @@ export interface NeighborsParams {
 export interface Neighbor {
   catalog: CatalogOption;
   id: string;
+  ra: number;
+  dec: number;
   separationArcsec: number;
   /** Degrees east of north, as seen from the object. */
   positionAngle: number;
@@ -43,7 +50,54 @@ export interface NeighborsResult {
  * failing never hides the others.
  */
 export function useNeighbors(params: NeighborsParams | null): NeighborsResult {
-  const queries = useQueries({
+  const ra = params?.ra;
+  const dec = params?.dec;
+  const selfId = params?.self.id;
+  const selfCatalog = params?.self.catalog.toLowerCase();
+
+  // Combining inside useQueries (with a stable callback) memoises the result,
+  // so `neighbors` keeps its identity until the data changes — the sky view
+  // re-draws its overlay only then.
+  const combine = useCallback(
+    (queries: UseQueryResult<CatalogGroup[]>[]): NeighborsResult => {
+      const neighbors: Neighbor[] = [];
+      const failedCatalogs: CatalogOption[] = [];
+      const truncatedCatalogs: CatalogOption[] = [];
+
+      CATALOG_OPTIONS.forEach((catalog, i) => {
+        const q = queries[i];
+        if (q.isError) failedCatalogs.push(catalog);
+        if (!q.data || ra === undefined || dec === undefined) return;
+        const rows = q.data.flatMap((g) => g.data ?? []);
+        if (rows.length >= NEIGHBOR_MAX_PER_CATALOG)
+          truncatedCatalogs.push(catalog);
+        for (const r of rows) {
+          if (!r.id || typeof r.ra !== "number" || typeof r.dec !== "number")
+            continue;
+          if (catalog === selfCatalog && r.id === selfId) continue;
+          neighbors.push({
+            catalog,
+            id: r.id,
+            ra: r.ra,
+            dec: r.dec,
+            separationArcsec: r.distance ?? 0,
+            positionAngle: positionAngle(ra, dec, r.ra, r.dec),
+          });
+        }
+      });
+      neighbors.sort((a, b) => a.separationArcsec - b.separationArcsec);
+
+      return {
+        neighbors,
+        isLoading: queries.some((q) => q.isPending && q.fetchStatus !== "idle"),
+        failedCatalogs,
+        truncatedCatalogs,
+      };
+    },
+    [ra, dec, selfId, selfCatalog]
+  );
+
+  return useQueries({
     queries: CATALOG_OPTIONS.map((catalog) => ({
       queryKey: [
         "neighbors",
@@ -72,38 +126,6 @@ export function useNeighbors(params: NeighborsParams | null): NeighborsResult {
         return failureCount < 2;
       },
     })),
+    combine,
   });
-
-  const neighbors: Neighbor[] = [];
-  const failedCatalogs: CatalogOption[] = [];
-  const truncatedCatalogs: CatalogOption[] = [];
-  const selfCatalog = params?.self.catalog.toLowerCase();
-
-  CATALOG_OPTIONS.forEach((catalog, i) => {
-    const q = queries[i];
-    if (q.isError) failedCatalogs.push(catalog);
-    if (!q.data || !params) return;
-    const rows = q.data.flatMap((g) => g.data ?? []);
-    if (rows.length >= NEIGHBOR_MAX_PER_CATALOG)
-      truncatedCatalogs.push(catalog);
-    for (const r of rows) {
-      if (!r.id || typeof r.ra !== "number" || typeof r.dec !== "number")
-        continue;
-      if (catalog === selfCatalog && r.id === params.self.id) continue;
-      neighbors.push({
-        catalog,
-        id: r.id,
-        separationArcsec: r.distance ?? 0,
-        positionAngle: positionAngle(params.ra, params.dec, r.ra, r.dec),
-      });
-    }
-  });
-  neighbors.sort((a, b) => a.separationArcsec - b.separationArcsec);
-
-  return {
-    neighbors,
-    isLoading: queries.some((q) => q.isPending && q.fetchStatus !== "idle"),
-    failedCatalogs,
-    truncatedCatalogs,
-  };
 }

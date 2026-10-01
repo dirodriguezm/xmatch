@@ -14,6 +14,8 @@ const TIMEOUT_MS = 15_000;
 const REVALIDATE_S = 86_400;
 
 export interface SimbadMatch {
+  /** SIMBAD's internal object id, for follow-up queries (e.g. references). */
+  oid: number;
   /** SIMBAD main identifier, whitespace-collapsed ("M  31" → "M 31"). */
   mainId: string;
   separationArcsec: number;
@@ -61,7 +63,7 @@ export async function GET(request: NextRequest) {
   // ra/dec/radius are validated finite numbers, so interpolating them is safe.
   const point = `POINT('ICRS', ${ra}, ${dec})`;
   const query =
-    `SELECT TOP 1 main_id, rvz_redshift, rvz_radvel, rvz_type, rvz_qual, ` +
+    `SELECT TOP 1 oid, main_id, rvz_redshift, rvz_radvel, rvz_type, rvz_qual, ` +
     `DISTANCE(POINT('ICRS', ra, dec), ${point}) AS dist FROM basic ` +
     `WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', ${ra}, ${dec}, ${radius / 3600})) = 1 ` +
     `ORDER BY dist`;
@@ -95,13 +97,16 @@ export async function GET(request: NextRequest) {
 }
 
 function parseSimbadRow(row: unknown[] | undefined): SimbadResponse {
-  if (!row || typeof row[0] !== "string") return { found: false };
-  const [mainId, redshift, radvel, type, qual, dist] = row;
+  if (!row || typeof row[0] !== "number" || typeof row[1] !== "string") {
+    return { found: false };
+  }
+  const [oid, mainId, redshift, radvel, type, qual, dist] = row;
   const num = (v: unknown) =>
     typeof v === "number" && Number.isFinite(v) ? v : undefined;
   return {
     found: true,
     match: {
+      oid,
       mainId: mainId.replace(/\s+/g, " ").trim(),
       separationArcsec: (num(dist) ?? 0) * 3600,
       redshift: type === "z" ? num(redshift) : undefined,

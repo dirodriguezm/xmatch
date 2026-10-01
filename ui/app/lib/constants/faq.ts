@@ -90,13 +90,6 @@ export const FAQ_ITEMS: FaqItem[] = [
     links: [{ href: "/bulk", label: "Bulk cross-match" }],
   },
   {
-    id: "how-to-cite",
-    question: "How do I cite XWave and the catalogs?",
-    answer: [
-      "Cite XWave and the original catalog papers for every catalog you used, and include each survey's requested acknowledgement text. The Cite button on any object or results page generates BibTeX and acknowledgements for you.",
-    ],
-  },
-  {
     id: "api-access",
     question: "Can I use XWave from code?",
     answer: [

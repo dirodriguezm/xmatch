@@ -312,9 +312,7 @@ export default function AboutPage() {
             ))}
           </ul>
           <Paragraph className="text-muted !mb-0 !mt-4">
-            {CDS_ACKNOWLEDGEMENT} If XWave helped your work, the Cite button on
-            any object or results page gives the references and acknowledgement
-            text for XWave and each catalog.
+            {CDS_ACKNOWLEDGEMENT}
           </Paragraph>
         </Section>
 

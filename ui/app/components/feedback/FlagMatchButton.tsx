@@ -110,6 +110,7 @@ export function FlagMatchButton({
         }
       >
         <Button
+          size="small"
           icon={reported ? <FlagFilled /> : <FlagOutlined />}
           onClick={() => setOpen(true)}
           className={reported ? "!text-amber-400" : undefined}

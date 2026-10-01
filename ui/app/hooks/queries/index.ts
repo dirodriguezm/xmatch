@@ -24,7 +24,7 @@ export {
   type NeighborsParams,
   useNeighbors,
 } from "./useNeighbors";
-export { type SimbadParams, useSimbad } from "./useSimbad";
+export { type SimbadParams, useSimbad, useSimbadRefs } from "./useSimbad";
 export {
   type GaiaEpochParams,
   useCrtsLightcurve,

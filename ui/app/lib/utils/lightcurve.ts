@@ -16,6 +16,21 @@ const CATALOG_LABELS: Record<string, string> = {
   ztf: "ZTF",
 };
 
+/**
+ * Panel order for light curves: infrared before optical, then by when each
+ * survey observed (Catalina 2005–16, Pan-STARRS 2009–14, Gaia 2014–17,
+ * ZTF 2018–). Surveys not listed go last, alphabetically.
+ */
+const LIGHTCURVE_ORDER = ["neowise", "allwise", "crts", "ps1", "gaia", "ztf"];
+
+export function compareLightcurveCatalogs(a: string, b: string): number {
+  const rank = (c: string) => {
+    const i = LIGHTCURVE_ORDER.indexOf(c.toLowerCase());
+    return i === -1 ? LIGHTCURVE_ORDER.length : i;
+  };
+  return rank(a) - rank(b) || a.localeCompare(b);
+}
+
 export function getCatalogLabel(catalog: string): string {
   return CATALOG_LABELS[catalog.toLowerCase()] ?? catalog.toUpperCase();
 }

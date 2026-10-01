@@ -27,6 +27,8 @@ interface ObjectArchivesProps {
   dec: number;
   /** Radius of the page's SIMBAD lookup, so this shares its cached result. */
   simbadRadiusArcsec: number;
+  /** Render without its own card, as a section inside another card. */
+  bare?: boolean;
 }
 
 // Buttons are grouped by what the destination service returns:
@@ -39,6 +41,7 @@ export function ObjectArchives({
   ra,
   dec,
   simbadRadiusArcsec,
+  bare = false,
 }: ObjectArchivesProps) {
   const simbadUrl = buildSimbadUrl(ra, dec);
   const vizierUrl = buildVizierUrl(ra, dec);
@@ -196,27 +199,40 @@ export function ObjectArchives({
     },
   ];
 
+  const rows = (
+    <Flex vertical gap={12}>
+      {groups.map((g) => (
+        // Fixed label column; buttons wrap inside their own column instead
+        // of dropping under the label.
+        <Flex key={g.label} align="start" gap={12} className="min-h-[28px]">
+          <Flex align="center" gap={6} className="w-[120px] shrink-0 h-6">
+            {g.icon}
+            <Text type="secondary" className="text-xs">
+              {g.label}
+            </Text>
+          </Flex>
+          <Space wrap className="flex-1 min-w-0">
+            {g.buttons}
+          </Space>
+        </Flex>
+      ))}
+    </Flex>
+  );
+
+  if (bare) {
+    return (
+      <section aria-label="Archives" className="border-t border-border pt-4">
+        <Text type="secondary" className="text-xs block mb-3">
+          Archives
+        </Text>
+        {rows}
+      </section>
+    );
+  }
+
   return (
     <Card title="Archives" size="small" className="bg-surface">
-      <Flex vertical gap={12}>
-        {groups.map((g) => (
-          <Flex
-            key={g.label}
-            align="center"
-            wrap="wrap"
-            gap={12}
-            className="min-h-[28px]"
-          >
-            <Flex align="center" gap={6} className="min-w-[120px]">
-              {g.icon}
-              <Text type="secondary" className="text-xs">
-                {g.label}
-              </Text>
-            </Flex>
-            <Space wrap>{g.buttons}</Space>
-          </Flex>
-        ))}
-      </Flex>
+      {rows}
     </Card>
   );
 }

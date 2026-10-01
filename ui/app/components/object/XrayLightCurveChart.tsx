@@ -8,7 +8,7 @@ import type {
 } from "echarts";
 import dynamic from "next/dynamic";
 
-import { formatFlux } from "@/app/lib/utils/format";
+import { formatFlux, formatMjdDate } from "@/app/lib/utils/format";
 import {
   HILIGT_MISSIONS,
   type HiligtMission,
@@ -57,10 +57,6 @@ function toDatum(p: HiligtPoint): Datum {
   };
 }
 
-function mjdToDate(mjd: number): string {
-  return new Date((mjd - 40587) * 86_400_000).toISOString().slice(0, 10);
-}
-
 function formatPoint(p: HiligtPoint): string {
   const value =
     p.flux !== undefined
@@ -69,7 +65,7 @@ function formatPoint(p: HiligtPoint): string {
   return [
     `<b>${HILIGT_MISSIONS[p.mission]}</b>${p.instrument ? ` · ${p.instrument}` : ""}`,
     `${p.band} keV: ${value}`,
-    `${mjdToDate(p.mjd)} (MJD ${p.mjd.toFixed(1)})`,
+    `${formatMjdDate(p.mjd)} (MJD ${p.mjd.toFixed(1)})`,
     `<span style="color:#999">obs ${p.obsid ?? "—"}${p.exposureS ? ` · ${Math.round(p.exposureS)} s` : ""}</span>`,
   ].join("<br/>");
 }
@@ -150,7 +146,7 @@ export function XrayLightCurveChart({
     nameTextStyle: { color: "#bfbfbf" },
     axisLine: { lineStyle: { color: "#303030" } },
     splitLine: { lineStyle: { color: "#202020" } },
-    axisLabel: { color: "#d9d9d9" },
+    axisLabel: { color: "#d9d9d9", hideOverlap: true },
   };
 
   const option: EChartsOption = {

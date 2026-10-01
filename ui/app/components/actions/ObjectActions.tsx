@@ -1,9 +1,9 @@
 "use client";
 
 import { Flex } from "antd";
+import type { ReactNode } from "react";
 
 import { BasketButton } from "@/app/components/basket/BasketButton";
-import { CiteButton } from "@/app/components/cite/CiteButton";
 import { CodeSnippetButton } from "@/app/components/code/CodeSnippetButton";
 import { FlagMatchButton } from "@/app/components/feedback/FlagMatchButton";
 import { ShareButton } from "@/app/components/share/ShareButton";
@@ -19,14 +19,17 @@ interface ObjectActionsProps {
   catalog: string;
   ra: number;
   dec: number;
+  /** Extra buttons from the page, placed before Report. */
+  extra?: ReactNode;
 }
 
-/** Toolbar on the object page: code, cite, share, basket, flag. */
+/** Toolbar on the object page: code, share, basket, extras, flag. */
 export function ObjectActions({
   objectId,
   catalog,
   ra,
   dec,
+  extra,
 }: ObjectActionsProps) {
   const path = buildObjectUrl(objectId, catalog);
   return (
@@ -45,13 +48,17 @@ export function ObjectActions({
           },
         ]}
       />
-      <CiteButton catalogs={[catalog]} objectId={objectId} />
       <ShareButton
         path={path}
         title={objectId}
         embedPath={`/embed/object/${encodeURIComponent(objectId)}?catalog=${encodeURIComponent(catalog)}`}
       />
-      <BasketButton item={{ objectId, catalog, ra, dec }} />
+      <BasketButton
+        item={{ objectId, catalog, ra, dec }}
+        size="small"
+        labeled
+      />
+      {extra}
       <FlagMatchButton
         objectId={objectId}
         catalog={catalog}

@@ -9,15 +9,16 @@ import { type ReactNode, useMemo, useState } from "react";
 
 import {
   DEFAULT_OBSERVATORY_ID,
-  OBSERVATORIES,
-  OBSERVATORY_TIME_ZONE,
+  getObservatory,
+  OBSERVATORY_OPTIONS,
 } from "@/app/lib/constants/observatories";
 import {
   computeNightVisibility,
   DEFAULT_MIN_ALTITUDE_DEG,
-  formatChileTime,
+  formatSiteTime,
   observableHours,
   summarizeVisibility,
+  timeZoneAbbreviation,
   tonightInTimeZone,
 } from "@/app/lib/utils/observability";
 
@@ -65,8 +66,6 @@ function CalendarLegend() {
   );
 }
 
-const hhmm = formatChileTime;
-
 function addDays(date: Date, days: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
@@ -85,11 +84,16 @@ interface ObservabilityPanelProps {
 }
 
 export function ObservabilityPanel({ ra, dec }: ObservabilityPanelProps) {
-  const tonight = useMemo(() => tonightInTimeZone(OBSERVATORY_TIME_ZONE), []);
   const [siteId, setSiteId] = useState(DEFAULT_OBSERVATORY_ID);
+  const site = getObservatory(siteId);
+  // "Tonight" is the site's local night, so it depends on its time zone.
+  const tonight = useMemo(
+    () => tonightInTimeZone(site.timeZone),
+    [site.timeZone]
+  );
   const [night, setNight] = useState(tonight);
-
-  const site = OBSERVATORIES.find((o) => o.id === siteId) ?? OBSERVATORIES[0];
+  const hhmm = (d: Date) => formatSiteTime(d, site.timeZone);
+  const zone = timeZoneAbbreviation(night, site.timeZone);
   const visibility = useMemo(
     () => computeNightVisibility(ra, dec, site, night),
     [ra, dec, site, night]
@@ -233,7 +237,7 @@ export function ObservabilityPanel({ ra, dec }: ObservabilityPanelProps) {
       type: "time",
       min: start.getTime(),
       max: end.getTime(),
-      name: "Chile time",
+      name: `Local time (${zone})`,
       nameLocation: "middle",
       nameGap: 26,
       nameTextStyle: { color: "#bfbfbf" },
@@ -288,7 +292,7 @@ export function ObservabilityPanel({ ra, dec }: ObservabilityPanelProps) {
           value={siteId}
           onChange={setSiteId}
           className="min-w-[220px]"
-          options={OBSERVATORIES.map((o) => ({ label: o.label, value: o.id }))}
+          options={OBSERVATORY_OPTIONS}
         />
         <Flex align="center" gap={4}>
           <Button
@@ -337,13 +341,12 @@ export function ObservabilityPanel({ ra, dec }: ObservabilityPanelProps) {
       </Flex>
 
       <div>
-        <Text className="block">
-          {summarizeVisibility(visibility, site.label)}
-        </Text>
+        <Text className="block">{summarizeVisibility(visibility, site)}</Text>
         <Text type="secondary" className="text-xs block">
           Astronomical night {hhmm(visibility.duskAstronomical)}–
           {hhmm(visibility.dawnAstronomical)} · Moon {moonPct}% illuminated,{" "}
-          {visibility.moon.separationDeg.toFixed(0)}° away · times in Chile time
+          {visibility.moon.separationDeg.toFixed(0)}° away · times are local (
+          {zone})
           <br />
           Computed in your browser with{" "}
           <Link

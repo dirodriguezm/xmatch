@@ -22,12 +22,11 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-26",
     title: "New site sections",
     summary:
-      "XWave grows from a search box into a full site: bulk matching, reproducible code, citation help and live status.",
+      "XWave grows from a search box into a full site: bulk matching, reproducible code and live status.",
     tags: ["New"],
     items: [
       "Bulk cross-match: upload a list of positions and match them against every catalog in one go.",
       "Copy as code: every search and object has ready-to-run curl, Python and JavaScript snippets.",
-      "Cite: BibTeX and acknowledgement text for XWave and each catalog you used.",
       "Share and embed: copyable links and an embeddable object card.",
       "Explore: browse the sky and collect objects in a basket for later.",
       "Command palette (⌘K / Ctrl K) to jump anywhere.",
