@@ -117,25 +117,14 @@ function Crosshair({ cx, cy }: { cx: number; cy: number }) {
   );
 }
 
-function Wordmark() {
+function Wordmark({ logoSrc }: { logoSrc?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          background: ACCENT,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#fff",
-          fontSize: 26,
-          fontWeight: 700,
-        }}
-      >
-        X
-      </div>
+      {logoSrc && (
+        // The same mark as the site header (public/xwave-icon.svg).
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logoSrc} width={48} height={48} alt="" />
+      )}
       <div
         style={{
           fontSize: 34,
@@ -157,6 +146,8 @@ interface OgCardProps {
   /** Lines under the headline (coordinates, tagline…). */
   lines?: string[];
   footer?: string;
+  /** Data URI of the site logo, from {@link loadLogoDataUri}. */
+  logoSrc?: string;
   seed?: string;
 }
 
@@ -166,6 +157,7 @@ export function OgCard({
   lines = [],
   footer,
   seed = headline,
+  logoSrc,
 }: OgCardProps) {
   const headlineSize = headline.length > 26 ? 56 : 72;
   return (
@@ -192,7 +184,7 @@ export function OgCard({
           height: "100%",
         }}
       >
-        <Wordmark />
+        <Wordmark logoSrc={logoSrc} />
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {eyebrow && (
             <div style={{ display: "flex" }}>

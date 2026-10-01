@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     template: "XWave | %s",
   },
   description:
-    "Cross-match any sky position against Gaia DR3, AllWISE and eROSITA in milliseconds — with light curves, SEDs, code snippets and citations.",
+    "Cross-match any sky position against Gaia DR3, AllWISE and eROSITA in milliseconds — with light curves, SEDs, X-ray data and code snippets.",
   alternates: {
     types: { "application/rss+xml": "/changelog/rss.xml" },
   },

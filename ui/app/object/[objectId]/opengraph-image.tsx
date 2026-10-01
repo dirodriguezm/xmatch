@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 
 import { OG_SIZE, OgCard } from "@/app/components/share/OgCard";
+import { loadLogoDataUri } from "@/app/components/share/ogLogo";
 import { toDMS, toHMS } from "@/app/lib/utils/coordinates";
 import {
   catalogFromObjectId,
@@ -20,9 +21,10 @@ export default async function Image({
   const { objectId } = await params;
   const id = decodeURIComponent(objectId);
   const catalog = catalogFromObjectId(id);
-  const summary = catalog
-    ? await fetchObjectSummary(id, catalog.slug, 2000)
-    : null;
+  const [summary, logoSrc] = await Promise.all([
+    catalog ? fetchObjectSummary(id, catalog.slug, 2000) : null,
+    loadLogoDataUri(),
+  ]);
 
   const lines = summary
     ? [
@@ -38,6 +40,7 @@ export default async function Image({
       lines={lines}
       footer="Position · photometry · light curves · counterparts"
       seed={id}
+      logoSrc={logoSrc}
     />,
     size
   );

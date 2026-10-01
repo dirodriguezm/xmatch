@@ -69,7 +69,7 @@ ${catalogLines()}
 - [Full API reference for LLMs](${SITE_URL}/llms-full.txt): every endpoint, parameter, response schema and error, in plain text
 - [API playground](${SITE_URL}/developers): build requests, copy curl/Python/JS, run them live
 - [Swagger / OpenAPI](${SWAGGER_URL}): machine-readable spec
-- [Catalogs](${SITE_URL}/catalogs): releases, coverage, citations and known issues
+- [Catalogs](${SITE_URL}/catalogs): releases, coverage, references and known issues
 - [Learn & FAQ](${SITE_URL}/learn): choosing a radius, interpreting matches
 
 ## Optional
