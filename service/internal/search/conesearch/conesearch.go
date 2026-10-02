@@ -25,7 +25,6 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/assertions"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/dirodriguezm/xmatch/service/internal/search/knn"
 
 	"github.com/dirodriguezm/healpix"
 )
@@ -37,7 +36,7 @@ type CatalogRegistry interface {
 
 type indexedResult struct {
 	index  int
-	result knn.KnnResult[repository.Mastercat]
+	result selectionResult[repository.Mastercat]
 }
 
 type ConesearchService struct {
@@ -121,7 +120,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 		objects = append(objects, objs...)
 	}
 
-	return ResultFromKnn(knn.NearestNeighborSearch(objects, ra, dec, radius, nneighbor), 0), nil
+	return ResultFromSelection(selectNearest(objects, ra, dec, radius, nneighbor, mastercatCoordinates), 0), nil
 }
 
 func (c *ConesearchService) FindMetadataByConesearch(
@@ -138,7 +137,7 @@ func (c *ConesearchService) FindMetadataByConesearch(
 		return nil, fmt.Errorf("could not find allwise metadata: %w", err)
 	}
 
-	return ResultFromKnnMetadata(knn.NearestNeighborSearchForMetadata(objects, ra, dec, radius, nneighbor)), nil
+	return ResultFromSelectionMetadata(selectNearest(objects, ra, dec, radius, nneighbor, metadataCoordinates)), nil
 }
 
 func findMetadata(
@@ -207,7 +206,7 @@ func (c *ConesearchService) BulkConesearch(
 
 					resultsChan <- indexedResult{
 						index:  baseIndex + j,
-						result: knn.NearestNeighborSearch(objs, chunkRa[j], chunkDec[j], radius, nneighbor),
+						result: selectNearest(objs, chunkRa[j], chunkDec[j], radius, nneighbor, mastercatCoordinates),
 					}
 				}
 
@@ -223,7 +222,7 @@ func (c *ConesearchService) BulkConesearch(
 
 	resultsByIndex := make([][]MastercatResult, len(ra))
 	for indexed := range resultsChan {
-		resultsByIndex[indexed.index] = ResultFromKnn(indexed.result, indexed.index)
+		resultsByIndex[indexed.index] = ResultFromSelection(indexed.result, indexed.index)
 	}
 	for err := range errChan {
 		return nil, err

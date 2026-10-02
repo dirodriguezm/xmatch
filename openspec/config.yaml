@@ -1,20 +1,11 @@
 schema: spec-driven
-
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
-
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Keep proposal as short as possible
+  tasks:
+    - Don't create a verification task at the end for running tests or building the code. Instead, include verification as an extra step on each task.
+operations:
+  apply:
+    guidance:
+      - Always implement only one task per session. Understand task as the whole set of steps for a top level number. Example, task 1 is composed by 1.1, 1.2 and 1.3
+      - After the top level task is finished, stop all execution. The user will review the implemented code and possibly request changes
