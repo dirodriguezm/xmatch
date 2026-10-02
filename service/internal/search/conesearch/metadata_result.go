@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/dirodriguezm/xmatch/service/internal/search/knn"
 )
 
 type MetadataExtended struct {
@@ -36,7 +35,7 @@ type MetadataResult struct {
 	Data    []MetadataExtended `json:"data"`
 }
 
-func ResultFromKnnMetadata(metadata knn.KnnResult[repository.Metadata]) []MetadataResult {
+func ResultFromSelectionMetadata(metadata selectionResult[repository.Metadata]) []MetadataResult {
 	result := make([]MetadataResult, 0)
 	grouped := make(map[string][]MetadataExtended)
 	for i, m := range metadata.Data {
