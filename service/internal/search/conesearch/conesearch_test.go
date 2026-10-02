@@ -139,6 +139,34 @@ func TestBulkConesearch(t *testing.T) {
 	}
 }
 
+func TestBulkConesearch_CollapsesDuplicateCandidates(t *testing.T) {
+	objects := []repository.Mastercat{
+		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
+		{ID: "B", Ra: 1.1, Dec: 1, Cat: "vlass"},
+		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
+	}
+	repo := repository.NewMockMastercatReader(t)
+	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(objects, nil)
+	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
+	require.NoError(t, err)
+
+	result, err := service.BulkConesearch([]float64{1}, []float64{1}, 3600, 100, "all", 1, 1)
+	require.NoError(t, err)
+	repo.AssertExpectations(t)
+
+	// The same object appears twice in the candidate set for the input
+	// position, so it must be returned once; distinct objects are kept.
+	require.Len(t, result, 2)
+	ids := make([]string, 0, len(result))
+	for _, r := range result {
+		require.Len(t, r.Data, 1)
+		require.Equal(t, 0, r.Index)
+		ids = append(ids, r.Data[0].ID)
+	}
+	require.ElementsMatch(t, []string{"A", "B"}, ids)
+}
+
 func TestBulkConesearch_WithRepositoryError(t *testing.T) {
 	repo := repository.NewMockMastercatReader(t)
 	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(nil, errors.New("repository error"))
