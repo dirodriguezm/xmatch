@@ -1,8 +1,9 @@
 "use client";
 
-import { Layout, Spin } from "antd";
+import { Layout } from "antd";
 import { Suspense, useCallback, useEffect, useMemo } from "react";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { AppHeader } from "@/app/components/layout";
 import { SearchResults } from "@/app/components/results/SearchResults";
 import { SidebarSearchForm } from "@/app/components/sidebar";
@@ -126,7 +127,7 @@ function LoadingFallback() {
     <Layout className="min-h-screen">
       <AppHeader />
       <Content className="bg-background min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <Spin size="large" />
+        <XWaveSpinner variant="xwave" size={64} />
       </Content>
     </Layout>
   );

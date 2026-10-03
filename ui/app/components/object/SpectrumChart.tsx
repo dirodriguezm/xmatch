@@ -1,10 +1,11 @@
 "use client";
 
 import { LineChartOutlined } from "@ant-design/icons";
-import { Empty, Spin, Typography } from "antd";
+import { Empty, Typography } from "antd";
 import type { EChartsOption, LineSeriesOption } from "echarts";
 import dynamic from "next/dynamic";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { SKY_BANDS, SPECTRAL_LINES } from "@/app/lib/constants/spectralLines";
 import { buildDesiSpectrumUrl } from "@/app/lib/utils/urls";
 
@@ -47,7 +48,7 @@ export function SpectrumChart({
   if (loading) {
     return (
       <div className="h-64 flex items-center justify-center">
-        <Spin spinning>{null}</Spin>
+        <XWaveSpinner size={32} />
       </div>
     );
   }

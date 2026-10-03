@@ -7,6 +7,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { useState } from "react";
 
 import { CommandPalette } from "@/app/components/command/CommandPalette";
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { darkTheme } from "@/app/lib/theme/antd-theme";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -26,7 +27,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     // antd's styles go in their own CSS layer, below Tailwind's utilities, so
     // a utility class on an antd component (padding, width…) actually applies.
     <AntdRegistry layer>
-      <ConfigProvider theme={darkTheme}>
+      <ConfigProvider
+        theme={darkTheme}
+        spin={{ indicator: <XWaveSpinner size={20} /> }}
+      >
         <App>
           <QueryClientProvider client={queryClient}>
             <NuqsAdapter>

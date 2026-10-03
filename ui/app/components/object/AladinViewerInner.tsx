@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import type {
   AladinCatalog,
   AladinCatalogSource,
@@ -507,10 +508,7 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
         {/* Loading overlay */}
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-surface">
-            <div className="text-center">
-              <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-              <span className="text-xs text-foreground/60">Loading...</span>
-            </div>
+            <XWaveSpinner size={24} />
           </div>
         )}
 

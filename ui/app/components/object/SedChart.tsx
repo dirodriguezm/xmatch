@@ -11,6 +11,7 @@ import type {
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import {
   getSearchCatalogColor,
   getSearchCatalogLabel,
@@ -192,11 +193,21 @@ export function SedChart({
   if (points.length + vizierShown.length < MIN_SED_POINTS) {
     return (
       <Flex vertical gap={4}>
-        <Text type="secondary" className="text-xs block">
-          {vizier.loading
-            ? "Not enough photometry for an SED yet — loading VizieR photometry…"
-            : "Not enough photometry for an SED."}
-        </Text>
+        {vizier.loading ? (
+          <div className="flex justify-center py-4">
+            <XWaveSpinner
+              variant="sed"
+              size={48}
+              label={
+                <span className="text-xs">Loading VizieR photometry…</span>
+              }
+            />
+          </div>
+        ) : (
+          <Text type="secondary" className="text-xs block">
+            Not enough photometry for an SED.
+          </Text>
+        )}
         {sources}
       </Flex>
     );

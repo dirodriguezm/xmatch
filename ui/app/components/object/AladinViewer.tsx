@@ -1,9 +1,9 @@
 "use client";
 
-import { Spin } from "antd";
 import dynamic from "next/dynamic";
 import { forwardRef } from "react";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import type { AladinViewerProps, AladinViewerRef } from "@/types/aladin";
 
 // Dynamically import the inner component to avoid SSR issues
@@ -16,7 +16,7 @@ const AladinViewerInner = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex items-center justify-center bg-surface h-[200px] w-full">
-        <Spin spinning>{null}</Spin>
+        <XWaveSpinner size={24} />
       </div>
     ),
   }

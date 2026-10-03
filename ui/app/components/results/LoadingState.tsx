@@ -1,16 +1,11 @@
 "use client";
 
-import { Flex } from "antd";
-
-import { ResultsTable } from "./ResultsTable";
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 
 export function LoadingState() {
   return (
-    <div className="pl-10 pr-8 py-6">
-      <Flex vertical gap="large">
-        <div className="h-[32px]" />
-        <ResultsTable data={[]} loading={true} />
-      </Flex>
+    <div className="flex h-[calc(100vh-64px)] items-center justify-center p-8">
+      <XWaveSpinner variant="crossmatch" size={64} label="Cross-matching…" />
     </div>
   );
 }

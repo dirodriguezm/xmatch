@@ -4,12 +4,12 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   DownloadOutlined,
-  LoadingOutlined,
   MinusCircleOutlined,
 } from "@ant-design/icons";
 import { Button, Empty, Flex, Segmented, Tag, Tooltip, Typography } from "antd";
 import { useState } from "react";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { HILIGT_MISSION_IDS, useHiligt } from "@/app/hooks/queries";
 import { downloadCsv, toCsv } from "@/app/lib/utils/csv";
 import {
@@ -98,7 +98,7 @@ export function XrayHistoryPanel({
             const r = results[i];
             const n = r.data?.points.filter((p) => p.band === band).length;
             const icon = r.isLoading ? (
-              <LoadingOutlined />
+              <XWaveSpinner size={14} className="align-[-2px]" />
             ) : r.isError ? (
               <CloseCircleOutlined />
             ) : n ? (

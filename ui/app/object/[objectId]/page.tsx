@@ -1,9 +1,10 @@
 "use client";
 
-import { Empty, Layout, Spin } from "antd";
+import { Empty, Layout } from "antd";
 import { useRouter, useSearchParams } from "next/navigation";
 import { use, useEffect, useMemo, useRef } from "react";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { AppHeader } from "@/app/components/layout";
 import { ObjectDetail } from "@/app/components/object";
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
@@ -74,7 +75,7 @@ export default function ObjectPage({ params }: ObjectPageProps) {
       <Content className="bg-background min-h-[calc(100vh-64px)]">
         {isLoading ? (
           <div className="flex items-center justify-center h-[calc(100vh-128px)]">
-            <Spin size="large" />
+            <XWaveSpinner variant="xwave" size={64} />
           </div>
         ) : object ? (
           <ObjectDetail object={object} metadata={metadata} />

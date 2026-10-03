@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Spin } from "antd";
+import { Alert } from "antd";
 import {
   parseAsFloat,
   parseAsInteger,
@@ -17,6 +17,7 @@ import {
   BulkOptions,
   BulkResults,
 } from "@/app/components/bulk";
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { PageShell } from "@/app/components/layout";
 import { useBulkConeSearch } from "@/app/hooks/queries/useBulkConeSearch";
 import { MAX_RADIUS_ARCSEC } from "@/app/lib/constants/search";
@@ -130,11 +131,11 @@ function BulkContent() {
 
         {bulk.isPending && (
           <div className="flex justify-center py-12">
-            <Spin
-              description={`Matching ${lastRun?.targets.length ?? 0} positions…`}
-            >
-              <div className="w-24 h-12" />
-            </Spin>
+            <XWaveSpinner
+              variant="healpix"
+              size={64}
+              label={`Matching ${lastRun?.targets.length ?? 0} positions…`}
+            />
           </div>
         )}
 
@@ -157,7 +158,7 @@ export default function BulkPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center">
-          <Spin size="large" />
+          <XWaveSpinner variant="xwave" size={64} />
         </div>
       }
     >

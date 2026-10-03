@@ -1,8 +1,9 @@
 "use client";
 
-import { Layout, Spin } from "antd";
+import { Layout } from "antd";
 import { Suspense } from "react";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { LandingFooter, LandingSearch } from "@/app/components/landing";
 import { AppHeader } from "@/app/components/layout";
 import { CrossmatchProvider } from "@/app/store/crossmatch-context";
@@ -26,7 +27,7 @@ function LoadingFallback() {
     <Layout className="min-h-screen">
       <AppHeader />
       <Content className="bg-background min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <Spin size="large" />
+        <XWaveSpinner variant="xwave" size={64} />
       </Content>
     </Layout>
   );

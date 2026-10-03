@@ -1,10 +1,11 @@
 "use client";
 
 import { LineChartOutlined } from "@ant-design/icons";
-import { Empty, Spin, Typography } from "antd";
+import { Empty, Typography } from "antd";
 import type { EChartsOption } from "echarts";
 import dynamic from "next/dynamic";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { getBandColor } from "@/app/lib/constants/bands";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
 import { formatMjdDateTime } from "@/app/lib/utils/format";
@@ -63,7 +64,7 @@ export function LightCurveChart({
   if (loading) {
     return (
       <div className="h-48 flex items-center justify-center">
-        <Spin spinning>{null}</Spin>
+        <XWaveSpinner variant="lightcurve" size={56} />
       </div>
     );
   }

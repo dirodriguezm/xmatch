@@ -2,6 +2,8 @@
 
 import { Typography } from "antd";
 
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
+
 const { Text } = Typography;
 
 export function LightCurveSkeleton({
@@ -19,8 +21,9 @@ export function LightCurveSkeleton({
         {/* Quiet horizontal gridlines */}
         <div className="absolute left-12 right-4 top-[28%] h-px bg-border/25" />
         <div className="absolute left-12 right-4 top-[58%] h-px bg-border/25" />
-        {/* Shimmer sweep */}
-        <div className="lc-skeleton-shimmer" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <XWaveSpinner variant="lightcurve" size={56} />
+        </div>
       </div>
       <div className="mt-2 text-center">
         <Text type="secondary" className="text-xs">
