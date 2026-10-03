@@ -1,0 +1,238 @@
+"use client";
+
+import {
+  EnvironmentOutlined,
+  LineChartOutlined,
+  TagOutlined,
+} from "@ant-design/icons";
+import { Button, Card, Flex, Space, Tooltip, Typography } from "antd";
+
+import { useDesiTarget, useSimbad } from "@/app/hooks/queries";
+import {
+  buildAdsObjectUrl,
+  buildAladinUrl,
+  buildDesiSpectrumUrl,
+  buildLegacySurveyViewerUrl,
+  buildNedUrl,
+  buildPanstarrsUrl,
+  buildSdssNavigateUrl,
+  buildSimbadUrl,
+  buildVizierUrl,
+} from "@/app/lib/utils/urls";
+
+const { Text } = Typography;
+
+interface ObjectArchivesProps {
+  ra: number;
+  dec: number;
+  /** Radius of the page's SIMBAD lookup, so this shares its cached result. */
+  simbadRadiusArcsec: number;
+  /** Render without its own card, as a section inside another card. */
+  bare?: boolean;
+}
+
+// Buttons are grouped by what the destination service returns:
+//   - Catalogs       → identifiers / cross-IDs / metadata "tags" (TagOutlined)
+//   - Image viewers  → interactive views of the sky region      (EnvironmentOutlined)
+//   - Spectra        → 1-D spectrum plot (flux vs. wavelength)  (LineChartOutlined)
+// Order within each group is intentional: catalogs by CDS prominence,
+// image viewers from general → optical → DESI/imaging → PS, spectra by survey.
+export function ObjectArchives({
+  ra,
+  dec,
+  simbadRadiusArcsec,
+  bare = false,
+}: ObjectArchivesProps) {
+  const simbadUrl = buildSimbadUrl(ra, dec);
+  const vizierUrl = buildVizierUrl(ra, dec);
+  const nedUrl = buildNedUrl(ra, dec);
+  const aladinUrl = buildAladinUrl(ra, dec);
+  const sdssUrl = buildSdssNavigateUrl(ra, dec);
+  const legacyUrl = buildLegacySurveyViewerUrl(ra, dec);
+  const panstarrsUrl = buildPanstarrsUrl(ra, dec);
+
+  // Pre-load the DESI spectrum lookup so the button reflects availability
+  // (loading / enabled-with-target / disabled-no-spectrum) before the user clicks.
+  const {
+    data: desi,
+    isLoading: desiLoading,
+    isError: desiError,
+  } = useDesiTarget({ ra, dec });
+  const desiTargetid = desi?.targetid ?? null;
+  const desiDisabled = desiLoading || desiError || !desiTargetid;
+  let desiTooltip: string;
+  if (desiLoading) desiTooltip = "Looking up DESI DR1 spectrum…";
+  else if (desiError) desiTooltip = "DESI spectrum lookup failed";
+  else if (desiTargetid)
+    desiTooltip = `Open DESI DR1 spectrum (offset ${(desi?.separationArcsec ?? 0).toFixed(2)}″)`;
+  else desiTooltip = "No DESI DR1 spectrum at this position";
+
+  // ADS searches papers by object name, so it needs a SIMBAD identifier.
+  const simbad = useSimbad({ ra, dec, radius: simbadRadiusArcsec });
+  const simbadName = simbad.data?.match?.mainId;
+  const adsTooltip = simbad.isPending
+    ? "Looking up the SIMBAD name…"
+    : simbadName
+      ? `Papers about ${simbadName} in NASA ADS, newest first`
+      : "No SIMBAD name here; ADS searches papers by object name";
+
+  const groups = [
+    {
+      label: "Catalogs",
+      icon: <TagOutlined />,
+      buttons: (
+        <>
+          <Button
+            href={simbadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<TagOutlined />}
+            size="small"
+          >
+            SIMBAD
+          </Button>
+          <Button
+            href={vizierUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<TagOutlined />}
+            size="small"
+          >
+            VizieR
+          </Button>
+          <Button
+            href={nedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<TagOutlined />}
+            size="small"
+          >
+            NED
+          </Button>
+          <Tooltip title={adsTooltip}>
+            <Button
+              href={simbadName ? buildAdsObjectUrl(simbadName) : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              icon={<TagOutlined />}
+              size="small"
+              disabled={!simbadName}
+            >
+              ADS papers
+            </Button>
+          </Tooltip>
+        </>
+      ),
+    },
+    {
+      label: "Image viewers",
+      icon: <EnvironmentOutlined />,
+      buttons: (
+        <>
+          <Button
+            href={aladinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<EnvironmentOutlined />}
+            size="small"
+          >
+            Aladin Lite
+          </Button>
+          <Button
+            href={sdssUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<EnvironmentOutlined />}
+            size="small"
+          >
+            SDSS DR19
+          </Button>
+          <Tooltip title="DESI Legacy Imaging Surveys viewer (imaging + DESI spectroscopic overlay available in the UI)">
+            <Button
+              href={legacyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              icon={<EnvironmentOutlined />}
+              size="small"
+            >
+              Legacy Survey (DESI)
+            </Button>
+          </Tooltip>
+          <Button
+            href={panstarrsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<EnvironmentOutlined />}
+            size="small"
+          >
+            Pan-STARRS1
+          </Button>
+        </>
+      ),
+    },
+    {
+      label: "Spectra",
+      icon: <LineChartOutlined />,
+      buttons: (
+        <Tooltip title={desiTooltip}>
+          {/* span wrapper lets the tooltip stay reachable while the button is disabled */}
+          <span>
+            <Button
+              size="small"
+              icon={<LineChartOutlined />}
+              loading={desiLoading}
+              disabled={desiDisabled}
+              onClick={() =>
+                desiTargetid &&
+                window.open(
+                  buildDesiSpectrumUrl(desiTargetid),
+                  "_blank",
+                  "noopener,noreferrer"
+                )
+              }
+            >
+              DESI Spectrum
+            </Button>
+          </span>
+        </Tooltip>
+      ),
+    },
+  ];
+
+  const rows = (
+    <Flex vertical gap={12}>
+      {groups.map((g) => (
+        // Fixed label column; buttons wrap inside their own column instead
+        // of dropping under the label.
+        <Flex key={g.label} align="start" gap={12} className="min-h-[28px]">
+          <Flex align="center" gap={6} className="w-[120px] shrink-0 h-6">
+            {g.icon}
+            <Text type="secondary" className="text-xs">
+              {g.label}
+            </Text>
+          </Flex>
+          <Space wrap className="flex-1 min-w-0">
+            {g.buttons}
+          </Space>
+        </Flex>
+      ))}
+    </Flex>
+  );
+
+  if (bare) {
+    return (
+      <section aria-label="Archives" className="border-t border-border pt-4">
+        <Text type="secondary" className="text-xs block mb-3">
+          Archives
+        </Text>
+        {rows}
+      </section>
+    );
+  }
+
+  return (
+    <Card title="Archives" size="small" className="bg-surface">
+      {rows}
+    </Card>
+  );
+}

@@ -25,17 +25,18 @@ import (
 
 // Find metadata by id
 //
-//	@Summary		Search for metadata by id
-//	@Description	Search for metadata by id
+//	@Summary		Get metadata by object ID
+//	@Description	Retrieve detailed catalog metadata for a specific astronomical object by its identifier.
+//	@ID				metadata
 //	@Tags			metadata
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		query		string	true	"ID to search for"
-//	@Param			catalog	query		string	true	"Catalog to search in"
-//	@Success		200		{object}	repository.Allwise
-//	@Success		204		{string}	string
-//	@Failure		400		{object}	metadata.ValidationError
-//	@Failure		500		{string}	string
+//	@Param			id		query		string	true	"Object identifier"		example(J120000.00-450000.0)
+//	@Param			catalog	query		string	true	"Catalog to search in"	example(allwise)
+//	@Success		200		{object}	repository.Allwise		"Object metadata"
+//	@Success		204		{string}	string					"Object not found"
+//	@Failure		400		{object}	metadata.ValidationError	"Invalid parameters"
+//	@Failure		500		{string}	string					"Internal server error"
 //	@Router			/metadata [get]
 func (api *API) metadata(c *gin.Context) {
 	id := c.Query("id")
@@ -62,17 +63,19 @@ func (api *API) metadata(c *gin.Context) {
 
 // Find metadata by multiple ids
 //
-//	@Summary		Search for metadata by multiple ids
-//	@Description	Search for metadata by multiple ids in bulk
+//	@Summary		Bulk get metadata by object IDs
+//	@Description	Retrieve detailed catalog metadata for multiple astronomical objects by their identifiers.
+//	@Description	All IDs are queried in parallel for optimal performance.
+//	@ID				bulk-metadata
 //	@Tags			metadata
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		BulkMetadataRequest	true	"Bulk metadata request"
-//	@Success		200		{object}	[]repository.Allwise
-//	@Success		204		{string}	string
-//	@Failure		400		{object}	metadata.ValidationError
-//	@Failure		500		{string}	string
-//	@Router			/metadata/bulk [post]
+//	@Param			request	body		BulkMetadataRequest	true	"Bulk metadata request with list of object IDs"
+//	@Success		200		{array}		repository.Allwise		"Objects metadata"
+//	@Success		204		{string}	string					"No objects found"
+//	@Failure		400		{object}	metadata.ValidationError	"Invalid parameters"
+//	@Failure		500		{string}	string					"Internal server error"
+//	@Router			/bulk-metadata [post]
 func (api *API) metadataBulk(c *gin.Context) {
 	var bulkRequest BulkMetadataRequest
 	if err := c.ShouldBindJSON(&bulkRequest); err != nil {
