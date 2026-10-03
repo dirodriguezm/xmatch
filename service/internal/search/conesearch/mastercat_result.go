@@ -2,7 +2,6 @@ package conesearch
 
 import (
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
-	"github.com/dirodriguezm/xmatch/service/internal/search/knn"
 )
 
 type MastercatExtended struct {
@@ -16,7 +15,7 @@ type MastercatResult struct {
 	Index   int                 `json:"index"`
 }
 
-func ResultFromKnn(objs knn.KnnResult[repository.Mastercat], index int) []MastercatResult {
+func ResultFromSelection(objs selectionResult[repository.Mastercat], index int) []MastercatResult {
 	result := make([]MastercatResult, 0)
 	grouped := make(map[string][]MastercatExtended)
 	for i, m := range objs.Data {

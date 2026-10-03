@@ -14,3 +14,4 @@ healpix/internal/healpix_cxx/healpix_wrap.cxx
 .agents/
 .vercel
 .env*.local
+openspec/
