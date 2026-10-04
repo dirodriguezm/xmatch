@@ -243,9 +243,11 @@ func (c *ConesearchService) BulkConesearch(
 				if !seenIDs[i][id] {
 					seenIDs[i][id] = true
 					uniqueObjects = append(uniqueObjects, MastercatResult{
-						Catalog: mastercatResult.Catalog,
-						Data:    []MastercatExtended{mastercatResult.Data[j]},
-						Index:   i,
+						Catalog:        mastercatResult.Catalog,
+						Data:           []MastercatExtended{mastercatResult.Data[j]},
+						Index:          i,
+						Total:          mastercatResult.Total,
+						TotalInCatalog: mastercatResult.TotalInCatalog,
 					})
 				}
 			}
