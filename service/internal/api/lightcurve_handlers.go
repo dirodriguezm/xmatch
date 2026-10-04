@@ -16,10 +16,10 @@ import (
 //	@Param			ra			query		string	true	"Right Ascension coordinate"
 //	@Param			dec			query		string	true	"Declination coordinate"
 //	@Param			radius		query		string	true	"Search radius in arcseconds"
-//	@Param			catalog		query		string	false	"Catalog to query (all, ztf, neowise, allwise)"
+//	@Param			catalog		query		string	false	"Catalog to query: all, ztf, neowise or allwise (default: all)"
 //	@Param			nneighbor	query		string	false	"Number of neighbors to return (default: 1)"
 //	@Success		200			{object}	LightcurveResponse
-//	@Failure		400			{string}	string
+//	@Failure		400			{object}	ParseError
 //	@Failure		500			{string}	string
 //	@Router			/lightcurve [get]
 func (api *API) Lightcurve(c *gin.Context) {

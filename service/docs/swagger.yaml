@@ -1,4 +1,22 @@
+basePath: /v1
 definitions:
+  api.BulkConesearchRequest:
+    properties:
+      catalog:
+        type: string
+      dec:
+        items:
+          type: number
+        type: array
+      nneighbor:
+        type: integer
+      ra:
+        items:
+          type: number
+        type: array
+      radius:
+        type: number
+    type: object
   api.BulkMetadataRequest:
     properties:
       catalog:
@@ -7,15 +25,6 @@ definitions:
         items:
           type: string
         type: array
-    type: object
-  conesearch.ValidationError:
-    properties:
-      errValue:
-        type: string
-      field:
-        type: string
-      reason:
-        type: string
     type: object
   api.LightcurveEntry:
     properties:
@@ -49,55 +58,22 @@ definitions:
           $ref: '#/definitions/api.LightcurveEntry'
         type: array
     type: object
-  metadata.ValidationError:
+  api.ParseError:
     properties:
-      field:
+      ErrValue:
         type: string
-      reason:
+      Field:
         type: string
-      value:
+      Reason:
         type: string
     type: object
-  repository.Allwise:
-    properties:
-      cntr:
-        type: integer
-      h_m_2mass:
-        type: number
-      h_msig_2mass:
-        type: number
-      id:
-        type: string
-      j_m_2mass:
-        type: number
-      j_msig_2mass:
-        type: number
-      k_m_2mass:
-        type: number
-      k_msig_2mass:
-        type: number
-      w1mpro:
-        type: number
-      w1sigmpro:
-        type: number
-      w2mpro:
-        type: number
-      w2sigmpro:
-        type: number
-      w3mpro:
-        type: number
-      w3sigmpro:
-        type: number
-      w4mpro:
-        type: number
-      w4sigmpro:
-        type: number
-    type: object
-  repository.Mastercat:
+  conesearch.MastercatExtended:
     properties:
       cat:
         type: string
       dec:
+        type: number
+      distance:
         type: number
       id:
         type: string
@@ -106,48 +82,58 @@ definitions:
       ra:
         type: number
     type: object
+  conesearch.MastercatResult:
+    properties:
+      catalog:
+        type: string
+      data:
+        items:
+          $ref: '#/definitions/conesearch.MastercatExtended'
+        type: array
+      index:
+        type: integer
+    type: object
+  conesearch.ValidationError:
+    properties:
+      ErrValue:
+        type: string
+      Field:
+        type: string
+      Reason:
+        type: string
+    type: object
+  metadata.ValidationError:
+    properties:
+      Field:
+        type: string
+      Reason:
+        type: string
+      Value:
+        type: string
+    type: object
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    email: diegorodriguezmancini@gmail.com
+    name: Diego Rodriguez Mancini
+  description: API for the CrossWave Xmatch service. This service allows to search
+    for objects in a given region and to retrieve metadata from the catalogs.
+  title: CrossWave HTTP API
+  version: "1.0"
 paths:
   /bulk-conesearch:
     post:
       consumes:
       - application/json
-      description: Search for objects in a given region using list of ra, dec and
-        a single radius
+      description: Search for objects in a given region using lists of ra, dec and
+        a single radius. Radius is in arcseconds. Results are grouped by catalog.
       parameters:
-      - description: Right ascension in degrees
+      - description: Bulk conesearch request
         in: body
-        name: ra
+        name: request
         required: true
         schema:
-          items:
-            type: number
-          type: array
-      - description: Declination in degrees
-        in: body
-        name: dec
-        required: true
-        schema:
-          items:
-            type: number
-          type: array
-      - description: Radius in degrees
-        in: body
-        name: radius
-        required: true
-        schema:
-          type: number
-      - description: Catalog to search in
-        in: body
-        name: catalog
-        schema:
-          type: string
-      - description: Number of neighbors to return
-        in: body
-        name: nneighbor
-        schema:
-          type: integer
+          $ref: '#/definitions/api.BulkConesearchRequest'
       produces:
       - application/json
       responses:
@@ -155,12 +141,10 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/repository.Mastercat'
+              $ref: '#/definitions/conesearch.MastercatResult'
             type: array
         "204":
           description: No Content
-          schema:
-            type: string
         "400":
           description: Bad Request
           schema:
@@ -172,11 +156,50 @@ paths:
       summary: Search for objects in a given region using multiple coordinates
       tags:
       - conesearch
+  /bulk-metadata:
+    post:
+      consumes:
+      - application/json
+      description: Search for metadata by multiple ids in bulk. The response fields
+        depend on the requested catalog (allwise, gaia or erosita) and include the
+        catalog-specific columns plus ra and dec.
+      parameters:
+      - description: Bulk metadata request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.BulkMetadataRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Catalog-specific metadata records
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/metadata.ValidationError'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Search for metadata by multiple ids
+      tags:
+      - metadata
   /conesearch:
     get:
       consumes:
       - application/json
-      description: Search for objects in a given region using ra, dec and radius
+      description: Search for objects in a given region using ra, dec and radius.
+        Radius is in arcseconds. Returns mastercat results grouped by catalog, or
+        metadata results grouped by catalog when getMetadata is true.
       parameters:
       - description: Right ascension in degrees
         in: query
@@ -188,20 +211,21 @@ paths:
         name: dec
         required: true
         type: string
-      - description: Radius in degrees
+      - description: Radius in arcseconds
         in: query
         name: radius
         required: true
         type: string
-      - description: Catalog to search in
+      - description: 'Catalog to search in (default: all)'
         in: query
         name: catalog
         type: string
-      - description: Number of neighbors to return
+      - description: 'Number of neighbors to return (default: 1)'
         in: query
         name: nneighbor
         type: string
-      - description: Return metadata results
+      - description: 'Return metadata results instead of mastercat results (default:
+          false)'
         in: query
         name: getMetadata
         type: string
@@ -212,12 +236,10 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/repository.Mastercat'
+              $ref: '#/definitions/conesearch.MastercatResult'
             type: array
         "204":
           description: No Content
-          schema:
-            type: string
         "400":
           description: Bad Request
           schema:
@@ -251,6 +273,10 @@ paths:
         name: radius
         required: true
         type: string
+      - description: 'Catalog to query: all, ztf, neowise or allwise (default: all)'
+        in: query
+        name: catalog
+        type: string
       - description: 'Number of neighbors to return (default: 1)'
         in: query
         name: nneighbor
@@ -265,7 +291,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/api.ParseError'
         "500":
           description: Internal Server Error
           schema:
@@ -277,14 +303,16 @@ paths:
     get:
       consumes:
       - application/json
-      description: Search for metadata by id
+      description: Search for metadata by id. The response fields depend on the requested
+        catalog (allwise, gaia or erosita) and include the catalog-specific columns
+        plus ra and dec.
       parameters:
       - description: ID to search for
         in: query
         name: id
         required: true
         type: string
-      - description: Catalog to search in
+      - description: Catalog to search in (allwise, gaia or erosita)
         in: query
         name: catalog
         required: true
@@ -293,13 +321,12 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Catalog-specific metadata record
           schema:
-            $ref: '#/definitions/repository.Allwise'
+            additionalProperties: true
+            type: object
         "204":
           description: No Content
-          schema:
-            type: string
         "400":
           description: Bad Request
           schema:
@@ -309,42 +336,6 @@ paths:
           schema:
             type: string
       summary: Search for metadata by id
-      tags:
-      - metadata
-  /metadata/bulk:
-    post:
-      consumes:
-      - application/json
-      description: Search for metadata by multiple ids in bulk
-      parameters:
-      - description: Bulk metadata request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/api.BulkMetadataRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/repository.Allwise'
-            type: array
-        "204":
-          description: No Content
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/metadata.ValidationError'
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Search for metadata by multiple ids
       tags:
       - metadata
 swagger: "2.0"
