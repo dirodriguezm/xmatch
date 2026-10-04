@@ -92,6 +92,10 @@ definitions:
         type: array
       index:
         type: integer
+      total:
+        type: integer
+      total_in_catalog:
+        type: integer
     type: object
   conesearch.ValidationError:
     properties:

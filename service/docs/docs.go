@@ -472,6 +472,12 @@ const docTemplate = `{
                 },
                 "index": {
                     "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_in_catalog": {
+                    "type": "integer"
                 }
             }
         },

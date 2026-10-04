@@ -102,7 +102,9 @@ func TestConesearch_WithUnknownCatalogReturnsNoResults(t *testing.T) {
 func TestBulkConesearch(t *testing.T) {
 	objects := []repository.Mastercat{
 		{ID: "A", Ra: 1, Dec: 1, Cat: "vlass"},
-		{ID: "B", Ra: 10, Dec: 10, Cat: "vlass"},
+		{ID: "B", Ra: 1.1, Dec: 1, Cat: "vlass"},
+		{ID: "C", Ra: 1.2, Dec: 1, Cat: "ztf"},
+		{ID: "D", Ra: 10, Dec: 10, Cat: "ztf"},
 	}
 	repo := repository.NewMockMastercatReader(t)
 	repo.On("FindObjectsInPixelRanges", mock.Anything, mock.Anything).Return(objects, nil)
@@ -110,19 +112,64 @@ func TestBulkConesearch(t *testing.T) {
 	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
+	type expectedRow struct {
+		id             string
+		index          int
+		catalog        string
+		total          int
+		totalInCatalog int
+	}
+
 	type testCase struct {
 		ra        []float64
 		dec       []float64
 		radius    float64
 		nneighbor int
-		expected  []string
+		expected  []expectedRow
 	}
 
 	testCases := []testCase{
-		{ra: []float64{1}, dec: []float64{1}, radius: 1, nneighbor: 100, expected: []string{"A"}},
-		{ra: []float64{10}, dec: []float64{10}, radius: 1, nneighbor: 100, expected: []string{"B"}},
-		{ra: []float64{1, 2, 3}, dec: []float64{1, 2, 3}, radius: 1, nneighbor: 100, expected: []string{"A"}},
-		{ra: []float64{1, 10}, dec: []float64{1, 10}, radius: 1, nneighbor: 100, expected: []string{"A", "B"}},
+		{
+			ra: []float64{1}, dec: []float64{1}, radius: 3600, nneighbor: 100,
+			expected: []expectedRow{
+				{id: "A", index: 0, catalog: "vlass", total: 3, totalInCatalog: 2},
+				{id: "B", index: 0, catalog: "vlass", total: 3, totalInCatalog: 2},
+				{id: "C", index: 0, catalog: "ztf", total: 3, totalInCatalog: 1},
+			},
+		},
+		{
+			// The cut keeps only the nearest object, from vlass; the fully
+			// cut ztf catalog still contributes to the position's total.
+			ra: []float64{1}, dec: []float64{1}, radius: 3600, nneighbor: 1,
+			expected: []expectedRow{
+				{id: "A", index: 0, catalog: "vlass", total: 3, totalInCatalog: 2},
+			},
+		},
+		{
+			ra: []float64{10}, dec: []float64{10}, radius: 3600, nneighbor: 100,
+			expected: []expectedRow{
+				{id: "D", index: 0, catalog: "ztf", total: 1, totalInCatalog: 1},
+			},
+		},
+		{
+			// Positions 1 and 2 have no in-radius objects, so they have no
+			// rows: absence means zero matches for that position.
+			ra: []float64{1, 2, 3}, dec: []float64{1, 2, 3}, radius: 3600, nneighbor: 100,
+			expected: []expectedRow{
+				{id: "A", index: 0, catalog: "vlass", total: 3, totalInCatalog: 2},
+				{id: "B", index: 0, catalog: "vlass", total: 3, totalInCatalog: 2},
+				{id: "C", index: 0, catalog: "ztf", total: 3, totalInCatalog: 1},
+			},
+		},
+		{
+			ra: []float64{1, 10}, dec: []float64{1, 10}, radius: 3600, nneighbor: 100,
+			expected: []expectedRow{
+				{id: "A", index: 0, catalog: "vlass", total: 3, totalInCatalog: 2},
+				{id: "B", index: 0, catalog: "vlass", total: 3, totalInCatalog: 2},
+				{id: "C", index: 0, catalog: "ztf", total: 3, totalInCatalog: 1},
+				{id: "D", index: 1, catalog: "ztf", total: 1, totalInCatalog: 1},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -131,9 +178,38 @@ func TestBulkConesearch(t *testing.T) {
 		repo.AssertExpectations(t)
 
 		require.Lenf(t, result, len(tc.expected), "test case: %v", tc)
-		for i := range result {
-			for j := range result[i].Data {
-				require.Contains(t, tc.expected, result[i].Data[j].ID, "test case: %v", tc)
+
+		matched := make([]bool, len(tc.expected))
+		for _, row := range result {
+			for j := range row.Data {
+				found := -1
+				for k, expected := range tc.expected {
+					if row.Index == expected.index && row.Catalog == expected.catalog && row.Data[j].ID == expected.id {
+						found = k
+						break
+					}
+				}
+				require.Truef(t, found >= 0, "unexpected row %q for position %d in test case %v", row.Data[j].ID, row.Index, tc)
+				require.Equalf(t, tc.expected[found].total, row.Total, "total for position %d in test case %v", row.Index, tc)
+				require.Equalf(t, tc.expected[found].totalInCatalog, row.TotalInCatalog, "total_in_catalog for (position %d, catalog %q) in test case %v", row.Index, row.Catalog, tc)
+				matched[found] = true
+			}
+		}
+		for k, m := range matched {
+			require.Truef(t, m, "expected row %+v was not returned, test case %v", tc.expected[k], tc)
+		}
+
+		// Positions with no expected rows must have no rows at all.
+		expectedIndexes := make(map[int]bool)
+		for _, expected := range tc.expected {
+			expectedIndexes[expected.index] = true
+		}
+		for i := range tc.ra {
+			if expectedIndexes[i] {
+				continue
+			}
+			for _, row := range result {
+				require.NotEqualf(t, i, row.Index, "unexpected row for position %d in test case %v", i, tc)
 			}
 		}
 	}

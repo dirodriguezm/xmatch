@@ -31,8 +31,10 @@ func (m MetadataExtended) MarshalJSON() ([]byte, error) {
 }
 
 type MetadataResult struct {
-	Catalog string             `json:"catalog"`
-	Data    []MetadataExtended `json:"data"`
+	Catalog        string             `json:"catalog"`
+	Data           []MetadataExtended `json:"data"`
+	Total          int                `json:"total"`
+	TotalInCatalog int                `json:"total_in_catalog"`
 }
 
 func ResultFromSelectionMetadata(metadata selectionResult[repository.Metadata]) []MetadataResult {
@@ -45,7 +47,12 @@ func ResultFromSelectionMetadata(metadata selectionResult[repository.Metadata]) 
 		})
 	}
 	for catalog, data := range grouped {
-		result = append(result, MetadataResult{Catalog: catalog, Data: data})
+		result = append(result, MetadataResult{
+			Catalog:        catalog,
+			Data:           data,
+			Total:          metadata.Total,
+			TotalInCatalog: metadata.CatalogCounts[catalog],
+		})
 	}
 	return result
 }

@@ -10,9 +10,11 @@ type MastercatExtended struct {
 }
 
 type MastercatResult struct {
-	Catalog string              `json:"catalog"`
-	Data    []MastercatExtended `json:"data"`
-	Index   int                 `json:"index"`
+	Catalog        string              `json:"catalog"`
+	Data           []MastercatExtended `json:"data"`
+	Index          int                 `json:"index"`
+	Total          int                 `json:"total"`
+	TotalInCatalog int                 `json:"total_in_catalog"`
 }
 
 func ResultFromSelection(objs selectionResult[repository.Mastercat], index int) []MastercatResult {
@@ -25,7 +27,13 @@ func ResultFromSelection(objs selectionResult[repository.Mastercat], index int) 
 		})
 	}
 	for catalog, data := range grouped {
-		result = append(result, MastercatResult{Catalog: catalog, Data: data, Index: index})
+		result = append(result, MastercatResult{
+			Catalog:        catalog,
+			Data:           data,
+			Index:          index,
+			Total:          objs.Total,
+			TotalInCatalog: objs.CatalogCounts[catalog],
+		})
 	}
 	return result
 }

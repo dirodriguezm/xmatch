@@ -120,7 +120,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 		objects = append(objects, objs...)
 	}
 
-	return ResultFromSelection(selectNearest(objects, ra, dec, radius, nneighbor, mastercatCoordinates), 0), nil
+	return ResultFromSelection(selectNearest(objects, ra, dec, radius, nneighbor, mastercatCoordinates, mastercatCatalog), 0), nil
 }
 
 func (c *ConesearchService) FindMetadataByConesearch(
@@ -137,7 +137,7 @@ func (c *ConesearchService) FindMetadataByConesearch(
 		return nil, fmt.Errorf("could not find allwise metadata: %w", err)
 	}
 
-	return ResultFromSelectionMetadata(selectNearest(objects, ra, dec, radius, nneighbor, metadataCoordinates)), nil
+	return ResultFromSelectionMetadata(selectNearest(objects, ra, dec, radius, nneighbor, metadataCoordinates, metadataCatalog)), nil
 }
 
 func findMetadata(
@@ -206,7 +206,7 @@ func (c *ConesearchService) BulkConesearch(
 
 					resultsChan <- indexedResult{
 						index:  baseIndex + j,
-						result: selectNearest(objs, chunkRa[j], chunkDec[j], radius, nneighbor, mastercatCoordinates),
+						result: selectNearest(objs, chunkRa[j], chunkDec[j], radius, nneighbor, mastercatCoordinates, mastercatCatalog),
 					}
 				}
 
@@ -243,9 +243,11 @@ func (c *ConesearchService) BulkConesearch(
 				if !seenIDs[i][id] {
 					seenIDs[i][id] = true
 					uniqueObjects = append(uniqueObjects, MastercatResult{
-						Catalog: mastercatResult.Catalog,
-						Data:    []MastercatExtended{mastercatResult.Data[j]},
-						Index:   i,
+						Catalog:        mastercatResult.Catalog,
+						Data:           []MastercatExtended{mastercatResult.Data[j]},
+						Index:          i,
+						Total:          mastercatResult.Total,
+						TotalInCatalog: mastercatResult.TotalInCatalog,
 					})
 				}
 			}
