@@ -25,27 +25,23 @@ import (
 // Search for objects in a given region using multiple coordinates
 //
 //	@Summary		Search for objects in a given region using multiple coordinates
-//	@Description	Search for objects in a given region using list of ra, dec and a single radius
+//	@Description	Search for objects in a given region using lists of ra, dec and a single radius. Radius is in arcseconds. Results are grouped by catalog.
 //	@Tags			conesearch
 //	@Accept			json
 //	@Produce		json
 //
-//	@Param			ra			body		[]float64	true	"Right ascension in degrees"
-//	@Param			dec			body		[]float64	true	"Declination in degrees"
-//	@Param			radius		body		float64		true	"Radius in degrees"
-//	@Param			catalog		body		string		false	"Catalog to search in"
-//	@Param			nneighbor	body		int			false	"Number of neighbors to return"
+//	@Param			request	body		BulkConesearchRequest	true	"Bulk conesearch request"
 //
-//	@Success		200			{array}		repository.Mastercat
-//	@Success		204			{string}	string
-//	@Failure		400			{object}	conesearch.ValidationError
-//	@Failure		500			{string}	string
+//	@Success		200		{array}		conesearch.MastercatResult
+//	@Success		204		"No Content"
+//	@Failure		400		{object}	conesearch.ValidationError
+//	@Failure		500		{string}	string
 //	@Router			/bulk-conesearch [post]
 func (api *API) conesearchBulk(c *gin.Context) {
 	var bulkRequest BulkConesearchRequest
 	if err := c.ShouldBindJSON(&bulkRequest); err != nil {
 		c.Error(err)
-		c.JSON(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, NewParseError("", "body", err.Error()))
 		return
 	}
 
@@ -84,22 +80,22 @@ func (api *API) conesearchBulk(c *gin.Context) {
 
 // Search for objects in a given region
 //
-//		@Summary		Search for objects in a given region
-//		@Description	Search for objects in a given region using ra, dec and radius
-//		@Tags			conesearch
-//		@Accept			json
-//		@Produce		json
-//		@Param			ra			query		string	true	"Right ascension in degrees"
-//		@Param			dec			query		string	true	"Declination in degrees"
-//		@Param			radius		query		string	true	"Radius in arcsec"
-//		@Param			catalog		query		string	false	"Catalog to search in"
-//		@Param			nneighbor	query		string	false	"Number of neighbors to return"
-//	 @Param			getMetadata	query		string	false	"Return metadata results"
-//		@Success		200			{array}		repository.Mastercat
-//		@Success		204			{string}	string
-//		@Failure		400			{object}	conesearch.ValidationError
-//		@Failure		500			{string}	string
-//		@Router			/conesearch [get]
+//	@Summary		Search for objects in a given region
+//	@Description	Search for objects in a given region using ra, dec and radius. Radius is in arcseconds. Returns mastercat results grouped by catalog, or metadata results grouped by catalog when getMetadata is true.
+//	@Tags			conesearch
+//	@Accept			json
+//	@Produce		json
+//	@Param			ra			query		string	true	"Right ascension in degrees"
+//	@Param			dec			query		string	true	"Declination in degrees"
+//	@Param			radius		query		string	true	"Radius in arcseconds"
+//	@Param			catalog		query		string	false	"Catalog to search in (default: all)"
+//	@Param			nneighbor	query		string	false	"Number of neighbors to return (default: 1)"
+//	@Param			getMetadata	query		string	false	"Return metadata results instead of mastercat results (default: false)"
+//	@Success		200			{array}		conesearch.MastercatResult
+//	@Success		204			"No Content"
+//	@Failure		400			{object}	conesearch.ValidationError
+//	@Failure		500			{string}	string
+//	@Router			/conesearch [get]
 func (api *API) conesearch(c *gin.Context) {
 	ra := c.Query("ra")
 	dec := c.Query("dec")
@@ -140,6 +136,7 @@ func (api *API) conesearch(c *gin.Context) {
 		result, err := api.conesearchService.Conesearch(parsedRa, parsedDec, parsedRadius, parsedNneighbor, catalog)
 		if err != nil {
 			handleServiceError(err, c)
+			return
 		}
 		handleServiceSuccess(result, c)
 	}

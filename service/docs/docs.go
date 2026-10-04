@@ -9,7 +9,10 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "contact": {
+            "name": "Diego Rodriguez Mancini",
+            "email": "diegorodriguezmancini@gmail.com"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -17,7 +20,7 @@ const docTemplate = `{
     "paths": {
         "/bulk-conesearch": {
             "post": {
-                "description": "Search for objects in a given region using list of ra, dec and a single radius",
+                "description": "Search for objects in a given region using lists of ra, dec and a single radius. Radius is in arcseconds. Results are grouped by catalog.",
                 "consumes": [
                     "application/json"
                 ],
@@ -30,52 +33,12 @@ const docTemplate = `{
                 "summary": "Search for objects in a given region using multiple coordinates",
                 "parameters": [
                     {
-                        "description": "Right ascension in degrees",
-                        "name": "ra",
+                        "description": "Bulk conesearch request",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "number"
-                            }
-                        }
-                    },
-                    {
-                        "description": "Declination in degrees",
-                        "name": "dec",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "number"
-                            }
-                        }
-                    },
-                    {
-                        "description": "Radius in degrees",
-                        "name": "radius",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "number"
-                        }
-                    },
-                    {
-                        "description": "Catalog to search in",
-                        "name": "catalog",
-                        "in": "body",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Number of neighbors to return",
-                        "name": "nneighbor",
-                        "in": "body",
-                        "schema": {
-                            "type": "integer"
+                            "$ref": "#/definitions/api.BulkConesearchRequest"
                         }
                     }
                 ],
@@ -85,15 +48,12 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/repository.Mastercat"
+                                "$ref": "#/definitions/conesearch.MastercatResult"
                             }
                         }
                     },
                     "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "No Content"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -110,9 +70,62 @@ const docTemplate = `{
                 }
             }
         },
+        "/bulk-metadata": {
+            "post": {
+                "description": "Search for metadata by multiple ids in bulk. The response fields depend on the requested catalog (allwise, gaia or erosita) and include the catalog-specific columns plus ra and dec.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metadata"
+                ],
+                "summary": "Search for metadata by multiple ids",
+                "parameters": [
+                    {
+                        "description": "Bulk metadata request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.BulkMetadataRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Catalog-specific metadata records",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/metadata.ValidationError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/conesearch": {
             "get": {
-                "description": "Search for objects in a given region using ra, dec and radius",
+                "description": "Search for objects in a given region using ra, dec and radius. Radius is in arcseconds. Returns mastercat results grouped by catalog, or metadata results grouped by catalog when getMetadata is true.",
                 "consumes": [
                     "application/json"
                 ],
@@ -140,26 +153,26 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Radius in degrees",
+                        "description": "Radius in arcseconds",
                         "name": "radius",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Catalog to search in",
+                        "description": "Catalog to search in (default: all)",
                         "name": "catalog",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Number of neighbors to return",
+                        "description": "Number of neighbors to return (default: 1)",
                         "name": "nneighbor",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Return metadata results",
+                        "description": "Return metadata results instead of mastercat results (default: false)",
                         "name": "getMetadata",
                         "in": "query"
                     }
@@ -170,15 +183,12 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/repository.Mastercat"
+                                "$ref": "#/definitions/conesearch.MastercatResult"
                             }
                         }
                     },
                     "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "No Content"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -232,6 +242,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Catalog to query: all, ztf, neowise or allwise (default: all)",
+                        "name": "catalog",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Number of neighbors to return (default: 1)",
                         "name": "nneighbor",
                         "in": "query"
@@ -247,7 +263,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ParseError"
                         }
                     },
                     "500": {
@@ -261,7 +277,7 @@ const docTemplate = `{
         },
         "/metadata": {
             "get": {
-                "description": "Search for metadata by id",
+                "description": "Search for metadata by id. The response fields depend on the requested catalog (allwise, gaia or erosita) and include the catalog-specific columns plus ra and dec.",
                 "consumes": [
                     "application/json"
                 ],
@@ -282,7 +298,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Catalog to search in",
+                        "description": "Catalog to search in (allwise, gaia or erosita)",
                         "name": "catalog",
                         "in": "query",
                         "required": true
@@ -290,71 +306,14 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Catalog-specific metadata record",
                         "schema": {
-                            "$ref": "#/definitions/repository.Allwise"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/metadata.ValidationError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/metadata/bulk": {
-            "post": {
-                "description": "Search for metadata by multiple ids in bulk",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "metadata"
-                ],
-                "summary": "Search for metadata by multiple ids",
-                "parameters": [
-                    {
-                        "description": "Bulk metadata request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api.BulkMetadataRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/repository.Allwise"
-                            }
-                        }
-                    },
-                    "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "No Content"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -373,6 +332,32 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.BulkConesearchRequest": {
+            "type": "object",
+            "properties": {
+                "catalog": {
+                    "type": "string"
+                },
+                "dec": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "nneighbor": {
+                    "type": "integer"
+                },
+                "ra": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "radius": {
+                    "type": "number"
+                }
+            }
+        },
         "api.BulkMetadataRequest": {
             "type": "object",
             "properties": {
@@ -384,20 +369,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "conesearch.ValidationError": {
-            "type": "object",
-            "properties": {
-                "errValue": {
-                    "type": "string"
-                },
-                "field": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string"
                 }
             }
         },
@@ -450,80 +421,30 @@ const docTemplate = `{
                 }
             }
         },
-        "metadata.ValidationError": {
+        "api.ParseError": {
             "type": "object",
             "properties": {
-                "field": {
+                "ErrValue": {
                     "type": "string"
                 },
-                "reason": {
+                "Field": {
                     "type": "string"
                 },
-                "value": {
+                "Reason": {
                     "type": "string"
                 }
             }
         },
-        "repository.Allwise": {
-            "type": "object",
-            "properties": {
-                "cntr": {
-                    "type": "integer"
-                },
-                "h_m_2mass": {
-                    "type": "number"
-                },
-                "h_msig_2mass": {
-                    "type": "number"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "j_m_2mass": {
-                    "type": "number"
-                },
-                "j_msig_2mass": {
-                    "type": "number"
-                },
-                "k_m_2mass": {
-                    "type": "number"
-                },
-                "k_msig_2mass": {
-                    "type": "number"
-                },
-                "w1mpro": {
-                    "type": "number"
-                },
-                "w1sigmpro": {
-                    "type": "number"
-                },
-                "w2mpro": {
-                    "type": "number"
-                },
-                "w2sigmpro": {
-                    "type": "number"
-                },
-                "w3mpro": {
-                    "type": "number"
-                },
-                "w3sigmpro": {
-                    "type": "number"
-                },
-                "w4mpro": {
-                    "type": "number"
-                },
-                "w4sigmpro": {
-                    "type": "number"
-                }
-            }
-        },
-        "repository.Mastercat": {
+        "conesearch.MastercatExtended": {
             "type": "object",
             "properties": {
                 "cat": {
                     "type": "string"
                 },
                 "dec": {
+                    "type": "number"
+                },
+                "distance": {
                     "type": "number"
                 },
                 "id": {
@@ -536,18 +457,63 @@ const docTemplate = `{
                     "type": "number"
                 }
             }
+        },
+        "conesearch.MastercatResult": {
+            "type": "object",
+            "properties": {
+                "catalog": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/conesearch.MastercatExtended"
+                    }
+                },
+                "index": {
+                    "type": "integer"
+                }
+            }
+        },
+        "conesearch.ValidationError": {
+            "type": "object",
+            "properties": {
+                "ErrValue": {
+                    "type": "string"
+                },
+                "Field": {
+                    "type": "string"
+                },
+                "Reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "metadata.ValidationError": {
+            "type": "object",
+            "properties": {
+                "Field": {
+                    "type": "string"
+                },
+                "Reason": {
+                    "type": "string"
+                },
+                "Value": {
+                    "type": "string"
+                }
+            }
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
+	Version:          "1.0",
+	Host:             "localhost:8080",
+	BasePath:         "/v1",
 	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Title:            "CrossWave HTTP API",
+	Description:      "API for the CrossWave Xmatch service. This service allows to search for objects in a given region and to retrieve metadata from the catalogs.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

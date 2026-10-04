@@ -154,3 +154,19 @@ func TestMetadata_BulkFindByID(t *testing.T) {
 	}
 	require.Len(t, result, 10)
 }
+
+func TestBulkMetadata_InvalidBody(t *testing.T) {
+	req, err := http.NewRequest("POST", "/v1/bulk-metadata", strings.NewReader(`{"ids": "not-an-array"}`))
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
+	require.Equal(t, "body", result["Field"])
+	require.NotEmpty(t, result["Reason"])
+	require.Contains(t, result, "Value")
+}
