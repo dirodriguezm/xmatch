@@ -7,6 +7,7 @@ package catalog
 import (
 	"context"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -425,55 +426,55 @@ func (_c *MockCatalogAdapter_GetCoordinates_Call) RunAndReturn(run func(raw any)
 	return _c
 }
 
-// GetFromPixels provides a mock function for the type MockCatalogAdapter
-func (_mock *MockCatalogAdapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
-	ret := _mock.Called(ctx, pixels)
+// GetFromPixelRanges provides a mock function for the type MockCatalogAdapter
+func (_mock *MockCatalogAdapter) GetFromPixelRanges(ctx context.Context, pixelRanges []healpix.PixelRange) ([]repository.Metadata, error) {
+	ret := _mock.Called(ctx, pixelRanges)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetFromPixels")
+		panic("no return value specified for GetFromPixelRanges")
 	}
 
 	var r0 []repository.Metadata
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []int64) ([]repository.Metadata, error)); ok {
-		return returnFunc(ctx, pixels)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []healpix.PixelRange) ([]repository.Metadata, error)); ok {
+		return returnFunc(ctx, pixelRanges)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []int64) []repository.Metadata); ok {
-		r0 = returnFunc(ctx, pixels)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []healpix.PixelRange) []repository.Metadata); ok {
+		r0 = returnFunc(ctx, pixelRanges)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]repository.Metadata)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, []int64) error); ok {
-		r1 = returnFunc(ctx, pixels)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []healpix.PixelRange) error); ok {
+		r1 = returnFunc(ctx, pixelRanges)
 	} else {
 		r1 = ret.Error(1)
 	}
 	return r0, r1
 }
 
-// MockCatalogAdapter_GetFromPixels_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetFromPixels'
-type MockCatalogAdapter_GetFromPixels_Call struct {
+// MockCatalogAdapter_GetFromPixelRanges_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetFromPixelRanges'
+type MockCatalogAdapter_GetFromPixelRanges_Call struct {
 	*mock.Call
 }
 
-// GetFromPixels is a helper method to define mock.On call
+// GetFromPixelRanges is a helper method to define mock.On call
 //   - ctx context.Context
-//   - pixels []int64
-func (_e *MockCatalogAdapter_Expecter) GetFromPixels(ctx interface{}, pixels interface{}) *MockCatalogAdapter_GetFromPixels_Call {
-	return &MockCatalogAdapter_GetFromPixels_Call{Call: _e.mock.On("GetFromPixels", ctx, pixels)}
+//   - pixelRanges []healpix.PixelRange
+func (_e *MockCatalogAdapter_Expecter) GetFromPixelRanges(ctx interface{}, pixelRanges interface{}) *MockCatalogAdapter_GetFromPixelRanges_Call {
+	return &MockCatalogAdapter_GetFromPixelRanges_Call{Call: _e.mock.On("GetFromPixelRanges", ctx, pixelRanges)}
 }
 
-func (_c *MockCatalogAdapter_GetFromPixels_Call) Run(run func(ctx context.Context, pixels []int64)) *MockCatalogAdapter_GetFromPixels_Call {
+func (_c *MockCatalogAdapter_GetFromPixelRanges_Call) Run(run func(ctx context.Context, pixelRanges []healpix.PixelRange)) *MockCatalogAdapter_GetFromPixelRanges_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 []int64
+		var arg1 []healpix.PixelRange
 		if args[1] != nil {
-			arg1 = args[1].([]int64)
+			arg1 = args[1].([]healpix.PixelRange)
 		}
 		run(
 			arg0,
@@ -483,12 +484,12 @@ func (_c *MockCatalogAdapter_GetFromPixels_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *MockCatalogAdapter_GetFromPixels_Call) Return(metadatas []repository.Metadata, err error) *MockCatalogAdapter_GetFromPixels_Call {
+func (_c *MockCatalogAdapter_GetFromPixelRanges_Call) Return(metadatas []repository.Metadata, err error) *MockCatalogAdapter_GetFromPixelRanges_Call {
 	_c.Call.Return(metadatas, err)
 	return _c
 }
 
-func (_c *MockCatalogAdapter_GetFromPixels_Call) RunAndReturn(run func(ctx context.Context, pixels []int64) ([]repository.Metadata, error)) *MockCatalogAdapter_GetFromPixels_Call {
+func (_c *MockCatalogAdapter_GetFromPixelRanges_Call) RunAndReturn(run func(ctx context.Context, pixelRanges []healpix.PixelRange) ([]repository.Metadata, error)) *MockCatalogAdapter_GetFromPixelRanges_Call {
 	_c.Call.Return(run)
 	return _c
 }

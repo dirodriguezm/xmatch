@@ -59,12 +59,6 @@ DELETE FROM allwise;
 -- name: RemoveAllCatalogs :exec
 DELETE FROM catalogs;
 
--- name: GetAllwiseFromPixels :many
-SELECT allwise.*, mastercat.ra, mastercat.dec
-FROM allwise 
-JOIN mastercat ON mastercat.id = allwise.id
-WHERE mastercat.ipix IN (sqlc.slice(ipix));
-
 -- name: InsertGaia :exec
 INSERT INTO gaia (
 	id,
@@ -148,12 +142,6 @@ WHERE gaia.id IN (sqlc.slice(id));
 -- name: RemoveAllGaia :exec
 DELETE FROM gaia;
 
--- name: GetGaiaFromPixels :many
-SELECT gaia.*, mastercat.ra, mastercat.dec
-FROM gaia 
-JOIN mastercat ON mastercat.id = gaia.id
-WHERE mastercat.ipix IN (sqlc.slice(ipix));
-
 -- name: InsertErosita :exec
 INSERT INTO erosita (
     id, detuid, skytile, id_src, uid, uid_hard, id_cluster,
@@ -195,9 +183,3 @@ WHERE erosita.id IN (sqlc.slice(id));
 
 -- name: RemoveAllErosita :exec
 DELETE FROM erosita;
-
--- name: GetErositaFromPixels :many
-SELECT erosita.*, mastercat.ra, mastercat.dec
-FROM erosita 
-JOIN mastercat ON mastercat.id = erosita.id
-WHERE mastercat.ipix IN (sqlc.slice(ipix));

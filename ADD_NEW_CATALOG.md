@@ -56,7 +56,7 @@ just migrate service/dev
 
 ## Step 2: Add SQLC Queries
 
-Edit `service/internal/db/query.sql` and add insert, lookup, bulk lookup, cleanup, and pixel lookup queries.
+Edit `service/internal/db/query.sql` and add insert, lookup, bulk lookup, and cleanup queries. Metadata cone searches do not need a per-catalog query here: each adapter implements `GetFromPixelRanges` on top of the generic `repository.QueryMetadataFromPixelRanges` primitive (see Step 4).
 
 ```sql
 -- name: InsertNewcatalog :exec
@@ -80,15 +80,9 @@ WHERE newcatalog.id IN (sqlc.slice(id));
 
 -- name: RemoveAllNewcatalog :exec
 DELETE FROM newcatalog;
-
--- name: GetNewcatalogFromPixels :many
-SELECT newcatalog.*, mastercat.ra, mastercat.dec
-FROM newcatalog
-JOIN mastercat ON mastercat.id = newcatalog.id
-WHERE mastercat.ipix IN (sqlc.slice(ipix));
 ```
 
-The joins are important because metadata responses include RA and DEC from `mastercat`.
+The joins are important because metadata responses include RA and DEC from `mastercat`. Metadata cone search candidates are selected by pixel range through `repository.QueryMetadataFromPixelRanges` (Step 4), so no per-catalog pixel query is needed here.
 
 ## Step 3: Update SQLC Configuration
 
@@ -149,6 +143,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
@@ -209,22 +204,40 @@ func (a Adapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
 	return a.repo.BulkGetNewcatalog(ctx, ids)
 }
 
-func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
+// newcatalogMetadataRow mirrors the newcatalog table columns followed by the
+// mastercat coordinates selected by repository.QueryMetadataFromPixelRanges.
+type newcatalogMetadataRow struct {
+	ID   string
+	MagG repository.NullFloat64
+	MagR repository.NullFloat64
+	Flag repository.NullInt64
+	Ra   float64
+	Dec  float64
+}
+
+func (a Adapter) GetFromPixelRanges(ctx context.Context, pixelRanges []healpix.PixelRange) ([]repository.Metadata, error) {
 	if a.repo == nil {
 		return nil, fmt.Errorf("newcatalog adapter has no repository")
 	}
-	rows, err := a.repo.GetNewcatalogFromPixels(ctx, pixels)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]repository.Metadata, len(rows))
-	for i, r := range rows {
-		result[i] = convertNewcatalogFromPixelsRowToMetadata(r)
-	}
-	return result, nil
+	return a.repo.QueryMetadataFromPixelRanges(ctx, "newcatalog", pixelRanges, scanNewcatalogMetadataRow)
 }
 
-func convertNewcatalogFromPixelsRowToMetadata(row repository.GetNewcatalogFromPixelsRow) repository.Metadata {
+func scanNewcatalogMetadataRow(rows *sql.Rows) (repository.Metadata, error) {
+	var row newcatalogMetadataRow
+	if err := rows.Scan(
+		&row.ID,
+		&row.MagG,
+		&row.MagR,
+		&row.Flag,
+		&row.Ra,
+		&row.Dec,
+	); err != nil {
+		return repository.Metadata{}, err
+	}
+	return convertNewcatalogMetadataRowToMetadata(row), nil
+}
+
+func convertNewcatalogMetadataRowToMetadata(row newcatalogMetadataRow) repository.Metadata {
 	return repository.Metadata{
 		ID:      row.ID,
 		Catalog: displayName,
@@ -275,7 +288,7 @@ func (a Adapter) ConvertToMetadataFromRaw(raw any) (any, error) {
 }
 ```
 
-Run `gofmt` after editing Go files. Adjust generated field names in the example to match SQLC output. If the catalog table also has `ra` or `dec` columns, SQLC may rename the joined `mastercat.ra`/`mastercat.dec` fields in row structs; copy the pattern from `service/internal/catalog/erosita/erosita.go` in that case.
+Run `gofmt` after editing Go files. Adjust generated field names in the example to match SQLC output. If the catalog table also has `ra` or `dec` columns, keep the row struct's own coordinate fields distinct from the trailing `mastercat.ra`/`mastercat.dec` columns (the erosita adapter names those `MastercatRa`/`MastercatDec`); copy the pattern from `service/internal/catalog/erosita/erosita.go` in that case.
 
 Notes:
 
@@ -286,6 +299,7 @@ Notes:
 5. `BulkInsertMetadata` uses the generic `repository.BulkInsert`; do not add a catalog-specific method to `repository/bulk_insert.go` unless the generic path is insufficient.
 6. The CSV reader maps records by struct field order and currently supports scalar string, integer, float, and bool fields. For CSV, keep `InputSchema` in source column order or preprocess the file.
 7. For Parquet/FITS sources that need to distinguish null from zero, use pointer fields in `InputSchema` and handle nil values in `GetCoordinates`, `ConvertToMastercat`, and `ConvertToMetadataFromRaw`.
+8. `GetFromPixelRanges` scans the exact column order produced by `repository.QueryMetadataFromPixelRanges` (`<table>.*, mastercat.ra, mastercat.dec`); keep the adapter-local row struct aligned with the table's columns so `rows.Scan` matches the query.
 
 ## Step 5: Register the Adapter
 

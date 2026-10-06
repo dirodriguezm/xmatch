@@ -8,6 +8,12 @@ import (
 	"github.com/dirodriguezm/healpix"
 )
 
+// FindObjectsInPixelRanges returns the mastercat objects whose ipix falls in
+// any of the given ranges, without materializing a pixel list. Each usable
+// range contributes two bind parameters, so it shares the SQLite
+// bind-variable ceiling documented on QueryMetadataFromPixelRanges: at the
+// current resolver order 18, radii up to about 1 degree stay under the limit
+// and radii beyond roughly 1.05 degrees fail with "too many SQL variables".
 func (q *Queries) FindObjectsInPixelRanges(ctx context.Context, ranges []healpix.PixelRange) ([]Mastercat, error) {
 	if len(ranges) == 0 {
 		return nil, nil
@@ -36,7 +42,7 @@ JOIN mastercat
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	items := make([]Mastercat, 0)
 	for rows.Next() {
