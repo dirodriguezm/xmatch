@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
@@ -77,19 +78,11 @@ func (a Adapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
 	return a.repo.BulkGetAllwise(ctx, ids)
 }
 
-func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
+func (a Adapter) GetFromPixelRanges(ctx context.Context, pixelRanges []healpix.PixelRange) ([]repository.Metadata, error) {
 	if a.repo == nil {
 		return nil, fmt.Errorf("allwise adapter has no repository")
 	}
-	rows, err := a.repo.GetAllwiseFromPixels(ctx, pixels)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]repository.Metadata, len(rows))
-	for i, r := range rows {
-		result[i] = convertAllwiseFromPixelsRowToMetadata(r)
-	}
-	return result, nil
+	return a.repo.QueryMetadataFromPixelRanges(ctx, "allwise", pixelRanges, scanAllwiseMetadataRow)
 }
 
 func (a Adapter) GetCoordinates(raw any) (float64, float64, error) {
@@ -134,7 +127,57 @@ func (a Adapter) ConvertToMetadataFromRaw(raw any) (any, error) {
 	return convertAllwiseInputToMetadata(schema), nil
 }
 
-func convertAllwiseFromPixelsRowToMetadata(row repository.GetAllwiseFromPixelsRow) repository.Metadata {
+// allwiseMetadataRow mirrors the allwise table columns followed by the
+// mastercat coordinates selected by repository.QueryMetadataFromPixelRanges.
+type allwiseMetadataRow struct {
+	ID         string
+	Cntr       int64
+	W1mpro     repository.NullFloat64
+	W1sigmpro  repository.NullFloat64
+	W2mpro     repository.NullFloat64
+	W2sigmpro  repository.NullFloat64
+	W3mpro     repository.NullFloat64
+	W3sigmpro  repository.NullFloat64
+	W4mpro     repository.NullFloat64
+	W4sigmpro  repository.NullFloat64
+	JM2mass    repository.NullFloat64
+	JMsig2mass repository.NullFloat64
+	HM2mass    repository.NullFloat64
+	HMsig2mass repository.NullFloat64
+	KM2mass    repository.NullFloat64
+	KMsig2mass repository.NullFloat64
+	Ra         float64
+	Dec        float64
+}
+
+func scanAllwiseMetadataRow(rows *sql.Rows) (repository.Metadata, error) {
+	var row allwiseMetadataRow
+	if err := rows.Scan(
+		&row.ID,
+		&row.Cntr,
+		&row.W1mpro,
+		&row.W1sigmpro,
+		&row.W2mpro,
+		&row.W2sigmpro,
+		&row.W3mpro,
+		&row.W3sigmpro,
+		&row.W4mpro,
+		&row.W4sigmpro,
+		&row.JM2mass,
+		&row.JMsig2mass,
+		&row.HM2mass,
+		&row.HMsig2mass,
+		&row.KM2mass,
+		&row.KMsig2mass,
+		&row.Ra,
+		&row.Dec,
+	); err != nil {
+		return repository.Metadata{}, err
+	}
+	return convertAllwiseMetadataRowToMetadata(row), nil
+}
+
+func convertAllwiseMetadataRowToMetadata(row allwiseMetadataRow) repository.Metadata {
 	return repository.Metadata{
 		ID:      row.ID,
 		Catalog: displayName,

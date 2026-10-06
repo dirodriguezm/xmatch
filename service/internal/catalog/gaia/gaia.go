@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
@@ -211,19 +212,11 @@ func (a Adapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
 	return a.repo.BulkGetGaia(ctx, ids)
 }
 
-func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
+func (a Adapter) GetFromPixelRanges(ctx context.Context, pixelRanges []healpix.PixelRange) ([]repository.Metadata, error) {
 	if a.repo == nil {
 		return nil, fmt.Errorf("gaia adapter has no repository")
 	}
-	rows, err := a.repo.GetGaiaFromPixels(ctx, pixels)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]repository.Metadata, len(rows))
-	for i, r := range rows {
-		result[i] = convertGaiaFromPixelsRowToMetadata(r)
-	}
-	return result, nil
+	return a.repo.QueryMetadataFromPixelRanges(ctx, "gaia", pixelRanges, scanGaiaMetadataRow)
 }
 
 func boolToInt64(v bool) int64 {
@@ -233,7 +226,139 @@ func boolToInt64(v bool) int64 {
 	return 0
 }
 
-func convertGaiaFromPixelsRowToMetadata(r repository.GetGaiaFromPixelsRow) repository.Metadata {
+// gaiaMetadataRow mirrors the gaia table columns followed by the mastercat
+// coordinates selected by repository.QueryMetadataFromPixelRanges.
+type gaiaMetadataRow struct {
+	ID                        string
+	SourceID                  repository.NullInt64
+	RaError                   repository.NullFloat64
+	DecError                  repository.NullFloat64
+	Parallax                  repository.NullFloat64
+	ParallaxError             repository.NullFloat64
+	Pm                        repository.NullFloat64
+	Pmra                      repository.NullFloat64
+	PmraError                 repository.NullFloat64
+	Pmdec                     repository.NullFloat64
+	PmdecError                repository.NullFloat64
+	AstrometricExcessNoise    repository.NullFloat64
+	AstrometricExcessNoiseSig repository.NullFloat64
+	Ruwe                      repository.NullFloat64
+	PhotGNObs                 repository.NullInt64
+	PhotGMeanFlux             repository.NullFloat64
+	PhotGMeanFluxError        repository.NullFloat64
+	PhotGMeanFluxOverError    repository.NullFloat64
+	PhotGMeanMag              repository.NullFloat64
+	PhotBpNObs                repository.NullInt64
+	PhotBpMeanFlux            repository.NullFloat64
+	PhotBpMeanFluxError       repository.NullFloat64
+	PhotBpMeanFluxOverError   repository.NullFloat64
+	PhotBpMeanMag             repository.NullFloat64
+	PhotRpNObs                repository.NullInt64
+	PhotRpMeanFlux            repository.NullFloat64
+	PhotRpMeanFluxError       repository.NullFloat64
+	PhotRpMeanFluxOverError   repository.NullFloat64
+	PhotRpMeanMag             repository.NullFloat64
+	PhotBpRpExcessFactor      repository.NullFloat64
+	PhotProcMode              repository.NullInt64
+	BpRp                      repository.NullFloat64
+	BpG                       repository.NullFloat64
+	GRp                       repository.NullFloat64
+	RadialVelocity            repository.NullFloat64
+	RadialVelocityError       repository.NullFloat64
+	RvMethodUsed              repository.NullInt64
+	PhotVariableFlag          repository.NullString
+	InQsoCandidates           repository.NullInt64
+	InGalaxyCandidates        repository.NullInt64
+	NonSingleStar             repository.NullInt64
+	HasEpochPhotometry        repository.NullInt64
+	ClassprobDscCombmodQuasar repository.NullFloat64
+	ClassprobDscCombmodGalaxy repository.NullFloat64
+	ClassprobDscCombmodStar   repository.NullFloat64
+	TeffGspphot               repository.NullFloat64
+	TeffGspphotLower          repository.NullFloat64
+	TeffGspphotUpper          repository.NullFloat64
+	LoggGspphot               repository.NullFloat64
+	LoggGspphotLower          repository.NullFloat64
+	LoggGspphotUpper          repository.NullFloat64
+	MhGspphot                 repository.NullFloat64
+	MhGspphotLower            repository.NullFloat64
+	MhGspphotUpper            repository.NullFloat64
+	DistanceGspphot           repository.NullFloat64
+	DistanceGspphotLower      repository.NullFloat64
+	DistanceGspphotUpper      repository.NullFloat64
+	Ra                        float64
+	Dec                       float64
+}
+
+func scanGaiaMetadataRow(rows *sql.Rows) (repository.Metadata, error) {
+	var row gaiaMetadataRow
+	if err := rows.Scan(
+		&row.ID,
+		&row.SourceID,
+		&row.RaError,
+		&row.DecError,
+		&row.Parallax,
+		&row.ParallaxError,
+		&row.Pm,
+		&row.Pmra,
+		&row.PmraError,
+		&row.Pmdec,
+		&row.PmdecError,
+		&row.AstrometricExcessNoise,
+		&row.AstrometricExcessNoiseSig,
+		&row.Ruwe,
+		&row.PhotGNObs,
+		&row.PhotGMeanFlux,
+		&row.PhotGMeanFluxError,
+		&row.PhotGMeanFluxOverError,
+		&row.PhotGMeanMag,
+		&row.PhotBpNObs,
+		&row.PhotBpMeanFlux,
+		&row.PhotBpMeanFluxError,
+		&row.PhotBpMeanFluxOverError,
+		&row.PhotBpMeanMag,
+		&row.PhotRpNObs,
+		&row.PhotRpMeanFlux,
+		&row.PhotRpMeanFluxError,
+		&row.PhotRpMeanFluxOverError,
+		&row.PhotRpMeanMag,
+		&row.PhotBpRpExcessFactor,
+		&row.PhotProcMode,
+		&row.BpRp,
+		&row.BpG,
+		&row.GRp,
+		&row.RadialVelocity,
+		&row.RadialVelocityError,
+		&row.RvMethodUsed,
+		&row.PhotVariableFlag,
+		&row.InQsoCandidates,
+		&row.InGalaxyCandidates,
+		&row.NonSingleStar,
+		&row.HasEpochPhotometry,
+		&row.ClassprobDscCombmodQuasar,
+		&row.ClassprobDscCombmodGalaxy,
+		&row.ClassprobDscCombmodStar,
+		&row.TeffGspphot,
+		&row.TeffGspphotLower,
+		&row.TeffGspphotUpper,
+		&row.LoggGspphot,
+		&row.LoggGspphotLower,
+		&row.LoggGspphotUpper,
+		&row.MhGspphot,
+		&row.MhGspphotLower,
+		&row.MhGspphotUpper,
+		&row.DistanceGspphot,
+		&row.DistanceGspphotLower,
+		&row.DistanceGspphotUpper,
+		&row.Ra,
+		&row.Dec,
+	); err != nil {
+		return repository.Metadata{}, err
+	}
+	return convertGaiaMetadataRowToMetadata(row), nil
+}
+
+func convertGaiaMetadataRowToMetadata(r gaiaMetadataRow) repository.Metadata {
 	return repository.Metadata{
 		ID:      r.ID,
 		Catalog: displayName,

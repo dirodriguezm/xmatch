@@ -23,6 +23,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/app"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
@@ -218,6 +219,90 @@ func TestConesearch_WithMetadata(t *testing.T) {
 		t.Error(err)
 	}
 	require.Len(t, result, 1, "conesearch should get one object but got %d", len(result))
+}
+
+// TestConesearch_WithMetadata_DegreeScale exercises a metadata cone search at
+// degree scale (3600 arcseconds). Such a search spans tens of millions of
+// catalog pixels at the index resolution, so it would hang or exhaust memory
+// if the pixel ranges were expanded into a pixel list before querying.
+func TestConesearch_WithMetadata_DegreeScale(t *testing.T) {
+	getenv := func(key string) string {
+		switch key {
+		case "LOG_LEVEL":
+			return "debug"
+		case "CONFIG_PATH":
+			return configPath
+		default:
+			return ""
+		}
+	}
+	stdout := &strings.Builder{}
+
+	cfg, err := app.Config(getenv)
+	if err != nil {
+		t.Fatalf("loading config: %v", err)
+	}
+
+	logger := app.ServiceLogger(getenv, stdout)
+	slog.SetDefault(logger)
+
+	db, err := app.ServiceDatabase(cfg)
+	if err != nil {
+		t.Fatalf("creating database connection: %v", err)
+	}
+
+	queries := app.ServiceRepository(db)
+	defer CleanDB(t, queries)
+
+	resolver := catalog.NewResolver(queries)
+	service, err := app.ConesearchService(queries, resolver)
+	if err != nil {
+		t.Fatalf("creating conesearch service: %v", err)
+	}
+
+	// The resolver indexes allwise at order 18, so mastercat pixels must be
+	// computed with a mapper of the same order for the range query to find them.
+	mapper, err := healpix.NewHEALPixMapper(18, healpix.Nest)
+	if err != nil {
+		t.Fatalf("creating healpix mapper: %v", err)
+	}
+
+	const radiusArcsec = 3600.0
+	objects := []repository.Mastercat{
+		{ID: "degree-center", Ra: 0, Dec: 0, Cat: "allwise"},    // at the cone center
+		{ID: "degree-inner", Ra: 0.5, Dec: 0.5, Cat: "allwise"}, // ~2546 arcsec from the center
+		{ID: "degree-outer", Ra: 0.9, Dec: 0.9, Cat: "allwise"}, // ~4582 arcsec from the center
+		{ID: "degree-far", Ra: 10, Dec: 10, Cat: "allwise"},     // far outside the cone
+	}
+	for i := range objects {
+		objects[i].Ipix = mapper.PixelAt(healpix.RADec(objects[i].Ra, objects[i].Dec))
+		ctx := context.Background()
+		err = queries.InsertObject(ctx, repository.InsertObjectParams(objects[i]))
+		if err != nil {
+			t.Fatalf("inserting mastercat: %v", err)
+		}
+		err = queries.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: objects[i].ID})
+		if err != nil {
+			t.Fatalf("inserting allwise: %v", err)
+		}
+	}
+
+	result, err := service.FindMetadataByConesearch(0, 0, radiusArcsec, 10, "allwise")
+	require.NoError(t, err, "degree-scale metadata cone search should complete")
+	require.Len(t, result, 1)
+
+	allwise := result[0]
+	require.Equal(t, "AllWISE", allwise.Catalog)
+	require.Equal(t, 2, allwise.Total, "total should count only in-radius matches")
+	require.Equal(t, 2, allwise.TotalInCatalog, "total_in_catalog should count only in-radius matches")
+	require.Len(t, allwise.Data, 2)
+
+	ids := make([]string, 0, len(allwise.Data))
+	for i := range allwise.Data {
+		ids = append(ids, allwise.Data[i].ID)
+		require.LessOrEqual(t, allwise.Data[i].Distance, radiusArcsec, "returned metadata should be within the search radius")
+	}
+	require.ElementsMatch(t, []string{"degree-center", "degree-inner"}, ids)
 }
 
 func TestBulkConesearch(t *testing.T) {

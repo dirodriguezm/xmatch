@@ -149,8 +149,7 @@ func findMetadata(
 	objects := make([]repository.Metadata, 0)
 	for _, v := range c.mappers {
 		pixelRanges := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
-		pixelList := pixelRangeToList(pixelRanges)
-		objs, err := c.getMetadata(pixelList, catalog)
+		objs, err := c.getMetadata(pixelRanges, catalog)
 		if err != nil {
 			return nil, err
 		}
@@ -260,16 +259,6 @@ func arcsecToRadians(arcsec float64) float64 {
 	return (arcsec / 3600) * (math.Pi / 180)
 }
 
-func pixelRangeToList(pixelRanges []healpix.PixelRange) []int64 {
-	result := make([]int64, 0, len(pixelRanges))
-	for _, r := range pixelRanges {
-		for i := r.Start; i < r.Stop; i++ {
-			result = append(result, i)
-		}
-	}
-	return result
-}
-
 func (c *ConesearchService) getObjectsInRanges(pixelRanges []healpix.PixelRange, catalog string) ([]repository.Mastercat, error) {
 	objects, err := c.store.FindObjectsInPixelRanges(c.ctx, pixelRanges)
 	if err != nil {
@@ -281,7 +270,7 @@ func (c *ConesearchService) getObjectsInRanges(pixelRanges []healpix.PixelRange,
 	return objects, nil
 }
 
-func (c *ConesearchService) getMetadata(pixelList []int64, catalogName string) ([]repository.Metadata, error) {
+func (c *ConesearchService) getMetadata(pixelRanges []healpix.PixelRange, catalogName string) ([]repository.Metadata, error) {
 	objects := make([]repository.Metadata, 0)
 
 	catalogList := c.resolveCatalogList(catalogName)
@@ -293,7 +282,7 @@ func (c *ConesearchService) getMetadata(pixelList []int64, catalogName string) (
 		if err != nil {
 			return nil, err
 		}
-		objs, err := adapter.GetFromPixels(c.ctx, pixelList)
+		objs, err := adapter.GetFromPixelRanges(c.ctx, pixelRanges)
 		if err != nil {
 			return nil, err
 		}

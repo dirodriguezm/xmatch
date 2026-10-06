@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
@@ -56,139 +57,380 @@ func (a Adapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
 	return a.repo.BulkGetErosita(ctx, ids)
 }
 
-func (a Adapter) GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error) {
+func (a Adapter) GetFromPixelRanges(ctx context.Context, pixelRanges []healpix.PixelRange) ([]repository.Metadata, error) {
 	if a.repo == nil {
 		return nil, fmt.Errorf("erosita adapter has no repository")
 	}
-	rows, err := a.repo.GetErositaFromPixels(ctx, pixels)
-	if err != nil {
-		return nil, err
+	return a.repo.QueryMetadataFromPixelRanges(ctx, "erosita", pixelRanges, scanErositaMetadataRow)
+}
+
+// erositaMetadataRow mirrors the erosita table columns followed by the
+// mastercat coordinates selected by repository.QueryMetadataFromPixelRanges.
+// The table's own Ra/Dec columns stay distinct from MastercatRa/MastercatDec.
+type erositaMetadataRow struct {
+	ID             string
+	Detuid         repository.NullString
+	Skytile        repository.NullInt64
+	IDSrc          repository.NullInt64
+	Uid            repository.NullInt64
+	UidHard        repository.NullInt64
+	IDCluster      repository.NullInt64
+	Ra             repository.NullFloat64
+	Dec            repository.NullFloat64
+	RaLowerr       repository.NullFloat64
+	RaUperr        repository.NullFloat64
+	DecLowerr      repository.NullFloat64
+	DecUperr       repository.NullFloat64
+	PosErr         repository.NullFloat64
+	Mjd            repository.NullFloat64
+	MjdMin         repository.NullFloat64
+	MjdMax         repository.NullFloat64
+	Ext            repository.NullFloat64
+	ExtErr         repository.NullFloat64
+	ExtLike        repository.NullFloat64
+	DetLike0       repository.NullFloat64
+	MlCts1         repository.NullFloat64
+	MlCtsErr1      repository.NullFloat64
+	MlRate1        repository.NullFloat64
+	MlRateErr1     repository.NullFloat64
+	MlFlux1        repository.NullFloat64
+	MlFluxErr1     repository.NullFloat64
+	MlBkg1         repository.NullFloat64
+	MlExp1         repository.NullFloat64
+	ApeBkg1        repository.NullFloat64
+	ApeRadius1     repository.NullFloat64
+	ApePois1       repository.NullFloat64
+	DetLikeP1      repository.NullFloat64
+	MlCtsP1        repository.NullFloat64
+	MlCtsErrP1     repository.NullFloat64
+	MlRateP1       repository.NullFloat64
+	MlRateErrP1    repository.NullFloat64
+	MlFluxP1       repository.NullFloat64
+	MlFluxErrP1    repository.NullFloat64
+	MlBkgP1        repository.NullFloat64
+	MlExpP1        repository.NullFloat64
+	ApeBkgP1       repository.NullFloat64
+	ApeRadiusP1    repository.NullFloat64
+	ApePoisP1      repository.NullFloat64
+	DetLikeP2      repository.NullFloat64
+	MlCtsP2        repository.NullFloat64
+	MlCtsErrP2     repository.NullFloat64
+	MlRateP2       repository.NullFloat64
+	MlRateErrP2    repository.NullFloat64
+	MlFluxP2       repository.NullFloat64
+	MlFluxErrP2    repository.NullFloat64
+	MlBkgP2        repository.NullFloat64
+	MlExpP2        repository.NullFloat64
+	ApeBkgP2       repository.NullFloat64
+	ApeRadiusP2    repository.NullFloat64
+	ApePoisP2      repository.NullFloat64
+	DetLikeP3      repository.NullFloat64
+	MlCtsP3        repository.NullFloat64
+	MlCtsErrP3     repository.NullFloat64
+	MlRateP3       repository.NullFloat64
+	MlRateErrP3    repository.NullFloat64
+	MlFluxP3       repository.NullFloat64
+	MlFluxErrP3    repository.NullFloat64
+	MlBkgP3        repository.NullFloat64
+	MlExpP3        repository.NullFloat64
+	ApeBkgP3       repository.NullFloat64
+	ApeRadiusP3    repository.NullFloat64
+	ApePoisP3      repository.NullFloat64
+	DetLikeP4      repository.NullFloat64
+	MlCtsP4        repository.NullFloat64
+	MlCtsErrP4     repository.NullFloat64
+	MlRateP4       repository.NullFloat64
+	MlRateErrP4    repository.NullFloat64
+	MlFluxP4       repository.NullFloat64
+	MlFluxErrP4    repository.NullFloat64
+	MlBkgP4        repository.NullFloat64
+	MlExpP4        repository.NullFloat64
+	ApeBkgP4       repository.NullFloat64
+	ApeRadiusP4    repository.NullFloat64
+	ApePoisP4      repository.NullFloat64
+	DetLikeP5      repository.NullFloat64
+	MlCtsP5        repository.NullFloat64
+	MlCtsErrP5     repository.NullFloat64
+	MlRateP5       repository.NullFloat64
+	MlRateErrP5    repository.NullFloat64
+	MlFluxP5       repository.NullFloat64
+	MlFluxErrP5    repository.NullFloat64
+	MlBkgP5        repository.NullFloat64
+	MlExpP5        repository.NullFloat64
+	ApeBkgP5       repository.NullFloat64
+	ApeRadiusP5    repository.NullFloat64
+	ApePoisP5      repository.NullFloat64
+	DetLikeP6      repository.NullFloat64
+	MlCtsP6        repository.NullFloat64
+	MlCtsErrP6     repository.NullFloat64
+	MlRateP6       repository.NullFloat64
+	MlRateErrP6    repository.NullFloat64
+	MlFluxP6       repository.NullFloat64
+	MlFluxErrP6    repository.NullFloat64
+	MlBkgP6        repository.NullFloat64
+	MlExpP6        repository.NullFloat64
+	ApeBkgP6       repository.NullFloat64
+	ApeRadiusP6    repository.NullFloat64
+	ApePoisP6      repository.NullFloat64
+	FlagSpSnr      repository.NullInt64
+	FlagSpBps      repository.NullInt64
+	FlagSpScl      repository.NullInt64
+	FlagSpLga      repository.NullInt64
+	FlagSpGcCons   repository.NullInt64
+	FlagNoRadecErr repository.NullInt64
+	FlagNoExtErr   repository.NullInt64
+	FlagNoCtsErr   repository.NullInt64
+	FlagOpt        repository.NullInt64
+	MastercatRa    float64
+	MastercatDec   float64
+}
+
+func scanErositaMetadataRow(rows *sql.Rows) (repository.Metadata, error) {
+	var row erositaMetadataRow
+	if err := rows.Scan(
+		&row.ID,
+		&row.Detuid,
+		&row.Skytile,
+		&row.IDSrc,
+		&row.Uid,
+		&row.UidHard,
+		&row.IDCluster,
+		&row.Ra,
+		&row.Dec,
+		&row.RaLowerr,
+		&row.RaUperr,
+		&row.DecLowerr,
+		&row.DecUperr,
+		&row.PosErr,
+		&row.Mjd,
+		&row.MjdMin,
+		&row.MjdMax,
+		&row.Ext,
+		&row.ExtErr,
+		&row.ExtLike,
+		&row.DetLike0,
+		&row.MlCts1,
+		&row.MlCtsErr1,
+		&row.MlRate1,
+		&row.MlRateErr1,
+		&row.MlFlux1,
+		&row.MlFluxErr1,
+		&row.MlBkg1,
+		&row.MlExp1,
+		&row.ApeBkg1,
+		&row.ApeRadius1,
+		&row.ApePois1,
+		&row.DetLikeP1,
+		&row.MlCtsP1,
+		&row.MlCtsErrP1,
+		&row.MlRateP1,
+		&row.MlRateErrP1,
+		&row.MlFluxP1,
+		&row.MlFluxErrP1,
+		&row.MlBkgP1,
+		&row.MlExpP1,
+		&row.ApeBkgP1,
+		&row.ApeRadiusP1,
+		&row.ApePoisP1,
+		&row.DetLikeP2,
+		&row.MlCtsP2,
+		&row.MlCtsErrP2,
+		&row.MlRateP2,
+		&row.MlRateErrP2,
+		&row.MlFluxP2,
+		&row.MlFluxErrP2,
+		&row.MlBkgP2,
+		&row.MlExpP2,
+		&row.ApeBkgP2,
+		&row.ApeRadiusP2,
+		&row.ApePoisP2,
+		&row.DetLikeP3,
+		&row.MlCtsP3,
+		&row.MlCtsErrP3,
+		&row.MlRateP3,
+		&row.MlRateErrP3,
+		&row.MlFluxP3,
+		&row.MlFluxErrP3,
+		&row.MlBkgP3,
+		&row.MlExpP3,
+		&row.ApeBkgP3,
+		&row.ApeRadiusP3,
+		&row.ApePoisP3,
+		&row.DetLikeP4,
+		&row.MlCtsP4,
+		&row.MlCtsErrP4,
+		&row.MlRateP4,
+		&row.MlRateErrP4,
+		&row.MlFluxP4,
+		&row.MlFluxErrP4,
+		&row.MlBkgP4,
+		&row.MlExpP4,
+		&row.ApeBkgP4,
+		&row.ApeRadiusP4,
+		&row.ApePoisP4,
+		&row.DetLikeP5,
+		&row.MlCtsP5,
+		&row.MlCtsErrP5,
+		&row.MlRateP5,
+		&row.MlRateErrP5,
+		&row.MlFluxP5,
+		&row.MlFluxErrP5,
+		&row.MlBkgP5,
+		&row.MlExpP5,
+		&row.ApeBkgP5,
+		&row.ApeRadiusP5,
+		&row.ApePoisP5,
+		&row.DetLikeP6,
+		&row.MlCtsP6,
+		&row.MlCtsErrP6,
+		&row.MlRateP6,
+		&row.MlRateErrP6,
+		&row.MlFluxP6,
+		&row.MlFluxErrP6,
+		&row.MlBkgP6,
+		&row.MlExpP6,
+		&row.ApeBkgP6,
+		&row.ApeRadiusP6,
+		&row.ApePoisP6,
+		&row.FlagSpSnr,
+		&row.FlagSpBps,
+		&row.FlagSpScl,
+		&row.FlagSpLga,
+		&row.FlagSpGcCons,
+		&row.FlagNoRadecErr,
+		&row.FlagNoExtErr,
+		&row.FlagNoCtsErr,
+		&row.FlagOpt,
+		&row.MastercatRa,
+		&row.MastercatDec,
+	); err != nil {
+		return repository.Metadata{}, err
 	}
-	result := make([]repository.Metadata, len(rows))
-	for i, r := range rows {
-		result[i] = repository.Metadata{
-			ID:      r.ID,
-			Catalog: displayName,
-			Ra:      r.Ra.Float64,
-			Dec:     r.Dec.Float64,
-			Object: repository.Erosita{
-				ID:             r.ID,
-				Detuid:         r.Detuid,
-				Skytile:        r.Skytile,
-				IDSrc:          r.IDSrc,
-				Uid:            r.Uid,
-				UidHard:        r.UidHard,
-				IDCluster:      r.IDCluster,
-				Ra:             r.Ra,
-				Dec:            r.Dec,
-				RaLowerr:       r.RaLowerr,
-				RaUperr:        r.RaUperr,
-				DecLowerr:      r.DecLowerr,
-				DecUperr:       r.DecUperr,
-				PosErr:         r.PosErr,
-				Mjd:            r.Mjd,
-				MjdMin:         r.MjdMin,
-				MjdMax:         r.MjdMax,
-				Ext:            r.Ext,
-				ExtErr:         r.ExtErr,
-				ExtLike:        r.ExtLike,
-				DetLike0:       r.DetLike0,
-				MlCts1:         r.MlCts1,
-				MlCtsErr1:      r.MlCtsErr1,
-				MlRate1:        r.MlRate1,
-				MlRateErr1:     r.MlRateErr1,
-				MlFlux1:        r.MlFlux1,
-				MlFluxErr1:     r.MlFluxErr1,
-				MlBkg1:         r.MlBkg1,
-				MlExp1:         r.MlExp1,
-				ApeBkg1:        r.ApeBkg1,
-				ApeRadius1:     r.ApeRadius1,
-				ApePois1:       r.ApePois1,
-				DetLikeP1:      r.DetLikeP1,
-				MlCtsP1:        r.MlCtsP1,
-				MlCtsErrP1:     r.MlCtsErrP1,
-				MlRateP1:       r.MlRateP1,
-				MlRateErrP1:    r.MlRateErrP1,
-				MlFluxP1:       r.MlFluxP1,
-				MlFluxErrP1:    r.MlFluxErrP1,
-				MlBkgP1:        r.MlBkgP1,
-				MlExpP1:        r.MlExpP1,
-				ApeBkgP1:       r.ApeBkgP1,
-				ApeRadiusP1:    r.ApeRadiusP1,
-				ApePoisP1:      r.ApePoisP1,
-				DetLikeP2:      r.DetLikeP2,
-				MlCtsP2:        r.MlCtsP2,
-				MlCtsErrP2:     r.MlCtsErrP2,
-				MlRateP2:       r.MlRateP2,
-				MlRateErrP2:    r.MlRateErrP2,
-				MlFluxP2:       r.MlFluxP2,
-				MlFluxErrP2:    r.MlFluxErrP2,
-				MlBkgP2:        r.MlBkgP2,
-				MlExpP2:        r.MlExpP2,
-				ApeBkgP2:       r.ApeBkgP2,
-				ApeRadiusP2:    r.ApeRadiusP2,
-				ApePoisP2:      r.ApePoisP2,
-				DetLikeP3:      r.DetLikeP3,
-				MlCtsP3:        r.MlCtsP3,
-				MlCtsErrP3:     r.MlCtsErrP3,
-				MlRateP3:       r.MlRateP3,
-				MlRateErrP3:    r.MlRateErrP3,
-				MlFluxP3:       r.MlFluxP3,
-				MlFluxErrP3:    r.MlFluxErrP3,
-				MlBkgP3:        r.MlBkgP3,
-				MlExpP3:        r.MlExpP3,
-				ApeBkgP3:       r.ApeBkgP3,
-				ApeRadiusP3:    r.ApeRadiusP3,
-				ApePoisP3:      r.ApePoisP3,
-				DetLikeP4:      r.DetLikeP4,
-				MlCtsP4:        r.MlCtsP4,
-				MlCtsErrP4:     r.MlCtsErrP4,
-				MlRateP4:       r.MlRateP4,
-				MlRateErrP4:    r.MlRateErrP4,
-				MlFluxP4:       r.MlFluxP4,
-				MlFluxErrP4:    r.MlFluxErrP4,
-				MlBkgP4:        r.MlBkgP4,
-				MlExpP4:        r.MlExpP4,
-				ApeBkgP4:       r.ApeBkgP4,
-				ApeRadiusP4:    r.ApeRadiusP4,
-				ApePoisP4:      r.ApePoisP4,
-				DetLikeP5:      r.DetLikeP5,
-				MlCtsP5:        r.MlCtsP5,
-				MlCtsErrP5:     r.MlCtsErrP5,
-				MlRateP5:       r.MlRateP5,
-				MlRateErrP5:    r.MlRateErrP5,
-				MlFluxP5:       r.MlFluxP5,
-				MlFluxErrP5:    r.MlFluxErrP5,
-				MlBkgP5:        r.MlBkgP5,
-				MlExpP5:        r.MlExpP5,
-				ApeBkgP5:       r.ApeBkgP5,
-				ApeRadiusP5:    r.ApeRadiusP5,
-				ApePoisP5:      r.ApePoisP5,
-				DetLikeP6:      r.DetLikeP6,
-				MlCtsP6:        r.MlCtsP6,
-				MlCtsErrP6:     r.MlCtsErrP6,
-				MlRateP6:       r.MlRateP6,
-				MlRateErrP6:    r.MlRateErrP6,
-				MlFluxP6:       r.MlFluxP6,
-				MlFluxErrP6:    r.MlFluxErrP6,
-				MlBkgP6:        r.MlBkgP6,
-				MlExpP6:        r.MlExpP6,
-				ApeBkgP6:       r.ApeBkgP6,
-				ApeRadiusP6:    r.ApeRadiusP6,
-				ApePoisP6:      r.ApePoisP6,
-				FlagSpSnr:      r.FlagSpSnr,
-				FlagSpBps:      r.FlagSpBps,
-				FlagSpScl:      r.FlagSpScl,
-				FlagSpLga:      r.FlagSpLga,
-				FlagSpGcCons:   r.FlagSpGcCons,
-				FlagNoRadecErr: r.FlagNoRadecErr,
-				FlagNoExtErr:   r.FlagNoExtErr,
-				FlagNoCtsErr:   r.FlagNoCtsErr,
-				FlagOpt:        r.FlagOpt,
-			},
-		}
+	return convertErositaMetadataRowToMetadata(row), nil
+}
+
+func convertErositaMetadataRowToMetadata(r erositaMetadataRow) repository.Metadata {
+	return repository.Metadata{
+		ID:      r.ID,
+		Catalog: displayName,
+		Ra:      r.Ra.Float64,
+		Dec:     r.Dec.Float64,
+		Object: repository.Erosita{
+			ID:             r.ID,
+			Detuid:         r.Detuid,
+			Skytile:        r.Skytile,
+			IDSrc:          r.IDSrc,
+			Uid:            r.Uid,
+			UidHard:        r.UidHard,
+			IDCluster:      r.IDCluster,
+			Ra:             r.Ra,
+			Dec:            r.Dec,
+			RaLowerr:       r.RaLowerr,
+			RaUperr:        r.RaUperr,
+			DecLowerr:      r.DecLowerr,
+			DecUperr:       r.DecUperr,
+			PosErr:         r.PosErr,
+			Mjd:            r.Mjd,
+			MjdMin:         r.MjdMin,
+			MjdMax:         r.MjdMax,
+			Ext:            r.Ext,
+			ExtErr:         r.ExtErr,
+			ExtLike:        r.ExtLike,
+			DetLike0:       r.DetLike0,
+			MlCts1:         r.MlCts1,
+			MlCtsErr1:      r.MlCtsErr1,
+			MlRate1:        r.MlRate1,
+			MlRateErr1:     r.MlRateErr1,
+			MlFlux1:        r.MlFlux1,
+			MlFluxErr1:     r.MlFluxErr1,
+			MlBkg1:         r.MlBkg1,
+			MlExp1:         r.MlExp1,
+			ApeBkg1:        r.ApeBkg1,
+			ApeRadius1:     r.ApeRadius1,
+			ApePois1:       r.ApePois1,
+			DetLikeP1:      r.DetLikeP1,
+			MlCtsP1:        r.MlCtsP1,
+			MlCtsErrP1:     r.MlCtsErrP1,
+			MlRateP1:       r.MlRateP1,
+			MlRateErrP1:    r.MlRateErrP1,
+			MlFluxP1:       r.MlFluxP1,
+			MlFluxErrP1:    r.MlFluxErrP1,
+			MlBkgP1:        r.MlBkgP1,
+			MlExpP1:        r.MlExpP1,
+			ApeBkgP1:       r.ApeBkgP1,
+			ApeRadiusP1:    r.ApeRadiusP1,
+			ApePoisP1:      r.ApePoisP1,
+			DetLikeP2:      r.DetLikeP2,
+			MlCtsP2:        r.MlCtsP2,
+			MlCtsErrP2:     r.MlCtsErrP2,
+			MlRateP2:       r.MlRateP2,
+			MlRateErrP2:    r.MlRateErrP2,
+			MlFluxP2:       r.MlFluxP2,
+			MlFluxErrP2:    r.MlFluxErrP2,
+			MlBkgP2:        r.MlBkgP2,
+			MlExpP2:        r.MlExpP2,
+			ApeBkgP2:       r.ApeBkgP2,
+			ApeRadiusP2:    r.ApeRadiusP2,
+			ApePoisP2:      r.ApePoisP2,
+			DetLikeP3:      r.DetLikeP3,
+			MlCtsP3:        r.MlCtsP3,
+			MlCtsErrP3:     r.MlCtsErrP3,
+			MlRateP3:       r.MlRateP3,
+			MlRateErrP3:    r.MlRateErrP3,
+			MlFluxP3:       r.MlFluxP3,
+			MlFluxErrP3:    r.MlFluxErrP3,
+			MlBkgP3:        r.MlBkgP3,
+			MlExpP3:        r.MlExpP3,
+			ApeBkgP3:       r.ApeBkgP3,
+			ApeRadiusP3:    r.ApeRadiusP3,
+			ApePoisP3:      r.ApePoisP3,
+			DetLikeP4:      r.DetLikeP4,
+			MlCtsP4:        r.MlCtsP4,
+			MlCtsErrP4:     r.MlCtsErrP4,
+			MlRateP4:       r.MlRateP4,
+			MlRateErrP4:    r.MlRateErrP4,
+			MlFluxP4:       r.MlFluxP4,
+			MlFluxErrP4:    r.MlFluxErrP4,
+			MlBkgP4:        r.MlBkgP4,
+			MlExpP4:        r.MlExpP4,
+			ApeBkgP4:       r.ApeBkgP4,
+			ApeRadiusP4:    r.ApeRadiusP4,
+			ApePoisP4:      r.ApePoisP4,
+			DetLikeP5:      r.DetLikeP5,
+			MlCtsP5:        r.MlCtsP5,
+			MlCtsErrP5:     r.MlCtsErrP5,
+			MlRateP5:       r.MlRateP5,
+			MlRateErrP5:    r.MlRateErrP5,
+			MlFluxP5:       r.MlFluxP5,
+			MlFluxErrP5:    r.MlFluxErrP5,
+			MlBkgP5:        r.MlBkgP5,
+			MlExpP5:        r.MlExpP5,
+			ApeBkgP5:       r.ApeBkgP5,
+			ApeRadiusP5:    r.ApeRadiusP5,
+			ApePoisP5:      r.ApePoisP5,
+			DetLikeP6:      r.DetLikeP6,
+			MlCtsP6:        r.MlCtsP6,
+			MlCtsErrP6:     r.MlCtsErrP6,
+			MlRateP6:       r.MlRateP6,
+			MlRateErrP6:    r.MlRateErrP6,
+			MlFluxP6:       r.MlFluxP6,
+			MlFluxErrP6:    r.MlFluxErrP6,
+			MlBkgP6:        r.MlBkgP6,
+			MlExpP6:        r.MlExpP6,
+			ApeBkgP6:       r.ApeBkgP6,
+			ApeRadiusP6:    r.ApeRadiusP6,
+			ApePoisP6:      r.ApePoisP6,
+			FlagSpSnr:      r.FlagSpSnr,
+			FlagSpBps:      r.FlagSpBps,
+			FlagSpScl:      r.FlagSpScl,
+			FlagSpLga:      r.FlagSpLga,
+			FlagSpGcCons:   r.FlagSpGcCons,
+			FlagNoRadecErr: r.FlagNoRadecErr,
+			FlagNoExtErr:   r.FlagNoExtErr,
+			FlagNoCtsErr:   r.FlagNoCtsErr,
+			FlagOpt:        r.FlagOpt,
+		},
 	}
-	return result, nil
 }
 
 func (a Adapter) GetCoordinates(raw any) (float64, float64, error) {
