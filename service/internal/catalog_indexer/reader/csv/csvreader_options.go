@@ -14,22 +14,22 @@
 
 package csvreader
 
-type CsvReaderOption func(r *CsvReader)
+type CsvReaderOption[T any] func(r *CsvReader[T])
 
-func WithHeader(header []string) CsvReaderOption {
-	return func(r *CsvReader) {
+func WithHeader[T any](header []string) CsvReaderOption[T] {
+	return func(r *CsvReader[T]) {
 		r.Header = header
 	}
 }
 
-func WithFirstLineHeader(firstLineHeader bool) CsvReaderOption {
-	return func(r *CsvReader) {
+func WithFirstLineHeader[T any](firstLineHeader bool) CsvReaderOption[T] {
+	return func(r *CsvReader[T]) {
 		r.FirstLineHeader = firstLineHeader
 	}
 }
 
-func WithCsvBatchSize(size int) CsvReaderOption {
-	return func(r *CsvReader) {
+func WithCsvBatchSize[T any](size int) CsvReaderOption[T] {
+	return func(r *CsvReader[T]) {
 		if size <= 0 {
 			size = 1
 		}
@@ -37,8 +37,8 @@ func WithCsvBatchSize(size int) CsvReaderOption {
 	}
 }
 
-func WithComment(comment string) CsvReaderOption {
-	return func(r *CsvReader) {
+func WithComment[T any](comment string) CsvReaderOption[T] {
+	return func(r *CsvReader[T]) {
 		for _, char := range comment {
 			r.currentReader.Comment = rune(char)
 			break

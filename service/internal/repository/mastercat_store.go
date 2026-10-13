@@ -9,7 +9,3 @@ import (
 type MastercatReader interface {
 	FindObjectsInPixelRanges(context.Context, []healpix.PixelRange) ([]Mastercat, error)
 }
-
-type MastercatWriter interface {
-	BulkInsertObject(context.Context, []any) error
-}

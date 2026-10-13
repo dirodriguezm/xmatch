@@ -29,27 +29,17 @@ import (
 	psource "github.com/xitongsys/parquet-go/source"
 )
 
-type rawRecordFactory interface {
-	NewRawRecord() any
-}
-
-type ParquetReader struct {
+type ParquetReader[T any] struct {
 	currentParquetReader *preader.ParquetReader
 	currentFileReader    psource.ParquetFile
 	currentFileName      string
 	src                  *source.Source
-	adapter              rawRecordFactory
-	recordType           reflect.Type
 	batchSize            int
 }
 
-func NewParquetReader(src *source.Source, adapter rawRecordFactory, opts ...ParquetReaderOption) (*ParquetReader, error) {
-	if adapter == nil {
-		return nil, fmt.Errorf("parquet reader requires a raw record factory")
-	}
-	recordType := reflect.TypeOf(adapter.NewRawRecord())
-	if recordType == nil || recordType.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("raw record factory must return a struct")
+func NewParquetReader[T any](src *source.Source, opts ...ParquetReaderOption[T]) (*ParquetReader[T], error) {
+	if reflect.TypeFor[T]().Kind() != reflect.Struct {
+		return nil, fmt.Errorf("parquet reader requires a struct record type, got %s", reflect.TypeFor[T]().Kind())
 	}
 
 	currentReader, err := src.Next()
@@ -67,18 +57,16 @@ func NewParquetReader(src *source.Source, adapter rawRecordFactory, opts ...Parq
 		return nil, fmt.Errorf("could not create NewLocalFileReader\n%w", err)
 	}
 
-	pr, err := preader.NewParquetReader(fr, reflect.New(recordType).Interface(), 1)
+	pr, err := preader.NewParquetReader(fr, new(T), 1)
 	if err != nil {
 		return nil, fmt.Errorf("could not create NewParquetReader\n%w", err)
 	}
 
-	newReader := &ParquetReader{
+	newReader := &ParquetReader[T]{
 		currentParquetReader: pr,
 		currentFileReader:    fr,
 		currentFileName:      currentFileName,
 		src:                  src,
-		adapter:              adapter,
-		recordType:           recordType,
 	}
 
 	for _, opt := range opts {
@@ -88,43 +76,28 @@ func NewParquetReader(src *source.Source, adapter rawRecordFactory, opts ...Parq
 	return newReader, nil
 }
 
-func (r *ParquetReader) newSchema() any {
-	return reflect.New(r.recordType).Interface()
+func (r *ParquetReader[T]) newSchema() any {
+	return new(T)
 }
 
-func (r *ParquetReader) newRecordSlice(size int) any {
-	sliceType := reflect.SliceOf(r.recordType)
-	records := reflect.New(sliceType)
-	records.Elem().Set(reflect.MakeSlice(sliceType, size, size))
-	return records.Interface()
+func newRecordSlice[T any](size int) *[]T {
+	records := make([]T, size)
+	return &records
 }
 
-func (r *ParquetReader) ReadSingleFile(src *source.Source, currentReader *preader.ParquetReader) ([]any, error) {
+func (r *ParquetReader[T]) ReadSingleFile(src *source.Source, currentReader *preader.ParquetReader) ([]T, error) {
 	defer currentReader.ReadStop()
 
-	records := r.newRecordSlice(int(currentReader.GetNumRows()))
+	records := newRecordSlice[T](int(currentReader.GetNumRows()))
 	if err := currentReader.Read(records); err != nil {
 		return nil, reader.NewReadError(err, src, "Failed to read parquet")
 	}
 
-	return convertToInputSchema(records), nil
+	return *records, nil
 }
 
-func convertToInputSchema(records any) []any {
-	value := reflect.ValueOf(records)
-	if value.Kind() == reflect.Pointer {
-		value = value.Elem()
-	}
-
-	converted := make([]any, value.Len())
-	for i := range value.Len() {
-		converted[i] = value.Index(i).Interface()
-	}
-	return converted
-}
-
-func (r *ParquetReader) Read() ([]any, error) {
-	rows := make([]any, 0, int(r.currentParquetReader.GetNumRows()))
+func (r *ParquetReader[T]) Read() ([]T, error) {
+	rows := make([]T, 0, int(r.currentParquetReader.GetNumRows()))
 	eof := false
 
 	for !eof {
@@ -182,22 +155,22 @@ func (r *ParquetReader) Read() ([]any, error) {
 // Reads batch from the passed reader
 // The closing should be handling by the caller
 // Returns io.EOF if there are no more rows to read
-func (r *ParquetReader) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]any, error) {
-	records := r.newRecordSlice(r.batchSize)
+func (r *ParquetReader[T]) ReadBatchSingleFile(currentReader *preader.ParquetReader) ([]T, error) {
+	records := newRecordSlice[T](r.batchSize)
 
 	if err := currentReader.Read(records); err != nil {
 		return nil, reader.NewReadError(err, r.src, "Failed to read parquet in batch")
 	}
 
-	if isZeroValueSlice(records) {
+	if isZeroValueSlice(*records) {
 		// finished reading
 		return nil, io.EOF
 	}
 
-	return convertToInputSchema(records), nil
+	return *records, nil
 }
 
-func (r *ParquetReader) ReadBatch() ([]any, error) {
+func (r *ParquetReader[T]) ReadBatch() ([]T, error) {
 	currentRows, err := r.ReadBatchSingleFile(r.currentParquetReader)
 
 	// Read did not finish successfully
@@ -257,62 +230,18 @@ func (r *ParquetReader) ReadBatch() ([]any, error) {
 	return currentRows, nil
 }
 
-func isZeroValueSlice(records any) bool {
-	value := reflect.ValueOf(records)
-	if value.Kind() == reflect.Pointer {
-		value = value.Elem()
-	}
-
-	for i := range value.Len() {
-		if !isZeroValueInputSchema(value.Index(i).Interface()) {
+// isZeroValueSlice reports whether every record in the batch is its zero value,
+// which is how parquet-go signals a read past the end of the file.
+func isZeroValueSlice[T any](records []T) bool {
+	for i := range records {
+		if !reflect.ValueOf(records[i]).IsZero() {
 			return false
 		}
 	}
 	return true
 }
 
-func isZeroValueInputSchema(schema any) bool {
-	elem := reflect.ValueOf(schema)
-	if elem.Kind() == reflect.Pointer {
-		elem = elem.Elem()
-	}
-
-	// Check if it's a struct
-	if elem.Kind() != reflect.Struct {
-		panic(fmt.Errorf("expected struct, got %v", elem.Kind()))
-	}
-
-	return isZeroValue(elem.Interface())
-}
-
-// Helper function to check if an interface{} value is zero
-func isZeroValue(v any) bool {
-	if v == nil {
-		return true
-	}
-
-	switch value := v.(type) {
-	case int, int8, int16, int32, int64:
-		return reflect.ValueOf(value).Int() == 0
-	case uint, uint8, uint16, uint32, uint64:
-		return reflect.ValueOf(value).Uint() == 0
-	case float32, float64:
-		return reflect.ValueOf(value).Float() == 0
-	case bool:
-		return !value
-	case string:
-		return value == ""
-	case []any:
-		return len(value) == 0
-	case map[string]any:
-		return len(value) == 0
-	default:
-		// For struct types, compare with their zero value
-		return reflect.DeepEqual(v, reflect.Zero(reflect.TypeOf(v)).Interface())
-	}
-}
-
-func (r *ParquetReader) Close() error {
+func (r *ParquetReader[T]) Close() error {
 	r.currentParquetReader.ReadStop()
 	return r.currentFileReader.Close()
 }

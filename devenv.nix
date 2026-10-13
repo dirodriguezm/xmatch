@@ -136,7 +136,7 @@ let
     version = "0.1.0";
     src = releaseSrc;
     modRoot = "service";
-    vendorHash = "sha256-JEuKFen3N1BWeb8fXjHnOMr1a7FOTvv17u7WmSoZTFE=";
+    vendorHash = "sha256-z5Yg10JNJQRNWxZH3Z+gqy0vTDLWIkAWDY2nbwVJA9M=";
 
     tags = [ "netgo" "osusergo" ];
     ldflags = [
@@ -188,6 +188,7 @@ in {
     golangci-lint
     sqlite
     go-migrate-sqlite
+    sqlc
     air
     jq
   ];

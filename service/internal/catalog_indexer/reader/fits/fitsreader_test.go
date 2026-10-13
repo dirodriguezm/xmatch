@@ -22,12 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testRawRecordFactory struct{}
-
-func (testRawRecordFactory) NewRawRecord() any {
-	return TestSchema{}
-}
-
 func TestReadBatch(t *testing.T) {
 	testData := []map[string]any{
 		{
@@ -50,7 +44,7 @@ func TestReadBatch(t *testing.T) {
 	src, err := source.NewSource(cfg)
 	require.NoError(t, err)
 
-	fitsReader, err := NewFitsReader(src, testRawRecordFactory{}, WithBatchSize(2))
+	fitsReader, err := NewFitsReader[TestSchema](src, WithBatchSize[TestSchema](2))
 	require.NoError(t, err)
 
 	rows, err := fitsReader.ReadBatch()
@@ -90,7 +84,7 @@ func TestReadBatchWithDifferentDataTypes(t *testing.T) {
 	src, err := source.NewSource(cfg)
 	require.NoError(t, err)
 
-	fitsReader, err := NewFitsReader(src, testRawRecordFactory{}, WithBatchSize(2))
+	fitsReader, err := NewFitsReader[TestSchema](src, WithBatchSize[TestSchema](2))
 	require.NoError(t, err)
 
 	rows, err := fitsReader.ReadBatch()
@@ -114,7 +108,7 @@ func TestReadBatchWithEmptyFile(t *testing.T) {
 	src, err := source.NewSource(cfg)
 	require.NoError(t, err)
 
-	fitsReader, err := NewFitsReader(src, testRawRecordFactory{}, WithBatchSize(2))
+	fitsReader, err := NewFitsReader[TestSchema](src, WithBatchSize[TestSchema](2))
 	require.NoError(t, err)
 
 	rows, err := fitsReader.ReadBatch()
@@ -145,7 +139,7 @@ func TestReadBatchWithLargeBatchSize(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test with batch size larger than available rows
-	fitsReader, err := NewFitsReader(src, testRawRecordFactory{}, WithBatchSize(10))
+	fitsReader, err := NewFitsReader[TestSchema](src, WithBatchSize[TestSchema](10))
 	require.NoError(t, err)
 
 	rows, err := fitsReader.ReadBatch()
@@ -176,7 +170,7 @@ func TestReadBatchWithSmallBatchSize(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test with batch size smaller than available rows
-	fitsReader, err := NewFitsReader(src, testRawRecordFactory{}, WithBatchSize(2))
+	fitsReader, err := NewFitsReader[TestSchema](src, WithBatchSize[TestSchema](2))
 	require.NoError(t, err)
 
 	// First batch
@@ -227,7 +221,7 @@ func TestReadBatchWithNilValues(t *testing.T) {
 	src, err := source.NewSource(cfg)
 	require.NoError(t, err)
 
-	fitsReader, err := NewFitsReader(src, testRawRecordFactory{}, WithBatchSize(3))
+	fitsReader, err := NewFitsReader[TestSchema](src, WithBatchSize[TestSchema](3))
 	require.NoError(t, err)
 
 	rows, err := fitsReader.ReadBatch()
@@ -255,7 +249,7 @@ func TestReadBatchWithDefaultBatchSize(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test without specifying batch size (should use default)
-	fitsReader, err := NewFitsReader(src, testRawRecordFactory{})
+	fitsReader, err := NewFitsReader[TestSchema](src)
 	require.NoError(t, err)
 
 	rows, err := fitsReader.ReadBatch()
@@ -284,7 +278,7 @@ func TestReadBatchWithInvalidBatchSize(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test with zero batch size (should be normalized to 1)
-	fitsReader, err := NewFitsReader(src, testRawRecordFactory{}, WithBatchSize(0))
+	fitsReader, err := NewFitsReader[TestSchema](src, WithBatchSize[TestSchema](0))
 	require.NoError(t, err)
 
 	rows, err := fitsReader.ReadBatch()
@@ -312,7 +306,7 @@ func TestReadBatchWithNegativeBatchSize(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test with negative batch size (should be normalized to 1)
-	fitsReader, err := NewFitsReader(src, testRawRecordFactory{}, WithBatchSize(-5))
+	fitsReader, err := NewFitsReader[TestSchema](src, WithBatchSize[TestSchema](-5))
 	require.NoError(t, err)
 
 	rows, err := fitsReader.ReadBatch()

@@ -1,6 +1,6 @@
 package actor
 
-type Message struct {
-	Rows  []any
+type Message[T any] struct {
+	Rows  []T
 	Error error
 }

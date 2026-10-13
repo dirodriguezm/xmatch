@@ -6,32 +6,31 @@ import (
 	"sync"
 )
 
-type Handler func(*Actor, Message)
-type Stopper func(*Actor)
+type Handler[T any] func(*Actor[T], Message[T])
+type Stopper[T any] func(*Actor[T])
 
-type Actor struct {
-	ch        chan Message
-	wg        *sync.WaitGroup
-	handler   Handler
-	stopper   Stopper
-	receivers []*Actor
-	ctx       context.Context
-	name      string
+type Actor[T any] struct {
+	ch       chan Message[T]
+	wg       *sync.WaitGroup
+	handler  Handler[T]
+	stopper  Stopper[T]
+	ctx      context.Context
+	name     string
+	stopOnce sync.Once
 }
 
-func New(name string, bufferSize int, handler Handler, stopper Stopper, receivers []*Actor, ctx context.Context) *Actor {
-	return &Actor{
-		name:      name,
-		ch:        make(chan Message, bufferSize),
-		wg:        &sync.WaitGroup{},
-		handler:   handler,
-		stopper:   stopper,
-		receivers: receivers,
-		ctx:       ctx,
+func New[T any](name string, bufferSize int, handler Handler[T], stopper Stopper[T], ctx context.Context) *Actor[T] {
+	return &Actor[T]{
+		name:    name,
+		ch:      make(chan Message[T], bufferSize),
+		wg:      &sync.WaitGroup{},
+		handler: handler,
+		stopper: stopper,
+		ctx:     ctx,
 	}
 }
 
-func (a *Actor) Start() {
+func (a *Actor[T]) Start() {
 	a.wg.Add(1)
 	go func() {
 		defer func() {
@@ -57,25 +56,18 @@ func (a *Actor) Start() {
 	}()
 }
 
-// Waits for actor to finish
-func (a *Actor) Stop() {
-	close(a.ch)
-	a.wg.Wait()
-	if a.stopper != nil {
-		a.stopper(a)
-	}
+// Waits for actor to finish. Stopping is idempotent so a stage stopper can
+// stop its downstream actor while the pipeline also stops it explicitly.
+func (a *Actor[T]) Stop() {
+	a.stopOnce.Do(func() {
+		close(a.ch)
+		a.wg.Wait()
+		if a.stopper != nil {
+			a.stopper(a)
+		}
+	})
 }
 
-func (a *Actor) Send(msg Message) {
+func (a *Actor[T]) Send(msg Message[T]) {
 	a.ch <- msg
-}
-
-func (a *Actor) Broadcast(msg Message) {
-	for _, receiver := range a.receivers {
-		receiver.Send(msg)
-	}
-}
-
-func (a *Actor) Receivers() []*Actor {
-	return a.receivers
 }

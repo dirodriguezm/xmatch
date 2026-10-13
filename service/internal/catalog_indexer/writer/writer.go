@@ -2,7 +2,7 @@ package writer
 
 import "github.com/dirodriguezm/xmatch/service/internal/actor"
 
-type Writer interface {
-	Write(*actor.Actor, actor.Message)
-	Stop(*actor.Actor)
+type Writer[T any] interface {
+	Write(*actor.Actor[T], actor.Message[T])
+	Stop(*actor.Actor[T])
 }

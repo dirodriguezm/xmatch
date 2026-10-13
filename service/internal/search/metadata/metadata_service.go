@@ -17,27 +17,27 @@ package metadata
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"reflect"
 	"strings"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
+	"github.com/dirodriguezm/healpix"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
 type MetadataService struct {
-	resolver *catalog.Resolver
+	queries *repository.Queries
 }
 
-func NewMetadataService(resolver *catalog.Resolver) (*MetadataService, error) {
-	if resolver == nil {
-		return nil, fmt.Errorf("resolver was nil while creating MetadataService")
+func NewMetadataService(queries *repository.Queries) (*MetadataService, error) {
+	if queries == nil {
+		return nil, fmt.Errorf("queries was nil while creating MetadataService")
 	}
-	return &MetadataService{resolver: resolver}, nil
+	return &MetadataService{queries: queries}, nil
 }
 
 func (m *MetadataService) FindByID(ctx context.Context, id string, catalogName string) (any, error) {
-	if err := m.validateCatalog(catalogName); err != nil {
-		return nil, err
-	}
 	if err := m.validateID(id); err != nil {
 		return nil, err
 	}
@@ -46,9 +46,6 @@ func (m *MetadataService) FindByID(ctx context.Context, id string, catalogName s
 }
 
 func (m *MetadataService) BulkFindByID(ctx context.Context, ids []string, catalogName string) (any, error) {
-	if err := m.validateCatalog(catalogName); err != nil {
-		return nil, err
-	}
 	for i := range ids {
 		if err := m.validateID(ids[i]); err != nil {
 			return nil, err
@@ -58,31 +55,115 @@ func (m *MetadataService) BulkFindByID(ctx context.Context, ids []string, catalo
 	return m.bulkQueryCatalog(ctx, ids, catalogName)
 }
 
+// queryCatalog dispatches a by-id lookup to the generated query for the
+// catalog. The switch default carries the unknown-catalog validation, so an
+// unregistered name never reaches SQL.
 func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalogName string) (any, error) {
-	adapter, err := m.resolver.Get(catalogName)
-	if err != nil {
-		return nil, ArgumentError{Name: "catalog", Value: catalogName, Reason: err.Error()}
+	switch strings.ToLower(catalogName) {
+	case "allwise":
+		return m.queries.GetAllwise(ctx, id)
+	case "gaia":
+		return m.queries.GetGaia(ctx, id)
+	case "erosita":
+		return m.queries.GetErosita(ctx, id)
+	default:
+		return nil, unknownCatalogError(catalogName)
 	}
-	return adapter.GetByID(ctx, id)
 }
 
+// bulkQueryCatalog dispatches a bulk lookup to the generated query for the
+// catalog, with the same unknown-catalog default as queryCatalog.
 func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, catalogName string) (any, error) {
-	adapter, err := m.resolver.Get(catalogName)
-	if err != nil {
-		return nil, ArgumentError{Name: "catalog", Value: catalogName, Reason: err.Error()}
+	switch strings.ToLower(catalogName) {
+	case "allwise":
+		return m.queries.BulkGetAllwise(ctx, ids)
+	case "gaia":
+		return m.queries.BulkGetGaia(ctx, ids)
+	case "erosita":
+		return m.queries.BulkGetErosita(ctx, ids)
+	default:
+		return nil, unknownCatalogError(catalogName)
 	}
-	return adapter.BulkGetByID(ctx, ids)
 }
 
-func (m *MetadataService) validateCatalog(catalogName string) error {
-	if !m.resolver.Has(catalogName) {
-		return ValidationError{
-			Field:  "catalog",
-			Reason: fmt.Sprintf("unknown catalog: %s", catalogName),
-			Value:  catalogName,
-		}
+// GetFromPixelRanges returns the metadata envelopes of the objects whose
+// mastercat pixel falls inside one of the ranges. It dispatches to the
+// generated range primitive per catalog; a name without a registered catalog
+// contributes nothing without error (the silent skip conesearch relies on).
+func (m *MetadataService) GetFromPixelRanges(ctx context.Context, catalogName string, pixelRanges []healpix.PixelRange) ([]repository.Metadata, error) {
+	switch strings.ToLower(catalogName) {
+	case "allwise":
+		return m.queries.QueryMetadataFromPixelRanges(ctx, "allwise", pixelRanges, func(rows *sql.Rows) (repository.Metadata, error) {
+			return metadataFromRow[repository.Allwise](rows, "AllWISE")
+		})
+	case "gaia":
+		return m.queries.QueryMetadataFromPixelRanges(ctx, "gaia", pixelRanges, func(rows *sql.Rows) (repository.Metadata, error) {
+			return metadataFromRow[repository.Gaia](rows, "GAIA/DR3")
+		})
+	case "erosita":
+		return m.queries.QueryMetadataFromPixelRanges(ctx, "erosita", pixelRanges, func(rows *sql.Rows) (repository.Metadata, error) {
+			return metadataFromRow[repository.Erosita](rows, "eROSITA")
+		})
+	default:
+		return nil, nil
 	}
-	return nil
+}
+
+// scanInto scans the current row into dst followed by extra, in order. dst
+// must point to a struct whose exported fields, in declaration order, match
+// the query's leading columns: the generated models mirror the tables' CREATE
+// TABLE order, which is the order `SELECT <table>.*` returns.
+func scanInto(rows *sql.Rows, dst any, extra ...any) error {
+	value := reflect.ValueOf(dst)
+	if value.Kind() != reflect.Ptr || value.Elem().Kind() != reflect.Struct {
+		return fmt.Errorf("scanInto: dst must be a pointer to a struct, got %T", dst)
+	}
+
+	value = value.Elem()
+	targets := make([]any, 0, value.NumField()+len(extra))
+	for i := range value.NumField() {
+		field := value.Field(i)
+		if !field.CanAddr() || !field.CanInterface() {
+			continue
+		}
+		targets = append(targets, field.Addr().Interface())
+	}
+	targets = append(targets, extra...)
+
+	return rows.Scan(targets...)
+}
+
+// metadataFromRow scans one catalog row plus the trailing mastercat
+// coordinates selected by QueryMetadataFromPixelRanges and builds the
+// Metadata envelope. displayName is the catalog's display name literal; the
+// envelope id comes from the model's ID field.
+func metadataFromRow[T any](rows *sql.Rows, displayName string) (repository.Metadata, error) {
+	var object T
+	var ra, dec float64
+	if err := scanInto(rows, &object, &ra, &dec); err != nil {
+		return repository.Metadata{}, err
+	}
+
+	id := reflect.ValueOf(object).FieldByName("ID")
+	if !id.IsValid() || id.Kind() != reflect.String {
+		return repository.Metadata{}, fmt.Errorf("metadataFromRow: %T has no string ID field", object)
+	}
+
+	return repository.Metadata{
+		ID:      id.String(),
+		Catalog: displayName,
+		Ra:      ra,
+		Dec:     dec,
+		Object:  object,
+	}, nil
+}
+
+func unknownCatalogError(catalogName string) error {
+	return ValidationError{
+		Field:  "catalog",
+		Reason: fmt.Sprintf("unknown catalog: %s", catalogName),
+		Value:  catalogName,
+	}
 }
 
 func (m *MetadataService) validateID(id string) error {

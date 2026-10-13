@@ -21,25 +21,25 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
 )
 
-type Reader interface {
-	Read() ([]any, error)
-	ReadBatch() ([]any, error)
+type Reader[T any] interface {
+	Read() ([]T, error)
+	ReadBatch() ([]T, error)
 	Close() error
 }
 
-type SourceReader struct {
-	Reader
+type SourceReader[T any] struct {
+	Reader[T]
 	BatchSize int
-	Receivers []*actor.Actor
+	Receivers []*actor.Actor[T]
 }
 
-func (r *SourceReader) Read() {
+func (r *SourceReader[T]) Read() {
 	eof := false
 	for !eof {
 		rows, err := r.ReadBatch()
 		if err != nil && err != io.EOF {
 			// If the error is not EOF, it means that something went wrong reading the file
-			readResult := actor.Message{
+			readResult := actor.Message[T]{
 				Rows:  nil,
 				Error: err,
 			}
@@ -50,7 +50,7 @@ func (r *SourceReader) Read() {
 		// We update the eof variable so that we can stop the loop when all files are read
 		eof = err == io.EOF
 		// Now we can send the actual rows to all the receivers
-		readResult := actor.Message{
+		readResult := actor.Message[T]{
 			Rows:  rows,
 			Error: nil,
 		}
@@ -62,7 +62,7 @@ func (r *SourceReader) Read() {
 	}
 }
 
-func (r *SourceReader) broadcast(msg actor.Message) {
+func (r *SourceReader[T]) broadcast(msg actor.Message[T]) {
 	for _, receiver := range r.Receivers {
 		receiver.Send(msg)
 	}

@@ -35,13 +35,6 @@ type ReaderBuilder[T any] struct {
 	Source       *source.Source
 }
 
-type rawRecordFactoryFor[T any] struct{}
-
-func (rawRecordFactoryFor[T]) NewRawRecord() any {
-	var record T
-	return record
-}
-
 func AReader[T any](t *testing.T) *ReaderBuilder[T] {
 	return &ReaderBuilder[T]{
 		t: t,
@@ -77,13 +70,12 @@ func (builder *ReaderBuilder[T]) WithSource(src *source.Source) *ReaderBuilder[T
 	return builder
 }
 
-func (builder *ReaderBuilder[T]) Build() reader.Reader {
+func (builder *ReaderBuilder[T]) Build() reader.Reader[T] {
 	builder.t.Helper()
 
-	r, err := NewParquetReader(
+	r, err := NewParquetReader[T](
 		builder.Source,
-		rawRecordFactoryFor[T]{},
-		WithParquetBatchSize(builder.ReaderConfig.BatchSize),
+		WithParquetBatchSize[T](builder.ReaderConfig.BatchSize),
 	)
 	require.NoError(builder.t, err)
 	return r

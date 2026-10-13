@@ -22,16 +22,6 @@ catalog_indexer:
   indexer:
     # ordering scheme for the HEALPix grid
     ordering_scheme: "nested"
-  indexer_writer:
-    # type of the output 
-    type: parquet
-    # path to the output file
-    output_file: "vlass.parquet"
-  metadata_writer:
-    # type of the output 
-    type: parquet 
-    # path to the output file if type produces a file
-    output_file: "vlass_metadata.parquet"
   channel_size: 50000
 # Configuration file for the web service
 service:

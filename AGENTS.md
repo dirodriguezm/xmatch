@@ -4,7 +4,7 @@
 
 - **Language**: Go (1.24+)
 - **Framework**: Gin web framework, actor pattern
-- **Database**: SQLite, Parquet
+- **Database**: SQLite
 - **Build tool**: Devenv (scripts for tasks, Nix for the environment)
 
 ## Environment Setup
@@ -76,20 +76,4 @@ Format Go code with `gofmt`:
 cd service
 gofmt -w .
 ```
-
-## Agent skills
-
-### Issue tracker
-
-Issues tracked as local markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Not used — no formal triage state machine on this repo. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context — `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
-
----
 

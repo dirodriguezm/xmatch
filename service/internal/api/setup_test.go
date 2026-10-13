@@ -25,14 +25,9 @@ import (
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/app"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/testutils"
 	"github.com/gin-gonic/gin"
-
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 )
 
 var router *gin.Engine
@@ -69,6 +64,8 @@ func beforeTest(t *testing.T) {
 	// The tables are created in TestMain via migrations
 	_, _ = db.Exec("DELETE FROM mastercat;")
 	_, _ = db.Exec("DELETE FROM allwise;")
+	_, _ = db.Exec("DELETE FROM gaia;")
+	_, _ = db.Exec("DELETE FROM erosita;")
 }
 
 func TestMain(m *testing.M) {
@@ -147,18 +144,16 @@ service:
 
 	queries := app.ServiceRepository(db)
 
-	resolver := catalog.NewResolver(queries)
-
-	conesearchService, err := app.ConesearchService(queries, resolver)
-	if err != nil {
-		_ = db.Close()
-		panic(fmt.Errorf("creating conesearch service: %w", err))
-	}
-
-	metadataService, err := app.MetadataService(resolver)
+	metadataService, err := app.MetadataService(queries)
 	if err != nil {
 		_ = db.Close()
 		panic(fmt.Errorf("creating metadata service: %w", err))
+	}
+
+	conesearchService, err := app.ConesearchService(queries, metadataService)
+	if err != nil {
+		_ = db.Close()
+		panic(fmt.Errorf("creating conesearch service: %w", err))
 	}
 
 	lightcurveService, err := app.LightcurveService(cfg, conesearchService)

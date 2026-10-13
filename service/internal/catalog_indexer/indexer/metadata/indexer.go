@@ -18,39 +18,44 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 )
 
-type Indexer struct {
-	adapter catalog.CatalogAdapter
+// Converter is what the metadata indexer needs from a decoded catalog row: the
+// row builds its own metadata model.
+type Converter[Md any] interface {
+	ConvertToMetadata() (Md, error)
 }
 
-func New(adapter catalog.CatalogAdapter) *Indexer {
-	return &Indexer{adapter: adapter}
+type Indexer[Md any, Raw Converter[Md]] struct {
+	writer *actor.Actor[Md]
 }
 
-func (ind *Indexer) Index(a *actor.Actor, msg actor.Message) {
+func New[Md any, Raw Converter[Md]](writer *actor.Actor[Md]) *Indexer[Md, Raw] {
+	return &Indexer[Md, Raw]{writer: writer}
+}
+
+func (ind *Indexer[Md, Raw]) Index(_ *actor.Actor[Raw], msg actor.Message[Raw]) {
 	slog.Debug("Metadata Indexer Received Message")
 	if msg.Error != nil {
 		slog.Error("Metadata Indexer Received Error", "error", msg.Error)
-		a.Broadcast(actor.Message{Error: msg.Error, Rows: nil})
+		ind.writer.Send(actor.Message[Md]{Error: msg.Error})
 		return
 	}
 
 	outputBatch, err := ind.getOutputBatch(msg.Rows)
 	if err != nil {
-		a.Broadcast(actor.Message{Error: err, Rows: nil})
+		ind.writer.Send(actor.Message[Md]{Error: err})
 		return
 	}
 
 	slog.Debug("Metadata Indexer Sending Message", "len", len(outputBatch))
-	a.Broadcast(actor.Message{Rows: outputBatch, Error: nil})
+	ind.writer.Send(actor.Message[Md]{Rows: outputBatch})
 }
 
-func (ind *Indexer) getOutputBatch(rows []any) ([]any, error) {
-	outputBatch := make([]any, len(rows))
+func (ind *Indexer[Md, Raw]) getOutputBatch(rows []Raw) ([]Md, error) {
+	outputBatch := make([]Md, len(rows))
 	for i := range rows {
-		md, err := ind.adapter.ConvertToMetadataFromRaw(rows[i])
+		md, err := rows[i].ConvertToMetadata()
 		if err != nil {
 			return nil, err
 		}

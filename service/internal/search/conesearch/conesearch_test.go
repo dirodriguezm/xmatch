@@ -3,20 +3,23 @@ package conesearch
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/dirodriguezm/healpix"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 )
 
 func TestConesearch(t *testing.T) {
@@ -258,42 +261,27 @@ func TestBulkConesearch_WithRepositoryError(t *testing.T) {
 
 func newAllwiseMetadataRepo(t *testing.T) *repository.Queries {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	require.NoError(t, err)
-	db.SetMaxOpenConns(1)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS mastercat (
-			id text not null,
-			ipix bigint not null,
-			ra double precision not null,
-			dec double precision not null,
-			cat text not null,
-			PRIMARY KEY (id, cat)
-		);
-		CREATE TABLE IF NOT EXISTS allwise (
-			id text not null,
-			cntr bigint not null,
-			w1mpro double precision,
-			w1sigmpro double precision,
-			w2mpro double precision,
-			w2sigmpro double precision,
-			w3mpro double precision,
-			w3sigmpro double precision,
-			w4mpro double precision,
-			w4sigmpro double precision,
-			J_m_2mass double precision,
-			J_msig_2mass double precision,
-			H_m_2mass double precision,
-			H_msig_2mass double precision,
-			K_m_2mass double precision,
-			K_msig_2mass double precision,
-			PRIMARY KEY (id)
-		);
-	`)
+	dbFile := filepath.Join(t.TempDir(), "conesearch-metadata.db")
+	mig, err := migrate.New(fmt.Sprintf("file://%s", conesearchMigrationsDir(t)), fmt.Sprintf("sqlite3://%s", dbFile))
 	require.NoError(t, err)
+	t.Cleanup(func() { _, _ = mig.Close() })
+	require.NoError(t, mig.Up())
+
+	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000", dbFile))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	require.NoError(t, db.Ping())
+
 	return repository.New(db)
+}
+
+func conesearchMigrationsDir(t *testing.T) string {
+	t.Helper()
+
+	_, file, _, ok := runtime.Caller(0)
+	require.True(t, ok)
+	return filepath.Join(filepath.Dir(file), "..", "..", "db", "migrations")
 }
 
 func TestConesearch_WithMetadata(t *testing.T) {
@@ -305,11 +293,13 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	require.NoError(t, metadataRepo.InsertObject(ctx, repository.InsertObjectParams{ID: "B", Ipix: mapper.PixelAt(healpix.RADec(10, 10)), Ra: 10, Dec: 10, Cat: "allwise"}))
 	require.NoError(t, metadataRepo.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: "A"}))
 	require.NoError(t, metadataRepo.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: "B"}))
-	resolver := catalog.NewResolver(metadataRepo)
+
+	metadataService, err := metadata.NewMetadataService(metadataRepo)
+	require.NoError(t, err)
 
 	repo := repository.NewMockMastercatReader(t)
 	catalogs := []repository.Catalog{{Name: "allwise", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithResolver(resolver), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithMetadataService(metadataService), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	result, err := service.FindMetadataByConesearch(1, 1, 1, 1, "allwise")
@@ -319,13 +309,106 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	require.Equal(t, result[0].Data[0].ID, "A")
 }
 
+// TestConesearch_WithMetadata_ErositaUsesMastercatCoordinates pins the
+// coordinate source of erosita metadata envelopes: the radius cutoff, ranking,
+// and reported distance use the mastercat pair the pixel filter is built from,
+// not the table's own (nullable) ra/dec columns.
+func TestConesearch_WithMetadata_ErositaUsesMastercatCoordinates(t *testing.T) {
+	metadataRepo := newAllwiseMetadataRepo(t)
+	ctx := context.Background()
+	mapper, err := healpix.NewHEALPixMapper(18, healpix.Nest)
+	require.NoError(t, err)
+	require.NoError(t, metadataRepo.InsertObject(ctx, repository.InsertObjectParams{
+		ID:   "E",
+		Ipix: mapper.PixelAt(healpix.RADec(10, 10)),
+		Ra:   10,
+		Dec:  10,
+		Cat:  "erosita",
+	}))
+	// The table's own coordinates are far outside the query radius: only an
+	// envelope built from the mastercat pair can match at (10, 10).
+	require.NoError(t, metadataRepo.InsertErosita(ctx, repository.InsertErositaParams{
+		ID:  "E",
+		Ra:  repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 100, Valid: true}},
+		Dec: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 50, Valid: true}},
+	}))
+
+	metadataService, err := metadata.NewMetadataService(metadataRepo)
+	require.NoError(t, err)
+
+	repo := repository.NewMockMastercatReader(t)
+	catalogs := []repository.Catalog{{Name: "erosita", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithMetadataService(metadataService), WithCatalogs(catalogs))
+	require.NoError(t, err)
+
+	result, err := service.FindMetadataByConesearch(10, 10, 1, 1, "erosita")
+	require.NoError(t, err)
+
+	require.Len(t, result, 1)
+	require.Equal(t, "eROSITA", result[0].Catalog)
+	require.Len(t, result[0].Data, 1)
+	require.Equal(t, "E", result[0].Data[0].ID)
+	// Distance ~0 proves the envelope coordinates are the mastercat pair.
+	require.InDelta(t, 0, result[0].Data[0].Distance, 1e-9)
+
+	// The serialized payload publishes that same mastercat pair under ra/dec;
+	// the erosita table's own (100, 50) must not leak through.
+	encoded, err := json.Marshal(result)
+	require.NoError(t, err)
+
+	var decoded []struct {
+		Data []map[string]any `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(encoded, &decoded))
+	require.Len(t, decoded, 1)
+	require.Len(t, decoded[0].Data, 1)
+	ra, ok := decoded[0].Data[0]["ra"].(float64)
+	require.True(t, ok)
+	dec, ok := decoded[0].Data[0]["dec"].(float64)
+	require.True(t, ok)
+	require.InDelta(t, 10, ra, 1e-9)
+	require.InDelta(t, 10, dec, 1e-9)
+	require.NotContains(t, decoded[0].Data[0], "ra_2")
+	require.NotContains(t, decoded[0].Data[0], "dec_2")
+}
+
+// TestConesearch_WithMetadata_SkipsUnregisteredCatalog pins the silent skip:
+// expanding catalog=all over the catalogs-table names contributes nothing for
+// a name the metadata service does not dispatch, without failing the query.
+func TestConesearch_WithMetadata_SkipsUnregisteredCatalog(t *testing.T) {
+	metadataRepo := newAllwiseMetadataRepo(t)
+	ctx := context.Background()
+	mapper, err := healpix.NewHEALPixMapper(18, healpix.Nest)
+	require.NoError(t, err)
+	require.NoError(t, metadataRepo.InsertObject(ctx, repository.InsertObjectParams{ID: "A", Ipix: mapper.PixelAt(healpix.RADec(1, 1)), Ra: 1, Dec: 1, Cat: "allwise"}))
+	require.NoError(t, metadataRepo.InsertAllwise(ctx, repository.InsertAllwiseParams{ID: "A"}))
+
+	metadataService, err := metadata.NewMetadataService(metadataRepo)
+	require.NoError(t, err)
+
+	repo := repository.NewMockMastercatReader(t)
+	catalogs := []repository.Catalog{{Name: "vlass", Nside: 18}, {Name: "allwise", Nside: 18}}
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithMetadataService(metadataService), WithCatalogs(catalogs))
+	require.NoError(t, err)
+
+	result, err := service.FindMetadataByConesearch(1, 1, 1, 1, "all")
+	require.NoError(t, err)
+
+	require.Len(t, result, 1)
+	require.Equal(t, "AllWISE", result[0].Catalog)
+	require.Len(t, result[0].Data, 1)
+	require.Equal(t, "A", result[0].Data[0].ID)
+}
+
 func TestConesearch_WithMetadataUnknownCatalogReturnsNoResults(t *testing.T) {
 	metadataRepo := newAllwiseMetadataRepo(t)
-	resolver := catalog.NewResolver(metadataRepo)
+
+	metadataService, err := metadata.NewMetadataService(metadataRepo)
+	require.NoError(t, err)
 
 	repo := repository.NewMockMastercatReader(t)
 	catalogs := []repository.Catalog{{Name: "allwise", Nside: 18}}
-	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithResolver(resolver), WithCatalogs(catalogs))
+	service, err := NewConesearchService(WithScheme(healpix.Nest), WithMastercatStore(repo), WithMetadataService(metadataService), WithCatalogs(catalogs))
 	require.NoError(t, err)
 
 	result, err := service.FindMetadataByConesearch(1, 1, 1, 1, "unknown")

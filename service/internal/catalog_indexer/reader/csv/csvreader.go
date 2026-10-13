@@ -25,34 +25,31 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/source"
 )
 
 var nullValues = []string{"", "NA", "N/A", "NULL", "NaN", "n/a", "null", "nan"}
 
-type CsvReader struct {
+type CsvReader[T any] struct {
 	Header            []string
 	FirstLineHeader   bool
 	currentFileReader io.ReadCloser
 	currentReader     *csv.Reader
 	src               *source.Source
-	adapter           catalog.CatalogAdapter
 	batchSize         int
-	opts              []CsvReaderOption
+	opts              []CsvReaderOption[T]
 }
 
-func NewCsvReader(src *source.Source, adapter catalog.CatalogAdapter, opts ...CsvReaderOption) (*CsvReader, error) {
+func NewCsvReader[T any](src *source.Source, opts ...CsvReaderOption[T]) (*CsvReader[T], error) {
 	currentFileReader, err := src.Next()
 	if err != nil {
 		return nil, fmt.Errorf("could not get next source: %w", err)
 	}
 
-	r := &CsvReader{
+	r := &CsvReader[T]{
 		currentReader:     csv.NewReader(currentFileReader),
 		currentFileReader: currentFileReader,
 		src:               src,
-		adapter:           adapter,
 		opts:              opts,
 	}
 
@@ -63,8 +60,8 @@ func NewCsvReader(src *source.Source, adapter catalog.CatalogAdapter, opts ...Cs
 	return r, nil
 }
 
-func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader, catalogName string) ([]any, error) {
-	rows := make([]any, 0)
+func (r *CsvReader[T]) ReadSingleFile(currentReader *csv.Reader) ([]T, error) {
+	rows := make([]T, 0)
 
 	// Read the header if not already read
 	if r.Header == nil {
@@ -83,19 +80,19 @@ func (r *CsvReader) ReadSingleFile(currentReader *csv.Reader, catalogName string
 
 	// Transform data into the correct schema
 	for _, record := range records {
-		row := r.createRawRecord(catalogName, record)
+		row := r.createRawRecord(record)
 		rows = append(rows, row)
 	}
 
 	return rows, nil
 }
 
-func (r *CsvReader) Read() ([]any, error) {
-	rows := make([]any, 0)
+func (r *CsvReader[T]) Read() ([]T, error) {
+	rows := make([]T, 0)
 
 	eof := false
 	for !eof {
-		currentRows, readErr := r.ReadSingleFile(r.currentReader, r.src.CatalogName)
+		currentRows, readErr := r.ReadSingleFile(r.currentReader)
 		if readErr != nil {
 			return nil, readErr
 		}
@@ -119,8 +116,8 @@ func (r *CsvReader) Read() ([]any, error) {
 	return rows, nil
 }
 
-func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader, batchSize int, catalogName string) ([]any, error) {
-	rows := make([]any, 0, batchSize)
+func (r *CsvReader[T]) ReadBatchSingleFile(currentReader *csv.Reader, batchSize int) ([]T, error) {
+	rows := make([]T, 0, batchSize)
 
 	if r.Header == nil {
 		header, err := currentReader.Read()
@@ -139,7 +136,7 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader, batchSize int
 			return nil, err
 		}
 
-		row := r.createRawRecord(catalogName, record)
+		row := r.createRawRecord(record)
 		rows = append(rows, row)
 	}
 
@@ -150,13 +147,13 @@ func (r *CsvReader) ReadBatchSingleFile(currentReader *csv.Reader, batchSize int
 // It processes records in batches according to the BatchSize.
 // If the end of the file is reached, it retrieves the next source if available.
 // Returns the processed rows or an error, including EOF if the end of the last file is reached.
-func (r *CsvReader) ReadBatch() ([]any, error) {
+func (r *CsvReader[T]) ReadBatch() ([]T, error) {
 	// Initialize the result slice. Right now, the last batch of a file could have
 	// less than BatchSize rows. Maybe the slice could have a fixed size, but it's not too important currently.
-	rows := make([]any, 0, r.batchSize)
+	rows := make([]T, 0, r.batchSize)
 
 	// Create CSV reader from file reader and read a batch
-	currentRows, err := r.ReadBatchSingleFile(r.currentReader, r.batchSize, r.src.CatalogName)
+	currentRows, err := r.ReadBatchSingleFile(r.currentReader, r.batchSize)
 
 	// If the error is EOF, we get the next reader from the Source.
 	// And if there is no next reader, we return the rows we have so far.
@@ -195,20 +192,12 @@ func (r *CsvReader) ReadBatch() ([]any, error) {
 	return rows, nil
 }
 
-func (r *CsvReader) createRawRecord(catalogName string, record []string) any {
-	if r.adapter == nil {
-		schema := TestSchema{}
-		if err := fillStructFromStrings(&schema, record); err != nil {
-			panic(err)
-		}
-		return schema
-	}
-
-	schemaPtr := reflect.New(reflect.TypeOf(r.adapter.NewRawRecord()))
+func (r *CsvReader[T]) createRawRecord(record []string) T {
+	schemaPtr := reflect.New(reflect.TypeFor[T]())
 	if err := fillStructFromStrings(schemaPtr.Interface(), record); err != nil {
 		panic(err)
 	}
-	return schemaPtr.Elem().Interface()
+	return schemaPtr.Elem().Interface().(T)
 }
 
 func fillStructFromStrings(s any, values []string) error {
@@ -265,6 +254,6 @@ func fillStructFromStrings(s any, values []string) error {
 	return nil
 }
 
-func (r *CsvReader) Close() error {
+func (r *CsvReader[T]) Close() error {
 	return r.currentFileReader.Close()
 }

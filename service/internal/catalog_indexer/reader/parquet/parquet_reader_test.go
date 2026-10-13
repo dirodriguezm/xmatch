@@ -42,12 +42,6 @@ type Object struct {
 	Dec float64 `parquet:"name=dec, type=DOUBLE"`
 }
 
-type testRawRecordFactory struct{}
-
-func (testRawRecordFactory) NewRawRecord() any {
-	return Object{}
-}
-
 func Write(t *testing.T, nrows int) string {
 	dir := t.TempDir()
 	parquetFile := filepath.Join(dir, "test.parquet")
@@ -96,7 +90,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
+	parquetReader, err := NewParquetReader[Object](source, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +105,7 @@ func TestReadParquet_read_all_file(t *testing.T) {
 	receivedOids := make([]string, 10)
 	for i, row := range rows {
 		mastercat := repository.Mastercat{
-			ID: row.(Object).Oid,
+			ID: row.Oid,
 		}
 		receivedOids[i] = mastercat.ID
 	}
@@ -129,7 +123,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
+	parquetReader, err := NewParquetReader[Object](source, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +132,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []any
+	var rows []Object
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -147,7 +141,7 @@ func TestReadParquet_read_batch_single_file(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			receivedOids = append(receivedOids, row.(Object).Oid)
+			receivedOids = append(receivedOids, row.Oid)
 		}
 	}
 	require.Equal(t, 6, batches) // reader reads one extra batch with zero value
@@ -165,7 +159,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
+	parquetReader, err := NewParquetReader[Object](source, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +168,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []any
+	var rows []Object
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -183,7 +177,7 @@ func TestReadParquet_read_batch_single_file_with_empty_batches(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			receivedOids = append(receivedOids, row.(Object).Oid)
+			receivedOids = append(receivedOids, row.Oid)
 		}
 	}
 	require.Equal(t, 5, batches) // reader reads one extra batch with zero value
@@ -201,7 +195,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	parquetReader, err := NewParquetReader(source, testRawRecordFactory{}, WithParquetBatchSize(2))
+	parquetReader, err := NewParquetReader[Object](source, WithParquetBatchSize[Object](2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +204,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 	receivedOids := []string{}
 	batches := 0
 	var readErr error
-	var rows []any
+	var rows []Object
 	for {
 		rows, readErr = parquetReader.ReadBatch()
 		batches += 1
@@ -219,7 +213,7 @@ func TestReadParquet_read_batch_larger_than_rows(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			receivedOids = append(receivedOids, row.(Object).Oid)
+			receivedOids = append(receivedOids, row.Oid)
 		}
 	}
 	require.Equal(t, 2, batches)

@@ -7,7 +7,6 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/app"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,16 +39,14 @@ func StartHttpServer(
 
 	queries := app.ServiceRepository(db)
 
-	resolver := catalog.NewResolver(queries)
-
-	conesearchService, err := app.ConesearchService(queries, resolver)
-	if err != nil {
-		return fmt.Errorf("creating conesearch service: %w", err)
-	}
-
-	metadataService, err := app.MetadataService(resolver)
+	metadataService, err := app.MetadataService(queries)
 	if err != nil {
 		return fmt.Errorf("creating metadata service: %w", err)
+	}
+
+	conesearchService, err := app.ConesearchService(queries, metadataService)
+	if err != nil {
+		return fmt.Errorf("creating conesearch service: %w", err)
 	}
 
 	lightcurveService, err := app.LightcurveService(cfg, conesearchService)

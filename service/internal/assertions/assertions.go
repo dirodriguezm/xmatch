@@ -15,13 +15,12 @@
 package assertions
 
 import (
+	"cmp"
 	"fmt"
 	"reflect"
-
-	"golang.org/x/exp/constraints"
 )
 
-func NotNil(object interface{}, msgAndArgs ...interface{}) {
+func NotNil(object any, msgAndArgs ...any) {
 	if object == nil {
 		var msg string
 		if len(msgAndArgs) > 0 {
@@ -33,7 +32,7 @@ func NotNil(object interface{}, msgAndArgs ...interface{}) {
 	}
 }
 
-func NotZero(object interface{}, msgAndArgs ...interface{}) {
+func NotZero(object any, msgAndArgs ...any) {
 	zero := reflect.Zero(reflect.TypeOf(object))
 	if object == zero {
 		var msg string
@@ -46,7 +45,7 @@ func NotZero(object interface{}, msgAndArgs ...interface{}) {
 	}
 }
 
-func HasKey(m map[string]any, key string, msgAndArgs ...interface{}) {
+func HasKey(m map[string]any, key string, msgAndArgs ...any) {
 	_, ok := m[key]
 	if !ok {
 		var msg string
@@ -59,7 +58,7 @@ func HasKey(m map[string]any, key string, msgAndArgs ...interface{}) {
 	}
 }
 
-func GreaterThan[T constraints.Ordered](first, second T, msgAndArgs ...interface{}) {
+func GreaterThan[T cmp.Ordered](first, second T, msgAndArgs ...any) {
 	if first > second {
 		return
 	}

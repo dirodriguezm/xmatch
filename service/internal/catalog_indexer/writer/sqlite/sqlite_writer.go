@@ -6,25 +6,29 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
-type SqliteWriter struct {
-	bulkInsert func(context.Context, []any) error
-	ctx        context.Context
+type SqliteWriter[T repository.Insertable] struct {
+	ctx   context.Context
+	store *repository.Queries
 }
 
-func New(
+// New builds a writer that bulk inserts rows of T through the store. T
+// implements repository.Insertable, so the writer needs no per-catalog insert
+// function.
+func New[T repository.Insertable](
 	ctx context.Context,
-	bulkInsert func(context.Context, []any) error,
-) *SqliteWriter {
+	store *repository.Queries,
+) *SqliteWriter[T] {
 	slog.Debug("Creating new SqliteWriter")
-	return &SqliteWriter{
+	return &SqliteWriter[T]{
 		ctx:        ctx,
-		bulkInsert: bulkInsert,
+		store: store,
 	}
 }
 
-func (w *SqliteWriter) Write(a *actor.Actor, msg actor.Message) {
+func (w *SqliteWriter[T]) Write(a *actor.Actor[T], msg actor.Message[T]) {
 	defer func() {
 		if r := recover(); r != nil {
 			w.Stop(a)
@@ -32,18 +36,18 @@ func (w *SqliteWriter) Write(a *actor.Actor, msg actor.Message) {
 		}
 	}()
 
-	slog.Debug("SqliteWriter received message", "insert into", w.bulkInsert)
+	slog.Debug("SqliteWriter received message", "rows", len(msg.Rows))
 	if msg.Error != nil {
 		slog.Error("SqliteWriter received error")
 		panic(fmt.Errorf("SqliteWriter received error: %w", msg.Error))
 	}
 
-	err := w.bulkInsert(w.ctx, msg.Rows)
+	err := repository.BulkInsert(w.ctx, w.store, msg.Rows)
 	if err != nil {
 		panic(fmt.Errorf("SqliteWriter could not write objects to database: %w", err))
 	}
 }
 
-func (w *SqliteWriter) Stop(a *actor.Actor) {
-	slog.Debug("Stopping SqliteWriter", "insert into", w.bulkInsert)
+func (w *SqliteWriter[T]) Stop(a *actor.Actor[T]) {
+	slog.Debug("Stopping SqliteWriter")
 }

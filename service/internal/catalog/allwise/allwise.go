@@ -1,16 +1,10 @@
 package allwise
 
 import (
-	"context"
 	"database/sql"
-	"fmt"
 
-	"github.com/dirodriguezm/healpix"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
-
-const displayName = "AllWISE"
 
 type InputSchema struct {
 	Source_id    *string  `parquet:"name=source_id, type=BYTE_ARRAY"`
@@ -33,178 +27,26 @@ type InputSchema struct {
 	K_msig_2mass *float64 `parquet:"name=k_msig_2mass, type=DOUBLE"`
 }
 
-type Adapter struct {
-	repo *repository.Queries
-}
-
-func init() {
-	catalog.Register("allwise", func(repo *repository.Queries) (catalog.CatalogAdapter, error) {
-		return &Adapter{repo: repo}, nil
-	})
-}
-
-func (a Adapter) Name() string {
-	return "allwise"
-}
-
-func (a Adapter) NewRawRecord() any {
-	return InputSchema{}
-}
-
-func (a Adapter) NewMetadataRecord() any {
-	return repository.Allwise{}
-}
-
-func (a Adapter) BulkInsertMetadata(ctx context.Context, rows []any) error {
-	if a.repo == nil {
-		return fmt.Errorf("allwise adapter has no repository")
-	}
-	return repository.BulkInsert(ctx, a.repo, rows, func(ctx context.Context, qtx *repository.Queries, row repository.Allwise) error {
-		return qtx.InsertAllwise(ctx, repository.InsertAllwiseParams(row))
-	})
-}
-
-func (a Adapter) GetByID(ctx context.Context, id string) (any, error) {
-	if a.repo == nil {
-		return nil, fmt.Errorf("allwise adapter has no repository")
-	}
-	return a.repo.GetAllwise(ctx, id)
-}
-
-func (a Adapter) BulkGetByID(ctx context.Context, ids []string) (any, error) {
-	if a.repo == nil {
-		return nil, fmt.Errorf("allwise adapter has no repository")
-	}
-	return a.repo.BulkGetAllwise(ctx, ids)
-}
-
-func (a Adapter) GetFromPixelRanges(ctx context.Context, pixelRanges []healpix.PixelRange) ([]repository.Metadata, error) {
-	if a.repo == nil {
-		return nil, fmt.Errorf("allwise adapter has no repository")
-	}
-	return a.repo.QueryMetadataFromPixelRanges(ctx, "allwise", pixelRanges, scanAllwiseMetadataRow)
-}
-
-func (a Adapter) GetCoordinates(raw any) (float64, float64, error) {
-	schema, ok := raw.(InputSchema)
-	if !ok {
-		return 0, 0, fmt.Errorf("expected allwise.InputSchema, got %T", raw)
-	}
+func (r InputSchema) GetCoordinates() (float64, float64) {
 	ra := 0.0
 	dec := 0.0
-	if schema.Ra != nil {
-		ra = *schema.Ra
+	if r.Ra != nil {
+		ra = *r.Ra
 	}
-	if schema.Dec != nil {
-		dec = *schema.Dec
+	if r.Dec != nil {
+		dec = *r.Dec
 	}
-	return ra, dec, nil
+	return ra, dec
 }
 
-func (a Adapter) ConvertToMastercat(raw any, ipix int64) (repository.Mastercat, error) {
-	schema, ok := raw.(InputSchema)
-	if !ok {
-		return repository.Mastercat{}, fmt.Errorf("expected allwise.InputSchema, got %T", raw)
+func (r InputSchema) MastercatID() string {
+	if r.Source_id != nil {
+		return *r.Source_id
 	}
-	mc := repository.Mastercat{
-		Ipix: ipix,
-		Cat:  "allwise",
-	}
-	if schema.Source_id != nil {
-		mc.ID = *schema.Source_id
-	}
-	if schema.Ra != nil {
-		mc.Ra = *schema.Ra
-	}
-	if schema.Dec != nil {
-		mc.Dec = *schema.Dec
-	}
-	return mc, nil
+	return ""
 }
 
-func (a Adapter) ConvertToMetadataFromRaw(raw any) (any, error) {
-	schema := raw.(InputSchema)
-	return convertAllwiseInputToMetadata(schema), nil
-}
-
-// allwiseMetadataRow mirrors the allwise table columns followed by the
-// mastercat coordinates selected by repository.QueryMetadataFromPixelRanges.
-type allwiseMetadataRow struct {
-	ID         string
-	Cntr       int64
-	W1mpro     repository.NullFloat64
-	W1sigmpro  repository.NullFloat64
-	W2mpro     repository.NullFloat64
-	W2sigmpro  repository.NullFloat64
-	W3mpro     repository.NullFloat64
-	W3sigmpro  repository.NullFloat64
-	W4mpro     repository.NullFloat64
-	W4sigmpro  repository.NullFloat64
-	JM2mass    repository.NullFloat64
-	JMsig2mass repository.NullFloat64
-	HM2mass    repository.NullFloat64
-	HMsig2mass repository.NullFloat64
-	KM2mass    repository.NullFloat64
-	KMsig2mass repository.NullFloat64
-	Ra         float64
-	Dec        float64
-}
-
-func scanAllwiseMetadataRow(rows *sql.Rows) (repository.Metadata, error) {
-	var row allwiseMetadataRow
-	if err := rows.Scan(
-		&row.ID,
-		&row.Cntr,
-		&row.W1mpro,
-		&row.W1sigmpro,
-		&row.W2mpro,
-		&row.W2sigmpro,
-		&row.W3mpro,
-		&row.W3sigmpro,
-		&row.W4mpro,
-		&row.W4sigmpro,
-		&row.JM2mass,
-		&row.JMsig2mass,
-		&row.HM2mass,
-		&row.HMsig2mass,
-		&row.KM2mass,
-		&row.KMsig2mass,
-		&row.Ra,
-		&row.Dec,
-	); err != nil {
-		return repository.Metadata{}, err
-	}
-	return convertAllwiseMetadataRowToMetadata(row), nil
-}
-
-func convertAllwiseMetadataRowToMetadata(row allwiseMetadataRow) repository.Metadata {
-	return repository.Metadata{
-		ID:      row.ID,
-		Catalog: displayName,
-		Ra:      row.Ra,
-		Dec:     row.Dec,
-		Object: repository.Allwise{
-			ID:         row.ID,
-			Cntr:       row.Cntr,
-			W1mpro:     row.W1mpro,
-			W1sigmpro:  row.W1sigmpro,
-			W2mpro:     row.W2mpro,
-			W2sigmpro:  row.W2sigmpro,
-			W3mpro:     row.W3mpro,
-			W3sigmpro:  row.W3sigmpro,
-			W4mpro:     row.W4mpro,
-			W4sigmpro:  row.W4sigmpro,
-			JM2mass:    row.JM2mass,
-			JMsig2mass: row.JMsig2mass,
-			HM2mass:    row.HM2mass,
-			HMsig2mass: row.HMsig2mass,
-			KM2mass:    row.KM2mass,
-			KMsig2mass: row.KMsig2mass,
-		},
-	}
-}
-
-func convertAllwiseInputToMetadata(schema InputSchema) repository.Allwise {
+func (schema InputSchema) ConvertToMetadata() (repository.Allwise, error) {
 	allwise := repository.Allwise{}
 	if schema.Source_id != nil {
 		allwise.ID = *schema.Source_id
@@ -282,5 +124,5 @@ func convertAllwiseInputToMetadata(schema InputSchema) repository.Allwise {
 	} else {
 		allwise.KMsig2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
 	}
-	return allwise
+	return allwise, nil
 }

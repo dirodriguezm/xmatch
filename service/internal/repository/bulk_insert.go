@@ -22,8 +22,6 @@ import (
 	"log/slog"
 )
 
-type BulkInsertFunc[T any] func(context.Context, *Queries, T) error
-
 func (q *Queries) beginBulkInsertTx(ctx context.Context) (*sql.Tx, error) {
 	db, ok := q.db.(*sql.DB)
 	if !ok {
@@ -32,7 +30,7 @@ func (q *Queries) beginBulkInsertTx(ctx context.Context) (*sql.Tx, error) {
 	return db.BeginTx(ctx, nil)
 }
 
-func BulkInsert[T any](ctx context.Context, q *Queries, rows []any, insert BulkInsertFunc[T]) error {
+func BulkInsert[T Insertable](ctx context.Context, q *Queries, rows []T) error {
 	tx, err := q.beginBulkInsertTx(ctx)
 	if err != nil {
 		return err
@@ -48,13 +46,8 @@ func BulkInsert[T any](ctx context.Context, q *Queries, rows []any, insert BulkI
 		}
 	}()
 	qtx := q.WithTx(tx)
-	var zero T
 	for i := range rows {
-		row, ok := rows[i].(T)
-		if !ok {
-			return fmt.Errorf("bulk insert row %d: expected %T, got %T", i, zero, rows[i])
-		}
-		err = insert(ctx, qtx, row)
+		err = rows[i].Insert(ctx, qtx)
 		if err != nil {
 			return err
 		}
@@ -65,10 +58,4 @@ func BulkInsert[T any](ctx context.Context, q *Queries, rows []any, insert BulkI
 	}
 	committed = true
 	return nil
-}
-
-func (q *Queries) BulkInsertObject(ctx context.Context, rows []any) error {
-	return BulkInsert(ctx, q, rows, func(ctx context.Context, qtx *Queries, row Mastercat) error {
-		return qtx.InsertObject(ctx, InsertObjectParams(row))
-	})
 }
