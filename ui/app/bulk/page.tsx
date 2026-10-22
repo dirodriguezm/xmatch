@@ -21,11 +21,9 @@ import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { PageShell } from "@/app/components/layout";
 import { useBulkConeSearch } from "@/app/hooks/queries/useBulkConeSearch";
 import { MAX_RADIUS_ARCSEC } from "@/app/lib/constants/search";
+import { BULK_INPUT_STORAGE_KEY } from "@/app/lib/utils/basket";
 import { MAX_BULK_ROWS, parseBulkInput } from "@/app/lib/utils/bulkInput";
 import { bulkConeSearchRequest } from "@/app/lib/utils/snippets";
-
-/** Written by the basket before navigating to /bulk?from=basket. */
-const BASKET_STORAGE_KEY = "xwave:bulk-input";
 
 const bulkParams = {
   catalog: parseAsStringLiteral(BULK_CATALOGS).withDefault("all"),
@@ -50,15 +48,16 @@ function BulkContent() {
   const parsed = useMemo(() => parseBulkInput(text), [text]);
   const bulk = useBulkConeSearch();
 
-  // Prefill from the basket once, then drop both the stored list and the flag.
+  // Prefill once from the basket or a file picked on the landing page, then
+  // drop both the stored list and the flag.
   // Deferred to a task so the state update happens outside the effect body.
   useEffect(() => {
-    if (params.from !== "basket") return;
+    if (params.from !== "basket" && params.from !== "file") return;
     const timer = window.setTimeout(() => {
       try {
-        const stored = window.sessionStorage.getItem(BASKET_STORAGE_KEY);
+        const stored = window.sessionStorage.getItem(BULK_INPUT_STORAGE_KEY);
         if (stored) setText(stored);
-        window.sessionStorage.removeItem(BASKET_STORAGE_KEY);
+        window.sessionStorage.removeItem(BULK_INPUT_STORAGE_KEY);
       } catch {
         // Storage blocked (private mode, sandbox): nothing to prefill.
       }

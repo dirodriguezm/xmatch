@@ -1,7 +1,17 @@
 "use client";
 
 import { PlusOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import { App, Button, Flex, Input, Space, Tag, Typography } from "antd";
+import {
+  App,
+  Button,
+  Flex,
+  Input,
+  Space,
+  Tag,
+  Tooltip,
+  Typography,
+  Upload,
+} from "antd";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,6 +28,8 @@ import {
   type CatalogRadiusConfig,
   encodeCatalogRadii,
 } from "@/app/lib/constants/search";
+import { BULK_INPUT_STORAGE_KEY } from "@/app/lib/utils/basket";
+import { MAX_BULK_FILE_BYTES } from "@/app/lib/utils/bulkInput";
 
 const { Title, Text } = Typography;
 
@@ -68,6 +80,31 @@ export function LandingSearch() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const { go: goRandom, loading: randomLoading } = useRandomObject();
+
+  // A file of positions goes to the bulk page, prefilled the same way the
+  // basket hands its objects over.
+  const handleFile = (file: File) => {
+    if (file.size > MAX_BULK_FILE_BYTES) {
+      message.error(
+        `${file.name} is ${(file.size / 1024 / 1024).toFixed(1)} MB; the limit is 2 MB.`
+      );
+      return false;
+    }
+    file
+      .text()
+      .then((text) => {
+        try {
+          window.sessionStorage.setItem(BULK_INPUT_STORAGE_KEY, text);
+        } catch {
+          message.error("Could not hand the file to the bulk page");
+          return;
+        }
+        router.push("/bulk?from=file");
+      })
+      .catch(() => message.error(`Could not read ${file.name}`));
+    // Keep antd from uploading anywhere; we only need the text.
+    return false;
+  };
   const [quickExamples, setQuickExamples] = useState(
     ALL_EXAMPLES.slice(0, EXAMPLES_TO_SHOW)
   );
@@ -168,7 +205,20 @@ export function LandingSearch() {
 
         {/* Search bar */}
         <Space.Compact className="w-full">
-          <Button icon={<PlusOutlined />} size="large" title="Upload file" />
+          <Tooltip title="Upload a CSV/TSV of positions to cross-match them all at once">
+            <Upload
+              accept=".csv,.tsv,.txt,.dat,text/csv,text/plain,text/tab-separated-values"
+              beforeUpload={handleFile}
+              showUploadList={false}
+              maxCount={1}
+            >
+              <Button
+                icon={<PlusOutlined />}
+                size="large"
+                aria-label="Upload a positions file"
+              />
+            </Upload>
+          </Tooltip>
           <Input.Search
             data-search-input
             placeholder="Coordinates or name (e.g., 12:30:00 -45:00:00 or M31)"

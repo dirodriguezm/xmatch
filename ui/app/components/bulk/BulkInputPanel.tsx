@@ -10,13 +10,13 @@ import { Alert, App, Button, Input, Typography, Upload } from "antd";
 import {
   BULK_EXAMPLE,
   type BulkParseResult,
+  MAX_BULK_FILE_BYTES,
   MAX_BULK_ROWS,
 } from "@/app/lib/utils/bulkInput";
 
 const { Text } = Typography;
 
 /** Refuse files large enough to freeze the textarea; 1000 rows fit in ~100 kB. */
-const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_ERRORS_SHOWN = 20;
 
 interface BulkInputPanelProps {
@@ -35,7 +35,7 @@ export function BulkInputPanel({
   const tooMany = targets.length > MAX_BULK_ROWS;
 
   const handleFile = (file: File) => {
-    if (file.size > MAX_FILE_BYTES) {
+    if (file.size > MAX_BULK_FILE_BYTES) {
       message.error(
         `${file.name} is ${(file.size / 1024 / 1024).toFixed(1)} MB; the limit is 2 MB (${MAX_BULK_ROWS} rows).`
       );

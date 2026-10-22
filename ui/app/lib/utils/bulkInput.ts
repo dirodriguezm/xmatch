@@ -12,6 +12,9 @@ import { toCsv } from "./csv";
 /** Rows per bulk request. The backend has no list cap; this keeps the UI snappy. */
 export const MAX_BULK_ROWS = 1000;
 
+/** Largest positions file we read in the browser (~MAX_BULK_ROWS rows). */
+export const MAX_BULK_FILE_BYTES = 2 * 1024 * 1024;
+
 /** Rows per upstream POST. 1000 rows answer in ~0.6s, so 500 keeps each well under that. */
 export const BULK_CHUNK_SIZE = 500;
 
