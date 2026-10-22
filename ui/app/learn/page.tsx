@@ -4,6 +4,7 @@ import {
   BookOutlined,
   NodeIndexOutlined,
   QuestionCircleOutlined,
+  RadarChartOutlined,
 } from "@ant-design/icons";
 import { Tabs } from "antd";
 import { useState, useSyncExternalStore } from "react";
@@ -13,8 +14,9 @@ import { FaqList } from "@/app/components/learn/FaqList";
 import { GlossarySection } from "@/app/components/learn/GlossarySection";
 import { MethodsSection } from "@/app/components/learn/MethodsSection";
 import { Section } from "@/app/components/learn/Section";
+import { SpectrumSection } from "@/app/components/learn/SpectrumSection";
 
-type TabKey = "faq" | "methods" | "glossary";
+type TabKey = "faq" | "methods" | "spectrum" | "glossary";
 
 function subscribeHash(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
@@ -31,6 +33,7 @@ function useHash(): string {
 
 function tabFromHash(hash: string): TabKey {
   if (hash.startsWith("methods")) return "methods";
+  if (hash.startsWith("spectrum")) return "spectrum";
   if (hash.startsWith("glossary")) return "glossary";
   return "faq";
 }
@@ -55,7 +58,7 @@ export default function LearnPage() {
   return (
     <PageShell
       title="Learn"
-      description="Answers to common questions, exactly how the cross-match works, and what every catalog column means."
+      description="Answers to common questions, exactly how the cross-match works, one object seen across the spectrum, and what every catalog column means."
     >
       <Tabs
         activeKey={tab}
@@ -88,6 +91,16 @@ export default function LearnPage() {
             children: (
               <Section id="methods" title="How matching works">
                 <MethodsSection />
+              </Section>
+            ),
+          },
+          {
+            key: "spectrum",
+            label: "Across the spectrum",
+            icon: <RadarChartOutlined />,
+            children: (
+              <Section id="spectrum" title="3C 273 across the spectrum">
+                <SpectrumSection />
               </Section>
             ),
           },
