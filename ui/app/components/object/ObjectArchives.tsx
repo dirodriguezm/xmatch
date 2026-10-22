@@ -5,7 +5,7 @@ import {
   LineChartOutlined,
   TagOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Flex, Space, Tooltip, Typography } from "antd";
+import { App, Button, Card, Flex, Space, Tooltip, Typography } from "antd";
 
 import { useDesiTarget, useSimbad } from "@/app/hooks/queries";
 import {
@@ -18,6 +18,7 @@ import {
   buildSdssNavigateUrl,
   buildSimbadUrl,
   buildVizierUrl,
+  SPHEREX_EXPLORER_URL,
 } from "@/app/lib/utils/urls";
 
 const { Text } = Typography;
@@ -50,6 +51,19 @@ export function ObjectArchives({
   const sdssUrl = buildSdssNavigateUrl(ra, dec);
   const legacyUrl = buildLegacySurveyViewerUrl(ra, dec);
   const panstarrsUrl = buildPanstarrsUrl(ra, dec);
+  const { message } = App.useApp();
+
+  // The Data Explorer can't be opened at a position, so hand the user the
+  // coordinates to paste into its search box.
+  const openSpherex = () => {
+    navigator.clipboard
+      .writeText(`${ra.toFixed(6)} ${dec.toFixed(6)}`)
+      .then(() =>
+        message.success("Coordinates copied — paste them in IRSA's search")
+      )
+      .catch(() => {});
+    window.open(SPHEREX_EXPLORER_URL, "_blank", "noopener,noreferrer");
+  };
 
   // Pre-load the DESI spectrum lookup so the button reflects availability
   // (loading / enabled-with-target / disabled-no-spectrum) before the user clicks.
@@ -174,27 +188,38 @@ export function ObjectArchives({
       label: "Spectra",
       icon: <LineChartOutlined />,
       buttons: (
-        <Tooltip title={desiTooltip}>
-          {/* span wrapper lets the tooltip stay reachable while the button is disabled */}
-          <span>
+        <>
+          <Tooltip title={desiTooltip}>
+            {/* span wrapper lets the tooltip stay reachable while the button is disabled */}
+            <span>
+              <Button
+                size="small"
+                icon={<LineChartOutlined />}
+                loading={desiLoading}
+                disabled={desiDisabled}
+                onClick={() =>
+                  desiTargetid &&
+                  window.open(
+                    buildDesiSpectrumUrl(desiTargetid),
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
+              >
+                DESI Spectrum
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Measure this object's 0.75–5 µm SPHEREx spectrum with IRSA's Spectrophotometry tool. Copies the coordinates for its search box.">
             <Button
               size="small"
               icon={<LineChartOutlined />}
-              loading={desiLoading}
-              disabled={desiDisabled}
-              onClick={() =>
-                desiTargetid &&
-                window.open(
-                  buildDesiSpectrumUrl(desiTargetid),
-                  "_blank",
-                  "noopener,noreferrer"
-                )
-              }
+              onClick={openSpherex}
             >
-              DESI Spectrum
+              SPHEREx at IRSA
             </Button>
-          </span>
-        </Tooltip>
+          </Tooltip>
+        </>
       ),
     },
   ];

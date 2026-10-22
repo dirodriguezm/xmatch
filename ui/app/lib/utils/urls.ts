@@ -60,6 +60,14 @@ export function buildNedUrl(ra: number, dec: number, radius = 0.033): string {
 }
 
 /**
+ * IRSA's SPHEREx Data Explorer, where users run forced spectrophotometry on
+ * the Quick Release spectral images. It takes no position in the URL, so the
+ * caller copies the coordinates for the user to paste.
+ */
+export const SPHEREX_EXPLORER_URL =
+  "https://irsa.ipac.caltech.edu/applications/spherex/";
+
+/**
  * Build a Pan-STARRS1 image cutout URL
  */
 export function buildPanstarrsUrl(ra: number, dec: number): string {

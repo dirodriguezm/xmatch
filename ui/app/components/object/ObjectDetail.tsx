@@ -142,6 +142,12 @@ const SURVEY_OPTIONS = [
     description: "Near-infrared J/H/Ks (1.2–2.2 µm), whole sky",
   },
   {
+    label: "SPHEREx",
+    value: "CDS/P/SPHEREx/QR2/color",
+    category: "Infrared",
+    description: "0.75–5 µm spectral survey (QR2), 6.2″ pixels, whole sky",
+  },
+  {
     label: "AllWISE",
     value: "CDS/P/allWISE/color",
     category: "Infrared",
