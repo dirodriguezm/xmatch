@@ -150,22 +150,20 @@ export default function AboutPage() {
               </Paragraph>
             </Step>
 
-            <Step index={3} title="Candidates are ranked by proximity">
+            <Step index={3} title="Exact separations are computed and filtered">
               <Paragraph className="text-muted !mb-0">
-                The candidates from step 2 are loaded into a 2-D k-d tree keyed
-                on right ascension and declination, and a nearest-neighbour
-                query returns the closest ones to your target. This bounds how
-                much work the final step has to do.
+                For each candidate the service computes the great-circle
+                separation from your target using the haversine formula, and
+                discards anything beyond your radius. That separation is the{" "}
+                <Text code>Ang. Dist</Text> column, reported in arcseconds.
               </Paragraph>
             </Step>
 
-            <Step index={4} title="Exact separations are computed and filtered">
+            <Step index={4} title="Results are ranked and capped">
               <Paragraph className="text-muted !mb-0">
-                For each remaining candidate the service computes the
-                great-circle separation from your target using the haversine
-                formula, and discards anything beyond your radius. What survives
-                is the result set, and that separation is the{" "}
-                <Text code>Ang. Dist</Text> column — reported in arcseconds.
+                What survives is sorted nearest first and cut to the requested
+                number of neighbours. The response also says how many matches
+                there were in total and per catalog, before that cut.
               </Paragraph>
             </Step>
           </div>
@@ -175,12 +173,11 @@ export default function AboutPage() {
               Why results are capped
             </Text>
             <Paragraph className="text-muted !mb-0 !mt-2">
-              The proximity ranking in step 3 happens <em>before</em> the radius
-              filter in step 4, so the neighbour limit bounds how many objects
-              can come back at all. This interface requests a generous limit so
-              that in practice the radius is what determines your results — but
-              for a very crowded field, a large radius can still hit that
-              ceiling.
+              The neighbour limit applies after the radius filter, so it only
+              trims the farthest matches. This interface requests a generous
+              limit so that in practice the radius is what determines your
+              results; for a very crowded field and a large radius, the total
+              count in the response tells you how many were left out.
             </Paragraph>
           </Card>
         </Section>
