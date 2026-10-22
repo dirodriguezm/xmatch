@@ -176,7 +176,13 @@ export function HealpixSkyDiagram() {
       >
         south pole
       </text>
-      <text x={X(TWO_PI) + 4} y={Y(0) + 4} fill={MUTED} fontSize={11}>
+      <text
+        x={X(TWO_PI) - 4}
+        y={Y(0) - 6}
+        textAnchor="end"
+        fill={MUTED}
+        fontSize={11}
+      >
         equator
       </text>
     </svg>

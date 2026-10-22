@@ -5,11 +5,13 @@ import type { ReactNode } from "react";
 
 import { MAX_RADIUS_ARCSEC } from "@/app/lib/constants/search";
 
+import { BulkCoverageDiagram } from "./diagrams/BulkCoverageDiagram";
 import { ConeSearchDiagram } from "./diagrams/ConeSearchDiagram";
 import { HealpixSkyDiagram } from "./diagrams/HealpixSkyDiagram";
 import { HealpixZoomDiagram } from "./diagrams/HealpixZoomDiagram";
 import { IndexComparison } from "./diagrams/IndexComparison";
 import { IpixPipelineDiagram } from "./diagrams/IpixPipelineDiagram";
+import { RadiusScaleDiagram } from "./diagrams/RadiusScaleDiagram";
 import { Step } from "./Section";
 
 const { Paragraph, Text, Link, Title } = Typography;
@@ -50,8 +52,8 @@ export function MethodsSection() {
     <div>
       <P>
         From general to specific: what a cross-match is, what HEALPix is, how
-        the two fit together, and how XWave uses HEALPix to answer in
-        milliseconds. The diagrams are interactive.
+        the two fit together, how XWave uses HEALPix to answer in milliseconds,
+        and where the limits are. The diagrams are interactive.
       </P>
 
       <Part index={1} title="Cross-match and cone search">
@@ -170,6 +172,34 @@ export function MethodsSection() {
           better; on the sky it is a diamond like the ones above.
         </P>
         <IpixPipelineDiagram />
+      </Part>
+
+      <Part index={5} title="Why we can't cross-match the whole universe">
+        <P>
+          HEALPix makes a small search cheap, but it is not magic: the work
+          grows with the area of the circle, and the area grows with the square
+          of the radius. Double the radius and you get four times the cells and
+          candidates. Slide the radius from 1″ to the whole sky and watch what
+          happens with a catalog the size of Gaia.
+        </P>
+        <RadiusScaleDiagram />
+      </Part>
+
+      <Part index={6} title="Bulk: your list, not the whole sky">
+        <P>
+          A bulk cross-match does not search an area of the sky. It searches
+          around <strong>a list of positions you give it</strong>, say 60 stars
+          you care about, with <strong>a single radius</strong> shared by all of
+          them. For each position it runs a small cone search, exactly like the
+          normal search, and reads only inside that circle. Everything between
+          your positions is never looked at.
+        </P>
+        <BulkCoverageDiagram />
+        <P>
+          Inside the service the list is split into chunks of 500 positions
+          handled by 4 workers in parallel. That only changes how fast the run
+          finishes, not how much sky it reads.
+        </P>
       </Part>
 
       <Title level={4} className="!mt-0 !mb-3 text-foreground">
