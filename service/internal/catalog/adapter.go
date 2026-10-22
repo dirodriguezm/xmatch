@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
@@ -22,7 +23,7 @@ type CatalogAdapter interface {
 
 	BulkGetByID(ctx context.Context, ids []string) (any, error)
 
-	GetFromPixels(ctx context.Context, pixels []int64) ([]repository.Metadata, error)
+	GetFromPixelRanges(ctx context.Context, pixelRanges []healpix.PixelRange) ([]repository.Metadata, error)
 
 	GetCoordinates(raw any) (float64, float64, error)
 

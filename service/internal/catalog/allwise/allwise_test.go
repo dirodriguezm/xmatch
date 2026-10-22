@@ -203,14 +203,14 @@ func TestConvertToMetadata_ImplementsMetadataInterface(t *testing.T) {
 	assert.IsType(t, repository.Allwise{}, md)
 }
 
-func TestConvertFromPixelsRowToMetadata(t *testing.T) {
-	row := repository.GetAllwiseFromPixelsRow{
+func TestConvertMetadataRowToMetadata(t *testing.T) {
+	row := allwiseMetadataRow{
 		ID:     "from_db",
 		Cntr:   42,
 		W1mpro: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 14.0, Valid: true}},
 	}
 
-	md := convertAllwiseFromPixelsRowToMetadata(row)
+	md := convertAllwiseMetadataRowToMetadata(row)
 	result := md.Object.(repository.Allwise)
 	assert.Equal(t, "from_db", result.ID)
 	assert.Equal(t, int64(42), result.Cntr)

@@ -69,8 +69,8 @@ func TestConvertToMetadataFromRaw_ImplementsMetadataInterface(t *testing.T) {
 	assert.IsType(t, repository.Gaia{}, md)
 }
 
-func TestConvertFromPixelsRowToMetadata(t *testing.T) {
-	row := repository.GetGaiaFromPixelsRow{
+func TestConvertMetadataRowToMetadata(t *testing.T) {
+	row := gaiaMetadataRow{
 		ID:                  "from_db",
 		PhotGMeanFlux:       repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 1000.5, Valid: true}},
 		PhotGMeanFluxError:  repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 10.2, Valid: true}},
@@ -80,7 +80,7 @@ func TestConvertFromPixelsRowToMetadata(t *testing.T) {
 		PhotBpMeanMag:       repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 16.0, Valid: true}},
 	}
 
-	md := convertGaiaFromPixelsRowToMetadata(row)
+	md := convertGaiaMetadataRowToMetadata(row)
 	result := md.Object.(repository.Gaia)
 	assert.Equal(t, "from_db", result.ID)
 	assert.Equal(t, 1000.5, result.PhotGMeanFlux.Float64)

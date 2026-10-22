@@ -120,7 +120,7 @@ func (c *ConesearchService) Conesearch(ra, dec, radius float64, nneighbor int, c
 		objects = append(objects, objs...)
 	}
 
-	return ResultFromSelection(selectNearest(objects, ra, dec, radius, nneighbor, mastercatCoordinates), 0), nil
+	return ResultFromSelection(selectNearest(objects, ra, dec, radius, nneighbor, mastercatCoordinates, mastercatCatalog), 0), nil
 }
 
 func (c *ConesearchService) FindMetadataByConesearch(
@@ -137,7 +137,7 @@ func (c *ConesearchService) FindMetadataByConesearch(
 		return nil, fmt.Errorf("could not find allwise metadata: %w", err)
 	}
 
-	return ResultFromSelectionMetadata(selectNearest(objects, ra, dec, radius, nneighbor, metadataCoordinates)), nil
+	return ResultFromSelectionMetadata(selectNearest(objects, ra, dec, radius, nneighbor, metadataCoordinates, metadataCatalog)), nil
 }
 
 func findMetadata(
@@ -149,8 +149,7 @@ func findMetadata(
 	objects := make([]repository.Metadata, 0)
 	for _, v := range c.mappers {
 		pixelRanges := v.QueryDiscInclusive(point, radius_radians, c.Resolution)
-		pixelList := pixelRangeToList(pixelRanges)
-		objs, err := c.getMetadata(pixelList, catalog)
+		objs, err := c.getMetadata(pixelRanges, catalog)
 		if err != nil {
 			return nil, err
 		}
@@ -206,7 +205,7 @@ func (c *ConesearchService) BulkConesearch(
 
 					resultsChan <- indexedResult{
 						index:  baseIndex + j,
-						result: selectNearest(objs, chunkRa[j], chunkDec[j], radius, nneighbor, mastercatCoordinates),
+						result: selectNearest(objs, chunkRa[j], chunkDec[j], radius, nneighbor, mastercatCoordinates, mastercatCatalog),
 					}
 				}
 
@@ -243,9 +242,11 @@ func (c *ConesearchService) BulkConesearch(
 				if !seenIDs[i][id] {
 					seenIDs[i][id] = true
 					uniqueObjects = append(uniqueObjects, MastercatResult{
-						Catalog: mastercatResult.Catalog,
-						Data:    []MastercatExtended{mastercatResult.Data[j]},
-						Index:   i,
+						Catalog:        mastercatResult.Catalog,
+						Data:           []MastercatExtended{mastercatResult.Data[j]},
+						Index:          i,
+						Total:          mastercatResult.Total,
+						TotalInCatalog: mastercatResult.TotalInCatalog,
 					})
 				}
 			}
@@ -256,16 +257,6 @@ func (c *ConesearchService) BulkConesearch(
 
 func arcsecToRadians(arcsec float64) float64 {
 	return (arcsec / 3600) * (math.Pi / 180)
-}
-
-func pixelRangeToList(pixelRanges []healpix.PixelRange) []int64 {
-	result := make([]int64, 0, len(pixelRanges))
-	for _, r := range pixelRanges {
-		for i := r.Start; i < r.Stop; i++ {
-			result = append(result, i)
-		}
-	}
-	return result
 }
 
 func (c *ConesearchService) getObjectsInRanges(pixelRanges []healpix.PixelRange, catalog string) ([]repository.Mastercat, error) {
@@ -279,7 +270,7 @@ func (c *ConesearchService) getObjectsInRanges(pixelRanges []healpix.PixelRange,
 	return objects, nil
 }
 
-func (c *ConesearchService) getMetadata(pixelList []int64, catalogName string) ([]repository.Metadata, error) {
+func (c *ConesearchService) getMetadata(pixelRanges []healpix.PixelRange, catalogName string) ([]repository.Metadata, error) {
 	objects := make([]repository.Metadata, 0)
 
 	catalogList := c.resolveCatalogList(catalogName)
@@ -291,7 +282,7 @@ func (c *ConesearchService) getMetadata(pixelList []int64, catalogName string) (
 		if err != nil {
 			return nil, err
 		}
-		objs, err := adapter.GetFromPixels(c.ctx, pixelList)
+		objs, err := adapter.GetFromPixelRanges(c.ctx, pixelRanges)
 		if err != nil {
 			return nil, err
 		}

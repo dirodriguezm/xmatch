@@ -260,7 +260,7 @@ in {
     };
 
     xwave-docs = {
-      exec = "cd ${service} && go run github.com/swaggo/swag/cmd/swag@v1.16.4 init --dir ./ --generalInfo ./cmd/*.go --output ./docs";
+      exec = "cd ${service} && go run github.com/swaggo/swag/cmd/swag@v1.16.4 init --dir ./ --generalInfo ./cmd/start_http_server.go --output ./docs --propertyStrategy pascalcase";
       description = "Generate Swagger documentation";
     };
 

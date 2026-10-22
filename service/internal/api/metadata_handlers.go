@@ -25,18 +25,17 @@ import (
 
 // Find metadata by id
 //
-//	@Summary		Get metadata by object ID
-//	@Description	Retrieve detailed catalog metadata for a specific astronomical object by its identifier.
-//	@ID				metadata
+//	@Summary		Search for metadata by id
+//	@Description	Search for metadata by id. The response fields depend on the requested catalog (allwise, gaia or erosita) and include the catalog-specific columns plus ra and dec.
 //	@Tags			metadata
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		query		string	true	"Object identifier"		example(J120000.00-450000.0)
-//	@Param			catalog	query		string	true	"Catalog to search in"	example(allwise)
-//	@Success		200		{object}	repository.Allwise		"Object metadata"
-//	@Success		204		{string}	string					"Object not found"
-//	@Failure		400		{object}	metadata.ValidationError	"Invalid parameters"
-//	@Failure		500		{string}	string					"Internal server error"
+//	@Param			id		query		string	true	"ID to search for"
+//	@Param			catalog	query		string	true	"Catalog to search in (allwise, gaia or erosita)"
+//	@Success		200		{object}	map[string]interface{}	"Catalog-specific metadata record"
+//	@Success		204		"No Content"
+//	@Failure		400		{object}	metadata.ValidationError
+//	@Failure		500		{string}	string
 //	@Router			/metadata [get]
 func (api *API) metadata(c *gin.Context) {
 	id := c.Query("id")
@@ -49,8 +48,6 @@ func (api *API) metadata(c *gin.Context) {
 			// WARN: sql reference should be handled inside service, not in this layer
 		} else if errors.Is(err, sql.ErrNoRows) {
 			c.Writer.WriteHeader(http.StatusNoContent)
-		} else if errors.As(err, &metadata.ArgumentError{}) {
-			c.JSON(http.StatusInternalServerError, err)
 		} else {
 			c.Error(err)
 			c.JSON(http.StatusInternalServerError, "Could not execute metadata query")
@@ -63,24 +60,22 @@ func (api *API) metadata(c *gin.Context) {
 
 // Find metadata by multiple ids
 //
-//	@Summary		Bulk get metadata by object IDs
-//	@Description	Retrieve detailed catalog metadata for multiple astronomical objects by their identifiers.
-//	@Description	All IDs are queried in parallel for optimal performance.
-//	@ID				bulk-metadata
+//	@Summary		Search for metadata by multiple ids
+//	@Description	Search for metadata by multiple ids in bulk. The response fields depend on the requested catalog (allwise, gaia or erosita) and include the catalog-specific columns plus ra and dec.
 //	@Tags			metadata
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		BulkMetadataRequest	true	"Bulk metadata request with list of object IDs"
-//	@Success		200		{array}		repository.Allwise		"Objects metadata"
-//	@Success		204		{string}	string					"No objects found"
-//	@Failure		400		{object}	metadata.ValidationError	"Invalid parameters"
-//	@Failure		500		{string}	string					"Internal server error"
+//	@Param			request	body		BulkMetadataRequest	true	"Bulk metadata request"
+//	@Success		200		{array}		map[string]interface{}	"Catalog-specific metadata records"
+//	@Success		204		"No Content"
+//	@Failure		400		{object}	metadata.ValidationError
+//	@Failure		500		{string}	string
 //	@Router			/bulk-metadata [post]
 func (api *API) metadataBulk(c *gin.Context) {
 	var bulkRequest BulkMetadataRequest
 	if err := c.ShouldBindJSON(&bulkRequest); err != nil {
 		c.Error(err)
-		c.JSON(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, metadata.ValidationError{Field: "body", Reason: err.Error()})
 		return
 	}
 
@@ -91,8 +86,6 @@ func (api *API) metadataBulk(c *gin.Context) {
 			// WARN: sql reference should be handled inside service, not in this layer
 		} else if errors.Is(err, sql.ErrNoRows) {
 			c.Writer.WriteHeader(http.StatusNoContent)
-		} else if errors.As(err, &metadata.ArgumentError{}) {
-			c.JSON(http.StatusInternalServerError, err)
 		} else {
 			c.Error(err)
 			c.JSON(http.StatusInternalServerError, "Could not execute metadata query")

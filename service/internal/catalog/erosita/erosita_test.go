@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,9 +64,9 @@ func TestConvertToMetadataFromRaw_ImplementsMetadataInterface(t *testing.T) {
 	assert.IsType(t, repository.Erosita{}, md)
 }
 
-func TestGetFromPixelsRequiresRepository(t *testing.T) {
+func TestGetFromPixelRangesRequiresRepository(t *testing.T) {
 	adapter := Adapter{}
 
-	_, err := adapter.GetFromPixels(context.Background(), []int64{1})
+	_, err := adapter.GetFromPixelRanges(context.Background(), []healpix.PixelRange{{Start: 1, Stop: 2}})
 	require.EqualError(t, err, "erosita adapter has no repository")
 }

@@ -224,14 +224,14 @@ func TestRealCatalogAdaptersSatisfyContract(t *testing.T) {
 			require.NoError(t, err)
 			tc.assertBulkGet(t, bulkByID)
 
-			fromPixels, err := adapter.GetFromPixels(ctx, []int64{ipix})
+			fromRanges, err := adapter.GetFromPixelRanges(ctx, []healpix.PixelRange{{Start: ipix, Stop: ipix + 1}})
 			require.NoError(t, err)
-			require.Len(t, fromPixels, 1)
-			require.Equal(t, tc.expectedID, fromPixels[0].ID)
-			require.Equal(t, tc.displayName, fromPixels[0].Catalog)
-			require.Equal(t, tc.expectedRA, fromPixels[0].Ra)
-			require.Equal(t, tc.expectedDec, fromPixels[0].Dec)
-			tc.assertObject(t, fromPixels[0].Object)
+			require.Len(t, fromRanges, 1)
+			require.Equal(t, tc.expectedID, fromRanges[0].ID)
+			require.Equal(t, tc.displayName, fromRanges[0].Catalog)
+			require.Equal(t, tc.expectedRA, fromRanges[0].Ra)
+			require.Equal(t, tc.expectedDec, fromRanges[0].Dec)
+			tc.assertObject(t, fromRanges[0].Object)
 		})
 	}
 }
