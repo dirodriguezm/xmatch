@@ -13,33 +13,7 @@ sql:
         package: "repository"
         out: "../repository"
         emit_json_tags: true
-        overrides:
-          # SQLite type names are normalized before matching, so the SQL spelling
-          # "double precision" must be written here as "doubleprecision".
-          - db_type: "doubleprecision"
-            go_type:
-              type: "NullFloat64"
-            nullable: true
-          - db_type: "real"
-            go_type:
-              type: "NullFloat64"
-            nullable: true
-          - db_type: "integer"
-            go_type:
-              type: "NullInt64"
-            nullable: true
-          - db_type: "bigint"
-            go_type:
-              type: "NullInt64"
-            nullable: true
-          - db_type: "smallint"
-            go_type:
-              type: "NullInt64"
-            nullable: true
-          - db_type: "text"
-            go_type:
-              type: "NullString"
-            nullable: true
+        emit_pointers_for_null_types: true
 overrides:
   go:
     rename:

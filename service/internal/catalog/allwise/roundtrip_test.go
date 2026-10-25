@@ -48,8 +48,8 @@ func TestRoundTrip(t *testing.T) {
 	assert.Equal(t, int64(42), byID.Cntr)
 	assert.Equal(t, mastercat.Ra, byID.Ra)
 	assert.Equal(t, mastercat.Dec, byID.Dec)
-	assert.True(t, byID.W1mpro.Valid)
-	assert.Equal(t, 12.3, byID.W1mpro.Float64)
+	assert.NotNil(t, byID.W1mpro)
+	assert.Equal(t, 12.3, *byID.W1mpro)
 
 	bulk, err := queries.BulkGetAllwise(ctx, []string{"allwise-001"})
 	require.NoError(t, err)
@@ -74,10 +74,10 @@ func TestRoundTrip(t *testing.T) {
 
 	missingMetadata, err := missing.ConvertToMetadata()
 	require.NoError(t, err)
-	require.False(t, missingMetadata.W1mpro.Valid)
+	require.Nil(t, missingMetadata.W1mpro)
 	require.NoError(t, repository.BulkInsert(ctx, queries, []repository.Allwise{missingMetadata}))
 
 	missingByID, err := queries.GetAllwise(ctx, missingID)
 	require.NoError(t, err)
-	assert.False(t, missingByID.W1mpro.Valid)
+	assert.Nil(t, missingByID.W1mpro)
 }

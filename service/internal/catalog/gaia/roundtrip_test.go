@@ -43,9 +43,9 @@ func TestRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, mastercat.Ra, byID.Ra)
 	assert.Equal(t, mastercat.Dec, byID.Dec)
-	assert.True(t, byID.PhotGMeanFlux.Valid)
-	assert.Equal(t, 1000.5, byID.PhotGMeanFlux.Float64)
-	assert.InDelta(t, 16.1, byID.PhotBpMeanMag.Float64, 0.0001)
+	assert.NotNil(t, byID.PhotGMeanFlux)
+	assert.Equal(t, 1000.5, *byID.PhotGMeanFlux)
+	assert.InDelta(t, 16.1, *byID.PhotBpMeanMag, 0.0001)
 
 	bulk, err := queries.BulkGetGaia(ctx, []string{"Gaia DR3 123"})
 	require.NoError(t, err)

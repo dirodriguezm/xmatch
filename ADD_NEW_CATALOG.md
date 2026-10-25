@@ -10,7 +10,7 @@ A catalog needs these pieces:
 
 1. A metadata table migration under `service/internal/db/migrations/`.
 2. SQL queries in a per-catalog file under `service/internal/db/` (existing catalogs use `allwise.sql`, `gaia.sql`, and `erosita.sql`; mastercat queries live in `mastercat.sql` and catalog-registry queries in `catalogs.sql`): the metadata insert plus the by-id and bulk lookups the HTTP API uses.
-3. SQLC config updates in `service/internal/db/sqlc.yaml` only for type exceptions the existing `db_type` rules do not cover (Step 3).
+3. SQLC config updates in `service/internal/db/sqlc.yaml` only for type exceptions `emit_pointers_for_null_types` cannot express (Step 3).
 4. Regenerated SQLC repository code.
 5. A catalog package under `service/internal/catalog/newcatalog/` whose `InputSchema` implements `GetCoordinates`, `MastercatID`, and `ConvertToMetadata`.
 6. An `Insert` method for the generated metadata model in `service/internal/repository/insert.go`.
@@ -82,22 +82,20 @@ Metadata cone-search candidates are selected by pixel range through the generic 
 
 Edit `service/internal/db/sqlc.yaml` only when the generated types need adjusting:
 
-- Usually nothing. The `db_type` overrides already map nullable `double precision`, `real`, `integer`, `bigint`, `smallint`, and `text` columns to `NullFloat64`, `NullInt64`, and `NullString`, so the Step 1 migration needs no entries. `db_type` matching is an exact comparison against the engine's normalized type name, so `double precision` in a migration is spelled `doubleprecision` (no space) in `sqlc.yaml`, and `nullable: true` matches nullable columns only.
-- Add a `column`-scoped `go_type` only for a one-off exception. Types outside the rules above fall back to the stdlib types: `varchar(...)`/`clob` → `sql.NullString`, `numeric`/`decimal` → `sql.NullFloat64`, `boolean` → `sql.NullBool`, and `date`/`datetime`/`timestamp` → `sql.NullTime`. Use a column override to get a project wrapper instead where one exists (`varchar` → `NullString`, `numeric` → `NullFloat64`); `repository` has no `NullBool` or `NullTime`, so those stay stdlib.
+- Usually nothing. `emit_pointers_for_null_types: true` makes every nullable column a pointer field (`*float64`, `*int64`, `*string`, …) and leaves `NOT NULL` columns as values. Nullability comes from the Step 1 migration, so declare optional columns without `NOT NULL` and they need no config entry.
+- Add a `column`-scoped `go_type` only for a one-off exception, such as a type SQLC cannot map. Set `pointer: true` when the exception is nullable, so the generated field matches the rest of the models.
 - Add a `go_struct_tag` with `json:"..."` only when the generated JSON key must differ from the column name; SQLC already lowercases column names into tags.
 - Add a root `overrides.go.rename` entry if SQLC generates an awkward type name.
 
 Do **not** add parquet tags to generated models: nothing exports parquet anymore. Source-reading parquet tags live on the catalog package's `InputSchema` (Step 4).
 
-Example entries for columns the `db_type` rules do not cover (not needed for the Step 1 schema):
+Example entry for a one-off nullable exception:
 
 ```yaml
           - column: "newcatalog.kind"
             go_type:
-              type: "NullString"
-          - column: "newcatalog.score"
-            go_type:
-              type: "NullFloat64"
+              type: "string"
+              pointer: true
 ```
 
 Regenerate repository code from the directory containing `sqlc.yaml` with the `sqlc` binary from the dev shell. The pinned nixpkgs ships v1.31.1, which matches the `// sqlc v1.31.1` header of the generated files; do not run `go run github.com/sqlc-dev/sqlc/cmd/sqlc@<version>`, since a different version rewrites that header and churns the generated files:
@@ -117,8 +115,6 @@ Create `service/internal/catalog/newcatalog/newcatalog.go`. A catalog package is
 package newcatalog
 
 import (
-	"database/sql"
-
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
@@ -142,9 +138,9 @@ func (r InputSchema) MastercatID() string {
 func (r InputSchema) ConvertToMetadata() (repository.Newcatalog, error) {
 	return repository.Newcatalog{
 		ID:   r.ID,
-		MagG: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: r.MagG, Valid: true}},
-		MagR: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: r.MagR, Valid: true}},
-		Flag: repository.NullInt64{NullInt64: sql.NullInt64{Int64: r.Flag, Valid: true}},
+		MagG: new(r.MagG),
+		MagR: new(r.MagR),
+		Flag: new(r.Flag),
 	}, nil
 }
 ```
@@ -154,10 +150,10 @@ Notes:
 1. `InputSchema` belongs in the catalog package, not `repository`; generated metadata types belong in `repository`. It carries only `parquet:` tags — they describe the source file layout read by the parquet reader. Do not add `json:` tags.
 2. `GetCoordinates` returns the source coordinates. The mastercat indexer computes `ipix` from them with the configured nside/ordering and builds the `mastercat` row itself: id from `MastercatID`, coordinates, and `cat` = `strings.ToLower(source.catalog_name)`. There is no per-catalog mastercat conversion method.
 3. `MastercatID` is the object identifier and the `mastercat`↔metadata join key. Examples: Gaia's `designation`, eROSITA's `IAUNAME`, AllWISE's `source_id`.
-4. `ConvertToMetadata` keeps the `(model, error)` shape so conversion failures still travel the pipeline's error path. Use pointer fields in `InputSchema` when a source format must distinguish null from zero, and encode the catalog's null policy here (for example AllWISE maps missing photometry to `Valid: false`).
+4. `ConvertToMetadata` keeps the `(model, error)` shape so conversion failures still travel the pipeline's error path. Nullable model fields are pointers, so a missing value is `nil` (for example AllWISE passes nil photometry straight through as NULL). To populate a pointer from a scalar, use Go 1.26's `new(expr)`; when the source schema already uses pointer fields, assign them directly. Use pointer fields in `InputSchema` when a source format must distinguish null from zero.
 5. The metadata model's insert lives on the model itself (Step 5): the writer only requires `repository.Insertable`, so the switch passes no insert function.
 6. The CSV reader fills `InputSchema` by struct field order, not by header name. For CSV sources keep fields in source column order. For Parquet/FITS, use pointer fields for nullable columns.
-7. If the catalog table also has `ra`/`dec` columns, keep them as ordinary model fields. The HTTP envelope coordinates always come from the trailing `mastercat.ra`/`mastercat.dec` selected by the lookups.
+7. If the catalog table also has `ra`/`dec` columns, keep them in the generated model (as pointers when the columns are nullable). The HTTP envelope coordinates always come from the trailing `mastercat.ra`/`mastercat.dec` selected by the lookups.
 
 ## Step 5: Add the Insert Method and the Indexer Switch Case
 
@@ -305,7 +301,7 @@ No mock regeneration is needed for a new catalog: catalog packages have no inter
 - `service/internal/catalog_indexer/indexer/mastercat/indexer.go`: HEALPix pixel computation and mastercat row assembly.
 - `service/internal/catalog_indexer/indexer/metadata/indexer.go`: raw-to-metadata conversion stage.
 - `service/internal/search/metadata/metadata_service.go`: HTTP metadata dispatch switches and the range scan helper.
-- `service/internal/catalog/allwise/allwise.go`: compact catalog package with nullable source values and sentinel handling.
+- `service/internal/catalog/allwise/allwise.go`: compact catalog package with nullable source values mapped straight to nil pointers.
 - `service/internal/catalog/gaia/gaia.go`: simple catalog package.
 - `service/internal/catalog/erosita/erosita.go`: large catalog package with catalog RA/DEC fields.
 - `service/internal/repository/bulk_insert.go`: generic bulk insert helper over `repository.Insertable`.

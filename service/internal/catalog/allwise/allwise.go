@@ -1,8 +1,6 @@
 package allwise
 
 import (
-	"database/sql"
-
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
@@ -47,82 +45,27 @@ func (r InputSchema) MastercatID() string {
 }
 
 func (schema InputSchema) ConvertToMetadata() (repository.Allwise, error) {
-	allwise := repository.Allwise{}
+	allwise := repository.Allwise{
+		W1mpro:     schema.W1mpro,
+		W1sigmpro:  schema.W1sigmpro,
+		W2mpro:     schema.W2mpro,
+		W2sigmpro:  schema.W2sigmpro,
+		W3mpro:     schema.W3mpro,
+		W3sigmpro:  schema.W3sigmpro,
+		W4mpro:     schema.W4mpro,
+		W4sigmpro:  schema.W4sigmpro,
+		JM2mass:    schema.J_m_2mass,
+		JMsig2mass: schema.J_msig_2mass,
+		HM2mass:    schema.H_m_2mass,
+		HMsig2mass: schema.H_msig_2mass,
+		KM2mass:    schema.K_m_2mass,
+		KMsig2mass: schema.K_msig_2mass,
+	}
 	if schema.Source_id != nil {
 		allwise.ID = *schema.Source_id
 	}
 	if schema.Cntr != nil {
 		allwise.Cntr = *schema.Cntr
-	}
-	if schema.W1mpro != nil {
-		allwise.W1mpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.W1mpro, Valid: true}}
-	} else {
-		allwise.W1mpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.W1sigmpro != nil {
-		allwise.W1sigmpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.W1sigmpro, Valid: true}}
-	} else {
-		allwise.W1sigmpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.W2mpro != nil {
-		allwise.W2mpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.W2mpro, Valid: true}}
-	} else {
-		allwise.W2mpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.W2sigmpro != nil {
-		allwise.W2sigmpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.W2sigmpro, Valid: true}}
-	} else {
-		allwise.W2sigmpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.W3mpro != nil {
-		allwise.W3mpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.W3mpro, Valid: true}}
-	} else {
-		allwise.W3mpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.W3sigmpro != nil {
-		allwise.W3sigmpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.W3sigmpro, Valid: true}}
-	} else {
-		allwise.W3sigmpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.W4mpro != nil {
-		allwise.W4mpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.W4mpro, Valid: true}}
-	} else {
-		allwise.W4mpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.W4sigmpro != nil {
-		allwise.W4sigmpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.W4sigmpro, Valid: true}}
-	} else {
-		allwise.W4sigmpro = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.J_m_2mass != nil {
-		allwise.JM2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.J_m_2mass, Valid: true}}
-	} else {
-		allwise.JM2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.J_msig_2mass != nil {
-		allwise.JMsig2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.J_msig_2mass, Valid: true}}
-	} else {
-		allwise.JMsig2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.H_m_2mass != nil {
-		allwise.HM2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.H_m_2mass, Valid: true}}
-	} else {
-		allwise.HM2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.H_msig_2mass != nil {
-		allwise.HMsig2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.H_msig_2mass, Valid: true}}
-	} else {
-		allwise.HMsig2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.K_m_2mass != nil {
-		allwise.KM2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.K_m_2mass, Valid: true}}
-	} else {
-		allwise.KM2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
-	}
-	if schema.K_msig_2mass != nil {
-		allwise.KMsig2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: *schema.K_msig_2mass, Valid: true}}
-	} else {
-		allwise.KMsig2mass = repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: -9999.0, Valid: false}}
 	}
 	return allwise, nil
 }

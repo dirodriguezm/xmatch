@@ -42,10 +42,10 @@ func TestRoundTrip(t *testing.T) {
 
 	byID, err := queries.GetErosita(ctx, "eROSITA J123")
 	require.NoError(t, err)
-	assert.Equal(t, "det-123", byID.Detuid.String)
-	assert.Equal(t, int64(17), byID.Skytile.Int64)
-	assert.Equal(t, int64(99), byID.IDSrc.Int64)
-	assert.Equal(t, int64(1001), byID.Uid.Int64)
+	assert.Equal(t, "det-123", *byID.Detuid)
+	assert.Equal(t, int64(17), *byID.Skytile)
+	assert.Equal(t, int64(99), *byID.IDSrc)
+	assert.Equal(t, int64(1001), *byID.Uid)
 	// The by-id response exposes the mastercat pair under ra/dec; the
 	// catalog table's own coordinates are not part of the response.
 	assert.Equal(t, 55.5, byID.Ra)

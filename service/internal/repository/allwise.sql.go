@@ -18,24 +18,24 @@ WHERE allwise.id IN (/*SLICE:id*/?)
 `
 
 type BulkGetAllwiseRow struct {
-	ID         string      `json:"id"`
-	Cntr       int64       `json:"cntr"`
-	W1mpro     NullFloat64 `json:"w1mpro"`
-	W1sigmpro  NullFloat64 `json:"w1sigmpro"`
-	W2mpro     NullFloat64 `json:"w2mpro"`
-	W2sigmpro  NullFloat64 `json:"w2sigmpro"`
-	W3mpro     NullFloat64 `json:"w3mpro"`
-	W3sigmpro  NullFloat64 `json:"w3sigmpro"`
-	W4mpro     NullFloat64 `json:"w4mpro"`
-	W4sigmpro  NullFloat64 `json:"w4sigmpro"`
-	JM2mass    NullFloat64 `json:"j_m_2mass"`
-	JMsig2mass NullFloat64 `json:"j_msig_2mass"`
-	HM2mass    NullFloat64 `json:"h_m_2mass"`
-	HMsig2mass NullFloat64 `json:"h_msig_2mass"`
-	KM2mass    NullFloat64 `json:"k_m_2mass"`
-	KMsig2mass NullFloat64 `json:"k_msig_2mass"`
-	Ra         float64     `json:"ra"`
-	Dec        float64     `json:"dec"`
+	ID         string   `json:"id"`
+	Cntr       int64    `json:"cntr"`
+	W1mpro     *float64 `json:"w1mpro"`
+	W1sigmpro  *float64 `json:"w1sigmpro"`
+	W2mpro     *float64 `json:"w2mpro"`
+	W2sigmpro  *float64 `json:"w2sigmpro"`
+	W3mpro     *float64 `json:"w3mpro"`
+	W3sigmpro  *float64 `json:"w3sigmpro"`
+	W4mpro     *float64 `json:"w4mpro"`
+	W4sigmpro  *float64 `json:"w4sigmpro"`
+	JM2mass    *float64 `json:"j_m_2mass"`
+	JMsig2mass *float64 `json:"j_msig_2mass"`
+	HM2mass    *float64 `json:"h_m_2mass"`
+	HMsig2mass *float64 `json:"h_msig_2mass"`
+	KM2mass    *float64 `json:"k_m_2mass"`
+	KMsig2mass *float64 `json:"k_msig_2mass"`
+	Ra         float64  `json:"ra"`
+	Dec        float64  `json:"dec"`
 }
 
 func (q *Queries) BulkGetAllwise(ctx context.Context, id []string) ([]BulkGetAllwiseRow, error) {
@@ -98,24 +98,24 @@ WHERE allwise.id = ?
 `
 
 type GetAllwiseRow struct {
-	ID         string      `json:"id"`
-	Cntr       int64       `json:"cntr"`
-	W1mpro     NullFloat64 `json:"w1mpro"`
-	W1sigmpro  NullFloat64 `json:"w1sigmpro"`
-	W2mpro     NullFloat64 `json:"w2mpro"`
-	W2sigmpro  NullFloat64 `json:"w2sigmpro"`
-	W3mpro     NullFloat64 `json:"w3mpro"`
-	W3sigmpro  NullFloat64 `json:"w3sigmpro"`
-	W4mpro     NullFloat64 `json:"w4mpro"`
-	W4sigmpro  NullFloat64 `json:"w4sigmpro"`
-	JM2mass    NullFloat64 `json:"j_m_2mass"`
-	JMsig2mass NullFloat64 `json:"j_msig_2mass"`
-	HM2mass    NullFloat64 `json:"h_m_2mass"`
-	HMsig2mass NullFloat64 `json:"h_msig_2mass"`
-	KM2mass    NullFloat64 `json:"k_m_2mass"`
-	KMsig2mass NullFloat64 `json:"k_msig_2mass"`
-	Ra         float64     `json:"ra"`
-	Dec        float64     `json:"dec"`
+	ID         string   `json:"id"`
+	Cntr       int64    `json:"cntr"`
+	W1mpro     *float64 `json:"w1mpro"`
+	W1sigmpro  *float64 `json:"w1sigmpro"`
+	W2mpro     *float64 `json:"w2mpro"`
+	W2sigmpro  *float64 `json:"w2sigmpro"`
+	W3mpro     *float64 `json:"w3mpro"`
+	W3sigmpro  *float64 `json:"w3sigmpro"`
+	W4mpro     *float64 `json:"w4mpro"`
+	W4sigmpro  *float64 `json:"w4sigmpro"`
+	JM2mass    *float64 `json:"j_m_2mass"`
+	JMsig2mass *float64 `json:"j_msig_2mass"`
+	HM2mass    *float64 `json:"h_m_2mass"`
+	HMsig2mass *float64 `json:"h_msig_2mass"`
+	KM2mass    *float64 `json:"k_m_2mass"`
+	KMsig2mass *float64 `json:"k_msig_2mass"`
+	Ra         float64  `json:"ra"`
+	Dec        float64  `json:"dec"`
 }
 
 func (q *Queries) GetAllwise(ctx context.Context, id string) (GetAllwiseRow, error) {
@@ -153,22 +153,22 @@ INSERT INTO allwise (
 `
 
 type InsertAllwiseParams struct {
-	ID         string      `json:"id"`
-	Cntr       int64       `json:"cntr"`
-	W1mpro     NullFloat64 `json:"w1mpro"`
-	W1sigmpro  NullFloat64 `json:"w1sigmpro"`
-	W2mpro     NullFloat64 `json:"w2mpro"`
-	W2sigmpro  NullFloat64 `json:"w2sigmpro"`
-	W3mpro     NullFloat64 `json:"w3mpro"`
-	W3sigmpro  NullFloat64 `json:"w3sigmpro"`
-	W4mpro     NullFloat64 `json:"w4mpro"`
-	W4sigmpro  NullFloat64 `json:"w4sigmpro"`
-	JM2mass    NullFloat64 `json:"j_m_2mass"`
-	JMsig2mass NullFloat64 `json:"j_msig_2mass"`
-	HM2mass    NullFloat64 `json:"h_m_2mass"`
-	HMsig2mass NullFloat64 `json:"h_msig_2mass"`
-	KM2mass    NullFloat64 `json:"k_m_2mass"`
-	KMsig2mass NullFloat64 `json:"k_msig_2mass"`
+	ID         string   `json:"id"`
+	Cntr       int64    `json:"cntr"`
+	W1mpro     *float64 `json:"w1mpro"`
+	W1sigmpro  *float64 `json:"w1sigmpro"`
+	W2mpro     *float64 `json:"w2mpro"`
+	W2sigmpro  *float64 `json:"w2sigmpro"`
+	W3mpro     *float64 `json:"w3mpro"`
+	W3sigmpro  *float64 `json:"w3sigmpro"`
+	W4mpro     *float64 `json:"w4mpro"`
+	W4sigmpro  *float64 `json:"w4sigmpro"`
+	JM2mass    *float64 `json:"j_m_2mass"`
+	JMsig2mass *float64 `json:"j_msig_2mass"`
+	HM2mass    *float64 `json:"h_m_2mass"`
+	HMsig2mass *float64 `json:"h_msig_2mass"`
+	KM2mass    *float64 `json:"k_m_2mass"`
+	KMsig2mass *float64 `json:"k_msig_2mass"`
 }
 
 func (q *Queries) InsertAllwise(ctx context.Context, arg InsertAllwiseParams) error {

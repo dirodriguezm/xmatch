@@ -1,7 +1,6 @@
 package conesearch
 
 import (
-	"database/sql"
 	"encoding/json"
 	"testing"
 
@@ -19,8 +18,8 @@ func TestMetadataExtended_MarshalJSON_PublishesMastercatCoordinates(t *testing.T
 		"gaia has no table coordinates":    repository.Gaia{ID: "gaia-1"},
 		"erosita table coordinates are overridden": repository.Erosita{
 			ID:  "erosita-1",
-			Ra:  repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 100, Valid: true}},
-			Dec: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 50, Valid: true}},
+			Ra:  new(100.0),
+			Dec: new(50.0),
 		},
 	}
 
