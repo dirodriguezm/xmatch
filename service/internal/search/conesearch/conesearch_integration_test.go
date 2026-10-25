@@ -25,14 +25,9 @@ import (
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/app"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch/test_helpers"
 	"github.com/dirodriguezm/xmatch/service/internal/testutils"
-
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
-	_ "github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -139,8 +134,11 @@ func TestConesearch(t *testing.T) {
 	queries := app.ServiceRepository(db)
 	defer CleanDB(t, queries)
 
-	resolver := catalog.NewResolver(queries)
-	service, err := app.ConesearchService(queries, resolver)
+	metadataService, err := app.MetadataService(queries)
+	if err != nil {
+		t.Fatalf("creating metadata service: %v", err)
+	}
+	service, err := app.ConesearchService(queries, metadataService)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
 	}
@@ -192,8 +190,11 @@ func TestConesearch_WithMetadata(t *testing.T) {
 	queries := app.ServiceRepository(db)
 	defer CleanDB(t, queries)
 
-	resolver := catalog.NewResolver(queries)
-	service, err := app.ConesearchService(queries, resolver)
+	metadataService, err := app.MetadataService(queries)
+	if err != nil {
+		t.Fatalf("creating metadata service: %v", err)
+	}
+	service, err := app.ConesearchService(queries, metadataService)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
 	}
@@ -254,13 +255,16 @@ func TestConesearch_WithMetadata_DegreeScale(t *testing.T) {
 	queries := app.ServiceRepository(db)
 	defer CleanDB(t, queries)
 
-	resolver := catalog.NewResolver(queries)
-	service, err := app.ConesearchService(queries, resolver)
+	metadataService, err := app.MetadataService(queries)
+	if err != nil {
+		t.Fatalf("creating metadata service: %v", err)
+	}
+	service, err := app.ConesearchService(queries, metadataService)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
 	}
 
-	// The resolver indexes allwise at order 18, so mastercat pixels must be
+	// The indexer indexes allwise at nside 18, so mastercat pixels must be
 	// computed with a mapper of the same order for the range query to find them.
 	mapper, err := healpix.NewHEALPixMapper(18, healpix.Nest)
 	if err != nil {
@@ -334,8 +338,11 @@ func TestBulkConesearch(t *testing.T) {
 	queries := app.ServiceRepository(db)
 	defer CleanDB(t, queries)
 
-	resolver := catalog.NewResolver(queries)
-	service, err := app.ConesearchService(queries, resolver)
+	metadataService, err := app.MetadataService(queries)
+	if err != nil {
+		t.Fatalf("creating metadata service: %v", err)
+	}
+	service, err := app.ConesearchService(queries, metadataService)
 	if err != nil {
 		t.Fatalf("creating conesearch service: %v", err)
 	}

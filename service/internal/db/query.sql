@@ -3,12 +3,6 @@ SELECT *
 FROM mastercat 
 WHERE ipix IN (sqlc.slice(ipix));
 
--- name: GetObjectsFromCatalog :many
-SELECT * 
-FROM mastercat 
-WHERE ipix IN (sqlc.slice(ipix))
-AND cat = ?;
-
 -- name: InsertObject :exec
 INSERT INTO mastercat (
 	id, ipix, ra, dec, cat
@@ -52,9 +46,6 @@ WHERE allwise.id IN (sqlc.slice(id));
 
 -- name: RemoveAllObjects :exec
 DELETE FROM mastercat;
-
--- name: RemoveAllAllwise :exec
-DELETE FROM allwise;
 
 -- name: RemoveAllCatalogs :exec
 DELETE FROM catalogs;
@@ -139,9 +130,6 @@ FROM gaia
 JOIN mastercat ON mastercat.id = gaia.id
 WHERE gaia.id IN (sqlc.slice(id));
 
--- name: RemoveAllGaia :exec
-DELETE FROM gaia;
-
 -- name: InsertErosita :exec
 INSERT INTO erosita (
     id, detuid, skytile, id_src, uid, uid_hard, id_cluster,
@@ -170,16 +158,37 @@ INSERT INTO erosita (
 );
 
 -- name: GetErosita :one
-SELECT erosita.*, mastercat.ra, mastercat.dec
+SELECT
+    erosita.id, erosita.detuid, erosita.skytile, erosita.id_src, erosita.uid, erosita.uid_hard, erosita.id_cluster,
+    erosita.ra_lowerr, erosita.ra_uperr, erosita.dec_lowerr, erosita.dec_uperr, erosita.pos_err,
+    erosita.mjd, erosita.mjd_min, erosita.mjd_max, erosita.ext, erosita.ext_err, erosita.ext_like, erosita.det_like_0,
+    erosita.ml_cts_1, erosita.ml_cts_err_1, erosita.ml_rate_1, erosita.ml_rate_err_1, erosita.ml_flux_1, erosita.ml_flux_err_1, erosita.ml_bkg_1, erosita.ml_exp_1, erosita.ape_bkg_1, erosita.ape_radius_1, erosita.ape_pois_1,
+    erosita.det_like_p1, erosita.ml_cts_p1, erosita.ml_cts_err_p1, erosita.ml_rate_p1, erosita.ml_rate_err_p1, erosita.ml_flux_p1, erosita.ml_flux_err_p1, erosita.ml_bkg_p1, erosita.ml_exp_p1, erosita.ape_bkg_p1, erosita.ape_radius_p1, erosita.ape_pois_p1,
+    erosita.det_like_p2, erosita.ml_cts_p2, erosita.ml_cts_err_p2, erosita.ml_rate_p2, erosita.ml_rate_err_p2, erosita.ml_flux_p2, erosita.ml_flux_err_p2, erosita.ml_bkg_p2, erosita.ml_exp_p2, erosita.ape_bkg_p2, erosita.ape_radius_p2, erosita.ape_pois_p2,
+    erosita.det_like_p3, erosita.ml_cts_p3, erosita.ml_cts_err_p3, erosita.ml_rate_p3, erosita.ml_rate_err_p3, erosita.ml_flux_p3, erosita.ml_flux_err_p3, erosita.ml_bkg_p3, erosita.ml_exp_p3, erosita.ape_bkg_p3, erosita.ape_radius_p3, erosita.ape_pois_p3,
+    erosita.det_like_p4, erosita.ml_cts_p4, erosita.ml_cts_err_p4, erosita.ml_rate_p4, erosita.ml_rate_err_p4, erosita.ml_flux_p4, erosita.ml_flux_err_p4, erosita.ml_bkg_p4, erosita.ml_exp_p4, erosita.ape_bkg_p4, erosita.ape_radius_p4, erosita.ape_pois_p4,
+    erosita.det_like_p5, erosita.ml_cts_p5, erosita.ml_cts_err_p5, erosita.ml_rate_p5, erosita.ml_rate_err_p5, erosita.ml_flux_p5, erosita.ml_flux_err_p5, erosita.ml_bkg_p5, erosita.ml_exp_p5, erosita.ape_bkg_p5, erosita.ape_radius_p5, erosita.ape_pois_p5,
+    erosita.det_like_p6, erosita.ml_cts_p6, erosita.ml_cts_err_p6, erosita.ml_rate_p6, erosita.ml_rate_err_p6, erosita.ml_flux_p6, erosita.ml_flux_err_p6, erosita.ml_bkg_p6, erosita.ml_exp_p6, erosita.ape_bkg_p6, erosita.ape_radius_p6, erosita.ape_pois_p6,
+    erosita.flag_sp_snr, erosita.flag_sp_bps, erosita.flag_sp_scl, erosita.flag_sp_lga, erosita.flag_sp_gc_cons, erosita.flag_no_radec_err, erosita.flag_no_ext_err, erosita.flag_no_cts_err, erosita.flag_opt,
+    mastercat.ra, mastercat.dec
 FROM erosita 
 JOIN mastercat ON mastercat.id = erosita.id
 WHERE erosita.id = ?;
 
 -- name: BulkGetErosita :many
-SELECT erosita.*, mastercat.ra, mastercat.dec
+SELECT
+    erosita.id, erosita.detuid, erosita.skytile, erosita.id_src, erosita.uid, erosita.uid_hard, erosita.id_cluster,
+    erosita.ra_lowerr, erosita.ra_uperr, erosita.dec_lowerr, erosita.dec_uperr, erosita.pos_err,
+    erosita.mjd, erosita.mjd_min, erosita.mjd_max, erosita.ext, erosita.ext_err, erosita.ext_like, erosita.det_like_0,
+    erosita.ml_cts_1, erosita.ml_cts_err_1, erosita.ml_rate_1, erosita.ml_rate_err_1, erosita.ml_flux_1, erosita.ml_flux_err_1, erosita.ml_bkg_1, erosita.ml_exp_1, erosita.ape_bkg_1, erosita.ape_radius_1, erosita.ape_pois_1,
+    erosita.det_like_p1, erosita.ml_cts_p1, erosita.ml_cts_err_p1, erosita.ml_rate_p1, erosita.ml_rate_err_p1, erosita.ml_flux_p1, erosita.ml_flux_err_p1, erosita.ml_bkg_p1, erosita.ml_exp_p1, erosita.ape_bkg_p1, erosita.ape_radius_p1, erosita.ape_pois_p1,
+    erosita.det_like_p2, erosita.ml_cts_p2, erosita.ml_cts_err_p2, erosita.ml_rate_p2, erosita.ml_rate_err_p2, erosita.ml_flux_p2, erosita.ml_flux_err_p2, erosita.ml_bkg_p2, erosita.ml_exp_p2, erosita.ape_bkg_p2, erosita.ape_radius_p2, erosita.ape_pois_p2,
+    erosita.det_like_p3, erosita.ml_cts_p3, erosita.ml_cts_err_p3, erosita.ml_rate_p3, erosita.ml_rate_err_p3, erosita.ml_flux_p3, erosita.ml_flux_err_p3, erosita.ml_bkg_p3, erosita.ml_exp_p3, erosita.ape_bkg_p3, erosita.ape_radius_p3, erosita.ape_pois_p3,
+    erosita.det_like_p4, erosita.ml_cts_p4, erosita.ml_cts_err_p4, erosita.ml_rate_p4, erosita.ml_rate_err_p4, erosita.ml_flux_p4, erosita.ml_flux_err_p4, erosita.ml_bkg_p4, erosita.ml_exp_p4, erosita.ape_bkg_p4, erosita.ape_radius_p4, erosita.ape_pois_p4,
+    erosita.det_like_p5, erosita.ml_cts_p5, erosita.ml_cts_err_p5, erosita.ml_rate_p5, erosita.ml_rate_err_p5, erosita.ml_flux_p5, erosita.ml_flux_err_p5, erosita.ml_bkg_p5, erosita.ml_exp_p5, erosita.ape_bkg_p5, erosita.ape_radius_p5, erosita.ape_pois_p5,
+    erosita.det_like_p6, erosita.ml_cts_p6, erosita.ml_cts_err_p6, erosita.ml_rate_p6, erosita.ml_rate_err_p6, erosita.ml_flux_p6, erosita.ml_flux_err_p6, erosita.ml_bkg_p6, erosita.ml_exp_p6, erosita.ape_bkg_p6, erosita.ape_radius_p6, erosita.ape_pois_p6,
+    erosita.flag_sp_snr, erosita.flag_sp_bps, erosita.flag_sp_scl, erosita.flag_sp_lga, erosita.flag_sp_gc_cons, erosita.flag_no_radec_err, erosita.flag_no_ext_err, erosita.flag_no_cts_err, erosita.flag_opt,
+    mastercat.ra, mastercat.dec
 FROM erosita 
 JOIN mastercat ON mastercat.id = erosita.id
 WHERE erosita.id IN (sqlc.slice(id));
-
--- name: RemoveAllErosita :exec
-DELETE FROM erosita;

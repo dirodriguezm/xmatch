@@ -26,6 +26,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testRow is a minimal insertable row for the transaction-behavior test.
+type testRow int
+
+func (r testRow) Insert(ctx context.Context, q *Queries) error {
+	_, err := q.db.ExecContext(ctx, "SELECT 1")
+	return err
+}
+
 func TestBulkInsertSuccessfulCommitDoesNotLogRollbackError(t *testing.T) {
 	var logs bytes.Buffer
 	previousLogger := slog.Default()
@@ -37,10 +45,7 @@ func TestBulkInsertSuccessfulCommitDoesNotLogRollbackError(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
 	q := New(db)
-	err = BulkInsert[int](context.Background(), q, []any{1}, func(ctx context.Context, qtx *Queries, row int) error {
-		_, err := qtx.db.ExecContext(ctx, "SELECT 1")
-		return err
-	})
+	err = BulkInsert(context.Background(), q, []testRow{1})
 
 	require.NoError(t, err)
 	assert.NotContains(t, logs.String(), "rollback error")

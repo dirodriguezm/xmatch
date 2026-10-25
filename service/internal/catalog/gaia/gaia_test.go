@@ -1,40 +1,28 @@
 package gaia
 
 import (
-	"database/sql"
 	"testing"
 
-	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestConvertToMastercat(t *testing.T) {
-	adapter := Adapter{}
-	ipix := int64(123)
-
+func TestGetCoordinates(t *testing.T) {
 	raw := InputSchema{
-		Designation: "Gaia DR3 123456789",
-		RA:          45.0,
-		Dec:         30.0,
+		RA:  45.0,
+		Dec: 30.0,
 	}
-	ra, dec, err := adapter.GetCoordinates(raw)
-	require.NoError(t, err)
+	ra, dec := raw.GetCoordinates()
 	assert.Equal(t, 45.0, ra)
 	assert.Equal(t, 30.0, dec)
-
-	mc, err := adapter.ConvertToMastercat(raw, ipix)
-	require.NoError(t, err)
-	assert.Equal(t, "Gaia DR3 123456789", mc.ID)
-	assert.Equal(t, 45.0, mc.Ra)
-	assert.Equal(t, 30.0, mc.Dec)
-	assert.Equal(t, "gaia", mc.Cat)
-	assert.Equal(t, ipix, mc.Ipix)
 }
 
-func TestConvertToMetadataFromRaw(t *testing.T) {
-	adapter := Adapter{}
+func TestMastercatID(t *testing.T) {
+	raw := InputSchema{Designation: "Gaia DR3 123456789"}
+	assert.Equal(t, "Gaia DR3 123456789", raw.MastercatID())
+}
 
+func TestConvertToMetadata(t *testing.T) {
 	raw := InputSchema{
 		Designation:         "Gaia DR3 123456789",
 		PhotGMeanFlux:       1000.5,
@@ -47,9 +35,8 @@ func TestConvertToMetadataFromRaw(t *testing.T) {
 		PhotRpMeanFluxError: 6.5,
 		PhotRpMeanMag:       14.8,
 	}
-	md, err := adapter.ConvertToMetadataFromRaw(raw)
+	result, err := raw.ConvertToMetadata()
 	require.NoError(t, err)
-	result := md.(repository.Gaia)
 	assert.Equal(t, "Gaia DR3 123456789", result.ID)
 	assert.Equal(t, 1000.5, result.PhotGMeanFlux.Float64)
 	assert.InDelta(t, 10.2, result.PhotGMeanFluxError.Float64, 0.001)
@@ -60,29 +47,4 @@ func TestConvertToMetadataFromRaw(t *testing.T) {
 	assert.Equal(t, 600.7, result.PhotRpMeanFlux.Float64)
 	assert.InDelta(t, 6.5, result.PhotRpMeanFluxError.Float64, 0.001)
 	assert.InDelta(t, 14.8, result.PhotRpMeanMag.Float64, 0.001)
-}
-
-func TestConvertToMetadataFromRaw_ImplementsMetadataInterface(t *testing.T) {
-	adapter := Adapter{}
-	md, err := adapter.ConvertToMetadataFromRaw(InputSchema{})
-	require.NoError(t, err)
-	assert.IsType(t, repository.Gaia{}, md)
-}
-
-func TestConvertMetadataRowToMetadata(t *testing.T) {
-	row := gaiaMetadataRow{
-		ID:                  "from_db",
-		PhotGMeanFlux:       repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 1000.5, Valid: true}},
-		PhotGMeanFluxError:  repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 10.2, Valid: true}},
-		PhotGMeanMag:        repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 15.3, Valid: true}},
-		PhotBpMeanFlux:      repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 800.3, Valid: true}},
-		PhotBpMeanFluxError: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 8.1, Valid: true}},
-		PhotBpMeanMag:       repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 16.0, Valid: true}},
-	}
-
-	md := convertGaiaMetadataRowToMetadata(row)
-	result := md.Object.(repository.Gaia)
-	assert.Equal(t, "from_db", result.ID)
-	assert.Equal(t, 1000.5, result.PhotGMeanFlux.Float64)
-	assert.Equal(t, 16.0, result.PhotBpMeanMag.Float64)
 }

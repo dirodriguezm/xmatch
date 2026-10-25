@@ -20,16 +20,28 @@ import (
 
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
+	"github.com/dirodriguezm/xmatch/service/internal/repository"
 )
 
-type Indexer struct {
-	mapper  *healpix.HEALPixMapper
-	adapter catalog.CatalogAdapter
+// Source is what the mastercat indexer needs from a decoded catalog row: its
+// coordinates and the ID it is known by in the mastercat table.
+type Source interface {
+	GetCoordinates() (float64, float64)
+	MastercatID() string
 }
 
-func New(cfg config.IndexerConfig, adapter catalog.CatalogAdapter) (*Indexer, error) {
+type Indexer[Raw Source] struct {
+	mapper      *healpix.HEALPixMapper
+	catalogName string
+	writer      *actor.Actor[repository.Mastercat]
+}
+
+func New[Raw Source](
+	cfg config.IndexerConfig,
+	catalogName string,
+	writer *actor.Actor[repository.Mastercat],
+) (*Indexer[Raw], error) {
 	slog.Debug("Creating new Mastercat Indexer")
 	orderingScheme := healpix.Ring
 	if strings.ToLower(cfg.OrderingScheme) == "nested" {
@@ -39,43 +51,35 @@ func New(cfg config.IndexerConfig, adapter catalog.CatalogAdapter) (*Indexer, er
 	if err != nil {
 		return nil, err
 	}
-	return &Indexer{
-		mapper:  mapper,
-		adapter: adapter,
+	return &Indexer[Raw]{
+		mapper:      mapper,
+		catalogName: strings.ToLower(catalogName),
+		writer:      writer,
 	}, nil
 }
 
-func (ind Indexer) Index(a *actor.Actor, msg actor.Message) {
+func (ind *Indexer[Raw]) Index(_ *actor.Actor[Raw], msg actor.Message[Raw]) {
 	slog.Debug("Mastercat Indexer Received Message")
 	if msg.Error != nil {
-		a.Broadcast(actor.Message{
-			Error: msg.Error,
-			Rows:  nil,
-		})
+		ind.writer.Send(actor.Message[repository.Mastercat]{Error: msg.Error})
 		return
 	}
 
-	outputBatch := make([]any, len(msg.Rows))
+	outputBatch := make([]repository.Mastercat, len(msg.Rows))
 	for i := range msg.Rows {
-		ra, dec, err := ind.adapter.GetCoordinates(msg.Rows[i])
-		if err != nil {
-			a.Broadcast(actor.Message{Error: err, Rows: nil})
-			return
-		}
+		ra, dec := msg.Rows[i].GetCoordinates()
 		ipix := ind.mapper.PixelAt(healpix.RADec(ra, dec))
-		mastercat, err := ind.adapter.ConvertToMastercat(msg.Rows[i], ipix)
-		if err != nil {
-			a.Broadcast(actor.Message{Error: err, Rows: nil})
-			return
+		outputBatch[i] = repository.Mastercat{
+			ID:   msg.Rows[i].MastercatID(),
+			Ipix: ipix,
+			Ra:   ra,
+			Dec:  dec,
+			Cat:  ind.catalogName,
 		}
-		outputBatch[i] = mastercat
 	}
 
 	slog.Debug("Mastercat Indexer sending message", "len", len(outputBatch))
-	a.Broadcast(actor.Message{
-		Rows:  outputBatch,
-		Error: nil,
-	})
+	ind.writer.Send(actor.Message[repository.Mastercat]{Rows: outputBatch})
 
 	msg.Rows = nil
 }

@@ -1,9 +1,9 @@
 package fitsreader
 
-type FitsReaderOption func(r *FitsReader)
+type FitsReaderOption[T any] func(r *FitsReader[T])
 
-func WithBatchSize(size int) FitsReaderOption {
-	return func(r *FitsReader) {
+func WithBatchSize[T any](size int) FitsReaderOption[T] {
+	return func(r *FitsReader[T]) {
 		if size <= 0 {
 			size = 1
 		}

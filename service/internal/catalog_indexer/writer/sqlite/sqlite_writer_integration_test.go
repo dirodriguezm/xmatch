@@ -56,8 +56,6 @@ catalog_indexer:
     url: "file:%s?_journal_mode=WAL&_sync=NORMAL&_busy_timeout=5000"
   indexer:
     ordering_scheme: "nested"
-  indexer_writer:
-    type: "sqlite"
 `
 	config = fmt.Sprintf(config, dbFile)
 	err = os.WriteFile(configPath, []byte(config), 0644)
@@ -113,17 +111,17 @@ catalog_indexer:
 
 func TestReceive(t *testing.T) {
 	ctx := context.Background()
-	w := sqlite_writer.New(ctx, queries.BulkInsertObject)
+	w := sqlite_writer.New[repository.Mastercat](ctx, queries)
 
 	ids := []string{"1", "2"}
 	ras := []float64{1, 2}
 	decs := []float64{1, 2}
 	ipixs := []int64{1, 2}
 	cats := []string{"test", "test"}
-	w.Write(nil, actor.Message{
-		Rows: []any{
-			repository.Mastercat{ID: ids[0], Ra: ras[0], Dec: decs[0], Ipix: ipixs[0], Cat: cats[0]},
-			repository.Mastercat{ID: ids[1], Ra: ras[1], Dec: decs[1], Ipix: ipixs[1], Cat: cats[1]},
+	w.Write(nil, actor.Message[repository.Mastercat]{
+		Rows: []repository.Mastercat{
+			{ID: ids[0], Ra: ras[0], Dec: decs[0], Ipix: ipixs[0], Cat: cats[0]},
+			{ID: ids[1], Ra: ras[1], Dec: decs[1], Ipix: ipixs[1], Cat: cats[1]},
 		},
 		Error: nil,
 	})

@@ -46,8 +46,6 @@ catalog_indexer:
     type: "csv"
   indexer:
     ordering_scheme: "nested"
-  indexer_writer:
-    type: "sqlite"
 `,
 			validate: func(t *testing.T, cfg Config) {
 				require.Equal(t, DatabaseConfig{Url: "sqlite3://test.db"}, cfg.CatalogIndexer.Database)
@@ -58,7 +56,6 @@ catalog_indexer:
 				}, cfg.CatalogIndexer.Source)
 				require.Equal(t, ReaderConfig{BatchSize: 500, Type: "csv"}, cfg.CatalogIndexer.Reader)
 				require.Equal(t, IndexerConfig{OrderingScheme: "nested"}, cfg.CatalogIndexer.Indexer)
-				require.Equal(t, WriterConfig{Type: "sqlite"}, cfg.CatalogIndexer.IndexerWriter)
 			},
 		},
 		{

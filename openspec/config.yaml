@@ -1,7 +1,5 @@
-schema: spec-driven
+schema: spec-driven-custom
 rules:
-  proposal:
-    - Keep proposal as short as possible
   tasks:
     - Don't create a verification task at the end for running tests or building the code. Instead, include verification as an extra step on each task.
 operations:

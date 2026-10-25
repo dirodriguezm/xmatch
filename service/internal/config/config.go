@@ -16,6 +16,7 @@
 package config
 
 import (
+	"maps"
 	"embed"
 	"fmt"
 	"log/slog"
@@ -36,13 +37,11 @@ type Config struct {
 }
 
 type CatalogIndexerConfig struct {
-	Database       DatabaseConfig `yaml:"database"`
-	Source         SourceConfig   `yaml:"source"`
-	Reader         ReaderConfig   `yaml:"reader"`
-	Indexer        IndexerConfig  `yaml:"indexer"`
-	IndexerWriter  WriterConfig   `yaml:"indexer_writer"`
-	MetadataWriter WriterConfig   `yaml:"metadata_writer"`
-	ChannelSize    int            `yaml:"channel_size"`
+	Database    DatabaseConfig `yaml:"database"`
+	Source      SourceConfig   `yaml:"source"`
+	Reader      ReaderConfig   `yaml:"reader"`
+	Indexer     IndexerConfig  `yaml:"indexer"`
+	ChannelSize int            `yaml:"channel_size"`
 }
 
 type PreprocessorConfig struct {
@@ -211,9 +210,7 @@ func unmarshalConfigMap(data []byte) (map[string]any, error) {
 
 func mergeConfigMaps(defaultMap, customMap map[string]any) map[string]any {
 	merged := make(map[string]any, len(defaultMap)+len(customMap))
-	for key, value := range defaultMap {
-		merged[key] = value
-	}
+	maps.Copy(merged, defaultMap)
 
 	for key, customValue := range customMap {
 		customNested, customIsMap := customValue.(map[string]any)

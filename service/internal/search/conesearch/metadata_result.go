@@ -26,6 +26,12 @@ func (m MetadataExtended) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
+	// The catalog object does not carry the coordinates used for selection:
+	// allwise/gaia have no ra/dec columns, and erosita's own nullable pair is
+	// not necessarily the mastercat pair. Publish the envelope pair so every
+	// catalog reports the same coordinates the cone search was built from.
+	metadataMap["ra"] = m.Ra
+	metadataMap["dec"] = m.Dec
 	metadataMap["distance"] = m.Distance
 	return json.Marshal(metadataMap)
 }

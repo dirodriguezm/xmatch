@@ -23,8 +23,8 @@ import (
 	"sync"
 
 	"github.com/dirodriguezm/xmatch/service/internal/assertions"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 
 	"github.com/dirodriguezm/healpix"
 )
@@ -40,25 +40,25 @@ type indexedResult struct {
 }
 
 type ConesearchService struct {
-	Scheme     healpix.OrderingScheme
-	Resolution int
-	Catalogs   []repository.Catalog
-	store      repository.MastercatReader
-	resolver   *catalog.Resolver
-	mappers    map[int64]*healpix.HEALPixMapper
-	ctx        context.Context
+	Scheme          healpix.OrderingScheme
+	Resolution      int
+	Catalogs        []repository.Catalog
+	store           repository.MastercatReader
+	metadataService *metadata.MetadataService
+	mappers         map[int64]*healpix.HEALPixMapper
+	ctx             context.Context
 }
 
 func NewConesearchService(options ...ConesearchOption) (*ConesearchService, error) {
 	ctx := context.Background()
 	service := &ConesearchService{
-		Scheme:     healpix.Nest,
-		Resolution: 4,
-		Catalogs:   []repository.Catalog{},
-		store:      nil,
-		resolver:   nil,
-		mappers:    map[int64]*healpix.HEALPixMapper{},
-		ctx:        ctx,
+		Scheme:          healpix.Nest,
+		Resolution:      4,
+		Catalogs:        []repository.Catalog{},
+		store:           nil,
+		metadataService: nil,
+		mappers:         map[int64]*healpix.HEALPixMapper{},
+		ctx:             ctx,
 	}
 	for _, opt := range options {
 		err := opt(service)
@@ -275,14 +275,7 @@ func (c *ConesearchService) getMetadata(pixelRanges []healpix.PixelRange, catalo
 
 	catalogList := c.resolveCatalogList(catalogName)
 	for _, name := range catalogList {
-		if !c.resolver.Has(name) {
-			continue
-		}
-		adapter, err := c.resolver.Get(name)
-		if err != nil {
-			return nil, err
-		}
-		objs, err := adapter.GetFromPixelRanges(c.ctx, pixelRanges)
+		objs, err := c.metadataService.GetFromPixelRanges(c.ctx, name, pixelRanges)
 		if err != nil {
 			return nil, err
 		}

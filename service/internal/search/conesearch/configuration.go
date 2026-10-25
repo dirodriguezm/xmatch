@@ -22,8 +22,8 @@ import (
 	"strings"
 
 	"github.com/dirodriguezm/healpix"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
+	"github.com/dirodriguezm/xmatch/service/internal/search/metadata"
 )
 
 type ConesearchOption func(service *ConesearchService) error
@@ -70,9 +70,9 @@ func WithMastercatStore(store repository.MastercatReader) ConesearchOption {
 	}
 }
 
-func WithResolver(resolver *catalog.Resolver) ConesearchOption {
+func WithMetadataService(metadataService *metadata.MetadataService) ConesearchOption {
 	return func(service *ConesearchService) error {
-		service.resolver = resolver
+		service.metadataService = metadataService
 		return nil
 	}
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/dirodriguezm/healpix"
 	"github.com/dirodriguezm/xmatch/service/internal/api"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/config"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/dirodriguezm/xmatch/service/internal/search/conesearch"
@@ -68,7 +67,7 @@ func ServiceRepository(db *sql.DB) *repository.Queries {
 	return repository.New(db)
 }
 
-func ConesearchService(queries *repository.Queries, resolver *catalog.Resolver) (*conesearch.ConesearchService, error) {
+func ConesearchService(queries *repository.Queries, metadataService *metadata.MetadataService) (*conesearch.ConesearchService, error) {
 	ctx := context.Background()
 	catalogs, err := queries.GetCatalogs(ctx)
 	if err != nil {
@@ -78,7 +77,7 @@ func ConesearchService(queries *repository.Queries, resolver *catalog.Resolver) 
 	con, err := conesearch.NewConesearchService(
 		conesearch.WithScheme(healpix.Nest),
 		conesearch.WithMastercatStore(queries),
-		conesearch.WithResolver(resolver),
+		conesearch.WithMetadataService(metadataService),
 		conesearch.WithCatalogs(catalogs),
 	)
 	if err != nil {
@@ -87,8 +86,8 @@ func ConesearchService(queries *repository.Queries, resolver *catalog.Resolver) 
 	return con, nil
 }
 
-func MetadataService(resolver *catalog.Resolver) (*metadata.MetadataService, error) {
-	service, err := metadata.NewMetadataService(resolver)
+func MetadataService(queries *repository.Queries) (*metadata.MetadataService, error) {
+	service, err := metadata.NewMetadataService(queries)
 	if err != nil {
 		return nil, fmt.Errorf("could not create MetadataService: %w", err)
 	}

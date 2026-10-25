@@ -64,14 +64,13 @@ func (builder *ReaderBuilder) WithSource(src *source.Source) *ReaderBuilder {
 	return builder
 }
 
-func (builder *ReaderBuilder) Build() reader.Reader {
+func (builder *ReaderBuilder) Build() reader.Reader[TestSchema] {
 	builder.t.Helper()
 
 	r, err := NewCsvReader(
 		builder.Source,
-		nil,
-		WithHeader(builder.ReaderConfig.Header),
-		WithFirstLineHeader(builder.ReaderConfig.FirstLineHeader),
+		WithHeader[TestSchema](builder.ReaderConfig.Header),
+		WithFirstLineHeader[TestSchema](builder.ReaderConfig.FirstLineHeader),
 	)
 	require.NoError(builder.t, err)
 	return r

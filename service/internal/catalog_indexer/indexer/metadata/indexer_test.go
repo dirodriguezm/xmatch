@@ -20,83 +20,85 @@ import (
 	"testing"
 
 	"github.com/dirodriguezm/xmatch/service/internal/actor"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
 	"github.com/dirodriguezm/xmatch/service/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// failingSchema is a row whose conversion always fails.
+type failingSchema struct{ err error }
+
+func (f failingSchema) ConvertToMetadata() (repository.Allwise, error) {
+	return repository.Allwise{}, f.err
+}
+
 func TestStart(t *testing.T) {
-	adapter := catalog.NewMockCatalogAdapter(t)
-	indexer := New(adapter)
-	received := make(chan actor.Message, 1)
 	ctx := t.Context()
-	testActor := actor.New("receiver", 1, func(a *actor.Actor, m actor.Message) {
+	received := make(chan actor.Message[repository.Allwise], 1)
+	writer := actor.New("writer", 1, func(_ *actor.Actor[repository.Allwise], m actor.Message[repository.Allwise]) {
 		received <- m
-	}, nil, nil, ctx)
+	}, nil, ctx)
+	writer.Start()
 
-	testActor.Start()
+	indexer := New[repository.Allwise, allwise.InputSchema](writer)
+	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, ctx)
 
-	rows := make([]any, 10)
+	rows := make([]allwise.InputSchema, 10)
 	for i := range 10 {
 		id := "test" + strconv.Itoa(i)
 		cntr := int64(i)
-		row := allwise.InputSchema{Source_id: &id, Cntr: &cntr}
-		rows[i] = row
-		adapter.EXPECT().ConvertToMetadataFromRaw(row).Return(repository.Allwise{ID: id}, nil).Once()
+		rows[i] = allwise.InputSchema{Source_id: &id, Cntr: &cntr}
 	}
 
-	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
-	indexer.Index(indexerActor, actor.Message{Rows: rows, Error: nil})
+	indexerActor.Start()
+	indexerActor.Send(actor.Message[allwise.InputSchema]{Rows: rows})
+	indexerActor.Stop()
+
 	result := <-received
-	testActor.Stop()
+	writer.Stop()
 
 	require.NoError(t, result.Error)
 	require.Len(t, result.Rows, 10)
-	assert.Equal(t, repository.Allwise{ID: "test0"}, result.Rows[0])
-	assert.Equal(t, repository.Allwise{ID: "test9"}, result.Rows[9])
+	assert.Equal(t, "test0", result.Rows[0].ID)
+	assert.Equal(t, int64(0), result.Rows[0].Cntr)
+	assert.Equal(t, "test9", result.Rows[9].ID)
+	assert.Equal(t, int64(9), result.Rows[9].Cntr)
 }
 
-func TestStart_BroadcastsInputErrorAndReturns(t *testing.T) {
-	adapter := catalog.NewMockCatalogAdapter(t)
-	indexer := New(adapter)
-	received := make(chan actor.Message, 1)
+func TestStart_ForwardsInputErrorAndReturns(t *testing.T) {
 	ctx := t.Context()
-	testActor := actor.New("receiver", 1, func(a *actor.Actor, m actor.Message) {
+	received := make(chan actor.Message[repository.Allwise], 1)
+	writer := actor.New("writer", 1, func(_ *actor.Actor[repository.Allwise], m actor.Message[repository.Allwise]) {
 		received <- m
-	}, nil, nil, ctx)
-	testActor.Start()
+	}, nil, ctx)
+	writer.Start()
 
-	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
+	indexer := New[repository.Allwise, allwise.InputSchema](writer)
 	testErr := errors.New("input failed")
-	indexer.Index(indexerActor, actor.Message{Rows: []any{allwise.InputSchema{}}, Error: testErr})
-	result := <-received
-	testActor.Stop()
+	indexer.Index(nil, actor.Message[allwise.InputSchema]{Rows: []allwise.InputSchema{{}}, Error: testErr})
 
+	result := <-received
+	writer.Stop()
 	assert.Equal(t, testErr, result.Error)
 	assert.Nil(t, result.Rows)
 }
 
-func TestStart_BroadcastsConversionErrorAndStopsBatch(t *testing.T) {
-	adapter := catalog.NewMockCatalogAdapter(t)
-	indexer := New(adapter)
-	received := make(chan actor.Message, 1)
+func TestStart_ForwardsConversionErrorAndStopsBatch(t *testing.T) {
 	ctx := t.Context()
-	testActor := actor.New("receiver", 1, func(a *actor.Actor, m actor.Message) {
+	received := make(chan actor.Message[repository.Allwise], 1)
+	writer := actor.New("writer", 1, func(_ *actor.Actor[repository.Allwise], m actor.Message[repository.Allwise]) {
 		received <- m
-	}, nil, nil, ctx)
-	testActor.Start()
+	}, nil, ctx)
+	writer.Start()
 
-	row := allwise.InputSchema{}
 	testErr := errors.New("metadata conversion failed")
-	adapter.EXPECT().ConvertToMetadataFromRaw(row).Return(nil, testErr).Once()
+	indexer := New[repository.Allwise, failingSchema](writer)
 
-	indexerActor := actor.New("metadata indexer", 1, indexer.Index, nil, []*actor.Actor{testActor}, ctx)
-	indexer.Index(indexerActor, actor.Message{Rows: []any{row}, Error: nil})
+	indexer.Index(nil, actor.Message[failingSchema]{Rows: []failingSchema{{err: testErr}}})
+
 	result := <-received
-	testActor.Stop()
-
+	writer.Stop()
 	assert.Equal(t, testErr, result.Error)
 	assert.Nil(t, result.Rows)
 }

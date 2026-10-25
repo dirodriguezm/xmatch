@@ -42,14 +42,14 @@ func pixelRangeCTE(ranges []healpix.PixelRange) (string, []any, bool) {
 //	 AND mastercat.ipix < range.stop
 //	JOIN <table> ON <table>.id = mastercat.id
 //
-// The catalog adapters own the table name and the row scanning, so each
-// mapRow must scan in the column order above. table must be a trusted catalog
-// table name, never user input. Returns nil without querying when no usable
-// range remains after skipping degenerate (Start >= Stop) ranges.
+// The metadata dispatch switch owns the table name and the row scanning, so
+// each mapRow must scan in the column order above. table must be a trusted
+// catalog table name, never user input. Returns nil without querying when no
+// usable range remains after skipping degenerate (Start >= Stop) ranges.
 //
 // Each usable range contributes two bind parameters, so the query is bounded
 // by SQLite's SQLITE_MAX_VARIABLE_NUMBER (32,766 with mattn/go-sqlite3). At
-// the current resolver order 18, a 1 degree radius already needs about 31k
+// the current indexer nside 18, a 1 degree radius already needs about 31k
 // bind parameters, and radii beyond roughly 1.05 degrees (3,780 arcseconds)
 // routinely exceed the limit and fail with "too many SQL variables". Cone
 // searches are intended for arcsecond-scale radii, where this ceiling is
