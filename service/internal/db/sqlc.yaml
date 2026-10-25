@@ -1,7 +1,12 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "query.sql"
+    queries:
+      - "catalogs.sql"
+      - "mastercat.sql"
+      - "allwise.sql"
+      - "gaia.sql"
+      - "erosita.sql"
     schema: "./migrations"
     gen:
       go:

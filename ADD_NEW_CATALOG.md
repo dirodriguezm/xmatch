@@ -9,7 +9,7 @@ Use `newcatalog` below as the placeholder catalog name.
 A catalog needs these pieces:
 
 1. A metadata table migration under `service/internal/db/migrations/`.
-2. SQL queries in `service/internal/db/query.sql`: the metadata insert plus the by-id and bulk lookups the HTTP API uses.
+2. SQL queries in a per-catalog file under `service/internal/db/` (existing catalogs use `allwise.sql`, `gaia.sql`, and `erosita.sql`; mastercat queries live in `mastercat.sql` and catalog-registry queries in `catalogs.sql`): the metadata insert plus the by-id and bulk lookups the HTTP API uses.
 3. SQLC config updates in `service/internal/db/sqlc.yaml` only for type exceptions the existing `db_type` rules do not cover (Step 3).
 4. Regenerated SQLC repository code.
 5. A catalog package under `service/internal/catalog/newcatalog/` whose `InputSchema` implements `GetCoordinates`, `MastercatID`, and `ConvertToMetadata`.
@@ -53,7 +53,7 @@ DROP TABLE IF EXISTS newcatalog;
 
 ## Step 2: Add SQLC Queries
 
-Edit `service/internal/db/query.sql` and add the metadata insert and the two lookups the HTTP metadata switches call. Both lookups join `mastercat` so responses carry the object coordinates; the join key is the catalog's object identifier (the same value `MastercatID` returns).
+Create `service/internal/db/newcatalog.sql` with the metadata insert and the two lookups the HTTP metadata switches call. Keep each catalog's queries in its own file; mastercat queries live in `mastercat.sql` and catalog-registry queries in `catalogs.sql`. Both lookups join `mastercat` so responses carry the object coordinates; the join key is the catalog's object identifier (the same value `MastercatID` returns).
 
 ```sql
 -- name: InsertNewcatalog :exec
@@ -107,7 +107,7 @@ cd service/internal/db
 sqlc generate
 ```
 
-This updates `service/internal/repository/models.go` and `service/internal/repository/query.sql.go`.
+This updates `service/internal/repository/models.go` and generates one Go file per query file, such as `service/internal/repository/catalogs.sql.go` and `service/internal/repository/newcatalog.sql.go`.
 
 ## Step 4: Add the Catalog Package
 
@@ -310,6 +310,8 @@ No mock regeneration is needed for a new catalog: catalog packages have no inter
 - `service/internal/catalog/erosita/erosita.go`: large catalog package with catalog RA/DEC fields.
 - `service/internal/repository/bulk_insert.go`: generic bulk insert helper over `repository.Insertable`.
 - `service/internal/repository/insert.go`: hand-written `Insert` methods on the generated metadata models.
-- `service/internal/db/query.sql`: SQLC query definitions.
+- `service/internal/db/mastercat.sql`: mastercat SQLC queries.
+- `service/internal/db/catalogs.sql`: catalog-registry SQLC queries.
+- `service/internal/db/allwise.sql`, `service/internal/db/gaia.sql`, `service/internal/db/erosita.sql`: per-catalog SQLC query definitions.
 - `service/internal/db/sqlc.yaml`: SQLC generation and type override configuration.
 - `service/internal/testutils/catalog_db.go`: migrated SQLite database helper for round-trip tests.
