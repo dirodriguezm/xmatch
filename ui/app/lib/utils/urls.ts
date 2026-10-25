@@ -89,9 +89,15 @@ export function buildDesiSpectrumUrl(targetid: string | number): string {
  * Build the in-app detail page URL for a catalog object
  * @param objectId - Catalog identifier (Gaia designations contain spaces)
  * @param catalog - Search-catalog slug: `gaia`, `allwise`, `erosita`
+ * @param from - Page the link came from (`bulk` enables ‹ › between matches)
  */
-export function buildObjectUrl(objectId: string, catalog: string): string {
-  return `/object/${encodeURIComponent(objectId)}?catalog=${encodeURIComponent(catalog)}`;
+export function buildObjectUrl(
+  objectId: string,
+  catalog: string,
+  from?: "bulk"
+): string {
+  const url = `/object/${encodeURIComponent(objectId)}?catalog=${encodeURIComponent(catalog)}`;
+  return from ? `${url}&from=${from}` : url;
 }
 
 /**

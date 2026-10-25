@@ -6,7 +6,7 @@ import { use, useEffect, useMemo, useRef } from "react";
 
 import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { AppHeader } from "@/app/components/layout";
-import { ObjectDetail } from "@/app/components/object";
+import { ObjectDetail, ResultNavigator } from "@/app/components/object";
 import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
 import { useMetadata } from "@/app/hooks/queries";
 
@@ -45,6 +45,7 @@ export default function ObjectPage({ params }: ObjectPageProps) {
 
   const searchParams = useSearchParams();
   const catalog = searchParams.get("catalog");
+  const fromBulk = searchParams.get("from") === "bulk";
 
   // Fetch metadata if we have a catalog
   const { data: metadata, isLoading } = useMetadata(
@@ -71,14 +72,28 @@ export default function ObjectPage({ params }: ObjectPageProps) {
 
   return (
     <Layout className="min-h-screen">
-      <AppHeader onBack={() => router.back()} />
+      <AppHeader
+        // ‹ › replaces history entries, so go to /bulk directly; it restores
+        // the last run from sessionStorage.
+        onBack={() => (fromBulk ? router.push("/bulk") : router.back())}
+        extra={
+          fromBulk && catalog ? (
+            <ResultNavigator objectId={decodedObjectId} catalog={catalog} />
+          ) : undefined
+        }
+      />
       <Content className="bg-background min-h-[calc(100vh-64px)]">
         {isLoading ? (
           <div className="flex items-center justify-center h-[calc(100vh-128px)]">
             <XWaveSpinner variant="xwave" size={64} />
           </div>
         ) : object ? (
-          <ObjectDetail object={object} metadata={metadata} />
+          // Keyed so panel state doesn't leak between objects stepped with ‹ ›.
+          <ObjectDetail
+            key={`${catalog}:${decodedObjectId}`}
+            object={object}
+            metadata={metadata}
+          />
         ) : (
           <div className="flex items-center justify-center h-[calc(100vh-128px)]">
             <Empty

@@ -2,7 +2,7 @@
 
 import { DownloadOutlined } from "@ant-design/icons";
 import { Button, Segmented, Table, Tag, Typography } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import type { ColumnsType, TableProps } from "antd/es/table";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -17,19 +17,29 @@ import {
   bulkResultsToCsv,
   summarizeBulkResults,
 } from "@/app/lib/utils/bulkInput";
+import {
+  type BulkFilter,
+  type BulkSortKey,
+  type BulkView,
+  DEFAULT_BULK_VIEW,
+  flattenBulkMatches,
+  orderBulkRows,
+  saveBulkNav,
+  saveBulkView,
+} from "@/app/lib/utils/bulkSession";
 import { downloadCsv } from "@/app/lib/utils/csv";
 import type { ApiRequest } from "@/app/lib/utils/snippets";
 import { buildObjectUrl } from "@/app/lib/utils/urls";
 
 const { Text } = Typography;
 
-type Filter = "all" | "matched" | "unmatched";
-
 interface BulkResultsProps {
   rows: BulkResultRow[];
   /** Arcsec, as sent. */
   radius: number;
   request: ApiRequest;
+  /** Filter, sort and page to start from (restored when coming back). */
+  initialView?: BulkView;
 }
 
 function Stat({
@@ -49,19 +59,48 @@ function Stat({
   );
 }
 
-export function BulkResults({ rows, radius, request }: BulkResultsProps) {
-  const [filter, setFilter] = useState<Filter>("all");
+export function BulkResults({
+  rows,
+  radius,
+  request,
+  initialView = DEFAULT_BULK_VIEW,
+}: BulkResultsProps) {
+  const [view, setView] = useState<BulkView>(initialView);
   const summary = useMemo(() => summarizeBulkResults(rows), [rows]);
 
-  const visible = useMemo(
-    () =>
-      filter === "all"
-        ? rows
-        : rows.filter((r) =>
-            filter === "matched" ? r.matches.length > 0 : r.matches.length === 0
-          ),
-    [rows, filter]
-  );
+  // Sorted here rather than by antd so the object page can step through the
+  // matches in exactly the order the table shows.
+  const visible = useMemo(() => orderBulkRows(rows, view), [rows, view]);
+
+  // Leaving for an object page: remember where the table was and which
+  // matches ‹ › should walk through.
+  const rememberView = () => {
+    saveBulkView(view);
+    saveBulkNav(flattenBulkMatches(visible));
+  };
+
+  const sortOrderFor = (key: BulkSortKey) =>
+    view.sortKey === key ? view.sortOrder : null;
+
+  const onTableChange: TableProps<BulkResultRow>["onChange"] = (
+    pagination,
+    _filters,
+    sorter
+  ) => {
+    const s = Array.isArray(sorter) ? sorter[0] : sorter;
+    const sortKey = s?.order ? (s.columnKey as BulkSortKey) : null;
+    const sortOrder = s?.order ?? null;
+    setView((v) => {
+      const sortChanged = v.sortKey !== sortKey || v.sortOrder !== sortOrder;
+      return {
+        ...v,
+        sortKey,
+        sortOrder,
+        page: sortChanged ? 1 : (pagination.current ?? 1),
+        pageSize: pagination.pageSize ?? v.pageSize,
+      };
+    });
+  };
 
   const columns: ColumnsType<BulkResultRow> = [
     {
@@ -73,7 +112,8 @@ export function BulkResults({ rows, radius, request }: BulkResultsProps) {
           {r.target.index + 1}
         </span>
       ),
-      sorter: (a, b) => a.target.index - b.target.index,
+      sorter: true,
+      sortOrder: sortOrderFor("row"),
     },
     {
       title: "Input",
@@ -92,7 +132,8 @@ export function BulkResults({ rows, radius, request }: BulkResultsProps) {
           </span>
         </div>
       ),
-      sorter: (a, b) => a.target.name.localeCompare(b.target.name),
+      sorter: true,
+      sortOrder: sortOrderFor("input"),
     },
     {
       title: "Matches",
@@ -116,7 +157,8 @@ export function BulkResults({ rows, radius, request }: BulkResultsProps) {
                   {getSearchCatalogLabel(m.catalog)}
                 </Tag>
                 <Link
-                  href={buildObjectUrl(m.id, m.catalog)}
+                  href={buildObjectUrl(m.id, m.catalog, "bulk")}
+                  onClick={rememberView}
                   className="font-mono text-xs truncate"
                 >
                   {m.id}
@@ -128,7 +170,8 @@ export function BulkResults({ rows, radius, request }: BulkResultsProps) {
             ))}
           </ul>
         ),
-      sorter: (a, b) => a.matches.length - b.matches.length,
+      sorter: true,
+      sortOrder: sortOrderFor("matches"),
     },
     {
       title: "Nearest",
@@ -143,9 +186,8 @@ export function BulkResults({ rows, radius, request }: BulkResultsProps) {
         ) : (
           <span className="text-neutral-400">—</span>
         ),
-      sorter: (a, b) =>
-        (a.matches[0]?.separation ?? Infinity) -
-        (b.matches[0]?.separation ?? Infinity),
+      sorter: true,
+      sortOrder: sortOrderFor("nearest"),
     },
   ];
 
@@ -179,9 +221,9 @@ export function BulkResults({ rows, radius, request }: BulkResultsProps) {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Segmented<Filter>
-          value={filter}
-          onChange={setFilter}
+        <Segmented<BulkFilter>
+          value={view.filter}
+          onChange={(filter) => setView((v) => ({ ...v, filter, page: 1 }))}
           options={[
             { value: "all", label: `All (${summary.inputs})` },
             { value: "matched", label: `Matched (${summary.matched})` },
@@ -209,8 +251,10 @@ export function BulkResults({ rows, radius, request }: BulkResultsProps) {
         rowKey={(r) => r.target.index}
         columns={columns}
         dataSource={visible}
+        onChange={onTableChange}
         pagination={{
-          defaultPageSize: 50,
+          current: view.page,
+          pageSize: view.pageSize,
           showSizeChanger: true,
           pageSizeOptions: [25, 50, 100, 250],
           hideOnSinglePage: true,

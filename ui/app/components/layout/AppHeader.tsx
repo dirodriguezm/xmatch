@@ -4,7 +4,7 @@ import { ArrowLeftOutlined, MenuOutlined } from "@ant-design/icons";
 import { Button, Drawer, Layout, Space, Tag, Typography } from "antd";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { HeaderBasket } from "@/app/components/basket/HeaderBasket";
 import { CommandPaletteTrigger } from "@/app/components/command/CommandPalette";
@@ -21,11 +21,14 @@ const { Title } = Typography;
 interface AppHeaderProps {
   onBack?: () => void;
   backLabel?: string;
+  /** Page-specific controls shown next to the back button. */
+  extra?: ReactNode;
 }
 
 export function AppHeader({
   onBack,
   backLabel = "Back to Results",
+  extra,
 }: AppHeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -43,6 +46,7 @@ export function AppHeader({
           <span className="hidden lg:inline">{backLabel}</span>
         </Button>
       )}
+      {extra}
       <Space size="middle" align="center" className="shrink-0">
         <Link href="/" className="flex items-center gap-3 no-underline">
           <Logo />

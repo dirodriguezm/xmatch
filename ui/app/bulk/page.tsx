@@ -8,7 +8,7 @@ import {
   parseAsStringLiteral,
   useQueryStates,
 } from "nuqs";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   BULK_CATALOGS,
@@ -23,6 +23,12 @@ import { useBulkConeSearch } from "@/app/hooks/queries/useBulkConeSearch";
 import { MAX_RADIUS_ARCSEC } from "@/app/lib/constants/search";
 import { BULK_INPUT_STORAGE_KEY } from "@/app/lib/utils/basket";
 import { MAX_BULK_ROWS, parseBulkInput } from "@/app/lib/utils/bulkInput";
+import {
+  type BulkRun,
+  DEFAULT_BULK_VIEW,
+  loadBulkRun,
+  saveBulkRun,
+} from "@/app/lib/utils/bulkSession";
 import { bulkConeSearchRequest } from "@/app/lib/utils/snippets";
 
 const bulkParams = {
@@ -47,13 +53,33 @@ function BulkContent() {
   const [text, setText] = useState("");
   const parsed = useMemo(() => parseBulkInput(text), [text]);
   const bulk = useBulkConeSearch();
+  // The previous run, shown until a new one starts (e.g. back from /object).
+  const [restored, setRestored] = useState<BulkRun | null>(null);
+  const initialized = useRef(false);
 
   // Prefill once from the basket or a file picked on the landing page, then
-  // drop both the stored list and the flag.
+  // drop both the stored list and the flag. Otherwise bring back the last run.
   // Deferred to a task so the state update happens outside the effect body.
   useEffect(() => {
-    if (params.from !== "basket" && params.from !== "file") return;
+    // Marked inside the task: strict mode's extra mount cancels the first one.
+    if (initialized.current) return;
+    if (params.from !== "basket" && params.from !== "file") {
+      const timer = window.setTimeout(() => {
+        initialized.current = true;
+        const run = loadBulkRun();
+        if (!run) return;
+        setRestored(run);
+        setText(run.text);
+        void setParams({
+          catalog: BULK_CATALOGS.find((c) => c === run.catalog) ?? "all",
+          radius: run.radius,
+          n: run.nneighbor,
+        });
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
     const timer = window.setTimeout(() => {
+      initialized.current = true;
       try {
         const stored = window.sessionStorage.getItem(BULK_INPUT_STORAGE_KEY);
         if (stored) setText(stored);
@@ -75,12 +101,26 @@ function BulkContent() {
 
   const run = () => {
     if (disabledReason) return;
-    bulk.mutate({ targets: parsed.targets, radius, catalog, nneighbor });
+    const runText = text;
+    bulk.mutate(
+      { targets: parsed.targets, radius, catalog, nneighbor },
+      {
+        onSuccess: (rows, vars) =>
+          saveBulkRun({
+            ...vars,
+            text: runText,
+            rows,
+            view: DEFAULT_BULK_VIEW,
+          }),
+      }
+    );
   };
 
   // Everything below describes the run that produced the results, not the
   // form's current state — editing the form must not relabel old results.
-  const lastRun = bulk.variables;
+  const showRestored = bulk.isIdle && restored !== null;
+  const lastRun = showRestored ? restored : bulk.variables;
+  const lastRows = showRestored ? restored.rows : bulk.data;
   const lastRequest = useMemo(
     () =>
       lastRun
@@ -138,15 +178,20 @@ function BulkContent() {
           </div>
         )}
 
-        {bulk.isSuccess && lastRun && lastRequest && (
-          <section className="flex flex-col gap-2">
-            <BulkResults
-              rows={bulk.data}
-              radius={lastRun.radius}
-              request={lastRequest}
-            />
-          </section>
-        )}
+        {(bulk.isSuccess || showRestored) &&
+          lastRun &&
+          lastRows &&
+          lastRequest && (
+            <section className="flex flex-col gap-2">
+              <BulkResults
+                key={showRestored ? "restored" : bulk.submittedAt}
+                rows={lastRows}
+                radius={lastRun.radius}
+                request={lastRequest}
+                initialView={showRestored ? restored.view : undefined}
+              />
+            </section>
+          )}
       </div>
     </PageShell>
   );
