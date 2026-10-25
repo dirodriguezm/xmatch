@@ -117,7 +117,7 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
             showFov: false,
             showFrame: false,
             reticleColor: "#1677ff",
-            backgroundColor: "#0a0a0a",
+            backgroundColor: "#0b0d12",
           });
 
           if (!mounted) return;

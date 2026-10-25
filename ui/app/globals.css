@@ -4,17 +4,29 @@
 
 @import "tailwindcss";
 
-/* Dark theme CSS variables */
+/* Dark theme CSS variables. Neutrals lean slightly blue (night sky) rather
+   than pure grey; keep in sync with app/lib/theme/antd-theme.ts. */
 :root {
-  --background: #0a0a0a;
-  --foreground: #e6e6e6;
-  --surface: #141414;
-  --surface-elevated: #1f1f1f;
-  --border: #303030;
-  --primary: #1677ff;
+  --background: #0b0d12;
+  --foreground: #e4e7ec;
+  --surface: #12151c;
+  --surface-elevated: #1a1e27;
+  --border: #272c37;
+  --primary: #3768e8;
+  /* Primary as text on the dark ground (links, focus): passes 4.5:1. */
+  --primary-text: #7ea2ff;
   --success: #52c41a;
   --warning: #faad14;
   --error: #ff4d4f;
+}
+
+/* Tailwind's neutrals, nudged toward the same blue as the surfaces so grey
+   text doesn't read as a different material. 500 passes 4.5:1 on the ground. */
+@theme {
+  --color-neutral-300: #c9cdd5;
+  --color-neutral-400: #a3a9b5;
+  --color-neutral-500: #7d8494;
+  --color-neutral-600: #555c6a;
 }
 
 @theme inline {
@@ -24,6 +36,7 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-border: var(--border);
   --color-primary: var(--primary);
+  --color-primary-text: var(--primary-text);
   --color-success: var(--success);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -32,6 +45,24 @@
 /* Force dark mode */
 html {
   color-scheme: dark;
+  accent-color: var(--primary);
+  caret-color: var(--primary-text);
+}
+
+::selection {
+  background: rgb(55 104 232 / 45%);
+  color: #fff;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Numbers in tables line up column to column. */
+table {
+  font-variant-numeric: tabular-nums;
 }
 
 body {
@@ -73,7 +104,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #404040;
+  background: #363c49;
 }
 
 /* Sidebar section styling */

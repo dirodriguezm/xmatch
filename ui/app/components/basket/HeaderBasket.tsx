@@ -15,7 +15,6 @@ import {
   Empty,
   Flex,
   Popconfirm,
-  Tag,
   Tooltip,
   Typography,
 } from "antd";
@@ -23,10 +22,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import {
-  getSearchCatalogColor,
-  getSearchCatalogLabel,
-} from "@/app/lib/constants/catalogs";
+import { CatalogLabel } from "@/app/components/common";
+import {} from "@/app/lib/constants/catalogs";
 import {
   basketKey,
   basketToBulkInput,
@@ -151,12 +148,7 @@ export function HeaderBasket() {
                     {item.objectId}
                   </Link>
                   <Flex align="center" gap={6} className="mt-1">
-                    <Tag
-                      color={getSearchCatalogColor(item.catalog)}
-                      className="m-0!"
-                    >
-                      {getSearchCatalogLabel(item.catalog)}
-                    </Tag>
+                    <CatalogLabel catalog={item.catalog} className="text-xs" />
                     <Text type="secondary" className="font-mono text-xs">
                       {item.ra.toFixed(5)}, {item.dec.toFixed(5)}
                     </Text>

@@ -1,17 +1,14 @@
 "use client";
 
 import { DownloadOutlined } from "@ant-design/icons";
-import { Button, Segmented, Table, Tag, Typography } from "antd";
+import { Button, Segmented, Table, Typography } from "antd";
 import type { ColumnsType, TableProps } from "antd/es/table";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { CodeSnippetButton } from "@/app/components/code/CodeSnippetButton";
-import {
-  CATALOG_COLOR_CLASSES,
-  getSearchCatalogColor,
-  getSearchCatalogLabel,
-} from "@/app/lib/constants/catalogs";
+import { CatalogLabel } from "@/app/components/common";
+import {} from "@/app/lib/constants/catalogs";
 import {
   type BulkResultRow,
   bulkResultsToCsv,
@@ -40,23 +37,6 @@ interface BulkResultsProps {
   request: ApiRequest;
   /** Filter, sort and page to start from (restored when coming back). */
   initialView?: BulkView;
-}
-
-function Stat({
-  label,
-  value,
-}: {
-  label: React.ReactNode;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="px-4 py-2 rounded border border-border bg-surface min-w-24">
-      <div className="text-xs text-neutral-400">{label}</div>
-      <div className="text-lg font-semibold text-foreground tabular-nums">
-        {value}
-      </div>
-    </div>
-  );
 }
 
 export function BulkResults({
@@ -150,12 +130,7 @@ export function BulkResults({
                 key={`${m.catalog}:${m.id}`}
                 className="flex items-center gap-2 min-w-0"
               >
-                <Tag
-                  color={getSearchCatalogColor(m.catalog)}
-                  className="!m-0 font-medium shrink-0"
-                >
-                  {getSearchCatalogLabel(m.catalog)}
-                </Tag>
+                <CatalogLabel catalog={m.catalog} className="w-20 shrink-0" />
                 <Link
                   href={buildObjectUrl(m.id, m.catalog, "bulk")}
                   onClick={rememberView}
@@ -197,28 +172,28 @@ export function BulkResults({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
-        <Stat label="Inputs" value={summary.inputs} />
-        <Stat label="Matched" value={summary.matched} />
-        <Stat label="Unmatched" value={summary.unmatched} />
-        <Stat label="Total matches" value={summary.totalMatches} />
-        {catalogs.map(([cat, count]) => (
-          <Stat
-            key={cat}
-            label={
-              <span className="flex items-center gap-1.5">
-                <span
-                  className={`inline-block w-2 h-2 rounded-full ${
-                    CATALOG_COLOR_CLASSES[cat] ?? "bg-neutral-500"
-                  }`}
-                />
-                {getSearchCatalogLabel(cat)}
+      <p className="m-0 text-neutral-400">
+        <span className="text-foreground tabular-nums">{summary.matched}</span>{" "}
+        of <span className="tabular-nums">{summary.inputs}</span> positions
+        matched within {radius}″ ({summary.totalMatches}{" "}
+        {summary.totalMatches === 1 ? "source" : "sources"}
+        {catalogs.length > 0 && (
+          <>
+            {": "}
+            {catalogs.map(([cat, count], i) => (
+              <span key={cat}>
+                {i > 0 && ", "}
+                <CatalogLabel
+                  catalog={cat}
+                  className="text-[length:inherit] align-baseline"
+                />{" "}
+                <span className="tabular-nums">{count}</span>
               </span>
-            }
-            value={count}
-          />
-        ))}
-      </div>
+            ))}
+          </>
+        )}
+        ).
+      </p>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Segmented<BulkFilter>

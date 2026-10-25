@@ -2,17 +2,13 @@
 
 import { DownloadOutlined } from "@ant-design/icons";
 import type { TableProps } from "antd";
-import { Button, Flex, Skeleton, Table, Tag, Tooltip, Typography } from "antd";
+import { Button, Flex, Skeleton, Table, Tooltip, Typography } from "antd";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { BasketButton } from "@/app/components/basket/BasketButton";
-import {
-  CATALOG_LABELS,
-  CATALOG_OPTIONS,
-  getSearchCatalogColor,
-  getSearchCatalogLabel,
-} from "@/app/lib/constants/catalogs";
+import { CatalogLabel } from "@/app/components/common";
+import { CATALOG_LABELS, CATALOG_OPTIONS } from "@/app/lib/constants/catalogs";
 import type { MagValue } from "@/app/lib/constants/photometry";
 import { downloadCsv, toCsv } from "@/app/lib/utils/csv";
 import { buildObjectUrl } from "@/app/lib/utils/urls";
@@ -149,11 +145,7 @@ function buildColumns(
       })),
       filteredValue: catalogFilter,
       onFilter: (value, record) => rowSlug(record) === value,
-      render: (value: string) => (
-        <Tag color={getSearchCatalogColor(value)} className="font-medium">
-          {getSearchCatalogLabel(value)}
-        </Tag>
-      ),
+      render: (value: string) => <CatalogLabel catalog={value} />,
     },
     {
       title: 'Ang. Dist (")',

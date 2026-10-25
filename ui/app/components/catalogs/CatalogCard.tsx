@@ -28,9 +28,7 @@ export function formatDefaultRadius(slug: CatalogMeta["slug"]): string {
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs uppercase tracking-wider text-neutral-500 mb-0.5">
-        {label}
-      </dt>
+      <dt className="text-xs font-medium text-neutral-400 mb-0.5">{label}</dt>
       <dd className="m-0 text-foreground text-sm">{children}</dd>
     </div>
   );
@@ -134,7 +132,7 @@ export function CatalogCard({ meta }: { meta: CatalogMeta }) {
 
             {meta.knownIssues.length > 0 && (
               <div className="mt-5">
-                <div className="text-xs uppercase tracking-wider text-neutral-500 mb-2 flex items-center gap-1.5">
+                <div className="text-xs font-medium text-neutral-400 mb-2 flex items-center gap-1.5">
                   <WarningOutlined /> Known issues
                 </div>
                 <ul className="text-sm text-neutral-400 space-y-1.5 pl-5 list-disc marker:text-border m-0">

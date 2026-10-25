@@ -120,7 +120,7 @@ export function CodeSnippetPanel({
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <Text className="!text-xs uppercase tracking-wide text-neutral-400">
+          <Text className="!text-xs font-medium text-neutral-400">
             {request.method} request URL
           </Text>
           {request.method === "GET" && (

@@ -1,14 +1,12 @@
 "use client";
 
 import { ArrowRightOutlined } from "@ant-design/icons";
-import { Button, Tag, Typography } from "antd";
+import { Button, Typography } from "antd";
 import Link from "next/link";
 
 import { BasketButton } from "@/app/components/basket/BasketButton";
-import {
-  getSearchCatalogColor,
-  getSearchCatalogLabel,
-} from "@/app/lib/constants/catalogs";
+import { CatalogLabel } from "@/app/components/common";
+import {} from "@/app/lib/constants/catalogs";
 import type { FeaturedObject } from "@/app/lib/constants/featured";
 import { buildObjectUrl } from "@/app/lib/utils/urls";
 
@@ -26,7 +24,7 @@ export function FeaturedCard({ object }: { object: FeaturedObject }) {
     <div className="flex flex-col h-full rounded-lg border border-border bg-surface p-5 transition-colors hover:bg-surface-elevated">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <Text className="text-xs uppercase tracking-wide text-neutral-400!">
+          <Text className="text-xs font-medium text-neutral-400!">
             {object.kind}
           </Text>
           <Title level={5} className="mt-1! mb-0! text-foreground">
@@ -49,9 +47,7 @@ export function FeaturedCard({ object }: { object: FeaturedObject }) {
         {object.blurb}
       </Paragraph>
       <div className="flex flex-wrap items-center gap-2">
-        <Tag color={getSearchCatalogColor(object.catalog)} className="m-0!">
-          {getSearchCatalogLabel(object.catalog)}
-        </Tag>
+        <CatalogLabel catalog={object.catalog} />
         <Text className="font-mono text-xs text-neutral-400!">
           {formatCoords(object)}
         </Text>
@@ -71,7 +67,7 @@ export function ObjectOfTheWeek({
   const href = buildObjectUrl(object.objectId, object.catalog);
   return (
     <section className="rounded-xl border border-border bg-surface-elevated p-6 md:p-8">
-      <Text className="text-xs uppercase tracking-wide text-neutral-400!">
+      <Text className="text-xs font-medium text-neutral-400!">
         Object of the week · week {week}
       </Text>
       <Title level={3} className="mt-2! mb-1! text-foreground">

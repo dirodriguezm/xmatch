@@ -4,17 +4,20 @@ export const darkTheme: ThemeConfig = {
   algorithm: theme.darkAlgorithm,
   token: {
     // Primary colors (space/astronomy theme)
-    colorPrimary: "#1677ff",
-    colorBgContainer: "#141414",
-    colorBgElevated: "#1f1f1f",
-    colorBgLayout: "#0a0a0a",
-    colorBorder: "#303030",
-    colorBorderSecondary: "#1f1f1f",
+    colorPrimary: "#3768e8",
+    colorInfo: "#3768e8",
+    colorLink: "#7ea2ff",
+    colorLinkHover: "#a9c1ff",
+    colorBgContainer: "#12151c",
+    colorBgElevated: "#1a1e27",
+    colorBgLayout: "#0b0d12",
+    colorBorder: "#272c37",
+    colorBorderSecondary: "#1a1e27",
 
     // Text colors
-    colorText: "#e6e6e6",
-    colorTextSecondary: "#a6a6a6",
-    colorTextTertiary: "#666666",
+    colorText: "#e4e7ec",
+    colorTextSecondary: "#a3a9b5",
+    colorTextTertiary: "#6f7684",
 
     // Component specific
     borderRadius: 6,
@@ -28,27 +31,27 @@ export const darkTheme: ThemeConfig = {
   },
   components: {
     Layout: {
-      headerBg: "#141414",
-      siderBg: "#141414",
-      bodyBg: "#0a0a0a",
-      triggerBg: "#1f1f1f",
+      headerBg: "#12151c",
+      siderBg: "#12151c",
+      bodyBg: "#0b0d12",
+      triggerBg: "#1a1e27",
     },
     Input: {
-      activeBg: "#1f1f1f",
-      addonBg: "#1f1f1f",
+      activeBg: "#1a1e27",
+      addonBg: "#1a1e27",
     },
     Select: {
-      optionSelectedBg: "#1f1f1f",
+      optionSelectedBg: "#1a1e27",
     },
     Table: {
-      headerBg: "#1f1f1f",
-      rowHoverBg: "#1f1f1f",
+      headerBg: "#1a1e27",
+      rowHoverBg: "#1a1e27",
     },
     Button: {
       primaryShadow: "none",
     },
     Card: {
-      colorBgContainer: "#141414",
+      colorBgContainer: "#12151c",
     },
   },
 };

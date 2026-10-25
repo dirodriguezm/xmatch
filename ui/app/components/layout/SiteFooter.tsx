@@ -11,7 +11,7 @@ export function SiteFooter() {
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
         {FOOTER_GROUPS.map((group) => (
           <div key={group.title}>
-            <div className="text-xs uppercase tracking-wider text-neutral-500 mb-3">
+            <div className="text-xs font-medium text-neutral-400 mb-3">
               {group.title}
             </div>
             <ul className="space-y-2 list-none p-0 m-0">

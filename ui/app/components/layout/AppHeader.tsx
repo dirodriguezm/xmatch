@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeftOutlined, MenuOutlined } from "@ant-design/icons";
-import { Button, Drawer, Layout, Space, Tag, Typography } from "antd";
+import { Button, Drawer, Layout, Space, Typography } from "antd";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useState } from "react";
@@ -54,9 +54,9 @@ export function AppHeader({
             XWave
           </Title>
         </Link>
-        <Tag color="blue" className="hidden sm:inline-block">
+        <span className="hidden sm:inline font-mono text-xs text-neutral-500">
           v1.0
-        </Tag>
+        </span>
       </Space>
       <nav
         aria-label="Main"
@@ -103,7 +103,7 @@ export function AppHeader({
         <nav aria-label="Mobile" className="flex flex-col gap-6">
           {FOOTER_GROUPS.map((group) => (
             <div key={group.title}>
-              <div className="text-xs uppercase tracking-wider text-neutral-500 mb-2">
+              <div className="text-xs font-medium text-neutral-400 mb-2">
                 {group.title}
               </div>
               <ul className="list-none m-0 p-0 flex flex-col gap-1">
