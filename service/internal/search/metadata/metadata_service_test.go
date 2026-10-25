@@ -21,11 +21,11 @@ func TestMetadata_FindByID(t *testing.T) {
 	service, queries, _ := newMetadataTestService(t)
 	ctx := context.Background()
 	seedAllwise(t, queries, "allwise-1", 0, 12.34, 56.78, repository.Allwise{Cntr: 7})
-	seedGaia(t, queries, "gaia-1", 0, 1.5, 2.5, repository.Gaia{SourceID: nullInt64(424242)})
+	seedGaia(t, queries, "gaia-1", 0, 1.5, 2.5, repository.Gaia{SourceID: new(int64(424242))})
 	seedErosita(t, queries, "erosita-1", 0, 3.5, 4.5, repository.Erosita{
-		Detuid: nullString("det-1"),
-		Ra:     nullFloat64(30.5),
-		Dec:    nullFloat64(40.5),
+		Detuid: new("det-1"),
+		Ra:     new(30.5),
+		Dec:    new(40.5),
 	})
 
 	t.Run("allwise", func(t *testing.T) {
@@ -45,7 +45,7 @@ func TestMetadata_FindByID(t *testing.T) {
 		row, ok := result.(repository.GetGaiaRow)
 		require.True(t, ok)
 		require.Equal(t, "gaia-1", row.ID)
-		require.Equal(t, int64(424242), row.SourceID.Int64)
+		require.Equal(t, int64(424242), *row.SourceID)
 		require.InDelta(t, 1.5, row.Ra, 1e-9)
 		require.InDelta(t, 2.5, row.Dec, 1e-9)
 	})
@@ -56,7 +56,7 @@ func TestMetadata_FindByID(t *testing.T) {
 		row, ok := result.(repository.GetErositaRow)
 		require.True(t, ok)
 		require.Equal(t, "erosita-1", row.ID)
-		require.Equal(t, "det-1", row.Detuid.String)
+		require.Equal(t, "det-1", *row.Detuid)
 		// The response carries the mastercat pair under ra/dec, not the
 		// catalog table's own (nullable) coordinates.
 		require.InDelta(t, 3.5, row.Ra, 1e-9)
@@ -211,24 +211,24 @@ func TestMetadata_GetFromPixelRanges_PerCatalog(t *testing.T) {
 	// generated model cannot pass unnoticed.
 	seedAllwise(t, queries, "allwise-1", 15, 12.5, -3.25, repository.Allwise{
 		Cntr:       7,
-		W1mpro:     nullFloat64(1.5),
-		JM2mass:    nullFloat64(5.0),
-		KMsig2mass: nullFloat64(0.7),
+		W1mpro:     new(1.5),
+		JM2mass:    new(5.0),
+		KMsig2mass: new(0.7),
 	})
 	seedGaia(t, queries, "gaia-1", 15, 60.0, -12.5, repository.Gaia{
-		SourceID:        nullInt64(424242),
-		PhotGMeanFlux:   nullFloat64(1234.5),
-		DistanceGspphot: nullFloat64(987.6),
+		SourceID:        new(int64(424242)),
+		PhotGMeanFlux:   new(1234.5),
+		DistanceGspphot: new(987.6),
 	})
 	// The erosita table carries its own coordinates; they are deliberately
 	// different from the mastercat ones to pin the envelope behavior below.
 	seedErosita(t, queries, "erosita-1", 15, 10.0, 20.0, repository.Erosita{
-		Detuid:  nullString("det-1"),
-		Skytile: nullInt64(12345),
-		Ra:      nullFloat64(100.0),
-		Dec:     nullFloat64(50.0),
-		MlFlux1: nullFloat64(1.5e-13),
-		FlagOpt: nullInt64(9),
+		Detuid:  new("det-1"),
+		Skytile: new(int64(12345)),
+		Ra:      new(100.0),
+		Dec:     new(50.0),
+		MlFlux1: new(1.5e-13),
+		FlagOpt: new(int64(9)),
 	})
 
 	t.Run("allwise", func(t *testing.T) {
@@ -246,10 +246,10 @@ func TestMetadata_GetFromPixelRanges_PerCatalog(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, "allwise-1", object.ID)
 		require.Equal(t, int64(7), object.Cntr)
-		require.True(t, object.W1mpro.Valid)
-		require.InDelta(t, 1.5, object.W1mpro.Float64, 1e-9)
-		require.InDelta(t, 5.0, object.JM2mass.Float64, 1e-9)
-		require.InDelta(t, 0.7, object.KMsig2mass.Float64, 1e-9)
+		require.NotNil(t, object.W1mpro)
+		require.InDelta(t, 1.5, *object.W1mpro, 1e-9)
+		require.InDelta(t, 5.0, *object.JM2mass, 1e-9)
+		require.InDelta(t, 0.7, *object.KMsig2mass, 1e-9)
 	})
 
 	t.Run("gaia", func(t *testing.T) {
@@ -265,9 +265,9 @@ func TestMetadata_GetFromPixelRanges_PerCatalog(t *testing.T) {
 
 		object, ok := item.Object.(repository.Gaia)
 		require.True(t, ok)
-		require.Equal(t, int64(424242), object.SourceID.Int64)
-		require.InDelta(t, 1234.5, object.PhotGMeanFlux.Float64, 1e-9)
-		require.InDelta(t, 987.6, object.DistanceGspphot.Float64, 1e-9)
+		require.Equal(t, int64(424242), *object.SourceID)
+		require.InDelta(t, 1234.5, *object.PhotGMeanFlux, 1e-9)
+		require.InDelta(t, 987.6, *object.DistanceGspphot, 1e-9)
 	})
 
 	t.Run("erosita envelope uses the mastercat coordinates", func(t *testing.T) {
@@ -286,12 +286,12 @@ func TestMetadata_GetFromPixelRanges_PerCatalog(t *testing.T) {
 
 		object, ok := item.Object.(repository.Erosita)
 		require.True(t, ok)
-		require.Equal(t, "det-1", object.Detuid.String)
-		require.Equal(t, int64(12345), object.Skytile.Int64)
-		require.InDelta(t, 100.0, object.Ra.Float64, 1e-9)
-		require.InDelta(t, 50.0, object.Dec.Float64, 1e-9)
-		require.InDelta(t, 1.5e-13, object.MlFlux1.Float64, 1e-20)
-		require.Equal(t, int64(9), object.FlagOpt.Int64)
+		require.Equal(t, "det-1", *object.Detuid)
+		require.Equal(t, int64(12345), *object.Skytile)
+		require.InDelta(t, 100.0, *object.Ra, 1e-9)
+		require.InDelta(t, 50.0, *object.Dec, 1e-9)
+		require.InDelta(t, 1.5e-13, *object.MlFlux1, 1e-20)
+		require.Equal(t, int64(9), *object.FlagOpt)
 	})
 }
 
@@ -412,16 +412,4 @@ func seedErosita(t *testing.T, q *repository.Queries, id string, ipix int64, ra,
 	seedObject(t, q, id, ipix, ra, dec, "erosita")
 	metadata.ID = id
 	require.NoError(t, q.InsertErosita(context.Background(), repository.InsertErositaParams(metadata)))
-}
-
-func nullString(s string) repository.NullString {
-	return repository.NullString{NullString: sql.NullString{String: s, Valid: true}}
-}
-
-func nullInt64(i int64) repository.NullInt64 {
-	return repository.NullInt64{NullInt64: sql.NullInt64{Int64: i, Valid: true}}
-}
-
-func nullFloat64(f float64) repository.NullFloat64 {
-	return repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: f, Valid: true}}
 }

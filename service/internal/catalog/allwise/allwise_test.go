@@ -62,13 +62,13 @@ func TestConvertToMetadata(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "allwise_001", result.ID)
 		assert.Equal(t, int64(5), result.Cntr)
-		assert.Equal(t, 13.5, result.W1mpro.Float64)
-		assert.True(t, result.W1mpro.Valid)
-		assert.Equal(t, 0.05, result.W1sigmpro.Float64)
-		assert.Equal(t, 15.2, result.JM2mass.Float64)
+		require.NotNil(t, result.W1mpro)
+		assert.Equal(t, 13.5, *result.W1mpro)
+		assert.Equal(t, 0.05, *result.W1sigmpro)
+		assert.Equal(t, 15.2, *result.JM2mass)
 	})
 
-	t.Run("nil fields - sentinel values", func(t *testing.T) {
+	t.Run("nil fields - nil pointers", func(t *testing.T) {
 		sourceID := "allwise_002"
 		raw := InputSchema{
 			Source_id: &sourceID,
@@ -78,10 +78,8 @@ func TestConvertToMetadata(t *testing.T) {
 		result, err := raw.ConvertToMetadata()
 		require.NoError(t, err)
 		assert.Equal(t, "allwise_002", result.ID)
-		assert.Equal(t, -9999.0, result.W1mpro.Float64)
-		assert.False(t, result.W1mpro.Valid)
-		assert.Equal(t, -9999.0, result.W1sigmpro.Float64)
-		assert.False(t, result.W1sigmpro.Valid)
+		assert.Nil(t, result.W1mpro)
+		assert.Nil(t, result.W1sigmpro)
 	})
 
 	t.Run("nil Source_id - empty id", func(t *testing.T) {
@@ -112,12 +110,12 @@ func TestConvertToMetadata_2massFields(t *testing.T) {
 	}
 	result, err := raw.ConvertToMetadata()
 	require.NoError(t, err)
-	assert.Equal(t, 14.0, result.JM2mass.Float64)
-	assert.Equal(t, 0.03, result.JMsig2mass.Float64)
-	assert.Equal(t, 13.5, result.HM2mass.Float64)
-	assert.Equal(t, 0.04, result.HMsig2mass.Float64)
-	assert.Equal(t, 13.0, result.KM2mass.Float64)
-	assert.Equal(t, 0.02, result.KMsig2mass.Float64)
+	assert.Equal(t, 14.0, *result.JM2mass)
+	assert.Equal(t, 0.03, *result.JMsig2mass)
+	assert.Equal(t, 13.5, *result.HM2mass)
+	assert.Equal(t, 0.04, *result.HMsig2mass)
+	assert.Equal(t, 13.0, *result.KM2mass)
+	assert.Equal(t, 0.02, *result.KMsig2mass)
 }
 
 func TestConvertToMetadata_WiseAllBands(t *testing.T) {
@@ -142,12 +140,12 @@ func TestConvertToMetadata_WiseAllBands(t *testing.T) {
 	}
 	result, err := raw.ConvertToMetadata()
 	require.NoError(t, err)
-	assert.Equal(t, 14.0, result.W1mpro.Float64)
-	assert.Equal(t, 0.02, result.W1sigmpro.Float64)
-	assert.Equal(t, 13.5, result.W2mpro.Float64)
-	assert.Equal(t, 0.03, result.W2sigmpro.Float64)
-	assert.Equal(t, 12.0, result.W3mpro.Float64)
-	assert.Equal(t, 0.05, result.W3sigmpro.Float64)
-	assert.Equal(t, 9.0, result.W4mpro.Float64)
-	assert.Equal(t, 0.10, result.W4sigmpro.Float64)
+	assert.Equal(t, 14.0, *result.W1mpro)
+	assert.Equal(t, 0.02, *result.W1sigmpro)
+	assert.Equal(t, 13.5, *result.W2mpro)
+	assert.Equal(t, 0.03, *result.W2sigmpro)
+	assert.Equal(t, 12.0, *result.W3mpro)
+	assert.Equal(t, 0.05, *result.W3sigmpro)
+	assert.Equal(t, 9.0, *result.W4mpro)
+	assert.Equal(t, 0.10, *result.W4sigmpro)
 }

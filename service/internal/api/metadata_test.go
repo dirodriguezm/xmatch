@@ -165,11 +165,11 @@ func TestMetadata_ResponseKeys_Erosita(t *testing.T) {
 	db := newConesearchTestDB(t)
 
 	insertErositaFixture(t, db, "erosita-1", repository.Erosita{
-		Detuid:  repository.NullString{NullString: sql.NullString{String: "det-1", Valid: true}},
-		Skytile: repository.NullInt64{NullInt64: sql.NullInt64{Int64: 12345, Valid: true}},
-		Ra:      repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 100, Valid: true}},
-		Dec:     repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 50, Valid: true}},
-		MlFlux1: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 1.5e-13, Valid: true}},
+		Detuid:  new("det-1"),
+		Skytile: new(int64(12345)),
+		Ra:      new(100.0),
+		Dec:     new(50.0),
+		MlFlux1: new(1.5e-13),
 	})
 
 	recorder := httptest.NewRecorder()
@@ -191,9 +191,9 @@ func TestMetadata_ResponseKeys_Erosita(t *testing.T) {
 
 	var row repository.GetErositaRow
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &row))
-	require.Equal(t, "det-1", row.Detuid.String)
-	require.Equal(t, int64(12345), row.Skytile.Int64)
-	require.InDelta(t, 1.5e-13, row.MlFlux1.Float64, 1e-20)
+	require.Equal(t, "det-1", *row.Detuid)
+	require.Equal(t, int64(12345), *row.Skytile)
+	require.InDelta(t, 1.5e-13, *row.MlFlux1, 1e-20)
 	// The fixture's mastercat pair is (10.5, -20.25); the erosita table's own
 	// pair is (100, 50) and must not leak into the response.
 	require.InDelta(t, 10.5, row.Ra, 1e-9)
@@ -230,9 +230,9 @@ func TestMetadata_ResponseKeys_Allwise(t *testing.T) {
 
 	var row repository.GetAllwiseRow
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &row))
-	require.InDelta(t, 5.0, row.JM2mass.Float64, 1e-9)
-	require.InDelta(t, 7.0, row.KM2mass.Float64, 1e-9)
-	require.InDelta(t, 0.7, row.KMsig2mass.Float64, 1e-9)
+	require.InDelta(t, 5.0, *row.JM2mass, 1e-9)
+	require.InDelta(t, 7.0, *row.KM2mass, 1e-9)
+	require.InDelta(t, 0.7, *row.KMsig2mass, 1e-9)
 	require.InDelta(t, 12.5, row.Ra, 1e-9)
 	require.InDelta(t, -3.25, row.Dec, 1e-9)
 }
@@ -270,8 +270,8 @@ func TestBulkMetadata_ResponseKeys_Gaia(t *testing.T) {
 	var rows []repository.BulkGetGaiaRow
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &rows))
 	require.Len(t, rows, 1)
-	require.Equal(t, int64(424242), rows[0].SourceID.Int64)
-	require.InDelta(t, 18.75, rows[0].PhotGMeanMag.Float64, 1e-9)
+	require.Equal(t, int64(424242), *rows[0].SourceID)
+	require.InDelta(t, 18.75, *rows[0].PhotGMeanMag, 1e-9)
 	require.InDelta(t, 60.0, rows[0].Ra, 1e-9)
 }
 
@@ -285,8 +285,8 @@ func TestMetadata_ErositaNullableColumns(t *testing.T) {
 	// Only detuid and ml_flux_1 are set; mjd and every other nullable
 	// column stay NULL in the erosita table.
 	insertErositaFixture(t, db, "erosita-null", repository.Erosita{
-		Detuid:  repository.NullString{NullString: sql.NullString{String: "det-null", Valid: true}},
-		MlFlux1: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 1.5e-13, Valid: true}},
+		Detuid:  new("det-null"),
+		MlFlux1: new(1.5e-13),
 	})
 
 	recorder := httptest.NewRecorder()
@@ -305,9 +305,9 @@ func TestMetadata_ErositaNullableColumns(t *testing.T) {
 
 	var row repository.GetErositaRow
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &row))
-	require.False(t, row.Mjd.Valid, "null mjd should scan as an invalid NullFloat64")
-	require.True(t, row.MlFlux1.Valid)
-	require.True(t, row.Detuid.Valid)
+	require.Nil(t, row.Mjd, "null mjd should scan as a nil pointer")
+	require.NotNil(t, row.MlFlux1)
+	require.NotNil(t, row.Detuid)
 }
 
 // requireSnakeCaseKeys asserts that every JSON object key uses snake_case,
@@ -330,9 +330,9 @@ func insertGaiaFixture(t *testing.T, db *sql.DB, id string) {
 	repo := repository.New(db)
 	err := repo.InsertGaia(context.Background(), repository.InsertGaiaParams(repository.Gaia{
 		ID:            id,
-		SourceID:      repository.NullInt64{NullInt64: sql.NullInt64{Int64: 424242, Valid: true}},
-		PhotGMeanFlux: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 1234.5, Valid: true}},
-		PhotGMeanMag:  repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 18.75, Valid: true}},
+		SourceID:      new(int64(424242)),
+		PhotGMeanFlux: new(1234.5),
+		PhotGMeanMag:  new(18.75),
 	}))
 	require.NoError(t, err)
 }

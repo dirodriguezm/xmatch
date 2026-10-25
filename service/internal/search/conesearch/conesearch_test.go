@@ -329,8 +329,8 @@ func TestConesearch_WithMetadata_ErositaUsesMastercatCoordinates(t *testing.T) {
 	// envelope built from the mastercat pair can match at (10, 10).
 	require.NoError(t, metadataRepo.InsertErosita(ctx, repository.InsertErositaParams{
 		ID:  "E",
-		Ra:  repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 100, Valid: true}},
-		Dec: repository.NullFloat64{NullFloat64: sql.NullFloat64{Float64: 50, Valid: true}},
+		Ra:  new(100.0),
+		Dec: new(50.0),
 	}))
 
 	metadataService, err := metadata.NewMetadataService(metadataRepo)
