@@ -66,6 +66,8 @@ func (m *MetadataService) queryCatalog(ctx context.Context, id string, catalogNa
 		return m.queries.GetGaia(ctx, id)
 	case "erosita":
 		return m.queries.GetErosita(ctx, id)
+	case "swift":
+		return m.queries.GetSwift(ctx, id)
 	default:
 		return nil, unknownCatalogError(catalogName)
 	}
@@ -81,6 +83,8 @@ func (m *MetadataService) bulkQueryCatalog(ctx context.Context, ids []string, ca
 		return m.queries.BulkGetGaia(ctx, ids)
 	case "erosita":
 		return m.queries.BulkGetErosita(ctx, ids)
+	case "swift":
+		return m.queries.BulkGetSwift(ctx, ids)
 	default:
 		return nil, unknownCatalogError(catalogName)
 	}
@@ -103,6 +107,10 @@ func (m *MetadataService) GetFromPixelRanges(ctx context.Context, catalogName st
 	case "erosita":
 		return m.queries.QueryMetadataFromPixelRanges(ctx, "erosita", pixelRanges, func(rows *sql.Rows) (repository.Metadata, error) {
 			return metadataFromRow[repository.Erosita](rows, "eROSITA")
+		})
+	case "swift":
+		return m.queries.QueryMetadataFromPixelRanges(ctx, "swift", pixelRanges, func(rows *sql.Rows) (repository.Metadata, error) {
+			return metadataFromRow[repository.Swift](rows, "Swift/LSXPS")
 		})
 	default:
 		return nil, nil
