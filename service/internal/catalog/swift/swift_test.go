@@ -14,13 +14,18 @@ func TestGetCoordinates(t *testing.T) {
 	assert.Equal(t, -30.0, dec)
 }
 
-func TestMastercatID(t *testing.T) {
-	raw := InputSchema{ID: "LSXPS J000000.0+000000"}
+func TestMastercatIDUsesIAUName(t *testing.T) {
+	raw := InputSchema{LSXPSID: "12345", IAUName: "LSXPS J000000.0+000000"}
 	assert.Equal(t, "LSXPS J000000.0+000000", raw.MastercatID())
 }
 
 func TestConvertToMetadata(t *testing.T) {
-	raw := InputSchema{ID: "LSXPS J000000.0+000000", RA: 1.0, Dec: 2.0}
+	raw := InputSchema{
+		LSXPSID: "12345",
+		IAUName: "LSXPS J000000.0+000000",
+		RA:      1.0,
+		Dec:     2.0,
+	}
 	result, err := raw.ConvertToMetadata()
 	require.NoError(t, err)
 	assert.Equal(t, "LSXPS J000000.0+000000", result.ID)
