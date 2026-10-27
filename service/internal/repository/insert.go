@@ -37,3 +37,7 @@ func (r Erosita) Insert(ctx context.Context, q *Queries) error {
 func (r Gaia) Insert(ctx context.Context, q *Queries) error {
 	return q.InsertGaia(ctx, InsertGaiaParams(r))
 }
+
+func (r Swift) Insert(ctx context.Context, q *Queries) error {
+	return q.InsertSwift(ctx, r.ID)
+}

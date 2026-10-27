@@ -12,6 +12,7 @@ import (
 	"github.com/dirodriguezm/xmatch/service/internal/catalog/allwise"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog/erosita"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog/gaia"
+	"github.com/dirodriguezm/xmatch/service/internal/catalog/swift"
 	mastercat_indexer "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/mastercat"
 	metadata "github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/indexer/metadata"
 	"github.com/dirodriguezm/xmatch/service/internal/catalog_indexer/pipeline"
@@ -61,6 +62,8 @@ func StartCatalogIndexer(
 		return runCatalogPipeline[repository.Allwise, allwise.InputSchema](ctx, cfg, srcCfg, src, repo)
 	case "erosita":
 		return runCatalogPipeline[repository.Erosita, erosita.InputSchema](ctx, cfg, srcCfg, src, repo)
+	case "swift":
+		return runCatalogPipeline[repository.Swift, swift.InputSchema](ctx, cfg, srcCfg, src, repo)
 	default:
 		return fmt.Errorf("unknown catalog: %s", srcCfg.CatalogName)
 	}
