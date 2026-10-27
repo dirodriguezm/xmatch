@@ -14,7 +14,7 @@ func TestRoundTrip(t *testing.T) {
 	queries := testutils.CatalogDB(t)
 	ctx := context.Background()
 
-	raw := InputSchema{ID: "LSXPS J000000.0+000000", RA: 12.3, Dec: -4.5}
+	raw := InputSchema{LSXPSID: "12345", IAUName: "LSXPS J000000.0+000000", RA: 12.3, Dec: -4.5}
 
 	ra, dec := raw.GetCoordinates()
 	mastercat := repository.Mastercat{
