@@ -50,7 +50,7 @@ func WithResolution(res int) ConesearchOption {
 
 func WithCatalogs(catalogs []repository.Catalog) ConesearchOption {
 	return func(service *ConesearchService) error {
-		allowed := []string{"vlass", "allwise", "ztf", "gaia", "erosita"}
+		allowed := []string{"vlass", "allwise", "ztf", "gaia", "erosita", "swift"}
 		for i := range catalogs {
 			catName := strings.ToLower(catalogs[i].Name)
 			if !slices.Contains(allowed, catName) {
