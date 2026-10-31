@@ -28,7 +28,7 @@ export function parseIrsaDust(xml: string): GalacticReddening {
     throw new Error(`IRSA dust: ${msg ?? "service returned an error"}`);
   }
   const block = [...xml.matchAll(/<result>([\s\S]*?)<\/result>/g)]
-    .map((m) => m[1])
+    .map((m) => m[1] ?? "")
     .find((b) => /E\(B-V\)\s+Reddening/.test(b));
   if (!block) throw new Error("IRSA dust: no E(B-V) block in response");
 

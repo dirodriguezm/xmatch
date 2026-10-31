@@ -167,8 +167,9 @@ export function computeNightVisibility(
   // Altitude is single-peaked over one night, so the samples above the
   // limit form one contiguous run.
   const up = night.filter((s) => s.altitude >= minAltitudeDeg);
-  const window =
-    up.length > 0 ? { start: up[0].time, end: up[up.length - 1].time } : null;
+  const first = up[0];
+  const last = up[up.length - 1];
+  const window = first && last ? { start: first.time, end: last.time } : null;
 
   const peak = night.reduce<AltitudeSample | null>(
     (best, s) => (best === null || s.altitude > best.altitude ? s : best),

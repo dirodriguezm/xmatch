@@ -24,15 +24,16 @@ export function gaiaSourceIdFromDesignation(
   designation: string
 ): string | null {
   const m = designation.trim().match(/^Gaia DR3 (\d{1,20})$/);
-  return m ? m[1] : null;
+  return m?.[1] ?? null;
 }
 
 function splitCsv(text: string): { header: string[]; rows: string[][] } {
   const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
-  if (lines.length === 0) return { header: [], rows: [] };
+  const [headerLine, ...bodyLines] = lines;
+  if (headerLine === undefined) return { header: [], rows: [] };
   return {
-    header: lines[0].split(","),
-    rows: lines.slice(1).map((l) => l.split(",")),
+    header: headerLine.split(","),
+    rows: bodyLines.map((l) => l.split(",")),
   };
 }
 
@@ -107,11 +108,11 @@ export function parseGaiaTapCone(
   const { header, rows } = splitCsv(csv);
   const iId = header.indexOf("source_id");
   const iFlag = header.indexOf("has_epoch_photometry");
-  if (iId === -1 || rows.length === 0 || !/^\d+$/.test(rows[0][iId] ?? "")) {
-    return null;
-  }
+  const sourceId = rows[0]?.[iId] ?? "";
+  if (iId === -1 || !/^\d+$/.test(sourceId)) return null;
+  const flag = rows[0]?.[iFlag];
   return {
-    sourceId: rows[0][iId],
-    hasEpochPhotometry: rows[0][iFlag] === "true" || rows[0][iFlag] === "1",
+    sourceId,
+    hasEpochPhotometry: flag === "true" || flag === "1",
   };
 }

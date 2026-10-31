@@ -51,16 +51,66 @@ export const BAND_COLORS: Record<string, string> = {
  * Photometry bands with survey and wavelength information
  */
 export const PHOTOMETRY_BANDS: BandConfig[] = [
-  { band: "G", survey: "Gaia", wavelength: "0.64 μm", color: BAND_COLORS.G },
-  { band: "BP", survey: "Gaia", wavelength: "0.51 μm", color: BAND_COLORS.BP },
-  { band: "RP", survey: "Gaia", wavelength: "0.78 μm", color: BAND_COLORS.RP },
-  { band: "J", survey: "2MASS", wavelength: "1.24 μm", color: BAND_COLORS.J },
-  { band: "H", survey: "2MASS", wavelength: "1.66 μm", color: BAND_COLORS.H },
-  { band: "K", survey: "2MASS", wavelength: "2.16 μm", color: BAND_COLORS.K },
-  { band: "W1", survey: "WISE", wavelength: "3.4 μm", color: BAND_COLORS.W1 },
-  { band: "W2", survey: "WISE", wavelength: "4.6 μm", color: BAND_COLORS.W2 },
-  { band: "W3", survey: "WISE", wavelength: "12 μm", color: BAND_COLORS.W3 },
-  { band: "W4", survey: "WISE", wavelength: "22 μm", color: BAND_COLORS.W4 },
+  {
+    band: "G",
+    survey: "Gaia",
+    wavelength: "0.64 μm",
+    color: getBandColor("G"),
+  },
+  {
+    band: "BP",
+    survey: "Gaia",
+    wavelength: "0.51 μm",
+    color: getBandColor("BP"),
+  },
+  {
+    band: "RP",
+    survey: "Gaia",
+    wavelength: "0.78 μm",
+    color: getBandColor("RP"),
+  },
+  {
+    band: "J",
+    survey: "2MASS",
+    wavelength: "1.24 μm",
+    color: getBandColor("J"),
+  },
+  {
+    band: "H",
+    survey: "2MASS",
+    wavelength: "1.66 μm",
+    color: getBandColor("H"),
+  },
+  {
+    band: "K",
+    survey: "2MASS",
+    wavelength: "2.16 μm",
+    color: getBandColor("K"),
+  },
+  {
+    band: "W1",
+    survey: "WISE",
+    wavelength: "3.4 μm",
+    color: getBandColor("W1"),
+  },
+  {
+    band: "W2",
+    survey: "WISE",
+    wavelength: "4.6 μm",
+    color: getBandColor("W2"),
+  },
+  {
+    band: "W3",
+    survey: "WISE",
+    wavelength: "12 μm",
+    color: getBandColor("W3"),
+  },
+  {
+    band: "W4",
+    survey: "WISE",
+    wavelength: "22 μm",
+    color: getBandColor("W4"),
+  },
 ];
 
 /**

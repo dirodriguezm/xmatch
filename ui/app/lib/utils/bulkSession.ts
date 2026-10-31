@@ -107,10 +107,11 @@ export function locateInBulkNav(
   const index = items.findIndex(
     (i) => i.id === id && i.catalog.toLowerCase() === cat
   );
-  if (index < 0) return null;
+  const item = items[index];
+  if (!item) return null;
   return {
     index,
-    item: items[index],
+    item,
     prev: items[index - 1] ?? null,
     next: items[index + 1] ?? null,
   };

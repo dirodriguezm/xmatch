@@ -66,7 +66,7 @@ describe("findRandomGaiaObject", () => {
     const hit = await findRandomGaiaObject(fetcher, () => 0.3);
     expect(hit?.objectId).toBe("x");
     expect(fetcher).toHaveBeenCalledTimes(2);
-    expect(fetcher.mock.calls[1][0]).toContain(
+    expect(fetcher.mock.calls[1]?.[0]).toContain(
       `radius=${RANDOM_RADII_ARCSEC[1]}`
     );
   });

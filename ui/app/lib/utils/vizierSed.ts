@@ -106,9 +106,9 @@ export function parseVizierSedVotable(xml: string): VizierSedRow[] {
 
   const rows: VizierSedRow[] = [];
   for (const tr of table.matchAll(/<TR>([\s\S]*?)<\/TR>/g)) {
-    const cells = [...tr[1].matchAll(/<TD>([\s\S]*?)<\/TD>|<TD\s*\/>/g)].map(
-      (m) => decodeEntities(m[1] ?? "")
-    );
+    const cells = [
+      ...(tr[1] ?? "").matchAll(/<TD>([\s\S]*?)<\/TD>|<TD\s*\/>/g),
+    ].map((m) => decodeEntities(m[1] ?? ""));
     const frequencyGHz = toNumber(cells[col._sed_freq]);
     const fluxJy = toNumber(cells[col._sed_flux]);
     const filter = cells[col._sed_filter]?.trim();
@@ -130,7 +130,8 @@ export function parseVizierSedVotable(xml: string): VizierSedRow[] {
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  const upper = sorted[mid] ?? NaN;
+  return sorted.length % 2 ? upper : ((sorted[mid - 1] ?? NaN) + upper) / 2;
 }
 
 /**
@@ -204,10 +205,12 @@ function flagInconsistent(points: VizierSedPoint[]): VizierSedPoint[] {
   const logFlux = points.map((p) => Math.log10(p.nuFnu));
   return points.map((p, i) => {
     const neighbours = logFlux.filter(
-      (_, j) => j !== i && Math.abs(logLambda[j] - logLambda[i]) < NEIGHBOUR_DEX
+      (_, j) =>
+        j !== i &&
+        Math.abs((logLambda[j] ?? NaN) - (logLambda[i] ?? NaN)) < NEIGHBOUR_DEX
     );
     if (neighbours.length < MIN_NEIGHBOURS) return p;
-    const deviation = Math.abs(logFlux[i] - median(neighbours));
+    const deviation = Math.abs((logFlux[i] ?? NaN) - median(neighbours));
     return deviation > INCONSISTENT_DEX ? { ...p, inconsistent: true } : p;
   });
 }

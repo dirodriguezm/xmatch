@@ -38,7 +38,7 @@ describe("glossary", () => {
   it("groups by catalog in order", () => {
     const groups = groupByCatalog(entries);
     expect(groups.map(([c]) => c)).toEqual(["gaia", "allwise"]);
-    expect(groups[0][1]).toHaveLength(3);
+    expect(groups[0]?.[1]).toHaveLength(3);
   });
 
   it("builds from the real descriptions", () => {

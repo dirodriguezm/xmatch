@@ -85,7 +85,7 @@ export function useBulkMetadata(requests: BulkMetadataRequest[]) {
   // results[i] pairs with requests[i].
   return {
     groups: results.map((r, i) => ({
-      catalog: requests[i].catalog,
+      catalog: requests[i]?.catalog,
       records: r.data ?? [],
     })) as BulkMetadataGroup[],
     isFetching: results.some((r) => r.isFetching),

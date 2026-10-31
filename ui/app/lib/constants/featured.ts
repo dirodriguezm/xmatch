@@ -176,5 +176,7 @@ export function objectOfTheWeek(
   date: Date = new Date(),
   list: FeaturedObject[] = FEATURED_OBJECTS
 ): FeaturedObject {
-  return list[isoWeek(date) % list.length];
+  const picked = list[isoWeek(date) % list.length];
+  if (!picked) throw new Error("objectOfTheWeek: empty list");
+  return picked;
 }

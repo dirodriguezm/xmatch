@@ -21,7 +21,7 @@ export const FACE_CENTERS: ReadonlyArray<readonly [number, number]> =
 
 /** Projection position of face coordinates (u, v). */
 export function facePosition(face: number, u: number, v: number) {
-  const [cx, cy] = FACE_CENTERS[face];
+  const [cx, cy] = FACE_CENTERS[face] ?? [0, 0];
   return [cx + (u - v) * QUARTER, cy - QUARTER + (u + v) * QUARTER] as const;
 }
 
@@ -53,7 +53,7 @@ export function ringIndex(face: number, ix: number, iy: number, order: number) {
   const nl4 = 4 * nside;
   const npix = 12 * nside * nside;
   const ncap = 2 * nside * (nside - 1);
-  const jr = JRLL[face] * nside - ix - iy - 1;
+  const jr = (JRLL[face] ?? 0) * nside - ix - iy - 1;
   let nr: number;
   let before: number;
   let shift = 0;
@@ -68,7 +68,7 @@ export function ringIndex(face: number, ix: number, iy: number, order: number) {
     before = ncap + (jr - nside) * nl4;
     shift = (jr - nside) & 1;
   }
-  let jp = Math.trunc((JPLL[face] * nr + ix - iy + 1 + shift) / 2);
+  let jp = Math.trunc(((JPLL[face] ?? 0) * nr + ix - iy + 1 + shift) / 2);
   if (jp > nl4) jp -= nl4;
   if (jp < 1) jp += nl4;
   return before + jp - 1;

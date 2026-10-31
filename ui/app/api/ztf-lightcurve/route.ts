@@ -45,13 +45,19 @@ function flattenLightcurves(lightcurves: AlerceLightcurve[]): Detection[] {
   for (const lc of lightcurves) {
     const len = Math.min(lc.hmjd.length, lc.mag.length, lc.magerr.length);
     for (let i = 0; i < len; i++) {
+      const mjd = lc.hmjd[i];
+      const mag = lc.mag[i];
+      const magerr = lc.magerr[i];
+      if (mjd === undefined || mag === undefined || magerr === undefined) {
+        continue;
+      }
       detections.push({
         catalog: "ztf",
         id: `${lc._id}_${i}`,
         object_id: String(lc._id),
-        mjd: lc.hmjd[i],
-        mag: lc.mag[i],
-        magerr: lc.magerr[i],
+        mjd,
+        mag,
+        magerr,
         data: { filterid: lc.filterid, fieldid: lc.fieldid, rcid: lc.rcid },
       });
     }

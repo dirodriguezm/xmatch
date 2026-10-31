@@ -25,9 +25,10 @@ export function fieldDensity(
   sorted: NearbySource[],
   radius: number | undefined
 ): FieldDensity | null {
-  if (sorted.length === 0) return null;
+  const last = sorted[sorted.length - 1];
+  if (!last) return null;
   const capped = sorted.length >= CONE_SEARCH_MAX_NEIGHBORS;
-  const farthest = sorted[sorted.length - 1].sepArcsec;
+  const farthest = last.sepArcsec;
   const completeTo = capped || radius === undefined ? farthest : radius;
   const inner = completeTo / 2;
   const annulusCount = sorted.filter(

@@ -35,13 +35,13 @@ describe("buildShareTargets", () => {
   it("encodes the url into each target", () => {
     const targets = buildShareTargets("https://a.b/o?c=1&d=2", "Gaia DR3 1");
     expect(targets.map((t) => t.id)).toEqual(["x", "bluesky", "email"]);
-    const x = new URL(targets[0].href);
+    const x = new URL(targets[0]?.href ?? "");
     expect(x.searchParams.get("url")).toBe("https://a.b/o?c=1&d=2");
-    const bsky = new URL(targets[1].href);
+    const bsky = new URL(targets[1]?.href ?? "");
     expect(bsky.searchParams.get("text")).toBe(
       "Gaia DR3 1 on XWave https://a.b/o?c=1&d=2"
     );
-    expect(targets[2].href).toMatch(/^mailto:\?subject=/);
+    expect(targets[2]?.href).toMatch(/^mailto:\?subject=/);
   });
 });
 

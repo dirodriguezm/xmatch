@@ -96,6 +96,7 @@ export function XrayHistoryPanel({
         <Flex gap={6} wrap>
           {HILIGT_MISSION_IDS.map((mission, i) => {
             const r = results[i];
+            if (!r) return null;
             const n = r.data?.points.filter((p) => p.band === band).length;
             const icon = r.isLoading ? (
               <XWaveSpinner size={14} className="align-[-2px]" />

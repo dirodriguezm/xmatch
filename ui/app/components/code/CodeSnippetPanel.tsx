@@ -81,7 +81,9 @@ export function CodeSnippetPanel({
   const [lang, setLang] = useSnippetLanguage();
   const [selected, setSelected] = useState(0);
 
-  if (requests.length === 0) {
+  const index = Math.min(selected, requests.length - 1);
+  const current = requests[index];
+  if (!current) {
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -90,8 +92,7 @@ export function CodeSnippetPanel({
     );
   }
 
-  const index = Math.min(selected, requests.length - 1);
-  const { request } = requests[index];
+  const { request } = current;
   const url = requestUrl(request);
 
   return (

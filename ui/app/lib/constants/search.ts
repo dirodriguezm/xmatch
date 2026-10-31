@@ -33,7 +33,7 @@ export function decodeCatalogRadii(str: string): CatalogRadiusConfig[] {
     .split(",")
     .map((segment) => {
       const [catalog, radiusStr, unit, enabledStr] = segment.split(":");
-      const radius = parseFloat(radiusStr);
+      const radius = parseFloat(radiusStr ?? "");
       if (!catalog || isNaN(radius) || !unit) return null;
       return {
         catalog,

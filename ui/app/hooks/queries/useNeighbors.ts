@@ -66,6 +66,7 @@ export function useNeighbors(params: NeighborsParams | null): NeighborsResult {
 
       CATALOG_OPTIONS.forEach((catalog, i) => {
         const q = queries[i];
+        if (!q) return;
         if (q.isError) failedCatalogs.push(catalog);
         if (!q.data || ra === undefined || dec === undefined) return;
         const rows = q.data.flatMap((g) => g.data ?? []);

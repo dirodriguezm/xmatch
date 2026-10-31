@@ -77,7 +77,7 @@ describe("filterCommands", () => {
   });
 
   it("ranks label hits first", () => {
-    expect(filterCommands(cmds, "s")[0].id).toBe("a");
+    expect(filterCommands(cmds, "s")[0]?.id).toBe("a");
   });
 });
 

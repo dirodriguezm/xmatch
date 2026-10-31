@@ -137,7 +137,8 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
           if (onFovChange) {
             aladin.on("zoomChanged", ((...args: unknown[]) => {
               const fovValues = args[0] as number[];
-              onFovChange(fovValues[0]);
+              const fov = fovValues[0];
+              if (fov !== undefined) onFovChange(fov);
             }) as (...args: unknown[]) => void);
           }
 
@@ -448,7 +449,7 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
     const getFov = useCallback(() => {
       if (aladinRef.current) {
         const fovValues = aladinRef.current.getFov();
-        return fovValues[0];
+        return fovValues[0] ?? 0;
       }
       return 0;
     }, []);

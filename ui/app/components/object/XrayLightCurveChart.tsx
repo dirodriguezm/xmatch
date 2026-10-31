@@ -110,11 +110,15 @@ export function XrayLightCurveChart({
     const x = api.value(0) as number;
     const lo = api.coord([x, api.value(1) as number]);
     const hi = api.coord([x, api.value(2) as number]);
-    if (Math.abs(lo[1] - hi[1]) < SYMBOL_SIZE) return null;
+    const [loX, loY] = lo;
+    const [hiX, hiY] = hi;
+    if (loX === undefined || loY === undefined) return null;
+    if (hiX === undefined || hiY === undefined) return null;
+    if (Math.abs(loY - hiY) < SYMBOL_SIZE) return null;
     const style = { stroke: api.visual("color") as string, lineWidth: 1 };
     return {
       type: "line",
-      shape: { x1: lo[0], y1: lo[1], x2: hi[0], y2: hi[1] },
+      shape: { x1: loX, y1: loY, x2: hiX, y2: hiY },
       style,
     };
   };

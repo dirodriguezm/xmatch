@@ -18,7 +18,7 @@ const SUPERSCRIPT: Record<string, string> = {
 export function formatScientific(value: number, digits = 2): string {
   if (!Number.isFinite(value)) return "—";
   if (value === 0) return "0";
-  const [mantissa, exponent] = value.toExponential(digits).split("e");
+  const [mantissa = "", exponent] = value.toExponential(digits).split("e");
   const exp = String(Number(exponent));
   if (exp === "0") return mantissa;
   const sup = [...exp].map((c) => SUPERSCRIPT[c] ?? c).join("");

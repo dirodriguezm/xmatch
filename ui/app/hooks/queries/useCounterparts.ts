@@ -105,7 +105,7 @@ export function useCounterparts(params: CounterpartsParams | null) {
       sourceRadius,
       COUNTERPART_RADIUS_ARCSEC[catalog]
     );
-    if (q.isPending) return { catalog, radiusArcsec, status: "loading" };
+    if (!q || q.isPending) return { catalog, radiusArcsec, status: "loading" };
     if (q.isError)
       return { catalog, radiusArcsec, status: "error", error: q.error };
     const record = q.data;

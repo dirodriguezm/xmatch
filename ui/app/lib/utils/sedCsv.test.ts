@@ -34,19 +34,19 @@ const parse = (csv: string) => csv.split("\n").map((l) => l.split(","));
 describe("sedToCsv", () => {
   it("writes both sources sorted by wavelength", () => {
     const rows = parse(sedToCsv([own], [viz], null));
-    expect(rows[0][0]).toBe("source");
+    expect(rows[0]?.[0]).toBe("source");
     expect(rows.slice(1).map((r) => r[0])).toEqual(["vizier", "xwave"]);
-    expect(rows[1][11]).toBe("II/294/sdss7 V/147/sdss12");
+    expect(rows[1]?.[11]).toBe("II/294/sdss7 V/147/sdss12");
   });
 
   it("leaves dereddening empty without a usable E(B−V)", () => {
-    const [, row] = parse(sedToCsv([own], [], null));
+    const [, row = []] = parse(sedToCsv([own], [], null));
     expect(row[13]).toBe("");
     expect(row[14]).toBe("");
   });
 
   it("adds A_λ and the dereddened flux when E(B−V) is known", () => {
-    const [, row] = parse(sedToCsv([own], [], 0.1));
+    const [, row = []] = parse(sedToCsv([own], [], 0.1));
     const a = Number(row[13]);
     expect(a).toBeGreaterThan(0.2);
     expect(Number(row[14])).toBeCloseTo(5.2e-13 * 10 ** (0.4 * a), 20);

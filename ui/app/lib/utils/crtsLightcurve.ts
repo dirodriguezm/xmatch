@@ -37,7 +37,7 @@ const TELESCOPES: Record<string, string> = {
 };
 
 export function crtsTelescope(masterId: string): string {
-  return TELESCOPES[masterId[0]] ?? "CRTS";
+  return TELESCOPES[masterId.charAt(0)] ?? "CRTS";
 }
 
 /** Brighter than this median the detector saturates; treat with care. */
@@ -73,7 +73,9 @@ function sepArcsec(ra1: number, dec1: number, ra2: number, dec2: number) {
 function median(values: number[]): number {
   const s = [...values].sort((a, b) => a - b);
   const mid = s.length >> 1;
-  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  return s.length % 2
+    ? (s[mid] ?? NaN)
+    : ((s[mid - 1] ?? NaN) + (s[mid] ?? NaN)) / 2;
 }
 
 /**
@@ -97,7 +99,7 @@ export function parseCrtsCsv(
   const lines = csv.split(/\r?\n/).filter((l) => l.trim() !== "");
   const names = (lines[0] ?? "").split(",").map((s) => s.trim());
   const col = (n: string) => names.indexOf(n);
-  const [iId, iMag, iErr, iRa, iDec, iMjd] = [
+  const [iId = -1, iMag = -1, iErr = -1, iRa = -1, iDec = -1, iMjd = -1] = [
     "MasterID",
     "Mag",
     "Magerr",
@@ -123,7 +125,7 @@ export function parseCrtsCsv(
   for (const line of lines.slice(1)) {
     const c = line.split(",").map((s) => s.trim());
     const row: Row = {
-      id: c[iId],
+      id: c[iId] ?? "",
       mag: Number(c[iMag]),
       err: iErr === -1 ? NaN : Number(c[iErr]),
       mjd: Number(c[iMjd]),

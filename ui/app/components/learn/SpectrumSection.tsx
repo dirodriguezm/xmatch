@@ -222,6 +222,7 @@ const H = ({ children }: { children: ReactNode }) => (
 export function SpectrumSection() {
   const [current, setCurrent] = useState(4);
   const band = BANDS[current];
+  if (!band) return null;
 
   const onRulerKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const next =

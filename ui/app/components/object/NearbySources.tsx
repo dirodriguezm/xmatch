@@ -26,7 +26,7 @@ interface NearbySourcesProps {
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 
 function compassPoint(pa: number): string {
-  return COMPASS[Math.round(pa / 45) % 8];
+  return COMPASS[Math.round(pa / 45) % 8] ?? "N";
 }
 
 const catalogList = (cats: string[]) =>

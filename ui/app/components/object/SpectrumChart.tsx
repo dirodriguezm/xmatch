@@ -93,26 +93,29 @@ export function SpectrumChart({
   }
 
   // Zip wavelength/flux into [x, y] pairs for the observed-data series.
-  const fluxPoints: [number, number][] = wavelength.map((w, i) => [w, flux[i]]);
+  const fluxPoints: [number, number][] = wavelength.map((w, i) => [
+    w,
+    flux[i] ?? NaN,
+  ]);
 
   // Pipeline best-fit (redrock model) — drawn on top of the noisy data.
   const hasModel = Array.isArray(model) && model.length === wavelength.length;
   const modelPoints: [number, number][] | null = hasModel
-    ? wavelength.map((w, i) => [w, model![i]])
+    ? wavelength.map((w, i) => [w, model[i] ?? NaN])
     : null;
 
   // Noise = 1/√ivar; gap (null) where ivar is unusable so the trace breaks cleanly.
   const hasIvar = Array.isArray(ivar) && ivar.length === wavelength.length;
   const noisePoints: [number, number | null][] | null = hasIvar
     ? wavelength.map((w, i) => {
-        const v = ivar![i];
+        const v = ivar[i];
         return [w, v && v > 0 ? 1 / Math.sqrt(v) : null];
       })
     : null;
 
   // Spectral-line markers at observed λ = rest × (1 + z), within the plotted range.
-  const wMin = wavelength[0];
-  const wMax = wavelength[wavelength.length - 1];
+  const wMin = wavelength[0] ?? -Infinity;
+  const wMax = wavelength[wavelength.length - 1] ?? Infinity;
   const lineMarkers =
     redshift != null
       ? SPECTRAL_LINES.map((line) => ({

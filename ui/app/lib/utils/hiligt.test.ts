@@ -122,16 +122,16 @@ describe("parseHiligt", () => {
       flux: 3.3412410288e-11,
       fluxErr: 2.3775844266e-12,
     });
-    expect(p.upperLimit).toBeUndefined();
+    expect(p?.upperLimit).toBeUndefined();
     // 2012-07-16 22:52 → 23:57 UTC
-    expect(p.mjd).toBeCloseTo(56124.976, 2);
+    expect(p?.mjd).toBeCloseTo(56124.976, 2);
   });
 
   it("reads upper limits, treating blank fluxes as missing", () => {
     const [p] = parseHiligt(JSON.stringify([ROSAT_UPPER_LIMIT]), "RosatSurvey");
-    expect(p.flux).toBeUndefined();
-    expect(p.upperLimit).toBeCloseTo(2.4366e-13, 16);
-    expect(p.sigma).toBe(2);
+    expect(p?.flux).toBeUndefined();
+    expect(p?.upperLimit).toBeCloseTo(2.4366e-13, 16);
+    expect(p?.sigma).toBe(2);
   });
 
   it("sorts by time and skips failed records", () => {
@@ -141,7 +141,7 @@ describe("parseHiligt", () => {
       "RosatSurvey"
     );
     expect(points).toHaveLength(2);
-    expect(points[0].mjd).toBeLessThan(points[1].mjd);
+    expect(points[0]?.mjd).toBeLessThan(points[1]?.mjd ?? NaN);
   });
 
   it("treats an empty or malformed body as no data", () => {

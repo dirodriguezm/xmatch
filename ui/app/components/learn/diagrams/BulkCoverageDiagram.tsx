@@ -47,7 +47,9 @@ function exampleSky() {
   const targets: Point[] = Array.from({ length: 60 }, () => {
     if (rnd() < 0.8) {
       const s = stars[Math.floor(rnd() * stars.length)];
-      return { x: s.x + (rnd() - 0.5) * 20, y: s.y + (rnd() - 0.5) * 20 };
+      if (s) {
+        return { x: s.x + (rnd() - 0.5) * 20, y: s.y + (rnd() - 0.5) * 20 };
+      }
     }
     return { x: 300 + rnd() * (FW - 600), y: 300 + rnd() * (FH - 600) };
   });
@@ -116,7 +118,8 @@ export function BulkCoverageDiagram() {
     const counts = new Array<number>(stars.length).fill(0);
     for (const c of circles.slice(0, mode === "idle" ? 0 : shown))
       stars.forEach((s, k) => {
-        if (Math.hypot(s.x - c.x, s.y - c.y) <= radius) counts[k]++;
+        if (Math.hypot(s.x - c.x, s.y - c.y) <= radius)
+          counts[k] = (counts[k] ?? 0) + 1;
       });
     return counts;
   }, [circles, shown, stars, radius, mode]);
@@ -140,7 +143,7 @@ export function BulkCoverageDiagram() {
     >
       <rect width={W} height={H} fill="#0b0c10" />
       {stars.map((s, k) => {
-        const n = hitCounts[k];
+        const n = hitCounts[k] ?? 0;
         return (
           <circle
             key={k}

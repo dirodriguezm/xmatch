@@ -113,6 +113,7 @@ function sexagesimalParts(
   if (parts.length < 2 || parts.length > 3) return null;
   if (!parts.every((p) => /^\d+(\.\d*)?$/.test(p))) return null;
   const [a, b, c = 0] = parts.map(Number);
+  if (a === undefined || b === undefined) return null;
   // Only the last component may carry decimals.
   if (parts.slice(0, -1).some((p) => p.includes("."))) return null;
   if (b >= 60 || c >= 60) return null;
@@ -238,6 +239,8 @@ function parseHeuristic(fields: string[], delim: Delimiter): RowParse {
   if (f.length < 2)
     return { ok: false, message: "Expected at least RA and Dec" };
 
+  const field = (i: number) => f[i] ?? "";
+
   const tryPair = (raText: string, decText: string) => {
     const ra = parseRa(raText);
     const dec = parseDec(decText);
@@ -258,22 +261,22 @@ function parseHeuristic(fields: string[], delim: Delimiter): RowParse {
       if (lead && f.slice(0, 6).every((t) => /^[+\-−]?\d+(\.\d+)?$/.test(t)))
         return { ok: true, name: f.slice(6).join(" "), ...lead };
     }
-    const first = tryPair(f[0], f[1]);
+    const first = tryPair(field(0), field(1));
     if (first) return { ok: true, name: f.slice(2).join(" "), ...first };
-    const last = tryPair(f[n - 2], f[n - 1]);
+    const last = tryPair(field(n - 2), field(n - 1));
     if (last) return { ok: true, name: f.slice(0, n - 2).join(" "), ...last };
-    return { ok: false, message: coordsError(f[0], f[1]) };
+    return { ok: false, message: coordsError(field(0), field(1)) };
   }
 
   // Delimited: "ra,dec[,name…]" or "name,ra,dec[,…]".
-  const first = tryPair(f[0], f[1]);
+  const first = tryPair(field(0), field(1));
   if (first) return { ok: true, name: f[2] ?? "", ...first };
   if (f.length >= 3) {
-    const second = tryPair(f[1], f[2]);
-    if (second) return { ok: true, name: f[0], ...second };
-    return { ok: false, message: coordsError(f[1], f[2]) };
+    const second = tryPair(field(1), field(2));
+    if (second) return { ok: true, name: field(0), ...second };
+    return { ok: false, message: coordsError(field(1), field(2)) };
   }
-  return { ok: false, message: coordsError(f[0], f[1]) };
+  return { ok: false, message: coordsError(field(0), field(1)) };
 }
 
 function isCommentOrBlank(line: string): boolean {
@@ -288,16 +291,17 @@ export function parseBulkInput(text: string): BulkParseResult {
   const errors: BulkParseError[] = [];
 
   const firstIdx = lines.findIndex((l) => !isCommentOrBlank(l));
-  if (firstIdx < 0) return { targets, errors, header: null };
+  const firstLine = lines[firstIdx];
+  if (firstLine === undefined) return { targets, errors, header: null };
 
-  const delim = detectDelimiter(lines[firstIdx]);
-  const firstFields = splitLine(lines[firstIdx], delim);
+  const delim = detectDelimiter(firstLine);
+  const firstFields = splitLine(firstLine, delim);
   const cols = headerColumns(firstFields);
   // A first line with no parseable coordinate and no digits at all is a header
   // even when we cannot map its columns.
   const looksLikeHeader =
     cols !== null ||
-    (!parseHeuristic(firstFields, delim).ok && !/\d/.test(lines[firstIdx]));
+    (!parseHeuristic(firstFields, delim).ok && !/\d/.test(firstLine));
 
   let header: string[] | null = null;
   if (looksLikeHeader) {
@@ -310,7 +314,7 @@ export function parseBulkInput(text: string): BulkParseResult {
     i++
   ) {
     const raw = lines[i];
-    if (isCommentOrBlank(raw)) continue;
+    if (raw === undefined || isCommentOrBlank(raw)) continue;
     const fields = splitLine(raw, delim);
     const parsed = cols
       ? parseByColumns(fields, cols)

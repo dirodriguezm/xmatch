@@ -65,10 +65,11 @@ export function HealpixSkyDiagram() {
 
   const path = useMemo(() => {
     const sorted = [...cells].sort((a, b) => a.id - b.id);
-    return sorted.slice(1).map((b, i) => {
+    return sorted.slice(1).flatMap((b, i) => {
       const a = sorted[i];
+      if (!a) return [];
       const jump = Math.hypot(a.x - b.x, a.y - b.y) > 3.3 * h;
-      return { a, b, jump };
+      return [{ a, b, jump }];
     });
   }, [cells, h]);
 

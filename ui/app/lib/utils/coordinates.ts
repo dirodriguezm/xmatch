@@ -40,9 +40,10 @@ export function parseHMS(hms: string): number | null {
     return null;
   }
 
-  const hours = parseFloat(parts[0]);
-  const minutes = parseFloat(parts[1]);
-  const seconds = parseFloat(parts[2]);
+  const [h = "", m = "", sec = ""] = parts;
+  const hours = parseFloat(h);
+  const minutes = parseFloat(m);
+  const seconds = parseFloat(sec);
 
   if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
     return null;
@@ -74,9 +75,10 @@ export function parseDMS(dms: string): number | null {
     return null;
   }
 
-  const degrees = parseFloat(parts[0]);
-  const minutes = parseFloat(parts[1]);
-  const seconds = parseFloat(parts[2]);
+  const [d = "", m = "", sec = ""] = parts;
+  const degrees = parseFloat(d);
+  const minutes = parseFloat(m);
+  const seconds = parseFloat(sec);
 
   if (isNaN(degrees) || isNaN(minutes) || isNaN(seconds)) {
     return null;
@@ -102,7 +104,7 @@ export function parseCoordinates(
     return null;
   }
 
-  const raPart = parts[0];
+  const [raPart = ""] = parts;
   const decPart = parts.slice(1).join(" ");
 
   // Try parsing as HMS/DMS (contains colons)
@@ -164,8 +166,8 @@ export function equatorialToGalactic(
     Math.cos(dec * DEG) * Math.sin(ra * DEG),
     Math.sin(dec * DEG),
   ];
-  const [x, y, z] = ICRS_TO_GALACTIC.map(
-    (row) => row[0] * v[0] + row[1] * v[1] + row[2] * v[2]
+  const [x = 0, y = 0, z = 0] = ICRS_TO_GALACTIC.map((row) =>
+    row.reduce((sum, c, k) => sum + c * (v[k] ?? 0), 0)
   );
   return {
     l: wrap360(Math.atan2(y, x) / DEG),

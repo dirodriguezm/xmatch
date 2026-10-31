@@ -41,7 +41,10 @@ export function pickRandomFeatured(
   rand: () => number = Math.random,
   list: FeaturedObject[] = FEATURED_OBJECTS
 ): FeaturedObject {
-  return list[Math.min(list.length - 1, Math.floor(rand() * list.length))];
+  const picked =
+    list[Math.min(list.length - 1, Math.floor(rand() * list.length))];
+  if (!picked) throw new Error("pickRandomFeatured: empty list");
+  return picked;
 }
 
 interface ConeRow {

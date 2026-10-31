@@ -335,7 +335,7 @@ export function IpixPipelineDiagram() {
         className="m-0 min-h-[7.5em] text-sm text-neutral-300"
         aria-live="polite"
       >
-        {STEPS[step].body}
+        {STEPS[step]?.body}
       </p>
       <div className="flex flex-wrap gap-6">
         {step >= 2 && <Stat value={selected.size} label="cells" />}

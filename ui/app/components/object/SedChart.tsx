@@ -242,7 +242,11 @@ export function SedChart({
     const lo = api.coord([x, api.value(1) as number]);
     const hi = api.coord([x, api.value(2) as number]);
     // A bar shorter than the marker would only draw inside it.
-    if (Math.abs(lo[1] - hi[1]) < SYMBOL_SIZE) return null;
+    const [loX, loY] = lo;
+    const [hiX, hiY] = hi;
+    if (loX === undefined || loY === undefined) return null;
+    if (hiX === undefined || hiY === undefined) return null;
+    if (Math.abs(loY - hiY) < SYMBOL_SIZE) return null;
     const color = api.visual("color") as string;
     const style = { stroke: color, lineWidth: 1 };
     return {
@@ -250,17 +254,17 @@ export function SedChart({
       children: [
         {
           type: "line",
-          shape: { x1: lo[0], y1: lo[1], x2: hi[0], y2: hi[1] },
+          shape: { x1: loX, y1: loY, x2: hiX, y2: hiY },
           style,
         },
         {
           type: "line",
-          shape: { x1: lo[0] - 3, y1: lo[1], x2: lo[0] + 3, y2: lo[1] },
+          shape: { x1: loX - 3, y1: loY, x2: loX + 3, y2: loY },
           style,
         },
         {
           type: "line",
-          shape: { x1: hi[0] - 3, y1: hi[1], x2: hi[0] + 3, y2: hi[1] },
+          shape: { x1: hiX - 3, y1: hiY, x2: hiX + 3, y2: hiY },
           style,
         },
       ],

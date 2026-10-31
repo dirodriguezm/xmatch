@@ -37,12 +37,14 @@ function parseTapCsv(
 ): { rows: string[][]; header: string[] } | { error: string } {
   if (text.startsWith("<?xml") || text.startsWith("<VOTABLE")) {
     const errMatch = text.match(/QUERY_STATUS"[^>]*>([\s\S]*?)<\/INFO>/);
-    return { error: errMatch ? errMatch[1].trim() : text.slice(0, 500) };
+    return { error: errMatch?.[1]?.trim() ?? text.slice(0, 500) };
   }
-  const lines = text.split("\n").filter((l) => l.length > 0);
-  if (lines.length === 0) return { header: [], rows: [] };
-  const header = lines[0].split(",");
-  const rows = lines.slice(1).map((l) => l.split(","));
+  const [headerLine, ...bodyLines] = text
+    .split("\n")
+    .filter((l) => l.length > 0);
+  if (headerLine === undefined) return { header: [], rows: [] };
+  const header = headerLine.split(",");
+  const rows = bodyLines.map((l) => l.split(","));
   return { header, rows };
 }
 

@@ -27,8 +27,9 @@ const capArea = (r: number) =>
   (1 - Math.cos((Math.min(r / 3600, 180) * Math.PI) / 180)) *
   ARCSEC2_PER_SR;
 
+const TYPICAL_DENSITY = 0.0034;
 const ZONES = [
-  { label: "Typical sky", density: 0.0034 },
+  { label: "Typical sky", density: TYPICAL_DENSITY },
   { label: "High latitude", density: 0.0006 },
   { label: "Galactic plane", density: 0.04 },
 ];
@@ -77,14 +78,14 @@ const Y = (v: number) =>
 /** Part 5: how the work of a cone search grows with its radius (illustrative). */
 export function RadiusScaleDiagram() {
   const [t, setT] = useState(Math.round(sliderAt(15)));
-  const [density, setDensity] = useState(ZONES[0].density);
+  const [density, setDensity] = useState(TYPICAL_DENSITY);
 
   const work = (r: number) => Math.min(CATALOG_SIZE, density * capArea(r));
   const radius = radiusAt(t);
   const candidates = work(radius);
   const cells = capArea(radius) / CELL_AREA;
   const zone = VERDICTS.findIndex((v) => candidates < v.max);
-  const verdict = VERDICTS[zone];
+  const verdict = VERDICTS[zone] ?? VERDICTS[2];
 
   let curve = "";
   for (let s = 0; s <= SLIDER_MAX; s += 10) {
@@ -100,7 +101,7 @@ export function RadiusScaleDiagram() {
       aria-label={`Candidates to measure against search radius on log scales; at ${radiusLabel(radius)} about ${compact(candidates)}`}
     >
       {VERDICTS.map((v, i) => {
-        const lo = i === 0 ? 10 ** Y_MIN : VERDICTS[i - 1].max;
+        const lo = VERDICTS[i - 1]?.max ?? 10 ** Y_MIN;
         const hi = Math.min(v.max, CATALOG_SIZE);
         return (
           <g key={v.label}>

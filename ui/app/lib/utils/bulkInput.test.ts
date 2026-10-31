@@ -45,7 +45,7 @@ describe("parseBulkInput", () => {
     expect(header).toEqual(["name", "ra", "dec"]);
     expect(targets).toHaveLength(8);
     expect(targets[0]).toMatchObject({ index: 0, name: "M31 nucleus" });
-    expect(targets[3].ra).toBeCloseTo(101.287154, 5);
+    expect(targets[3]?.ra).toBeCloseTo(101.287154, 5);
   });
 
   it("maps header columns case-insensitively in any order", () => {
@@ -78,8 +78,8 @@ describe("parseBulkInput", () => {
       "Proxima Cen 14 29 42.946 -62 40 46.17\n10.68 41.27 M31 nucleus"
     );
     expect(errors).toEqual([]);
-    expect(targets[0].name).toBe("Proxima Cen");
-    expect(targets[0].dec).toBeCloseTo(-62.679492, 5);
+    expect(targets[0]?.name).toBe("Proxima Cen");
+    expect(targets[0]?.dec).toBeCloseTo(-62.679492, 5);
     expect(targets[1]).toMatchObject({ name: "M31 nucleus", ra: 10.68 });
   });
 
@@ -90,13 +90,13 @@ describe("parseBulkInput", () => {
     expect(targets.map((t) => t.name)).toEqual(["A", "D"]);
     expect(targets.map((t) => t.index)).toEqual([0, 1]);
     expect(errors.map((e) => e.line)).toEqual([4, 5]);
-    expect(errors[0].message).toMatch(/RA/);
-    expect(errors[1].message).toMatch(/Dec/);
+    expect(errors[0]?.message).toMatch(/RA/);
+    expect(errors[1]?.message).toMatch(/Dec/);
   });
 
   it("honours quoted CSV fields", () => {
     const { targets } = parseBulkInput('name,ra,dec\n"NGC 1, core",10,20');
-    expect(targets[0].name).toBe("NGC 1, core");
+    expect(targets[0]?.name).toBe("NGC 1, core");
   });
 
   it("returns nothing for empty input", () => {
@@ -130,9 +130,9 @@ describe("result shaping", () => {
 
   it("groups by input index and sorts by separation", () => {
     const rows = groupBulkResults(targets, response);
-    expect(rows[0].matches.map((m) => m.id)).toEqual(["e1", "w2"]);
-    expect(rows[1].matches).toEqual([]);
-    expect(rows[2].matches[0].separation).toBe(0.4);
+    expect(rows[0]?.matches.map((m) => m.id)).toEqual(["e1", "w2"]);
+    expect(rows[1]?.matches).toEqual([]);
+    expect(rows[2]?.matches[0]?.separation).toBe(0.4);
   });
 
   it("summarizes matched / unmatched / per-catalog", () => {

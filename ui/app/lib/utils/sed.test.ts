@@ -20,9 +20,9 @@ describe("buildSedPoints", () => {
       source("allwise", { w1mpro: 0, w1sigmpro: 0.02 }),
     ]);
     const expected = 309.54 * 1e-23 * (2.99792458e14 / 3.3526);
-    expect(p.band).toBe("W1");
-    expect(p.nuFnu / expected).toBeCloseTo(1, 6);
-    expect(p.upperLimit).toBe(false);
+    expect(p?.band).toBe("W1");
+    expect((p?.nuFnu ?? NaN) / expected).toBeCloseTo(1, 6);
+    expect(p?.upperLimit).toBe(false);
   });
 
   it("drops 5 magnitudes per factor of 100 in flux", () => {
@@ -32,7 +32,7 @@ describe("buildSedPoints", () => {
     const [faint] = buildSedPoints([
       source("allwise", { w2mpro: 15, w2sigmpro: 0.05 }),
     ]);
-    expect(bright.nuFnu / faint.nuFnu).toBeCloseTo(100, 6);
+    expect((bright?.nuFnu ?? NaN) / (faint?.nuFnu ?? NaN)).toBeCloseTo(100, 6);
   });
 
   it("marks AllWISE magnitudes without an uncertainty as upper limits", () => {
@@ -40,8 +40,8 @@ describe("buildSedPoints", () => {
       source("allwise", { w3mpro: 12.06, w3sigmpro: null }),
     ]);
     expect(points).toHaveLength(1);
-    expect(points[0].upperLimit).toBe(true);
-    expect(points[0].nuFnuErr).toBeUndefined();
+    expect(points[0]?.upperLimit).toBe(true);
+    expect(points[0]?.nuFnuErr).toBeUndefined();
   });
 
   it("treats Gaia magnitudes of exactly 0 as missing", () => {
@@ -64,7 +64,7 @@ describe("buildSedPoints", () => {
       }),
     ]);
     // σ_m = 2.5 / ln10 / (S/N)
-    expect(g.magErr).toBeCloseTo(2.5 / Math.LN10 / 100, 6);
+    expect(g?.magErr).toBeCloseTo(2.5 / Math.LN10 / 100, 6);
   });
 
   it("merges sources and sorts by wavelength, keeping provenance", () => {
@@ -77,8 +77,8 @@ describe("buildSedPoints", () => {
       ),
     ]);
     expect(points.map((p) => p.band)).toEqual(["G", "W1"]);
-    expect(points[0].isSelf).toBe(false);
-    expect(points[0].separationArcsec).toBe(0.4);
+    expect(points[0]?.isSelf).toBe(false);
+    expect(points[0]?.separationArcsec).toBe(0.4);
   });
 
   it("skips null and sentinel values", () => {

@@ -172,5 +172,9 @@ export const OBSERVATORY_OPTIONS = (
 }));
 
 export function getObservatory(id: string): Observatory {
-  return OBSERVATORIES.find((o) => o.id === id) ?? OBSERVATORIES[0];
+  const site =
+    OBSERVATORIES.find((o) => o.id === id) ??
+    OBSERVATORIES.find((o) => o.id === DEFAULT_OBSERVATORY_ID);
+  if (!site) throw new Error("No observatories configured");
+  return site;
 }

@@ -39,7 +39,15 @@ export function parsePs1DetectionsCsv(
   const lines = csv.split(/\r?\n/).filter((l) => l.trim() !== "");
   const names = (lines[0] ?? "").split(",");
   const col = (name: string) => names.indexOf(name);
-  const [iObj, iTime, iFilter, iFlux, iErr, iRa, iDec] = [
+  const [
+    iObj = -1,
+    iTime = -1,
+    iFilter = -1,
+    iFlux = -1,
+    iErr = -1,
+    iRa = -1,
+    iDec = -1,
+  ] = [
     "objID",
     "obsTime",
     "filterID",
@@ -56,7 +64,7 @@ export function parsePs1DetectionsCsv(
   // Mean position per object → nearest object wins.
   const positions = new Map<string, { ra: number; dec: number; n: number }>();
   for (const r of rows) {
-    const id = r[iObj];
+    const id = r[iObj] ?? "";
     const p = positions.get(id) ?? { ra: 0, dec: 0, n: 0 };
     if (iRa !== -1 && iDec !== -1) {
       p.ra += Number(r[iRa]);

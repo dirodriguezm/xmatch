@@ -150,6 +150,6 @@ describe("site time zones", () => {
       "Chile",
       "Rest of the world",
     ]);
-    expect(OBSERVATORY_OPTIONS[1].options.length).toBeGreaterThanOrEqual(10);
+    expect(OBSERVATORY_OPTIONS[1]?.options.length).toBeGreaterThanOrEqual(10);
   });
 });

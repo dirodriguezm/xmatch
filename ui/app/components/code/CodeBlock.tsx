@@ -47,8 +47,8 @@ const TOKEN_CLASSES: Record<string, string> = {
 
 /** Most specific mapped type wins (Prism lists outer types first). */
 function tokenClass(types: string[]): string | undefined {
-  for (let i = types.length - 1; i >= 0; i--) {
-    const cls = TOKEN_CLASSES[types[i]];
+  for (const type of [...types].reverse()) {
+    const cls = TOKEN_CLASSES[type];
     if (cls) return cls;
   }
   return undefined;

@@ -84,9 +84,10 @@ export interface XmmSource {
 export function splitCsv(text: string): { header: string[]; rows: string[][] } {
   const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
   if (lines.length === 0) return { header: [], rows: [] };
+  const [first = "", ...rest] = lines;
   return {
-    header: lines[0].split(",").map((s) => s.trim()),
-    rows: lines.slice(1).map((l) => l.split(",")),
+    header: first.split(",").map((s) => s.trim()),
+    rows: rest.map((l) => l.split(",")),
   };
 }
 

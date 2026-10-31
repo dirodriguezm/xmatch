@@ -62,8 +62,8 @@ function parseSesameResponse(
     if (line.startsWith("%J")) {
       const parts = line.trim().split(/\s+/);
       if (parts.length >= 3) {
-        const ra = parseFloat(parts[1]);
-        const dec = parseFloat(parts[2]);
+        const ra = parseFloat(parts[1] ?? "");
+        const dec = parseFloat(parts[2] ?? "");
 
         if (!isNaN(ra) && !isNaN(dec)) {
           return {

@@ -40,7 +40,7 @@ export function HealpixZoomDiagram() {
     return [Math.floor(u * n) / n, Math.floor(v * n) / n, 1 / n] as const;
   };
 
-  const k = LEVELS[step];
+  const k = LEVELS[step] ?? 0;
   let drawing: ReactNode;
   let caption: ReactNode;
 
@@ -49,7 +49,7 @@ export function HealpixZoomDiagram() {
     const sy = 190 / Math.PI;
     const X = (x: number) => 20 + x * sx;
     const Y = (y: number) => 210 - y * sy;
-    const [fx, fy] = FACE_CENTERS[deep.face];
+    const [fx, fy] = FACE_CENTERS[deep.face] ?? [0, 0];
     const px = fx + (u - v) * QUARTER;
     const py = fy - QUARTER + (u + v) * QUARTER;
     drawing = (

@@ -216,7 +216,7 @@ export default function StatusPage() {
           scroll={{ x: 600 }}
           dataSource={UPSTREAM_CHECKS.map((check, i) => ({
             ...check,
-            result: upstream[i].data,
+            result: upstream[i]?.data,
           }))}
           columns={[
             {

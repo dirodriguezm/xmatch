@@ -13,7 +13,7 @@ import {
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = { ...initial };
   return {
-    getItem: (k: string) => (k in data ? data[k] : null),
+    getItem: (k: string) => data[k] ?? null,
     setItem: (k: string, v: string) => {
       data[k] = v;
     },

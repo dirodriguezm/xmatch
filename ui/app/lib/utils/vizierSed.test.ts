@@ -41,8 +41,8 @@ describe("parseVizierSedVotable", () => {
       filter: "POSS-II:i",
     });
     // <TD/> and <TD></TD> both mean "no error"
-    expect(rows[3].fluxErrJy).toBeUndefined();
-    expect(rows[4].fluxErrJy).toBeUndefined();
+    expect(rows[3]?.fluxErrJy).toBeUndefined();
+    expect(rows[4]?.fluxErrJy).toBeUndefined();
   });
 
   it("rejects payloads that are not a VOTable", () => {

@@ -145,8 +145,8 @@ export function ObservabilityPanel({ ra, dec }: ObservabilityPanelProps) {
     );
   };
 
-  const start = visibility.samples[0].time;
-  const end = visibility.samples[visibility.samples.length - 1].time;
+  const start = visibility.samples[0]?.time ?? night;
+  const end = visibility.samples[visibility.samples.length - 1]?.time ?? night;
   const moonPct = Math.round(visibility.moon.illumination * 100);
 
   const targetSeries: LineSeriesOption = {
