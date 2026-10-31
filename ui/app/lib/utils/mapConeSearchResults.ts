@@ -1,4 +1,4 @@
-import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
+import type { CrossmatchResult } from "@/app/components/results/types";
 import type { CatalogGroup } from "@/app/hooks/queries/useConeSearch";
 
 /**

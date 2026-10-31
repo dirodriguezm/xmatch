@@ -21,7 +21,7 @@ import {
 } from "./nearby/separationStats";
 import { SkyImage } from "./nearby/SkyImage";
 import { useNearbyResults } from "./nearby/useNearbyResults";
-import type { EnrichedResult } from "./ResultsTable";
+import type { EnrichedResult } from "./types";
 
 export interface SearchResultsProps {
   data: EnrichedResult[];

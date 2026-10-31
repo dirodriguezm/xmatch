@@ -7,7 +7,7 @@ import { use, useEffect, useMemo, useRef } from "react";
 import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { AppHeader } from "@/app/components/layout";
 import { ObjectDetail, ResultNavigator } from "@/app/components/object";
-import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
+import type { CrossmatchResult } from "@/app/components/results/types";
 import { useMetadata } from "@/app/hooks/queries";
 
 const { Content } = Layout;

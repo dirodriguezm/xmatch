@@ -1,7 +1,7 @@
 import type {
   CrossmatchResult,
   EnrichedResult,
-} from "@/app/components/results/ResultsTable";
+} from "@/app/components/results/types";
 import type {
   BulkMetadataGroup,
   BulkMetadataRequest,

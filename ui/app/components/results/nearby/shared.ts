@@ -6,7 +6,7 @@ import {
 import { positionAngle } from "@/app/lib/utils/coordinates";
 import { buildObjectUrl } from "@/app/lib/utils/urls";
 
-import type { EnrichedResult } from "../ResultsTable";
+import type { EnrichedResult } from "../types";
 
 /** A match placed on the sky relative to the searched position. */
 export interface NearbySource {
@@ -145,17 +145,11 @@ export const CATALOG_FILL: Record<string, string> = {
   gaia: "fill-blue-500",
   erosita: "fill-pink-500",
 };
-export const CATALOG_BG: Record<string, string> = {
-  allwise: "bg-purple-500",
-  gaia: "bg-blue-500",
-  erosita: "bg-pink-500",
-};
 
 export const strokeClass = (slug: string) =>
   CATALOG_STROKE_CLASSES[slug] ?? "stroke-neutral-400";
 export const fillClass = (slug: string) =>
   CATALOG_FILL[slug] ?? "fill-neutral-400";
-export const bgClass = (slug: string) => CATALOG_BG[slug] ?? "bg-neutral-400";
 
 /** Shape per catalog, so colour is never the only cue. */
 export type MarkShape = "circle" | "square" | "diamond" | "triangle";
@@ -173,22 +167,4 @@ export const compassPoint = (pa: number) => COMPASS[Math.round(pa / 45) % 8];
 /** Arcseconds with two decimals (one from 10″), trailing zeros dropped. */
 export function formatArcsec(v: number): string {
   return `${Number(v.toFixed(v >= 10 ? 1 : 2))}″`;
-}
-
-/**
- * Scroll a table row (antd sets `data-row-key`) into view inside the table's
- * own scroller only — never the page, so hovering the map cannot make the
- * window jump.
- */
-export function scrollRowIntoView(container: HTMLElement | null, key: string) {
-  const row = container?.querySelector<HTMLElement>(
-    `tr[data-row-key="${CSS.escape(key)}"]`
-  );
-  const body = row?.closest<HTMLElement>(".ant-table-body");
-  if (!row || !body) return;
-  const top = row.offsetTop;
-  const bottom = top + row.offsetHeight;
-  if (top < body.scrollTop) body.scrollTo({ top, behavior: "smooth" });
-  else if (bottom > body.scrollTop + body.clientHeight)
-    body.scrollTo({ top: bottom - body.clientHeight, behavior: "smooth" });
 }

@@ -30,16 +30,6 @@ export function toDMS(dec: number): string {
 }
 
 /**
- * Format a coordinate value with specified decimal places
- * @param value - The coordinate value
- * @param decimals - Number of decimal places (default: 6)
- * @returns Formatted string
- */
-export function formatCoordinate(value: number, decimals = 6): string {
-  return value.toFixed(decimals);
-}
-
-/**
  * Parse HMS (hours:minutes:seconds) string to degrees
  * @param hms - String in format "HH:MM:SS" or "HH:MM:SS.ss"
  * @returns Degrees, or null if parsing fails

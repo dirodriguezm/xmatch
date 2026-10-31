@@ -33,7 +33,7 @@ import Link from "next/link";
 import { type ReactNode, useMemo, useRef, useState } from "react";
 
 import { ObjectActions } from "@/app/components/actions/ObjectActions";
-import type { CrossmatchResult } from "@/app/components/results/ResultsTable";
+import type { CrossmatchResult } from "@/app/components/results/types";
 import {
   type Counterpart,
   COUNTERPART_RADIUS_ARCSEC,

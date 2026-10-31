@@ -97,14 +97,6 @@ export const CATALOGS: Record<string, CatalogConfig> = {
 } as const;
 
 /**
- * Get catalog options for form selects/checkboxes
- */
-export function getCatalogOptions(): CatalogConfig[] {
-  // Exclude ALLWISE from options since it's a variant of WISE
-  return [CATALOGS.GAIA_DR3, CATALOGS.SIMBAD, CATALOGS.TWOMASS, CATALOGS.WISE];
-}
-
-/**
  * Resolve a search-catalog slug (`allwise`, `gaia`, `erosita` — what the API
  * actually returns) to its display label.
  *
@@ -152,19 +144,4 @@ export function getCatalogColor(catalogLabel: string): string {
   }
 
   return "#8c8c8c"; // Default gray
-}
-
-/**
- * Get the Ant Design color name for a catalog by its label
- */
-export function getCatalogAntdColor(catalogLabel: string): string {
-  const normalizedLabel = catalogLabel.toUpperCase().replace(/\s+/g, "");
-
-  for (const config of Object.values(CATALOGS)) {
-    if (config.label.toUpperCase().replace(/\s+/g, "") === normalizedLabel) {
-      return config.antdColor;
-    }
-  }
-
-  return "default";
 }

@@ -12,7 +12,7 @@ import {
   type NearbySource,
 } from "@/app/components/results/nearby/shared";
 import { useLinkedHighlight } from "@/app/components/results/nearby/useLinkedHighlight";
-import type { EnrichedResult } from "@/app/components/results/ResultsTable";
+import type { EnrichedResult } from "@/app/components/results/types";
 
 /** Matches as sky offsets, the searched radii and a shared hover/selection. */
 export function useNearbyResults(

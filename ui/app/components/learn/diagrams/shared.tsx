@@ -19,7 +19,6 @@ export function pickCatalog(u: number): CatalogOption {
 }
 
 export const HIT = "#36cfc9";
-export const FAINT = "#3a3d47";
 export const MUTED = "#868a96";
 
 export function formatNumber(n: number, digits = 0) {

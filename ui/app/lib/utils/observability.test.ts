@@ -67,10 +67,12 @@ describe("computeNightVisibility", () => {
     expect(v.window).not.toBeNull();
     expect(v.window!.start >= v.duskAstronomical).toBe(true);
     expect(v.window!.end <= v.dawnAstronomical).toBe(true);
-    for (const s of v.samples) {
-      if (s.time >= v.window!.start && s.time <= v.window!.end) {
-        expect(s.altitude).toBeGreaterThanOrEqual(30);
-      }
+    const inWindow = v.samples.filter(
+      (s) => s.time >= v.window!.start && s.time <= v.window!.end
+    );
+    expect(inWindow.length).toBeGreaterThan(0);
+    for (const s of inWindow) {
+      expect(s.altitude).toBeGreaterThanOrEqual(30);
     }
   });
 

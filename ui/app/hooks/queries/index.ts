@@ -1,8 +1,4 @@
-export {
-  type ConeSearchParams,
-  useConeSearch,
-  useParallelConeSearch,
-} from "./useConeSearch";
+export { type ConeSearchParams, useParallelConeSearch } from "./useConeSearch";
 export {
   type Counterpart,
   COUNTERPART_RADIUS_ARCSEC,

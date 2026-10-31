@@ -11,7 +11,8 @@
     "format:check": "prettier --check .",
     "prepare": "cd .. && husky ui/.husky",
     "generate:types": "node scripts/convert-swagger-to-openapi3.cjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "knip": "knip"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -44,11 +45,14 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/eslint-plugin": "~1.5.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-you-might-not-need-an-effect": "^1.0.3",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "husky": "^9.1.7",
+    "knip": "^5.88.1",
     "lint-staged": "^16.2.7",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",

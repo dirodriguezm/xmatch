@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 
 import {
   type CatalogRadiusConfig,
@@ -6,9 +6,6 @@ import {
   convertRadiusToArcsec,
   MAX_RADIUS_ARCSEC,
 } from "@/app/lib/constants/search";
-import type { components } from "@/types/xwave-api";
-
-type Mastercat = components["schemas"]["repository.Mastercat"];
 
 export interface CatalogGroupItem {
   id?: string;
@@ -83,14 +80,6 @@ export async function fetchConeSearch(
 
   const result = await response.json();
   return result ?? [];
-}
-
-export function useConeSearch(params: ConeSearchParams | null) {
-  return useQuery({
-    queryKey: ["conesearch", params],
-    queryFn: () => fetchConeSearch(params!),
-    enabled: params !== null,
-  });
 }
 
 export function useParallelConeSearch(

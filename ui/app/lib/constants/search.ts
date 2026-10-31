@@ -2,8 +2,6 @@ export const RADIUS_UNITS = ["arcsec", "arcmin", "deg"] as const;
 
 export type RadiusUnit = (typeof RADIUS_UNITS)[number];
 
-export const DEFAULT_RADIUS_UNIT: RadiusUnit = "deg";
-
 export const RADIUS_UNIT_OPTIONS = RADIUS_UNITS.map((unit) => ({
   value: unit,
   label: unit,
