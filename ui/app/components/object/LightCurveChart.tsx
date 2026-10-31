@@ -11,6 +11,8 @@ import { calculateAxisBounds } from "@/app/lib/utils/data";
 import { formatMjdDateTime } from "@/app/lib/utils/format";
 import type { components } from "@/types/xwave-api";
 
+import { TIME_AXIS_LABEL, TIME_AXIS_NAME_GAP, TIME_GRID } from "./timeAxis";
+
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
 const { Text } = Typography;
@@ -139,7 +141,7 @@ export function LightCurveChart({
 
   const option: EChartsOption = {
     backgroundColor: "transparent",
-    grid: { left: 50, right: 20, top: 30, bottom: 50 },
+    grid: { ...TIME_GRID, top: 30 },
     legend: {
       show: Object.keys(bandData).length > 1,
       top: 0,
@@ -149,19 +151,11 @@ export function LightCurveChart({
       type: "value",
       name: "MJD",
       nameLocation: "middle",
-      nameGap: 30,
+      nameGap: TIME_AXIS_NAME_GAP,
       nameTextStyle: { color: "#bfbfbf" },
       min: mjdBounds.min,
       max: mjdBounds.max,
-      axisLabel: {
-        color: "#d9d9d9",
-        formatter: (value: number) => value.toFixed(0),
-        // The axis spans a shared MJD range whose ends aren't round numbers;
-        // their labels would collide with the neighbouring ticks.
-        showMinLabel: false,
-        showMaxLabel: false,
-        hideOverlap: true,
-      },
+      axisLabel: TIME_AXIS_LABEL,
       axisLine: { lineStyle: { color: "#303030" } },
       splitLine: { lineStyle: { color: "#202020" } },
     },
@@ -169,7 +163,7 @@ export function LightCurveChart({
       type: "value",
       name: magSystem ? `Magnitude (${magSystem})` : "Magnitude",
       nameLocation: "middle",
-      nameGap: 40,
+      nameGap: 50,
       nameTextStyle: { color: "#bfbfbf" },
       inverse: true, // Brighter = lower magnitude
       min: magBounds.min,

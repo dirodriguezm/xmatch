@@ -5,10 +5,11 @@ import {
   SIMBAD_REFS_MAX,
   type SimbadReference,
   simbadRefsCountQuery,
+  type SimbadRefsOptions,
   simbadRefsQuery,
 } from "@/app/lib/utils/simbadRefs";
 
-/** Papers about a SIMBAD object, newest first, plus the total count. */
+/** Papers about a SIMBAD object, plus how many match the year filter. */
 
 const TAP_URL = "https://simbad.cds.unistra.fr/simbad/sim-tap/sync";
 const TIMEOUT_MS = 15_000;
@@ -48,12 +49,34 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     );
   }
+  const sort = sp.get("sort") ?? "newest";
+  if (sort !== "newest" && sort !== "focused") {
+    return NextResponse.json(
+      { error: "'sort' must be 'newest' or 'focused'" },
+      { status: 400 }
+    );
+  }
+  const year = (name: string) => {
+    const v = sp.get(name);
+    if (v === null) return undefined;
+    const n = Number(v);
+    return Number.isInteger(n) && n >= 1800 && n <= 2200 ? n : NaN;
+  };
+  const fromYear = year("from");
+  const toYear = year("to");
+  if (Number.isNaN(fromYear) || Number.isNaN(toYear)) {
+    return NextResponse.json(
+      { error: "'from' and 'to' must be years" },
+      { status: 400 }
+    );
+  }
+  const options: SimbadRefsOptions = { sort, fromYear, toYear };
 
   try {
-    // oid and limit are validated integers, so inlining them is safe.
+    // Every inlined value is a validated integer or one of two sort names.
     const [rows, count] = await Promise.all([
-      tap(simbadRefsQuery(oid, limit)),
-      tap(simbadRefsCountQuery(oid)),
+      tap(simbadRefsQuery(oid, limit, options)),
+      tap(simbadRefsCountQuery(oid, options)),
     ]);
     const total = Number(count?.[0]?.[0]);
     const references = parseSimbadRefs(rows);

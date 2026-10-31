@@ -100,7 +100,6 @@ export function ObjectArchives({
             href={simbadUrl}
             target="_blank"
             rel="noopener noreferrer"
-            icon={<TagOutlined />}
             size="small"
           >
             SIMBAD
@@ -109,7 +108,6 @@ export function ObjectArchives({
             href={vizierUrl}
             target="_blank"
             rel="noopener noreferrer"
-            icon={<TagOutlined />}
             size="small"
           >
             VizieR
@@ -118,7 +116,6 @@ export function ObjectArchives({
             href={nedUrl}
             target="_blank"
             rel="noopener noreferrer"
-            icon={<TagOutlined />}
             size="small"
           >
             NED
@@ -128,7 +125,6 @@ export function ObjectArchives({
               href={simbadName ? buildAdsObjectUrl(simbadName) : undefined}
               target="_blank"
               rel="noopener noreferrer"
-              icon={<TagOutlined />}
               size="small"
               disabled={!simbadName}
             >
@@ -147,7 +143,6 @@ export function ObjectArchives({
             href={aladinUrl}
             target="_blank"
             rel="noopener noreferrer"
-            icon={<EnvironmentOutlined />}
             size="small"
           >
             Aladin Lite
@@ -156,7 +151,6 @@ export function ObjectArchives({
             href={sdssUrl}
             target="_blank"
             rel="noopener noreferrer"
-            icon={<EnvironmentOutlined />}
             size="small"
           >
             SDSS DR19
@@ -166,7 +160,6 @@ export function ObjectArchives({
               href={legacyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              icon={<EnvironmentOutlined />}
               size="small"
             >
               Legacy Survey (DESI)
@@ -176,7 +169,6 @@ export function ObjectArchives({
             href={panstarrsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            icon={<EnvironmentOutlined />}
             size="small"
           >
             Pan-STARRS1
@@ -194,7 +186,6 @@ export function ObjectArchives({
             <span>
               <Button
                 size="small"
-                icon={<LineChartOutlined />}
                 loading={desiLoading}
                 disabled={desiDisabled}
                 onClick={() =>
@@ -211,11 +202,7 @@ export function ObjectArchives({
             </span>
           </Tooltip>
           <Tooltip title="Measure this object's 0.75–5 µm SPHEREx spectrum with IRSA's Spectrophotometry tool. Copies the coordinates for its search box.">
-            <Button
-              size="small"
-              icon={<LineChartOutlined />}
-              onClick={openSpherex}
-            >
+            <Button size="small" onClick={openSpherex}>
               SPHEREx at IRSA
             </Button>
           </Tooltip>
@@ -245,12 +232,21 @@ export function ObjectArchives({
   );
 
   if (bare) {
+    // One wrapping line under the object's details: the group name, then
+    // its links.
     return (
-      <section aria-label="Archives" className="border-t border-border pt-4">
-        <Text type="secondary" className="text-xs block mb-3">
-          Archives
-        </Text>
-        {rows}
+      <section
+        aria-label="Archives"
+        className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3"
+      >
+        {groups.map((g) => (
+          <Flex key={g.label} align="center" gap={6} wrap>
+            <Text type="secondary" className="text-xs">
+              {g.label}
+            </Text>
+            {g.buttons}
+          </Flex>
+        ))}
       </section>
     );
   }

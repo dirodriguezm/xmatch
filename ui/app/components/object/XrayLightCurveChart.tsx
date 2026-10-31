@@ -15,6 +15,8 @@ import {
   type HiligtPoint,
 } from "@/app/lib/utils/hiligt";
 
+import { TIME_AXIS_LABEL, TIME_AXIS_NAME_GAP, TIME_GRID } from "./timeAxis";
+
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
 const SYMBOL_SIZE = 8;
@@ -155,7 +157,7 @@ export function XrayLightCurveChart({
 
   const option: EChartsOption = {
     backgroundColor: "transparent",
-    grid: { left: 70, right: 20, top: 36, bottom: 50 },
+    grid: { ...TIME_GRID, top: 36 },
     legend: {
       top: 4,
       right: 8,
@@ -168,11 +170,10 @@ export function XrayLightCurveChart({
       ...axisCommon,
       type: "value",
       name: "MJD",
-      nameGap: 30,
+      nameGap: TIME_AXIS_NAME_GAP,
       scale: true,
-      ...(xRange
-        ? { min: Math.floor(xRange.min), max: Math.ceil(xRange.max) }
-        : {}),
+      axisLabel: TIME_AXIS_LABEL,
+      ...(xRange ? { min: xRange.min, max: xRange.max } : {}),
     },
     yAxis: {
       ...axisCommon,

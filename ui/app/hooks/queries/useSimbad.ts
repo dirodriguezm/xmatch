@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import type { SimbadResponse } from "@/app/api/simbad/route";
 import type { SimbadRefsResponse } from "@/app/api/simbad-refs/route";
+import type { SimbadRefsOptions } from "@/app/lib/utils/simbadRefs";
 
 export interface SimbadParams {
   ra: number;
@@ -31,15 +32,23 @@ export function useSimbad(params: SimbadParams | null) {
   });
 }
 
-/** Papers about a SIMBAD object, newest first. */
-export function useSimbadRefs(oid: number | null, limit: number) {
+/** Papers about a SIMBAD object; newest first unless `options` say otherwise. */
+export function useSimbadRefs(
+  oid: number | null,
+  limit: number,
+  options: SimbadRefsOptions = {}
+) {
+  const { sort = "newest", fromYear, toYear } = options;
   return useQuery({
-    queryKey: ["simbad-refs", oid, limit],
+    queryKey: ["simbad-refs", oid, limit, sort, fromYear, toYear],
     queryFn: async (): Promise<SimbadRefsResponse> => {
       const qs = new URLSearchParams({
         oid: String(oid),
         limit: String(limit),
+        sort,
       });
+      if (fromYear !== undefined) qs.set("from", String(fromYear));
+      if (toYear !== undefined) qs.set("to", String(toYear));
       const r = await fetch(`/api/simbad-refs?${qs}`);
       if (!r.ok) {
         const body = await r.json().catch(() => ({}));

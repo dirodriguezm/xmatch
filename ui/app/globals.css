@@ -493,3 +493,11 @@ body {
     animation: xws-breathe 2.4s ease-in-out infinite;
   }
 }
+
+/* Object page: the tab bar stays in reach while its panels scroll by. */
+.object-tabs > .ant-tabs-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--background);
+}

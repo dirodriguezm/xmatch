@@ -7,6 +7,7 @@ import {
   EnvironmentOutlined,
   FieldTimeOutlined,
   LineChartOutlined,
+  LoadingOutlined,
   RadarChartOutlined,
   ReadOutlined,
   StarOutlined,
@@ -23,22 +24,27 @@ import {
   Flex,
   Row,
   Select,
+  Skeleton,
   Space,
   Switch,
+  Tabs,
   Tooltip,
   Typography,
 } from "antd";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { type ReactNode, useMemo, useRef, useState } from "react";
 
 import { ObjectActions } from "@/app/components/actions/ObjectActions";
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import type { CrossmatchResult } from "@/app/components/results/types";
 import {
   type Counterpart,
   COUNTERPART_RADIUS_ARCSEC,
   type GaiaEpochParams,
   NEIGHBOR_RADIUS_ARCSEC,
+  useChandraSource,
   useCounterparts,
   useCrtsLightcurve,
   useDesiSpectrum,
@@ -49,6 +55,8 @@ import {
   useNeighbors,
   usePs1Lightcurve,
   useSimbad,
+  useSimbadRefs,
+  useSkyImagesReachable,
   useVizierSed,
   useXmmSource,
   useZtfLightcurve,
@@ -66,7 +74,13 @@ import {
   equatorialToGalactic,
 } from "@/app/lib/utils/coordinates";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
+import { formatCatalogValue } from "@/app/lib/utils/format";
 import { gaiaSourceIdFromDesignation } from "@/app/lib/utils/gaiaEpoch";
+import {
+  BAT_START_MJD,
+  FERMI_START_MJD,
+  findGammaAssociations,
+} from "@/app/lib/utils/gamma";
 import {
   compareLightcurveCatalogs,
   detectionPointsToCsv,
@@ -85,16 +99,20 @@ import type { AladinViewerRef } from "@/types/aladin";
 import type { components } from "@/types/xwave-api";
 
 import { AladinViewer } from "./AladinViewer";
+import { ChandraSourcePanel } from "./ChandraSourcePanel";
+import { GammaRayPanel } from "./GammaRayPanel";
 import { LightCurveChart } from "./LightCurveChart";
 import { LightCurveSkeleton } from "./LightCurveSkeleton";
-import { LiteraturePanel } from "./LiteraturePanel";
+import { LITERATURE_PAGE, LiteraturePanel } from "./LiteraturePanel";
 import { NearbySources } from "./NearbySources";
 import { ObjectArchives } from "./ObjectArchives";
 import { SedChart } from "./SedChart";
 import { SimbadIdentity } from "./SimbadIdentity";
+import { SkyViewFallback } from "./SkyViewFallback";
 import { SpectrumChart } from "./SpectrumChart";
 import { XmmSourcePanel } from "./XmmSourcePanel";
 import { XrayHistoryPanel } from "./XrayHistoryPanel";
+import { type ErositaSummary, XraySummary } from "./XraySummary";
 
 // Split out so astronomy-engine only loads when the panel is first opened.
 const ObservabilityPanel = dynamic(
@@ -214,6 +232,44 @@ const { Text, Title } = Typography;
 
 type Allwise = components["schemas"]["repository.Allwise"];
 
+/** Tabs below the header, by what someone came to look up. */
+const OBJECT_TABS = [
+  "overview",
+  "time",
+  "high-energy",
+  "catalog",
+  "literature",
+] as const;
+type ObjectTab = (typeof OBJECT_TABS)[number];
+
+/** Which tab a collapse panel lives in. */
+function tabOf(panelKey: string): ObjectTab {
+  if (
+    panelKey.startsWith("lightcurve") ||
+    panelKey === "xray-history" ||
+    panelKey === "gamma-ray"
+  ) {
+    return "time";
+  }
+  if (panelKey === "xmm-source" || panelKey === "chandra-source") {
+    return "high-energy";
+  }
+  return "overview";
+}
+
+function tabLabel(title: string, count?: ReactNode) {
+  return (
+    <span>
+      {title}
+      {count !== undefined && (
+        <Text type="secondary" className="ml-1.5 text-xs tabular-nums">
+          {count}
+        </Text>
+      )}
+    </span>
+  );
+}
+
 interface ObjectDetailProps {
   object: CrossmatchResult;
   metadata?: Allwise | null;
@@ -328,6 +384,8 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   });
   // Nearby sources drawn on the sky view, one coloured layer per catalog.
   const [showNearbyOnSky, setShowNearbyOnSky] = useState(true);
+  // Read once: the clock in render would make the shared axis jitter.
+  const [todayMjd] = useState(() => Date.now() / 86_400_000 + 40587);
   const skyLayers = useMemo(
     () =>
       showNearbyOnSky
@@ -403,12 +461,15 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   const ps1Lightcurve = usePs1Lightcurve({ ra: object.ra, dec: object.dec });
   const crtsLightcurve = useCrtsLightcurve({ ra: object.ra, dec: object.dec });
   const xmmSource = useXmmSource({ ra: object.ra, dec: object.dec });
+  const chandraSource = useChandraSource({ ra: object.ra, dec: object.dec });
+  const gamma = findGammaAssociations(object.ra, object.dec);
   // Same query as SimbadIdentity's, so it comes from the cache.
-  const simbadMatch = useSimbad({
+  const simbad = useSimbad({
     ra: object.ra,
     dec: object.dec,
     radius: simbadRadiusArcsec,
-  }).data?.match;
+  });
+  const simbadMatch = simbad.data?.match;
   const vizierSed = useVizierSed({ ra: object.ra, dec: object.dec });
   const reddening = useGalacticReddening({ ra: object.ra, dec: object.dec });
 
@@ -430,7 +491,9 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
           key,
           label: key,
           description: describeCatalogField(object.catalog, key),
-          value: value == null ? "—" : String(value),
+          value: formatCatalogValue(value),
+          // Shown on hover when rounding changed it.
+          raw: value == null ? undefined : String(value),
         }))
     : [];
 
@@ -474,10 +537,21 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     );
   }
   // Shared MJD range across all surveys so panels can be visually compared along the time axis
-  const allLightcurveMjds = Object.values(lightcurveByCatalog)
-    .flat()
-    .map((p) => p.mjd)
-    .filter((m): m is number => typeof m === "number");
+  // Gamma-ray curves load only when their panel opens, so their known
+  // coverage (survey start to today) joins the range up front: every chart
+  // then shares one axis from the first render.
+  const gammaCoverage = [
+    ...(gamma.fermi ? [FERMI_START_MJD] : []),
+    ...(gamma.bat ? [BAT_START_MJD] : []),
+    ...(gamma.fermi || gamma.bat ? [todayMjd] : []),
+  ];
+  const allLightcurveMjds = [
+    ...Object.values(lightcurveByCatalog)
+      .flat()
+      .map((p) => p.mjd)
+      .filter((m): m is number => typeof m === "number"),
+    ...gammaCoverage,
+  ];
   const sharedMjdRange =
     allLightcurveMjds.length > 0
       ? calculateAxisBounds(allLightcurveMjds, 0.05, 1)
@@ -743,6 +817,23 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
           },
         ]
       : []),
+    ...(chandraSource.data?.found && chandraSource.data.source
+      ? [
+          {
+            key: "chandra-source",
+            label: (
+              <Space>
+                <ThunderboltOutlined />
+                <span>X-ray source (Chandra CSC 2.2)</span>
+                <Text type="secondary" className="text-xs">
+                  {chandraSource.data.source.name}
+                </Text>
+              </Space>
+            ),
+            children: <ChandraSourcePanel source={chandraSource.data.source} />,
+          },
+        ]
+      : []),
     {
       key: "xray-history",
       label: (
@@ -765,25 +856,141 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         />
       ),
     },
-    ...(spectrumItem ? [spectrumItem] : []),
-    ...(simbadMatch
+    ...(gamma.fermi || gamma.bat
       ? [
           {
-            key: "literature",
+            key: "gamma-ray",
             label: (
               <Space>
-                <ReadOutlined />
-                <span>Literature</span>
+                <ThunderboltOutlined />
+                <span>Gamma-ray &amp; hard X-ray light curves</span>
                 <Text type="secondary" className="text-xs">
-                  papers about {simbadMatch.mainId} (SIMBAD)
+                  {[gamma.fermi?.name, gamma.bat && "Swift-BAT"]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </Text>
               </Space>
             ),
+            // Collapse mounts children on first open, so the light curves
+            // are only fetched when someone asks for them.
             children: (
-              <LiteraturePanel
-                oid={simbadMatch.oid}
-                mainId={simbadMatch.mainId}
+              <GammaRayPanel
+                fermi={gamma.fermi}
+                bat={gamma.bat}
+                mjdRange={sharedMjdRange}
               />
+            ),
+          },
+        ]
+      : []),
+    ...(spectrumItem ? [spectrumItem] : []),
+  ];
+
+  const skyImages = useSkyImagesReachable(DSS_SURVEY);
+  const [tab, setTab] = useQueryState(
+    "tab",
+    parseAsStringLiteral(OBJECT_TABS).withDefault("overview")
+  );
+  // Same query as the Literature tab's first page, so it is fetched once.
+  const literature = useSimbadRefs(simbadMatch?.oid ?? null, LITERATURE_PAGE);
+
+  const panelsIn = (t: ObjectTab) => {
+    const items = collapseItems.filter((item) => tabOf(item.key) === t);
+    if (items.length === 0) return null;
+    return (
+      <Collapse
+        items={items}
+        activeKey={panels.open}
+        onChange={(keys) =>
+          setPanels((p) => ({ ...p, open: ([] as string[]).concat(keys) }))
+        }
+        className="bg-surface"
+      />
+    );
+  };
+  // eROSITA: the object's own row, or its nearest counterpart.
+  const erositaRecord =
+    object.catalog === "erosita"
+      ? { id: object.objectId, separationArcsec: 0, record: meta }
+      : counterparts.find(
+          (c) => c.catalog === "erosita" && c.status === "found"
+        );
+  const num = (v: unknown) => (typeof v === "number" ? v : undefined);
+  const erositaSummary: ErositaSummary | undefined = erositaRecord?.id
+    ? {
+        id: erositaRecord.id,
+        separationArcsec: erositaRecord.separationArcsec,
+        flux: num(erositaRecord.record?.ml_flux_1),
+        fluxErr: num(erositaRecord.record?.ml_flux_err_1),
+      }
+    : undefined;
+  const xmmFound = xmmSource.data?.found ? xmmSource.data.source : undefined;
+  const chandraFound = chandraSource.data?.found
+    ? chandraSource.data.source
+    : undefined;
+  const hasXray = Boolean(erositaSummary || xmmFound || chandraFound);
+
+  const literatureLoading =
+    simbad.isPending || (simbadMatch !== undefined && literature.isPending);
+  const literatureFailed = simbad.isError || literature.isError;
+  let literatureCount: ReactNode;
+  let literatureContent: ReactNode;
+  if (literatureLoading) {
+    literatureCount = <LoadingOutlined aria-label="loading" />;
+    literatureContent = <Skeleton active paragraph={{ rows: 4 }} />;
+  } else if (literatureFailed) {
+    literatureCount = "—";
+    literatureContent = (
+      <Text type="secondary">
+        SIMBAD isn&apos;t responding, so the papers can&apos;t be listed right
+        now.
+      </Text>
+    );
+  } else if (!simbadMatch) {
+    literatureCount = 0;
+    literatureContent = (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description={`SIMBAD has no object within ${simbadRadiusArcsec}″ of this position.`}
+      />
+    );
+  } else {
+    literatureCount = literature.data?.total.toLocaleString("en-US");
+    literatureContent = (
+      <Card className="bg-surface" size="small">
+        <Text type="secondary" className="mb-2 block text-xs">
+          Papers about {simbadMatch.mainId}, from SIMBAD
+        </Text>
+        <LiteraturePanel oid={simbadMatch.oid} mainId={simbadMatch.mainId} />
+      </Card>
+    );
+  }
+
+  const tabItems = [
+    {
+      key: "overview",
+      label: tabLabel("Overview"),
+      children: panelsIn("overview"),
+    },
+    {
+      key: "time",
+      label: tabLabel("Time domain"),
+      children: panelsIn("time"),
+    },
+    ...(hasXray
+      ? [
+          {
+            key: "high-energy",
+            label: tabLabel("High energy"),
+            children: (
+              <>
+                <XraySummary
+                  erosita={erositaSummary}
+                  xmm={xmmFound}
+                  chandra={chandraFound}
+                />
+                {panelsIn("high-energy")}
+              </>
             ),
           },
         ]
@@ -791,20 +998,12 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     ...(catalogDetails.length > 0
       ? [
           {
-            key: "catalog-details",
-            label: (
-              <Space>
-                <DatabaseOutlined />
-                <span>Catalog Details</span>
-                <Text type="secondary" className="text-xs">
-                  ({catalogDetails.length} fields)
-                </Text>
-              </Space>
-            ),
+            key: "catalog",
+            label: tabLabel("Catalog"),
             children: (
               <Descriptions
                 size="small"
-                column={{ xs: 1, sm: 2, md: 3 }}
+                column={{ xs: 1, sm: 2, md: 3, lg: 3, xl: 3, xxl: 3 }}
                 bordered
               >
                 {catalogDetails.map((field) => (
@@ -820,7 +1019,13 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                       </Tooltip>
                     }
                   >
-                    <Text className="font-mono text-xs">{field.value}</Text>
+                    {field.raw !== undefined && field.raw !== field.value ? (
+                      <Tooltip title={field.raw}>
+                        <Text className="font-mono text-xs">{field.value}</Text>
+                      </Tooltip>
+                    ) : (
+                      <Text className="font-mono text-xs">{field.value}</Text>
+                    )}
                   </Descriptions.Item>
                 ))}
               </Descriptions>
@@ -828,7 +1033,16 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
           },
         ]
       : []),
+    // Always last and always there: a count once SIMBAD answers, 0 when it
+    // has no object here.
+    {
+      key: "literature",
+      label: tabLabel("Literature", literatureCount),
+      children: literatureContent,
+    },
   ];
+  // A tab in the URL that this object doesn't have falls back to Overview.
+  const activeTab = tabItems.some((t) => t.key === tab) ? tab : "overview";
 
   // Panels open themselves the first time their data arrives. Tracking which
   // keys were already auto-opened (instead of remounting the Collapse) keeps
@@ -840,6 +1054,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       : surveyPanelItems.map((item) => item.key)),
     ...(spectrumReady ? ["desi-spectrum"] : []),
     ...(xmmSource.data?.found ? ["xmm-source"] : []),
+    ...(chandraSource.data?.found ? ["chandra-source"] : []),
   ];
   const freshKeys = autoOpenKeys.filter((k) => !panels.autoOpened.includes(k));
   if (freshKeys.length > 0) {
@@ -1034,59 +1249,80 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
               </Space>
             }
             extra={
-              <Space size={12}>
-                <Tooltip
-                  title={`Circle every indexed source within 30″ (coloured by catalog) and zoom to ${(SKY_FOV_NEARBY_DEG * 60).toFixed(1)}′`}
-                >
-                  <Space size={6}>
-                    <Switch
-                      size="small"
-                      checked={showNearbyOnSky}
-                      onChange={(checked) => {
-                        setShowNearbyOnSky(checked);
-                        aladinRef.current?.goTo(
-                          object.ra,
-                          object.dec,
-                          checked ? SKY_FOV_NEARBY_DEG : SKY_FOV_WIDE_DEG
-                        );
-                      }}
-                      aria-label="Show nearby sources on the sky view"
-                    />
-                    <Text type="secondary" className="text-xs">
-                      Nearby
-                    </Text>
-                  </Space>
-                </Tooltip>
-                <Select
-                  defaultValue={DSS_SURVEY}
-                  size="small"
-                  className="w-[150px]"
-                  options={surveySelectOptions}
-                  popupMatchSelectWidth={false}
-                  optionRender={(option) => (
-                    <div className="max-w-[280px]">
-                      <div>{option.label}</div>
-                      <div className="text-xs text-foreground/60 whitespace-normal">
-                        {SURVEY_DESCRIPTIONS.get(option.value as string)}
+              // The switch and survey picker drive Aladin; hidden while the
+              // fallback map stands in for it.
+              skyImages.isError ? undefined : (
+                <Space size={12}>
+                  <Tooltip
+                    title={`Circle every indexed source within 30″ (coloured by catalog) and zoom to ${(SKY_FOV_NEARBY_DEG * 60).toFixed(1)}′`}
+                  >
+                    <Space size={6}>
+                      <Switch
+                        size="small"
+                        checked={showNearbyOnSky}
+                        onChange={(checked) => {
+                          setShowNearbyOnSky(checked);
+                          aladinRef.current?.goTo(
+                            object.ra,
+                            object.dec,
+                            checked ? SKY_FOV_NEARBY_DEG : SKY_FOV_WIDE_DEG
+                          );
+                        }}
+                        aria-label="Show nearby sources on the sky view"
+                      />
+                      <Text type="secondary" className="text-xs">
+                        Nearby
+                      </Text>
+                    </Space>
+                  </Tooltip>
+                  <Select
+                    defaultValue={DSS_SURVEY}
+                    size="small"
+                    className="w-[150px]"
+                    options={surveySelectOptions}
+                    popupMatchSelectWidth={false}
+                    optionRender={(option) => (
+                      <div className="max-w-[280px]">
+                        <div>{option.label}</div>
+                        <div className="text-xs text-foreground/60 whitespace-normal">
+                          {SURVEY_DESCRIPTIONS.get(option.value as string)}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  onChange={(value) => aladinRef.current?.setSurvey(value)}
-                />
-              </Space>
+                    )}
+                    onChange={(value) => aladinRef.current?.setSurvey(value)}
+                  />
+                </Space>
+              )
             }
           >
-            <AladinViewer
-              ref={aladinRef}
-              center={{ ra: object.ra, dec: object.dec }}
-              // Initial field only; the Nearby switch zooms afterwards.
-              fov={SKY_FOV_NEARBY_DEG}
-              catalogLayers={skyLayers}
-              ringArcsec={showNearbyOnSky ? NEIGHBOR_RADIUS_ARCSEC : undefined}
-              height="auto"
-              className="flex-1 min-h-[380px]"
-            />
-            {showNearbyOnSky && (
+            {skyImages.isPending ? (
+              // Aladin is mounted only once the image server answers: started
+              // against a dead server it throws errors nothing can catch.
+              <div className="flex min-h-[380px] flex-1 items-center justify-center">
+                <XWaveSpinner size={24} />
+              </div>
+            ) : skyImages.isError ? (
+              <SkyViewFallback
+                neighbors={nearby.neighbors}
+                radiusArcsec={NEIGHBOR_RADIUS_ARCSEC}
+                retrying={skyImages.isFetching}
+                onRetry={() => skyImages.refetch()}
+              />
+            ) : (
+              <AladinViewer
+                ref={aladinRef}
+                center={{ ra: object.ra, dec: object.dec }}
+                // Initial field only; the Nearby switch zooms afterwards.
+                fov={SKY_FOV_NEARBY_DEG}
+                catalogLayers={skyLayers}
+                ringArcsec={
+                  showNearbyOnSky ? NEIGHBOR_RADIUS_ARCSEC : undefined
+                }
+                height="auto"
+                className="flex-1 min-h-[380px]"
+              />
+            )}
+            {showNearbyOnSky && !skyImages.isError && (
               <Flex
                 wrap
                 gap={12}
@@ -1126,13 +1362,11 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
         </Col>
       </Row>
 
-      <Collapse
-        items={collapseItems}
-        activeKey={panels.open}
-        onChange={(keys) =>
-          setPanels((p) => ({ ...p, open: ([] as string[]).concat(keys) }))
-        }
-        className="bg-surface"
+      <Tabs
+        className="object-tabs"
+        activeKey={activeTab}
+        onChange={(key) => setTab(key as ObjectTab)}
+        items={tabItems}
       />
     </div>
   );

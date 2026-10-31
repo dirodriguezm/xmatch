@@ -4,6 +4,7 @@ import { Descriptions, Flex, Tooltip, Typography } from "antd";
 
 import {
   formatFlux,
+  formatFluxWithError,
   formatMjdDate,
   formatScientific,
 } from "@/app/lib/utils/format";
@@ -15,9 +16,7 @@ const XSA_URL = "https://nxsa.esac.esa.int/nxsa-web/#search";
 
 function fluxText(v?: XmmValue): string {
   if (!v) return "—";
-  return v.err
-    ? `${formatFlux(v.value)} ± ${formatScientific(v.err, 1)}`
-    : formatFlux(v.value);
+  return v.err ? formatFluxWithError(v.value, v.err) : formatFlux(v.value);
 }
 
 function hrText(v?: XmmValue): string {
@@ -45,7 +44,9 @@ export function XmmSourcePanel({ source: s }: { source: XmmSource }) {
     <Flex vertical gap={12}>
       <Descriptions
         size="small"
-        column={{ xs: 1, md: 2 }}
+        // Without lg/xl/xxl antd falls back to its default and packs five
+        // pairs into a row on wide screens.
+        column={{ xs: 1, md: 2, lg: 3, xl: 3, xxl: 3 }}
         bordered
         items={[
           {
@@ -135,7 +136,7 @@ export function XmmSourcePanel({ source: s }: { source: XmmSource }) {
           key: b.label,
           label: b.label,
           children: (
-            <Text className="font-mono text-xs">{fluxText(b.flux)}</Text>
+            <Text className="text-xs tabular-nums">{fluxText(b.flux)}</Text>
           ),
         }))}
       />

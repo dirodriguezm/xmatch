@@ -97,7 +97,13 @@ function num(v: string | undefined): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function sepArcsec(ra1: number, dec1: number, ra2: number, dec2: number) {
+/** Great-circle separation in arcsec (haversine). */
+export function sepArcsec(
+  ra1: number,
+  dec1: number,
+  ra2: number,
+  dec2: number
+) {
   const r = Math.PI / 180;
   const h =
     Math.sin(((dec2 - dec1) * r) / 2) ** 2 +

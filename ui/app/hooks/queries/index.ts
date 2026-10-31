@@ -21,6 +21,7 @@ export {
   useNeighbors,
 } from "./useNeighbors";
 export { type SimbadParams, useSimbad, useSimbadRefs } from "./useSimbad";
+export { useSkyImagesReachable } from "./useSkyImages";
 export {
   type GaiaEpochParams,
   useCrtsLightcurve,
@@ -28,5 +29,12 @@ export {
   usePs1Lightcurve,
 } from "./useSurveyLightcurves";
 export { useVizierSed, type VizierSedParams } from "./useVizierSed";
-export { HILIGT_MISSION_IDS, useHiligt, useXmmSource } from "./useXray";
+export {
+  HILIGT_MISSION_IDS,
+  useBatLightcurve,
+  useChandraSource,
+  useFermiLightcurve,
+  useHiligt,
+  useXmmSource,
+} from "./useXray";
 export { useZtfLightcurve, type ZtfLightcurveParams } from "./useZtfLightcurve";

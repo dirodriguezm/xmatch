@@ -13,7 +13,8 @@
     "prepare": "cd .. && husky ui/.husky",
     "generate:types": "node scripts/convert-swagger-to-openapi3.cjs",
     "test": "vitest run",
-    "knip": "knip"
+    "knip": "knip",
+    "generate:gamma": "node scripts/build-gamma-sources.cjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

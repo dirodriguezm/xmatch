@@ -9,22 +9,63 @@ export interface SimbadReference {
   year?: number;
   journal?: string;
   doi?: string;
+  /** How many objects the paper is attached to in SIMBAD. */
+  objects?: number;
+}
+
+/**
+ * `newest` lists by year; `focused` puts papers attached to the fewest
+ * objects first: those are about this object, not a survey table that
+ * merely lists it. SIMBAD has no citation counts (ADS does, with a key).
+ */
+export type SimbadRefsSort = "newest" | "focused";
+
+export interface SimbadRefsOptions {
+  sort?: SimbadRefsSort;
+  /** Publication years, from inclusive and to exclusive. */
+  fromYear?: number;
+  toYear?: number;
+}
+
+function refsWhere(oid: number, { fromYear, toYear }: SimbadRefsOptions) {
+  return [
+    `h.oidref = ${oid}`,
+    ...(fromYear !== undefined ? [`r."year" >= ${fromYear}`] : []),
+    ...(toYear !== undefined ? [`r."year" < ${toYear}`] : []),
+  ].join(" AND ");
 }
 
 /** SIMBAD's TAP has no OFFSET, so "show more" asks for a larger TOP. */
 export const SIMBAD_REFS_MAX = 200;
 
-/** Newest first; `oid` is SIMBAD's integer object id. */
-export function simbadRefsQuery(oid: number, limit: number): string {
+/** `oid` is SIMBAD's integer object id; every number here is validated. */
+export function simbadRefsQuery(
+  oid: number,
+  limit: number,
+  options: SimbadRefsOptions = {}
+): string {
+  const order =
+    options.sort === "focused"
+      ? "r.nbobject ASC, yr DESC, bibcode DESC"
+      : "yr DESC, bibcode DESC";
   return (
-    `SELECT TOP ${limit} r.bibcode, r.title, r."year" AS yr, r.journal, r.doi ` +
+    `SELECT TOP ${limit} r.bibcode, r.title, r."year" AS yr, r.journal, r.doi, r.nbobject ` +
     `FROM ref AS r JOIN has_ref AS h ON h.oidbibref = r.oidbib ` +
-    `WHERE h.oidref = ${oid} ORDER BY yr DESC, bibcode DESC`
+    `WHERE ${refsWhere(oid, options)} ORDER BY ${order}`
   );
 }
 
-export function simbadRefsCountQuery(oid: number): string {
-  return `SELECT COUNT(*) AS n FROM has_ref WHERE oidref = ${oid}`;
+export function simbadRefsCountQuery(
+  oid: number,
+  options: SimbadRefsOptions = {}
+): string {
+  if (options.fromYear === undefined && options.toYear === undefined) {
+    return `SELECT COUNT(*) AS n FROM has_ref WHERE oidref = ${oid}`;
+  }
+  return (
+    `SELECT COUNT(*) AS n FROM has_ref AS h JOIN ref AS r ON h.oidbibref = r.oidbib ` +
+    `WHERE ${refsWhere(oid, options)}`
+  );
 }
 
 const str = (v: unknown) =>
@@ -36,7 +77,7 @@ export function parseSimbadRefs(data: unknown): SimbadReference[] {
   const refs: SimbadReference[] = [];
   for (const row of data) {
     if (!Array.isArray(row)) continue;
-    const [bibcode, title, year, journal, doi] = row;
+    const [bibcode, title, year, journal, doi, objects] = row;
     const code = str(bibcode);
     if (!code) continue;
     refs.push({
@@ -46,6 +87,7 @@ export function parseSimbadRefs(data: unknown): SimbadReference[] {
       year: typeof year === "number" ? year : undefined,
       journal: str(journal),
       doi: str(doi),
+      objects: typeof objects === "number" ? objects : undefined,
     });
   }
   return refs;

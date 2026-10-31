@@ -47,3 +47,54 @@ export function formatMjdDateTime(mjd: number): string {
   const iso = new Date((mjd - MJD_UNIX_EPOCH) * 86_400_000).toISOString();
   return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
 }
+
+/**
+ * Flux and its 1σ error on one power of ten, with the unit after both:
+ * (1.42 ± 0.07) × 10⁻¹¹ erg s⁻¹ cm⁻². The error keeps two significant
+ * figures, at most four decimals; a smaller one shows as "< 0.0001".
+ */
+export function formatFluxWithError(value: number, err: number): string {
+  if (!Number.isFinite(value) || value === 0) return formatFlux(value);
+  if (!Number.isFinite(err) || err <= 0) return formatFlux(value);
+  const exponent = Math.floor(Math.log10(Math.abs(value)));
+  const scale = 10 ** exponent;
+  const errMantissa = err / scale;
+  const decimals = Math.min(
+    4,
+    Math.max(2, 1 - Math.floor(Math.log10(errMantissa)))
+  );
+  const errText =
+    errMantissa < 10 ** -decimals
+      ? `< ${(10 ** -decimals).toFixed(decimals)}`
+      : errMantissa.toFixed(decimals);
+  const sup = [...String(exponent)].map((c) => SUPERSCRIPT[c] ?? c).join("");
+  const pow = exponent === 0 ? "" : ` × 10${sup}`;
+  return `(${(value / scale).toFixed(decimals)} ± ${errText})${pow} ${FLUX_UNIT}`;
+}
+
+/** Calendar year (UTC) of an MJD. */
+export function mjdYear(mjd: number): number {
+  return new Date((mjd - MJD_UNIX_EPOCH) * 86_400_000).getUTCFullYear();
+}
+
+/** Time-axis tick: the MJD, with its year underneath. */
+export function formatMjdTick(mjd: number): string {
+  return `${mjd}\n${mjdYear(mjd)}`;
+}
+
+/**
+ * A catalogue cell for display: floats to six significant figures (very
+ * small or large ones in scientific notation), everything else as is. The
+ * catalogues store float32/64 noise past that, e.g. 0.018106548115611076.
+ */
+export function formatCatalogValue(value: unknown): string {
+  if (value == null) return "—";
+  if (typeof value !== "number" || Number.isInteger(value)) {
+    return String(value);
+  }
+  const abs = Math.abs(value);
+  if (abs !== 0 && (abs < 1e-3 || abs >= 1e7)) {
+    return formatScientific(value, 4);
+  }
+  return String(Number(value.toPrecision(6)));
+}
