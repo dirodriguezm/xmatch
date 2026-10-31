@@ -71,7 +71,7 @@ export default function ObjectPage({ params }: ObjectPageProps) {
   }, [decodedObjectId, catalog, metadata]);
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="min-h-dvh">
       <AppHeader
         // ‹ › replaces history entries, so go to /bulk directly; it restores
         // the last run from sessionStorage.
@@ -82,9 +82,9 @@ export default function ObjectPage({ params }: ObjectPageProps) {
           ) : undefined
         }
       />
-      <Content className="bg-background min-h-[calc(100vh-64px)]">
+      <Content className="bg-background min-h-[calc(100dvh-64px)]">
         {isLoading ? (
-          <div className="flex items-center justify-center h-[calc(100vh-128px)]">
+          <div className="flex items-center justify-center h-[calc(100dvh-128px)]">
             <XWaveSpinner variant="xwave" size={64} />
           </div>
         ) : object ? (
@@ -95,7 +95,7 @@ export default function ObjectPage({ params }: ObjectPageProps) {
             metadata={metadata}
           />
         ) : (
-          <div className="flex items-center justify-center h-[calc(100vh-128px)]">
+          <div className="flex items-center justify-center h-[calc(100dvh-128px)]">
             <Empty
               description={`Object "${decodedObjectId}" not found or missing parameters`}
             />

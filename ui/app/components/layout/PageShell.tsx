@@ -29,7 +29,7 @@ export function PageShell({
   children,
 }: PageShellProps) {
   return (
-    <Layout className="min-h-screen">
+    <Layout className="min-h-dvh">
       <AppHeader />
       <Content className="bg-background">
         <div

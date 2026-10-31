@@ -271,13 +271,13 @@ export function SpectrumSection() {
               {band.meta.map((m) => (
                 <span
                   key={m}
-                  className="rounded border border-border bg-surface-elevated px-2 py-1 font-mono text-[11px] text-neutral-400"
+                  className="rounded border border-border bg-surface-elevated px-2 py-1 font-mono text-xs text-neutral-400"
                 >
                   {m}
                 </span>
               ))}
               <span
-                className={`rounded border px-2 py-1 font-mono text-[11px] ${band.xwave ? "border-[#2f5a1d] text-[#73d13d]" : "border-border text-neutral-400"}`}
+                className={`rounded border px-2 py-1 font-mono text-xs ${band.xwave ? "border-[#2f5a1d] text-[#73d13d]" : "border-border text-neutral-400"}`}
               >
                 {band.xwave
                   ? `XWave cross-matches ${band.xwave}`
@@ -302,7 +302,7 @@ export function SpectrumSection() {
                 onClick={() => setCurrent(i)}
                 aria-pressed={i === current}
                 aria-label={`${b.name}, ${b.survey}`}
-                className={`absolute top-0 -translate-x-1/2 cursor-pointer whitespace-nowrap border-0 bg-transparent p-0 font-mono text-[11px] ${b.position} ${i === current ? "text-foreground" : "text-neutral-500 hover:text-neutral-300"}`}
+                className={`absolute top-0 -translate-x-1/2 cursor-pointer whitespace-nowrap border-0 bg-transparent p-0 font-mono text-xs ${b.position} ${i === current ? "text-foreground" : "text-neutral-500 hover:text-neutral-300"}`}
               >
                 {b.tick}
                 <span
@@ -311,7 +311,7 @@ export function SpectrumSection() {
               </button>
             ))}
           </div>
-          <div className="flex justify-between font-mono text-[11px] text-neutral-500">
+          <div className="flex justify-between font-mono text-xs text-neutral-500">
             <span>← longer waves · lower energy</span>
             <span>higher energy · shorter waves →</span>
           </div>
@@ -347,10 +347,8 @@ export function SpectrumSection() {
               </svg>
               {r.band}
             </span>
-            <code className="font-mono text-[13px] text-foreground">
-              {r.id}
-            </code>
-            <span className="font-mono text-[15px] font-semibold text-foreground">
+            <code className="font-mono text-sm text-foreground">{r.id}</code>
+            <span className="font-mono text-base font-semibold text-foreground">
               {r.sep}
             </span>
           </div>

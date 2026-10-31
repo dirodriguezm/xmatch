@@ -60,6 +60,18 @@ a:focus-visible {
   border-radius: 2px;
 }
 
+/* No orphaned last words in headings; better rag in running text. */
+h1,
+h2,
+h3,
+h4,
+h5 {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+
 /* Numbers in tables line up column to column. */
 table {
   font-variant-numeric: tabular-nums;

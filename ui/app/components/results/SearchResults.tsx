@@ -118,7 +118,7 @@ export function SearchResults({
     // away; the results area alone follows the balanced recipe.
     <Layout>
       <AppSidebar>{searchForm}</AppSidebar>
-      <Content className="bg-background min-h-[calc(100vh-64px)]">
+      <Content className="bg-background min-h-[calc(100dvh-64px)]">
         <MatchesBody
           target={target}
           matchCount={sources.length}

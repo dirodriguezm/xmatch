@@ -109,7 +109,7 @@ function SearchContent() {
   }, [isLoading, isError, isSuccess, base, queryResults.length, dispatch]);
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="min-h-dvh">
       <AppHeader />
       <SearchResults
         data={enrichedResults}
@@ -124,9 +124,9 @@ function SearchContent() {
 
 function LoadingFallback() {
   return (
-    <Layout className="min-h-screen">
+    <Layout className="min-h-dvh">
       <AppHeader />
-      <Content className="bg-background min-h-[calc(100vh-64px)] flex items-center justify-center">
+      <Content className="bg-background min-h-[calc(100dvh-64px)] flex items-center justify-center">
         <XWaveSpinner variant="xwave" size={64} />
       </Content>
     </Layout>

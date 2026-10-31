@@ -11,5 +11,5 @@ export default function EmbedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="min-h-screen bg-background p-3">{children}</div>;
+  return <div className="min-h-dvh bg-background p-3">{children}</div>;
 }

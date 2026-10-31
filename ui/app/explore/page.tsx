@@ -1,11 +1,11 @@
 "use client";
 
 import {
+  CompassOutlined,
   DatabaseOutlined,
   DownOutlined,
   NodeIndexOutlined,
   StarOutlined,
-  ThunderboltOutlined,
 } from "@ant-design/icons";
 import { Button, Dropdown, Skeleton, Space, Typography } from "antd";
 import Link from "next/link";
@@ -46,7 +46,7 @@ function RandomButton() {
     <Space.Compact>
       <Button
         type="primary"
-        icon={<ThunderboltOutlined />}
+        icon={<CompassOutlined />}
         loading={loading}
         onClick={() => go("sky")}
       >

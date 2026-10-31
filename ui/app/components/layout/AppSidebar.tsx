@@ -81,7 +81,7 @@ export function AppSidebar({
       collapsed={collapsed}
       collapsedWidth={RAIL_WIDTH}
       trigger={null}
-      className="bg-surface border-r border-border overflow-auto h-[calc(100vh-64px)]"
+      className="bg-surface border-r border-border overflow-auto h-[calc(100dvh-64px)]"
     >
       {collapsed ? (
         <div className="flex h-full flex-col items-center gap-2 pt-4">

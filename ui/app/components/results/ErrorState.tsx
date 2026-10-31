@@ -1,9 +1,9 @@
 "use client";
 
 import { ReloadOutlined, WarningOutlined } from "@ant-design/icons";
-import { Button, Empty, Typography } from "antd";
+import { Button, Typography } from "antd";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 export interface ErrorStateProps {
   /** Message from the failed query, when one made it through. */
@@ -18,27 +18,24 @@ export interface ErrorStateProps {
  */
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center h-full">
-      <Empty
-        image={<WarningOutlined className="text-[64px] text-red-500/70" />}
-        description={
-          <div className="text-center max-w-md">
-            <Title level={4} className="text-foreground mb-2">
-              Search failed
-            </Title>
-            <Text type="secondary">
-              {message ||
-                "The cone search could not be completed. The catalog service may be unavailable."}
-            </Text>
-          </div>
-        }
-      >
-        {onRetry && (
-          <Button icon={<ReloadOutlined />} onClick={onRetry}>
-            Retry search
-          </Button>
-        )}
-      </Empty>
+    <div className="flex h-full max-w-md flex-col justify-center gap-1">
+      <Text strong className="text-base">
+        <WarningOutlined className="mr-2 text-red-400" />
+        Search failed
+      </Text>
+      <Text type="secondary">
+        {message ||
+          "The cone search could not be completed. The catalog service may be unavailable."}
+      </Text>
+      {onRetry && (
+        <Button
+          icon={<ReloadOutlined />}
+          onClick={onRetry}
+          className="mt-3 self-start"
+        >
+          Retry search
+        </Button>
+      )}
     </div>
   );
 }

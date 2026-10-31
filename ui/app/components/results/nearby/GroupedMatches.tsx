@@ -64,7 +64,7 @@ export function GroupedMatches({
   expanded,
   onToggleExpanded,
   chanceBySlug,
-  className = "self-start lg:max-h-[calc(100vh-230px)] lg:overflow-y-auto",
+  className = "self-start lg:max-h-[calc(100dvh-230px)] lg:overflow-y-auto",
 }: GroupedMatchesProps) {
   const scroller = useRef<HTMLDivElement>(null);
   // Phones drop the PA and basket columns (both are on the object page).
@@ -250,7 +250,7 @@ export function GroupedMatches({
                     )}
                     {g.verdict !== "none" && (
                       <span
-                        className={`rounded border px-1.5 py-0.5 text-[11px] leading-none ${VERDICT_CLASSES[g.verdict]}`}
+                        className={`rounded border px-1.5 py-0.5 text-xs leading-none ${VERDICT_CLASSES[g.verdict]}`}
                       >
                         {VERDICT_TEXT[g.verdict]}
                         {g.verdict === "ambiguous" &&

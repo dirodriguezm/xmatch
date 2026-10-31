@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import { CompassOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   App,
   Button,
@@ -187,7 +187,7 @@ export function LandingSearch() {
       vertical
       align="center"
       justify="center"
-      className="min-h-[calc(100vh-64px)] !py-12 !px-4 sm:!px-6 bg-background"
+      className="min-h-[calc(100dvh-64px)] !py-12 !px-4 sm:!px-6 bg-background"
     >
       <Flex
         vertical
@@ -278,11 +278,11 @@ export function LandingSearch() {
             <Button
               type="link"
               size="small"
-              icon={<ThunderboltOutlined />}
+              icon={<CompassOutlined />}
               loading={randomLoading}
               onClick={() => goRandom("sky")}
             >
-              Surprise me
+              Random object
             </Button>
             <Link href="/explore" className="text-sm leading-6">
               Explore featured objects

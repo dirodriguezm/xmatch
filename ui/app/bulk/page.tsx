@@ -201,7 +201,7 @@ export default function BulkPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center">
+        <div className="flex min-h-dvh items-center justify-center">
           <XWaveSpinner variant="xwave" size={64} />
         </div>
       }

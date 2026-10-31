@@ -1,6 +1,5 @@
 "use client";
 
-import { ThunderboltOutlined } from "@ant-design/icons";
 import { Button, InputNumber, Select, Tooltip, Typography } from "antd";
 
 import { CATALOG_LABELS, CATALOG_OPTIONS } from "@/app/lib/constants/catalogs";
@@ -82,7 +81,6 @@ export function BulkOptions({
       <Tooltip title={disabledReason}>
         <Button
           type="primary"
-          icon={<ThunderboltOutlined />}
           onClick={onRun}
           loading={running}
           disabled={disabledReason !== null}
