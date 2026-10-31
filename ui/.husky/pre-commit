@@ -1,0 +1,3 @@
+cd ui
+yarn lint-staged
+yarn --silent knip

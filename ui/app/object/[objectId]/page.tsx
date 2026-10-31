@@ -1,0 +1,122 @@
+"use client";
+
+import { Layout } from "antd";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { use, useEffect, useMemo, useRef } from "react";
+
+import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
+import { AppHeader } from "@/app/components/layout";
+import { ObjectDetail, ResultNavigator } from "@/app/components/object";
+import type { CrossmatchResult } from "@/app/components/results/types";
+import { useMetadata } from "@/app/hooks/queries";
+import { getSearchCatalogLabel } from "@/app/lib/constants/catalogs";
+
+const { Content } = Layout;
+
+interface ObjectPageProps {
+  params: Promise<{ objectId: string }>;
+}
+
+export default function ObjectPage({ params }: ObjectPageProps) {
+  const { objectId } = use(params);
+  const decodedObjectId = decodeURIComponent(objectId);
+  const router = useRouter();
+  const titleSet = useRef(false);
+
+  useEffect(() => {
+    const title = `XWave | ${decodedObjectId}`;
+    document.title = title;
+    titleSet.current = true;
+
+    // Keep checking and restoring the title if something changes it
+    const interval = setInterval(() => {
+      if (document.title !== title) {
+        document.title = title;
+      }
+    }, 100);
+
+    // Clean up after a short time once the page is stable
+    const cleanup = setTimeout(() => clearInterval(interval), 2000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(cleanup);
+    };
+  }, [decodedObjectId]);
+
+  const searchParams = useSearchParams();
+  const catalog = searchParams.get("catalog");
+  const fromBulk = searchParams.get("from") === "bulk";
+
+  // Fetch metadata if we have a catalog
+  const { data: metadata, isLoading } = useMetadata(
+    catalog ? { id: decodedObjectId, catalog } : null
+  );
+
+  // Construct the object from metadata response (ra/dec come from the API
+  // payload but aren't part of the per-catalog typed schema, hence the cast).
+  const object = useMemo<CrossmatchResult | null>(() => {
+    const meta = metadata as
+      | ({ ra?: number; dec?: number } & typeof metadata)
+      | undefined;
+    if (!catalog || meta?.ra == null || meta?.dec == null) return null;
+
+    return {
+      key: decodedObjectId,
+      objectId: decodedObjectId,
+      ra: meta.ra,
+      dec: meta.dec,
+      catalog: catalog,
+      angularDistance: 0, // Not needed for detail view, but required by type
+    };
+  }, [decodedObjectId, catalog, metadata]);
+
+  return (
+    <Layout className="min-h-dvh">
+      <AppHeader
+        // ‹ › replaces history entries, so go to /bulk directly; it restores
+        // the last run from sessionStorage.
+        onBack={() => (fromBulk ? router.push("/bulk") : router.back())}
+        extra={
+          fromBulk && catalog ? (
+            <ResultNavigator objectId={decodedObjectId} catalog={catalog} />
+          ) : undefined
+        }
+      />
+      <Content className="bg-background min-h-[calc(100dvh-64px)]">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-[calc(100dvh-128px)]">
+            <XWaveSpinner variant="xwave" size={64} />
+          </div>
+        ) : object ? (
+          // Keyed so panel state doesn't leak between objects stepped with ‹ ›.
+          <ObjectDetail
+            key={`${catalog}:${decodedObjectId}`}
+            object={object}
+            metadata={metadata}
+          />
+        ) : (
+          <div className="mx-auto max-w-xl px-4 pt-16 md:px-6">
+            <h1 className="mb-3 text-2xl font-semibold text-foreground">
+              {catalog
+                ? `No ${getSearchCatalogLabel(catalog)} source with this ID`
+                : "This link is missing its catalog"}
+            </h1>
+            <p className="mb-4 text-base text-neutral-400">
+              <span className="break-all font-mono text-neutral-300">
+                {decodedObjectId}
+              </span>{" "}
+              {catalog
+                ? "did not come back from the catalog. Check the ID, or search the position instead."
+                : "needs ?catalog= in the URL to be looked up. Open it from a search result instead."}
+            </p>
+            <Link href="/search" className="text-primary-text hover:underline">
+              Go to search
+            </Link>
+          </div>
+        )}
+      </Content>
+    </Layout>
+  );
+}
