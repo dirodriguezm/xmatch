@@ -263,9 +263,7 @@ export function SpectrumSection() {
             <Overlay beam={band.beam} />
           </div>
           <div className="flex flex-col gap-3 p-5" aria-live="polite">
-            <span className="font-mono text-xs uppercase tracking-wider text-neutral-500">
-              {band.survey}
-            </span>
+            <span className="text-sm text-neutral-500">{band.survey}</span>
             <span className="text-xl font-semibold text-foreground">
               {band.name}
             </span>

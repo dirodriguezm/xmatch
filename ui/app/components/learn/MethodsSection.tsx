@@ -27,11 +27,8 @@ function Part({
 }) {
   return (
     <section className="mb-12">
-      <div className="mb-1 font-mono text-xs uppercase tracking-wider text-primary">
-        Part {index}
-      </div>
       <Title level={4} className="!mt-0 !mb-3 text-foreground">
-        {title}
+        <span className="text-neutral-500">{index}.</span> {title}
       </Title>
       {children}
     </section>

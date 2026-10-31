@@ -82,7 +82,8 @@ interface FormValues {
 function ChannelCard({ channel }: { channel: Channel }) {
   const cta = (
     <span className="text-sm">
-      {channel.cta} {channel.external ? "↗" : "→"}
+      {channel.cta}
+      {channel.external && " ↗"}
     </span>
   );
   return (

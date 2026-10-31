@@ -55,7 +55,7 @@ function Answer({ item }: { item: FaqItem }) {
             </a>
           ) : (
             <Link key={l.href} href={l.href}>
-              {l.label} →
+              {l.label}
             </Link>
           )
         )}

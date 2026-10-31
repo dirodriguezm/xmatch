@@ -226,7 +226,7 @@ export function HealpixZoomDiagram() {
 
   const side = (
     <>
-      <span className="font-mono text-xs uppercase tracking-wider text-neutral-500">
+      <span className="font-mono text-xs text-neutral-500">
         Order {k} · {formatNumber(12 * 4 ** k)} cells
       </span>
       <p

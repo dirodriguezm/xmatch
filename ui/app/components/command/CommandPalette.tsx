@@ -406,7 +406,7 @@ export function CommandPalette() {
             return (
               <div key={cmd.id}>
                 {header && (
-                  <div className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                  <div className="px-3 pb-1 pt-2 text-xs font-medium text-neutral-500">
                     {header}
                   </div>
                 )}

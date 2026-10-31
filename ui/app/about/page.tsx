@@ -283,12 +283,10 @@ export default function AboutPage() {
           </div>
           <Paragraph className="!mb-0">
             <Link href={SWAGGER_URL} target="_blank" rel="noopener noreferrer">
-              Open the API documentation →
+              Open the API documentation ↗
             </Link>
             <Text className="text-muted mx-2">·</Text>
-            <NextLink href="/developers">
-              Try it in the API playground →
-            </NextLink>
+            <NextLink href="/developers">Try it in the API playground</NextLink>
           </Paragraph>
         </Section>
 
@@ -366,7 +364,7 @@ export default function AboutPage() {
                 href={href}
                 className="block px-3 py-2.5 rounded border border-border bg-surface hover:bg-surface-elevated"
               >
-                <span className="block text-foreground">{label} →</span>
+                <span className="block text-foreground">{label}</span>
                 <span className="block text-xs text-neutral-400">{desc}</span>
               </NextLink>
             ))}
