@@ -63,17 +63,19 @@ To add a catalog, see [`ADD_NEW_CATALOG.md`](ADD_NEW_CATALOG.md).
 
 ```bash
 cd ui
-npm install
-npm run dev        # http://localhost:3000
+yarn install
+yarn dev           # http://localhost:3000
 ```
 
-| Command                  | Description                                           |
-| ------------------------ | ----------------------------------------------------- |
-| `npm run build`          | Production build                                      |
-| `npm test`               | Unit tests (Vitest)                                   |
-| `npm run lint`           | ESLint                                                |
-| `npm run knip`           | Unused files, exports and dependencies                |
-| `npm run generate:types` | Regenerate API types from `service/docs/swagger.json` |
+| Command               | Description                                           |
+| --------------------- | ----------------------------------------------------- |
+| `yarn build`          | Production build                                      |
+| `yarn test`           | Unit tests (Vitest)                                   |
+| `yarn lint`           | ESLint                                                |
+| `yarn knip`           | Unused files, exports and dependencies                |
+| `yarn generate:types` | Regenerate API types from `service/docs/swagger.json` |
+
+The package manager is Yarn 1; `yarn.lock` is the only lockfile.
 
 The interface calls the public API at `https://xwave-astro.udp.cl/v1`. A
 pre-commit hook runs lint-staged and knip.
