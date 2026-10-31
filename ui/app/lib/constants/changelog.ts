@@ -31,7 +31,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Explore: browse the sky and collect objects in a basket for later.",
       "Command palette (⌘K / Ctrl K) to jump anywhere.",
       "API playground for trying endpoints from the browser.",
-      "Status page, Learn (FAQ, methods, glossary), Contact and this changelog — plus a Report button to flag bad matches.",
+      "Status page, Learn (FAQ, methods, glossary), Contact and this changelog, plus a Report button to flag bad matches.",
     ],
   },
   {

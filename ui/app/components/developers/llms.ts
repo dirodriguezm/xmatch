@@ -50,15 +50,15 @@ export function buildLlmsTxt(): string {
 ${SUMMARY}
 
 Base URL: ${API_BASE_URL}
-All radii are in arcseconds. Keep radius ≤ ${MAX_RADIUS_ARCSEC}″ — larger cones may never return. HTTP 204 (empty body) means "no sources found", not an error.
+All radii are in arcseconds. Keep radius ≤ ${MAX_RADIUS_ARCSEC}″; larger cones may never return. HTTP 204 (empty body) means "no sources found", not an error.
 
 ## API endpoints
 
-- [Cone search](${LLMS_EXAMPLES.conesearch}): \`GET /conesearch\` — params \`ra\`, \`dec\` (deg, required), \`radius\` (arcsec, required), \`catalog\` (all|gaia|allwise|erosita, default all), \`nneighbor\` (max sources per catalog, default 1), \`getMetadata\` (bool). Returns \`[{catalog, data: [{id, ra, dec, cat, ipix, distance}]}]\`, distance in arcsec.
-- [Metadata](${LLMS_EXAMPLES.metadata}): \`GET /metadata\` — params \`id\` (source id from a cone search), \`catalog\` (gaia|allwise|erosita). Returns the catalog row (photometry, astrometry, flags).
-- [Light curve](${LLMS_EXAMPLES.lightcurve}): \`GET /lightcurve\` — params \`ra\`, \`dec\`, \`radius\` (arcsec), \`catalog\` (all|ztf|neowise|allwise), \`nneighbor\`. Returns \`{detections, non_detections, forced_photometry}\`, each entry \`{catalog, id, object_id, mjd, mag, magerr, data}\`.
-- [Bulk cone search](${SITE_URL}/developers): \`POST /bulk-conesearch\` — JSON body \`${BULK_BODY}\`. Same response as cone search plus \`index\` (position in the input arrays).
-- [Bulk metadata](${SWAGGER_URL}): \`POST /bulk-metadata\` — JSON body \`{"ids": ["…"], "catalog": "allwise"}\`.
+- [Cone search](${LLMS_EXAMPLES.conesearch}): \`GET /conesearch\`, params \`ra\`, \`dec\` (deg, required), \`radius\` (arcsec, required), \`catalog\` (all|gaia|allwise|erosita, default all), \`nneighbor\` (max sources per catalog, default 1), \`getMetadata\` (bool). Returns \`[{catalog, data: [{id, ra, dec, cat, ipix, distance}]}]\`, distance in arcsec.
+- [Metadata](${LLMS_EXAMPLES.metadata}): \`GET /metadata\`, params \`id\` (source id from a cone search), \`catalog\` (gaia|allwise|erosita). Returns the catalog row (photometry, astrometry, flags).
+- [Light curve](${LLMS_EXAMPLES.lightcurve}): \`GET /lightcurve\`, params \`ra\`, \`dec\`, \`radius\` (arcsec), \`catalog\` (all|ztf|neowise|allwise), \`nneighbor\`. Returns \`{detections, non_detections, forced_photometry}\`, each entry \`{catalog, id, object_id, mjd, mag, magerr, data}\`.
+- [Bulk cone search](${SITE_URL}/developers): \`POST /bulk-conesearch\`, JSON body \`${BULK_BODY}\`. Same response as cone search plus \`index\` (position in the input arrays).
+- [Bulk metadata](${SWAGGER_URL}): \`POST /bulk-metadata\`, JSON body \`{"ids": ["…"], "catalog": "allwise"}\`.
 
 ## Catalogs
 
@@ -92,7 +92,7 @@ This file documents the public REST API in full. The short index is at ${SITE_UR
 - Authentication: none. No API key, no cookies.
 - Coordinates: RA and Dec in decimal degrees, J2000/ICRS. RA 0–360, Dec −90–90. Convert sexagesimal (e.g. "00:42:44.3 +41:16:09") to degrees before calling.
 - Radius: arcseconds, for every endpoint including bulk. Stay at or below ${MAX_RADIUS_ARCSEC}″; bigger cones can hang.
-- Responses: JSON. \`200\` with a body on success; \`204 No Content\` with an empty body when nothing matched — treat as an empty list; \`400\` with a validation error for bad parameters; \`500\` with a string message on server errors.
+- Responses: JSON. \`200\` with a body on success; \`204 No Content\` with an empty body when nothing matched (treat as an empty list); \`400\` with a validation error for bad parameters; \`500\` with a string message on server errors.
 - CORS: browser calls are only allowed from the ${SITE_NAME} web origins. Call from a server, script or notebook instead.
 - Etiquette: this is a shared academic service with no formal rate limit. Prefer one bulk request over many single ones, keep concurrency modest (≤ 4 parallel requests), and back off on 5xx.
 
@@ -172,7 +172,7 @@ Example:
 GET ${LLMS_EXAMPLES.metadata}
 \`\`\`
 
-Response 200 (AllWISE): \`{"id", "cntr", "ra", "dec", "w1mpro", "w1sigmpro", "w2mpro", "w2sigmpro", "w3mpro", "w3sigmpro", "w4mpro", "w4sigmpro", "j_m_2mass", "j_msig_2mass", "h_m_2mass", "h_msig_2mass", "k_m_2mass", "k_msig_2mass"}\` — WISE profile-fit Vega magnitudes W1–W4 (3.4, 4.6, 12, 22 µm) and associated 2MASS J/H/Ks magnitudes with 1σ errors; nulls where not measured.
+Response 200 (AllWISE): \`{"id", "cntr", "ra", "dec", "w1mpro", "w1sigmpro", "w2mpro", "w2sigmpro", "w3mpro", "w3sigmpro", "w4mpro", "w4sigmpro", "j_m_2mass", "j_msig_2mass", "h_m_2mass", "h_msig_2mass", "k_m_2mass", "k_msig_2mass"}\`: WISE profile-fit Vega magnitudes W1–W4 (3.4, 4.6, 12, 22 µm) and associated 2MASS J/H/Ks magnitudes with 1σ errors; nulls where not measured.
 
 Response 200 (Gaia): Gaia DR3 gaia_source columns such as \`source_id\`, \`ra_error\`, \`dec_error\` (mas), \`parallax\`, \`parallax_error\` (mas), \`pmra\`, \`pmdec\` (mas/yr), \`ruwe\`, \`phot_g_mean_mag\`, \`phot_bp_mean_mag\`, \`phot_rp_mean_mag\` and flux columns.
 

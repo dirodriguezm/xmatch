@@ -26,7 +26,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: "What is a cross-match?",
     answer: [
       "A positional cross-match finds the sources in one or more catalogs that lie close to a given sky position. XWave takes a coordinate and a radius and returns, per catalog, every indexed source within that radius together with its angular separation from your position.",
-      "It is purely positional: XWave does not use colours, magnitudes or source types to decide which counterpart is “right”. Closeness is evidence, not proof — always weigh the separation against each catalog's positional accuracy.",
+      "It is purely positional: XWave does not use colours, magnitudes or source types to decide which counterpart is “right”. Closeness is evidence, not proof: always weigh the separation against each catalog's positional accuracy.",
     ],
     links: [{ href: "#methods", label: "How matching works" }],
   },
@@ -69,7 +69,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: "What units and conventions does XWave use?",
     answer: [
       "Coordinates are ICRS (J2000) right ascension and declination in decimal degrees, RA in [0, 360] and Dec in [−90, 90]. The API radius is in arcseconds; the search form lets you type arcmin or degrees and converts for you. Separations are great-circle distances in arcseconds.",
-      "Catalog columns keep the units of their source release — e.g. Gaia parallaxes in mas and proper motions in mas/yr, AllWISE and 2MASS magnitudes in the Vega system, eROSITA fluxes in erg/s/cm². See the glossary for each column.",
+      "Catalog columns keep the units of their source release, e.g. Gaia parallaxes in mas and proper motions in mas/yr, AllWISE and 2MASS magnitudes in the Vega system, eROSITA fluxes in erg/s/cm². See the glossary for each column.",
     ],
     links: [{ href: "#glossary", label: "Column glossary" }],
   },
@@ -77,7 +77,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: "how-many-results",
     question: "How many objects does a search return?",
     answer: [
-      "The API's nneighbor parameter caps the number of objects returned per request and defaults to 1. This interface asks for up to 100, so in practice your radius decides what comes back. In very crowded fields with a large radius you can still reach the cap — narrow the radius if the list looks truncated.",
+      "The API's nneighbor parameter caps the number of objects returned per request and defaults to 1. This interface asks for up to 100, so in practice your radius decides what comes back. In very crowded fields with a large radius you can still reach the cap, so narrow the radius if the list looks truncated.",
     ],
   },
   {
@@ -107,7 +107,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: "data-freshness",
     question: "How current is the data?",
     answer: [
-      "XWave serves fixed public releases — Gaia DR3, the AllWISE Source Catalog and eROSITA eRASS1 (DR1) — indexed once. They do not change until a new release is ingested, which is announced in the changelog. Data shown on object pages from external services (SIMBAD, VizieR, ALeRCE, etc.) is fetched live or cached for up to a week.",
+      "XWave serves fixed public releases (Gaia DR3, the AllWISE Source Catalog and eROSITA eRASS1 DR1), indexed once. They do not change until a new release is ingested, which is announced in the changelog. Data shown on object pages from external services (SIMBAD, VizieR, ALeRCE, etc.) is fetched live or cached for up to a week.",
     ],
     links: [
       { href: "/catalogs", label: "Catalog releases" },

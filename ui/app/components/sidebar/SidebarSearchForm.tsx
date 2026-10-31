@@ -87,7 +87,7 @@ export function SidebarSearchForm() {
             <Flex align="center" gap={10}>
               <AimOutlined className="text-primary text-base" />
               <Title level={5} className="m-0!">
-                Search Parameters
+                Search parameters
               </Title>
             </Flex>
 

@@ -156,7 +156,7 @@ export default function CatalogsPage() {
             <div className="max-w-2xl">
               <Paragraph className="text-foreground !mb-2">
                 Missing a survey you cross-match against all the time? Tell us
-                which one and what you would use it for — requests with a
+                which one and what you would use it for. Requests with a
                 concrete science case are the easiest to prioritise.
               </Paragraph>
               <Paragraph className="text-neutral-400 !mb-0">

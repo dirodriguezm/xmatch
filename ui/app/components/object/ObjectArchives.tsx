@@ -59,7 +59,7 @@ export function ObjectArchives({
     navigator.clipboard
       .writeText(`${ra.toFixed(6)} ${dec.toFixed(6)}`)
       .then(() =>
-        message.success("Coordinates copied — paste them in IRSA's search")
+        message.success("Coordinates copied. Paste them in IRSA's search")
       )
       .catch(() => {});
     window.open(SPHEREX_EXPLORER_URL, "_blank", "noopener,noreferrer");

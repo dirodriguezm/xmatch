@@ -85,7 +85,7 @@ export function CodeSnippetPanel({
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="No request to show — enable at least one catalog."
+        description="No request to show. Enable at least one catalog."
       />
     );
   }

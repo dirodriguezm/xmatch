@@ -71,4 +71,4 @@ export const VERDICT_CLASSES: Record<MatchVerdict, string> = {
 
 /** Caveat shown next to every σ verdict. */
 export const SIGMA_CAVEAT =
-  "σ uses each survey's typical positional error combined with 0.3″ for the searched position — not per-source errors — so treat the verdicts as a guide.";
+  "σ uses each survey's typical positional error combined with 0.3″ for the searched position, not per-source errors, so treat the verdicts as a guide.";

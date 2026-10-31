@@ -129,7 +129,7 @@ export function BulkInputPanel({
         <Alert
           type="error"
           showIcon
-          title={`Too many positions: ${targets.length}. The limit is ${MAX_BULK_ROWS} per run — split the list, or use the API directly for larger jobs.`}
+          title={`Too many positions: ${targets.length}. The limit is ${MAX_BULK_ROWS} per run. Split the list, or use the API directly for larger jobs.`}
         />
       )}
 
@@ -147,8 +147,8 @@ export function BulkInputPanel({
                   </span>{" "}
                   <span className="font-mono">
                     {e.text.length > 60 ? `${e.text.slice(0, 60)}…` : e.text}
-                  </span>{" "}
-                  — {e.message}
+                  </span>
+                  : {e.message}
                 </li>
               ))}
               {errors.length > MAX_ERRORS_SHOWN && (

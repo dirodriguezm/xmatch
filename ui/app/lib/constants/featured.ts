@@ -32,7 +32,7 @@ export const FEATURED_OBJECTS: FeaturedObject[] = [
     objectId: "Gaia DR3 4472832130942575872",
     catalog: "gaia",
     blurb:
-      "The fastest-moving star on our sky, crossing about 10.4″ every year — a Moon diameter in under two centuries. At 1.8 pc it is the second-closest stellar system after α Centauri, which is why its Gaia parallax is over half an arcsecond.",
+      "The fastest-moving star on our sky, crossing about 10.4″ every year, a Moon diameter in under two centuries. At 1.8 pc it is the second-closest stellar system after α Centauri, which is why its Gaia parallax is over half an arcsecond.",
     lookFor: [
       "Proper motion (~10 400 mas/yr)",
       "Parallax",
@@ -115,7 +115,7 @@ export const FEATURED_OBJECTS: FeaturedObject[] = [
     objectId: "0884p075_ac51-016718",
     catalog: "allwise",
     blurb:
-      "Orion's shoulder, a red supergiant so large it would swallow Jupiter's orbit. It is far too bright for Gaia, but AllWISE records it — saturated, with negative W1 and W4 magnitudes — a reminder to check quality flags on bright stars. It made headlines in 2019–20 with its Great Dimming.",
+      "Orion's shoulder, a red supergiant so large it would swallow Jupiter's orbit. It is far too bright for Gaia, but AllWISE records it, saturated, with negative W1 and W4 magnitudes: a reminder to check quality flags on bright stars. It made headlines in 2019–20 with its Great Dimming.",
     lookFor: [
       "AllWISE / 2MASS magnitudes (saturated)",
       "SED shape of a cool giant",

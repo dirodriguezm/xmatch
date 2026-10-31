@@ -95,7 +95,7 @@ export function FlagMatchButton({
     window.dispatchEvent(new Event(FLAG_EVENT));
     setOpen(false);
     setNote("");
-    message.success("Thanks — finish submitting the issue on GitHub.");
+    message.success("Thanks. Finish submitting the issue on GitHub.");
   }, [catalog, dec, message, note, objectId, ra, reason]);
 
   const reported = reportedReason !== null;

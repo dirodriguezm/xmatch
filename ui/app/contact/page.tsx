@@ -145,7 +145,7 @@ export default function ContactPage() {
         <Paragraph className="!text-neutral-400">
           There is no inbox behind this form: it drafts a GitHub issue and opens
           it in a new tab, where you can review and post it with your GitHub
-          account. Issues are public — don&apos;t include anything private.
+          account. Issues are public, so don&apos;t include anything private.
         </Paragraph>
         <div className="rounded-lg border border-border bg-surface p-5">
           <Form<FormValues>

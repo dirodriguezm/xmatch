@@ -160,7 +160,7 @@ export function XrayHistoryPanel({
           description={
             <Text type="secondary" className="text-xs">
               {loading
-                ? "Asking ESA's upper limit server — each mission takes 5–20 s…"
+                ? "Asking ESA's upper limit server. Each mission takes 5–20 s…"
                 : `No X-ray data in the ${band} keV band from these missions.`}
             </Text>
           }

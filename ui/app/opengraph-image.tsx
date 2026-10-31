@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og";
 import { OG_SIZE, OgCard } from "@/app/components/share/OgCard";
 import { loadLogoDataUri } from "@/app/components/share/ogLogo";
 
-export const alt = "XWave — astronomical cross-match service";
+export const alt = "XWave, the astronomical cross-match service";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 

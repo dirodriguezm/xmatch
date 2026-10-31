@@ -912,7 +912,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Text type="secondary" className="text-xs block mb-1">
-                      Right Ascension
+                      Right ascension
                     </Text>
                     <Flex align="center" gap={8}>
                       <Text className="tabular-nums">

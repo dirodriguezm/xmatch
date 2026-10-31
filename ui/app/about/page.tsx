@@ -142,9 +142,9 @@ export default function AboutPage() {
             >
               <Paragraph className="text-muted !mb-0">
                 Your coordinate and radius define a disc on the sphere. The
-                service asks HEALPix for every pixel that the disc touches —
-                inclusively, so pixels that only partially overlap are kept —
-                and fetches the objects stored in those pixels. This step is
+                service asks HEALPix for every pixel that the disc touches,
+                inclusively, so pixels that only partially overlap are kept. It
+                then fetches the objects stored in those pixels. This step is
                 deliberately generous: it may return objects outside the radius,
                 but it will not miss any inside it.
               </Paragraph>
@@ -247,7 +247,7 @@ export default function AboutPage() {
               <Text strong className="text-foreground">
                 An empty result is not an error.
               </Text>{" "}
-              A catalog with nothing at your position returns no content — that
+              A catalog with nothing at your position returns no content. That
               is a real answer about the sky, not a failure.
             </li>
             <li>
@@ -303,8 +303,8 @@ export default function AboutPage() {
               <li key={name}>
                 <Link href={href} target="_blank" rel="noopener noreferrer">
                   {name}
-                </Link>{" "}
-                — {usedFor}
+                </Link>
+                : {usedFor}
               </li>
             ))}
           </ul>

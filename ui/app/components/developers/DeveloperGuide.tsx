@@ -115,8 +115,8 @@ export function DeveloperGuide() {
           No authentication: no API key, no sign-up. Every endpoint returns
           JSON. Coordinates are decimal degrees (ICRS/J2000) and{" "}
           <strong>all radii are in arcseconds</strong>, bulk included. An empty
-          match returns <Code>204 No Content</Code> with no body — treat it as
-          an empty list, not an error.
+          match returns <Code>204 No Content</Code> with no body. Treat it as an
+          empty list, not an error.
         </Paragraph>
         <Paragraph className="!mb-0 text-neutral-300">
           Browsers can call the API directly only from XWave&apos;s own origins;
@@ -131,7 +131,7 @@ export function DeveloperGuide() {
       >
         <ul className="m-0 flex list-disc flex-col gap-1.5 pl-5">
           <li>
-            There is no hard rate limit — it is a shared academic service, so
+            There is no hard rate limit. It is a shared academic service, so
             please be gentle: at most ~4 requests in parallel.
           </li>
           <li>
@@ -143,7 +143,7 @@ export function DeveloperGuide() {
             ever replying.
           </li>
           <li>
-            <Code>nneighbor</Code> is a cap, not a cost — latency is flat up to
+            <Code>nneighbor</Code> is a cap, not a cost: latency is flat up to
             hundreds, so ask for what you need.
           </li>
           <li>Retry 5xx with exponential backoff; don&apos;t retry 4xx.</li>

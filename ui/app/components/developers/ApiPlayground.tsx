@@ -513,7 +513,7 @@ export function ApiPlayground() {
             <div className="flex flex-col gap-2">
               {response.status === 204 ? (
                 <Text className="text-neutral-400">
-                  204 No Content — nothing matched. Treat as an empty list.
+                  204 No Content: nothing matched. Treat as an empty list.
                 </Text>
               ) : response.text !== undefined ? (
                 <CodeBlock code={response.text} copyLabel="Response" wrap />

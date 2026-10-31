@@ -1,27 +1,28 @@
 "use client";
 
-import { CompassOutlined } from "@ant-design/icons";
-import { Empty, Typography } from "antd";
+import { Typography } from "antd";
+import Link from "next/link";
 
-const { Title, Text } = Typography;
+import { buildSearchHref } from "@/app/lib/utils/commands";
+
+const { Text } = Typography;
+
+/** M31's centre, a field every catalog has matches in. */
+const EXAMPLE = { name: "M31", ra: 10.6847, dec: 41.269 };
 
 export function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center h-full">
-      <Empty
-        image={<CompassOutlined className="text-[64px] text-border" />}
-        description={
-          <div className="text-center">
-            <Title level={4} className="text-foreground mb-2">
-              Ready for Input
-            </Title>
-            <Text type="secondary">
-              Enter target coordinates and search parameters in the sidebar to
-              begin cross-matching.
-            </Text>
-          </div>
-        }
-      />
+    <div className="flex h-full max-w-sm flex-col justify-center gap-1">
+      <Text strong className="text-base">
+        No search yet
+      </Text>
+      <Text type="secondary">
+        Enter a position and radius in the search form, or{" "}
+        <Link href={buildSearchHref(EXAMPLE.ra, EXAMPLE.dec)}>
+          try {EXAMPLE.name}
+        </Link>
+        .
+      </Text>
     </div>
   );
 }

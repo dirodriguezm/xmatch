@@ -32,7 +32,7 @@ export function useRandomObject() {
       }
       setLoading(false);
       const f = pickRandomFeatured();
-      message.info(`Empty patch of sky — here is ${f.name} instead`);
+      message.info(`Empty patch of sky, so here is ${f.name} instead`);
       router.push(buildObjectUrl(f.objectId, f.catalog));
     },
     [router, message]
