@@ -80,7 +80,7 @@ ${catalogLines()}
 }
 
 export function buildLlmsFullTxt(): string {
-  return `# ${SITE_NAME} — full API reference
+  return `# ${SITE_NAME}: full API reference
 
 ${SUMMARY}
 

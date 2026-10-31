@@ -239,7 +239,7 @@ function counterpartStatus(c: Counterpart): string {
 }
 
 function formatChipTooltip(p: SedPoint | undefined, survey: string): string {
-  if (!p) return `${survey} — no measurement`;
+  if (!p) return `${survey}: no measurement`;
   const origin = p.isSelf
     ? "this object"
     : `${getSearchCatalogLabel(p.catalog)} counterpart at ${p.separationArcsec.toFixed(1)}″`;
