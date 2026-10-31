@@ -10,6 +10,7 @@ import {
   LoadingOutlined,
   RadarChartOutlined,
   ReadOutlined,
+  ReloadOutlined,
   StarOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
@@ -94,7 +95,7 @@ import {
   type PhotometrySource,
   type SedPoint,
 } from "@/app/lib/utils/sed";
-import { buildObjectUrl } from "@/app/lib/utils/urls";
+import { buildNedUrl, buildObjectUrl } from "@/app/lib/utils/urls";
 import type { AladinViewerRef } from "@/types/aladin";
 import type { components } from "@/types/xwave-api";
 
@@ -941,18 +942,56 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
   } else if (literatureFailed) {
     literatureCount = "—";
     literatureContent = (
-      <Text type="secondary">
-        SIMBAD isn&apos;t responding, so the papers can&apos;t be listed right
-        now.
-      </Text>
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        className="py-6"
+        description={
+          <Flex vertical gap={2}>
+            <Text strong>Papers unavailable</Text>
+            <Text type="secondary" className="text-xs">
+              SIMBAD isn&apos;t responding right now.
+            </Text>
+          </Flex>
+        }
+      >
+        <Button
+          size="small"
+          icon={<ReloadOutlined />}
+          loading={simbad.isFetching || literature.isFetching}
+          onClick={() => {
+            simbad.refetch();
+            if (simbadMatch) literature.refetch();
+          }}
+        >
+          Try again
+        </Button>
+      </Empty>
     );
   } else if (!simbadMatch) {
     literatureCount = 0;
     literatureContent = (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description={`SIMBAD has no object within ${simbadRadiusArcsec}″ of this position.`}
-      />
+        className="py-6"
+        description={
+          <Flex vertical gap={2}>
+            <Text strong>No papers</Text>
+            <Text type="secondary" className="text-xs">
+              SIMBAD has no object within {simbadRadiusArcsec}″ of this
+              position.
+            </Text>
+          </Flex>
+        }
+      >
+        <Button
+          size="small"
+          href={buildNedUrl(object.ra, object.dec)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Search NED near this position ↗
+        </Button>
+      </Empty>
     );
   } else {
     literatureCount = literature.data?.total.toLocaleString("en-US");
