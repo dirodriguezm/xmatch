@@ -7,32 +7,17 @@ import (
 	"log/slog"
 
 	"github.com/dirodriguezm/xmatch/service/internal/app"
-	"github.com/dirodriguezm/xmatch/service/internal/catalog"
 
 	"github.com/gin-gonic/gin"
 )
 
-// @title						CrossWave HTTP API
-// @version					1.0
-// @description.markdown		api
-// @host						localhost:8080
+// @title			CrossWave HTTP API
+// @version		1.0
+// @description	API for the CrossWave Xmatch service. This service allows to search for objects in a given region and to retrieve metadata from the catalogs.
+// @host			localhost:8080
 // @BasePath		/v1
 // @contact.name	Diego Rodriguez Mancini
 // @contact.email	diegorodriguezmancini@gmail.com
-// @license.name	Apache 2.0
-// @license.url	http://www.apache.org/licenses/LICENSE-2.0.html
-//
-// @tag.name			conesearch
-// @tag.description	Search for astronomical objects by celestial coordinates (RA/Dec)
-//
-// @tag.name			metadata
-// @tag.description	Retrieve detailed catalog information for specific objects
-//
-// @tag.name			lightcurve
-// @tag.description	Get time-series photometry data for objects
-//
-// @externalDocs.description	ALeRCE Documentation
-// @externalDocs.url			https://alerce.science
 func StartHttpServer(
 	ctx context.Context,
 	getenv func(string) string,
@@ -54,16 +39,14 @@ func StartHttpServer(
 
 	queries := app.ServiceRepository(db)
 
-	resolver := catalog.NewResolver(queries)
-
-	conesearchService, err := app.ConesearchService(queries, resolver)
-	if err != nil {
-		return fmt.Errorf("creating conesearch service: %w", err)
-	}
-
-	metadataService, err := app.MetadataService(resolver)
+	metadataService, err := app.MetadataService(queries)
 	if err != nil {
 		return fmt.Errorf("creating metadata service: %w", err)
+	}
+
+	conesearchService, err := app.ConesearchService(queries, metadataService)
+	if err != nil {
+		return fmt.Errorf("creating conesearch service: %w", err)
 	}
 
 	lightcurveService, err := app.LightcurveService(cfg, conesearchService)

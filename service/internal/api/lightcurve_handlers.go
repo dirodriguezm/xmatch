@@ -8,10 +8,8 @@ import (
 
 // Get lightcurve data for coordinates
 //
-//	@Summary		Get lightcurve data
-//	@Description	Retrieve time-series photometry data (lightcurve) for astronomical objects at the specified coordinates.
-//	@Description	Returns detections, non-detections, and forced photometry measurements.
-//	@ID				lightcurve
+//	@Summary		Get lightcurve data for coordinates
+//	@Description	Get lightcurve data for specified coordinates with search radius and neighbor count
 //	@Tags			lightcurve
 //	@Accept			json
 //	@Produce		json

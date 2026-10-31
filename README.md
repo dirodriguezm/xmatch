@@ -1,106 +1,83 @@
-# CrossWave Xmatch
+# XWave (xmatch)
 
-API for astronomical cross-matching and catalog queries.
+Astronomical cross-match service: cone search, bulk cone search, catalog
+metadata and light curves over Gaia DR3, AllWISE and eROSITA eRASS1, indexed
+with HEALPix.
 
-## Overview
+The repository holds two applications:
 
-CrossWave provides fast cone search and metadata retrieval across multiple astronomical catalogs. The service is optimized for high-throughput queries using HEALPix spatial indexing.
+| Directory  | What it is                         | Stack                                 |
+| ---------- | ---------------------------------- | ------------------------------------- |
+| `service/` | HTTP API and catalog indexer       | Go, Gin, SQLite, Parquet, HEALPix C++ |
+| `ui/`      | Web interface, deployed on Vercel  | Next.js, React, Ant Design, Tailwind  |
 
-### Key Features
+## Service (`service/`)
 
-- **Cone Search**: Find objects within a radius of given celestial coordinates
-- **Bulk Operations**: Process multiple queries in a single request
-- **Metadata Retrieval**: Get detailed catalog information for specific objects
-- **Lightcurves**: Retrieve time-series photometry data
+### Environment
 
-## Prerequisites
-
-- [Nix](https://nixos.org/) with flakes enabled (used via [devenv](https://devenv.sh/) for reproducible development)
-
-The Nix devenv shell provides all other dependencies automatically (Go 1.24, `just`, HEALPix C++ libraries, etc.). The only additional tool you need to install manually is [swag](https://github.com/swaggo/swag) for Swagger docs generation:
-
-```bash
-go install github.com/swaggo/swag/cmd/swag@latest
-```
-
-## Getting Started
+Development uses [Devenv](https://devenv.sh) (Nix, no flakes). With Nix
+installed, enter the shell from the repository root:
 
 ```bash
-# Build the service
-just build
-
-# Run the HTTP server
-just run http-server
-
-# Run the test suite
-just test
-
-# Regenerate Swagger documentation
-just docs
+devenv shell
 ```
 
-### Error Handling
+Shell entry initialises the `healpix` submodule and generates its SWIG
+bindings when needed. See [`AGENTS.md`](AGENTS.md) for the auto-activation
+hook.
 
-All validation errors return a JSON object with the following structure:
+### Commands
 
-```json
-{
-  "field": "ra",
-  "reason": "value out of range",
-  "value": "400.0"
-}
-```
+All commands are devenv scripts, available inside the shell from anywhere in
+the repository:
 
-## API Reference (Swagger)
+| Command                           | Description                                    |
+| --------------------------------- | ---------------------------------------------- |
+| `xwave-build`                     | Build the binary (`service/build/main`)        |
+| `xwave-release`                   | Build the fully static release binary          |
+| `xwave-run <application> [flags]` | Build and run `server` or `indexer`            |
+| `xwave-live-server`               | Run the server with live reload (`air`)        |
+| `xwave-test`                      | Run all tests with the race detector           |
+| `xwave-docs`                      | Regenerate the Swagger docs in `service/docs/` |
+| `xwave-mock`                      | Regenerate mocks with mockery                  |
+| `xwave-migrate <db>`              | Run database migrations on `<db>.db`           |
 
-The full OpenAPI/Swagger specification is available at [`service/docs/swagger.yaml`](service/docs/swagger.yaml). When the HTTP server is running, interactive Swagger UI documentation is served at the `/swagger/index.html` endpoint.
+The full list, including the clean-up scripts, is in [`AGENTS.md`](AGENTS.md).
 
-### Generating the docs
+### API
 
-From the `service/` directory, run:
+| Method | Path                  | Description                            |
+| ------ | --------------------- | -------------------------------------- |
+| GET    | `/v1/conesearch`      | Sources within a radius of a position  |
+| POST   | `/v1/bulk-conesearch` | Cone search for many positions at once |
+| GET    | `/v1/metadata`        | Catalog row for a source id            |
+| POST   | `/v1/bulk-metadata`   | Catalog rows for many source ids       |
+| GET    | `/v1/lightcurve`      | Light curve around a position          |
+
+The OpenAPI spec lives in [`service/docs/`](service/docs/); a running server
+serves Swagger UI at `/swagger/index.html`.
+
+To add a catalog, see [`ADD_NEW_CATALOG.md`](ADD_NEW_CATALOG.md).
+
+## Web interface (`ui/`)
 
 ```bash
-swag init -g cmd/start_http_server.go -o docs --md docs/markdown
+cd ui
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-| Flag | Description |
-|------|-------------|
-| `-g` | Entry point file with the general API annotations |
-| `-o` | Output directory for the generated `docs.go`, `swagger.json`, and `swagger.yaml` |
-| `--md` | Directory containing markdown files used for tag descriptions |
+| Command                  | Description                                           |
+| ------------------------ | ----------------------------------------------------- |
+| `npm run build`          | Production build                                      |
+| `npm test`               | Unit tests (Vitest)                                   |
+| `npm run lint`           | ESLint                                                |
+| `npm run knip`           | Unused files, exports and dependencies                |
+| `npm run generate:types` | Regenerate API types from `service/docs/swagger.json` |
 
-Or, using `just` from the repository root:
-
-```bash
-just docs
-```
-
-## Project Structure
-
-```
-xmatch/
-├── service/                  # Main Go service
-│   ├── cmd/                  # Application entry points (HTTP server, catalog indexer)
-│   ├── internal/
-│   │   ├── api/              # HTTP API handlers and routing
-│   │   ├── search/
-│   │   │   ├── conesearch/   # Cone search logic
-│   │   │   ├── knn/          # K-nearest neighbors search
-│   │   │   ├── lightcurve/   # Lightcurve retrieval
-│   │   │   └── metadata/     # Metadata service
-│   │   ├── catalog_indexer/  # Catalog ingestion (CSV, FITS, Parquet readers)
-│   │   ├── repository/       # Database models and queries
-│   │   ├── config/           # Configuration management
-│   │   ├── db/               # Database migrations
-│   │   ├── di/               # Dependency injection
-│   │   └── web/              # Web UI (templates, i18n, middleware)
-│   ├── docs/                 # Generated Swagger docs
-│   └── ui/                   # Frontend templates and static assets
-├── healpix/                  # HEALPix spatial indexing library (Go + C++ via SWIG)
-├── deploy/                   # Deployment tooling and systemd service
-└── justfile                  # Task runner commands
-```
+The interface calls the public API at `https://xwave-astro.udp.cl/v1`. A
+pre-commit hook runs lint-staged and knip.
 
 ## License
 
-This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
+Apache License 2.0. See [LICENSE](LICENSE).
