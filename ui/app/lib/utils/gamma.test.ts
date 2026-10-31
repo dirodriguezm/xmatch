@@ -43,6 +43,16 @@ describe("parseLcrLightcurve", () => {
     expect(points[1]).toMatchObject({ value: 1.16e-7, upperLimit: true });
   });
 
+  it("drops detections whose error interval collapsed", () => {
+    const points = parseLcrLightcurve({
+      ...json,
+      flux: [...json.flux, [556804801, 0.00104]],
+      flux_error: [...json.flux_error, [556804801, 0.00104, 0.00104]],
+    });
+    expect(points.map((p) => p.value)).not.toContain(0.00104);
+    expect(points).toHaveLength(2);
+  });
+
   it("drops bins whose fit did not converge", () => {
     const points = parseLcrLightcurve({
       ...json,

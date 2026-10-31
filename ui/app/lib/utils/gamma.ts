@@ -121,9 +121,10 @@ type Triple = [number, number, number];
 
 /**
  * Points from the repository's `lightCurveData` JSON: detections with their
- * 1σ bounds (bins with TS ≥ 4) and 95% upper limits for the rest. Bins whose
- * likelihood fit did not converge are dropped, as the repository advises:
- * their fluxes can be off by orders of magnitude.
+ * 1σ bounds (bins with TS ≥ 4) and 95% upper limits for the rest. Failed
+ * fits are dropped: bins flagged as not converged, and detections whose
+ * error interval collapsed to the value itself (Mrk 421 has one at 1e-3,
+ * four decades above the rest).
  */
 export function parseLcrLightcurve(json: unknown): GammaPoint[] {
   const d = (json ?? {}) as {
@@ -140,9 +141,9 @@ export function parseLcrLightcurve(json: unknown): GammaPoint[] {
   );
   const points: GammaPoint[] = [];
   for (const [t, value] of d.flux ?? []) {
-    if (failed.has(t)) continue;
     const b = bounds.get(t);
-    points.push({ mjd: metToMjd(t), value, lo: b?.lo, hi: b?.hi });
+    if (failed.has(t) || !b || !(b.hi > b.lo)) continue;
+    points.push({ mjd: metToMjd(t), value, lo: b.lo, hi: b.hi });
   }
   for (const [t, value] of d.flux_upper_limits ?? []) {
     if (failed.has(t)) continue;
