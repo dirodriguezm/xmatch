@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, apiFetch } from "./client";
+import { ApiError, apiFetch, parseJsonKeepingBigInts } from "./client";
 import {
   bulkConeSearchResponseSchema,
   coneSearchResponseSchema,
@@ -114,5 +114,37 @@ describe("schemas", () => {
     });
     expect(parsed.non_detections).toHaveLength(1);
     expect(parsed.forced_photometry).toEqual([]);
+  });
+});
+
+describe("parseJsonKeepingBigInts", () => {
+  it("keeps 64-bit ids exact and leaves everything else alone", () => {
+    const parsed = parseJsonKeepingBigInts(
+      '{"source_id":3700386905605055360,"cntr":98140801351043708,"ipix":45450570725,"ra":187.2779,"name":"x:1234567890123456789,"}'
+    ) as Record<string, unknown>;
+    expect(parsed.source_id).toBe("3700386905605055360");
+    expect(parsed.cntr).toBe("98140801351043708");
+    expect(parsed.ipix).toBe(45450570725);
+    expect(parsed.ra).toBe(187.2779);
+    expect(parsed.name).toBe("x:1234567890123456789,");
+  });
+
+  it("leaves long floats alone", () => {
+    expect(
+      parseJsonKeepingBigInts(
+        '{"ra_error":0.018106548115611076,"f":1.4168050808297E-11,"n":-12345678901234567890}'
+      )
+    ).toEqual({
+      ra_error: 0.018106548115611076,
+      f: 1.4168050808297e-11,
+      n: "-12345678901234567890",
+    });
+  });
+
+  it("handles ids in arrays", () => {
+    expect(parseJsonKeepingBigInts("[1234567890123456789, 7]")).toEqual([
+      "1234567890123456789",
+      7,
+    ]);
   });
 });

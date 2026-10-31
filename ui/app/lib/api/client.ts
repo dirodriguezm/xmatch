@@ -14,6 +14,23 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * JSON.parse with integers of 16+ digits kept as strings. Catalogue ids
+ * (Gaia source_id, AllWISE cntr) are 64-bit and lose their last digits as
+ * JavaScript numbers: 3700386905605055360 would read as …055500. String
+ * literals are skipped whole, and floats never match, so only bare integers
+ * change.
+ */
+export function parseJsonKeepingBigInts(text: string): unknown {
+  return JSON.parse(
+    text.replace(
+      // A whole string literal (left as is), or a bare big integer.
+      /"(?:[^"\\]|\\.)*"|(?<![\d.eE+-])(-?\d{16,})(?=\s*[,\]}])/g,
+      (match, bigInt?: string) => (bigInt ? `"${bigInt}"` : match)
+    )
+  );
+}
+
 /** Turns the service's `{Field, Reason}` body into "RA: Could not parse float." */
 function errorMessage(text: string, fallback: string): string {
   try {
@@ -56,7 +73,9 @@ export async function apiFetch<S extends z.ZodType>(
     );
   }
 
-  const parsed = schema.safeParse(await response.json());
+  const parsed = schema.safeParse(
+    parseJsonKeepingBigInts(await response.text())
+  );
   if (!parsed.success) {
     const path = endpoint.split("?")[0];
     throw new ApiError(
