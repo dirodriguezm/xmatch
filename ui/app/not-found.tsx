@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useSyncExternalStore } from "react";
 
 import { PageShell } from "@/app/components/layout";
 
@@ -12,8 +12,25 @@ const PLACES = [
   { href: "/", label: "Home", body: "start over" },
 ];
 
+function subscribeNoop() {
+  return () => {};
+}
+
+/**
+ * The requested path, read on the client only: the server renders this page
+ * for the not-found route, so usePathname() there doesn't match the URL and
+ * hydration fails.
+ */
+function useRequestedPath(): string {
+  return useSyncExternalStore(
+    subscribeNoop,
+    () => window.location.pathname,
+    () => ""
+  );
+}
+
 export default function NotFound() {
-  const pathname = usePathname();
+  const pathname = useRequestedPath();
 
   return (
     <PageShell>
