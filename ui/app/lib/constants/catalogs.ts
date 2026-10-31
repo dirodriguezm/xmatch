@@ -36,16 +36,16 @@ export const CATALOG_DEFAULT_RADII: Record<
 };
 
 export const CATALOG_COLOR_CLASSES: Record<string, string> = {
-  allwise: "bg-purple-600",
-  gaia: "bg-blue-500",
-  erosita: "bg-pink-500",
+  allwise: "bg-cat-allwise",
+  gaia: "bg-cat-gaia",
+  erosita: "bg-cat-erosita",
 };
 
 /** Same colours as CATALOG_COLOR_CLASSES, for SVG marks. */
 export const CATALOG_FILL_CLASSES: Record<string, string> = {
-  allwise: "fill-purple-600",
-  gaia: "fill-blue-500",
-  erosita: "fill-pink-500",
+  allwise: "fill-cat-allwise",
+  gaia: "fill-cat-gaia",
+  erosita: "fill-cat-erosita",
 };
 
 export function buildDefaultCatalogConfigs(): CatalogRadiusConfig[] {
@@ -61,8 +61,8 @@ export const CATALOGS: Record<string, CatalogConfig> = {
   GAIA_DR3: {
     id: "gaia_dr3",
     label: "GAIA DR3",
-    color: "#1890ff",
-    antdColor: "blue",
+    color: "#e0b84c",
+    antdColor: "gold",
   },
   SIMBAD: {
     id: "simbad",
@@ -79,20 +79,20 @@ export const CATALOGS: Record<string, CatalogConfig> = {
   WISE: {
     id: "wise",
     label: "WISE",
-    color: "#722ed1",
-    antdColor: "purple",
+    color: "#e8684a",
+    antdColor: "volcano",
   },
   ALLWISE: {
     id: "allwise",
     label: "AllWISE",
-    color: "#722ed1",
-    antdColor: "purple",
+    color: "#e8684a",
+    antdColor: "volcano",
   },
   EROSITA: {
     id: "erosita",
     label: "eROSITA",
-    color: "#eb2f96",
-    antdColor: "pink",
+    color: "#5cc3e8",
+    antdColor: "cyan",
   },
 } as const;
 
@@ -113,9 +113,9 @@ export function getSearchCatalogLabel(slug: string): string {
  * {@link CATALOG_COLOR_CLASSES} so the sidebar and the results table agree.
  */
 const SEARCH_CATALOG_COLORS: Record<CatalogOption, string> = {
-  allwise: "#722ed1",
-  gaia: "#1890ff",
-  erosita: "#eb2f96",
+  allwise: "#e8684a",
+  gaia: "#e0b84c",
+  erosita: "#5cc3e8",
 };
 
 /**

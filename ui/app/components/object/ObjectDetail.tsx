@@ -111,9 +111,9 @@ const SKY_FOV_NEARBY_DEG = 1.6 / 60;
 
 /** Legend rings in the catalog colours (layers are keyed by label). */
 const CATALOG_BORDER_CLASSES: Record<string, string> = {
-  AllWISE: "border-[#722ed1]",
-  Gaia: "border-[#1890ff]",
-  eROSITA: "border-[#eb2f96]",
+  AllWISE: "border-cat-allwise",
+  Gaia: "border-cat-gaia",
+  eROSITA: "border-cat-erosita",
 };
 
 const SURVEY_OPTIONS = [

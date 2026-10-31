@@ -18,7 +18,7 @@ export function pickCatalog(u: number): CatalogOption {
   return u < 0.55 ? "gaia" : u < 0.82 ? "allwise" : "erosita";
 }
 
-export const HIT = "#36cfc9";
+export const HIT = "#7ea2ff";
 export const MUTED = "#868a96";
 
 export function formatNumber(n: number, digits = 0) {

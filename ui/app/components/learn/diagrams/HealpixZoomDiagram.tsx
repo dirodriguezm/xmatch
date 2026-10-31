@@ -198,7 +198,7 @@ export function HealpixZoomDiagram() {
   const shown = digits.slice(0, k);
   const address = (
     <span className="break-all font-mono text-base text-foreground">
-      <span className="text-[#36cfc9]">{deep.face}</span>
+      <span className="text-primary-text">{deep.face}</span>
       {k > 0 && " · "}
       {shown.slice(0, 3).join(" ")}
       {k > 3 && (
@@ -208,7 +208,7 @@ export function HealpixZoomDiagram() {
         </span>
       )}
       {k === 18 && (
-        <span className="text-[#36cfc9]"> {shown.slice(14).join(" ")}</span>
+        <span className="text-primary-text"> {shown.slice(14).join(" ")}</span>
       )}
     </span>
   );

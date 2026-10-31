@@ -27,6 +27,13 @@
   --color-neutral-400: #a3a9b5;
   --color-neutral-500: #7d8494;
   --color-neutral-600: #555c6a;
+
+  /* Catalog colours follow each survey's band, long to short waves:
+     AllWISE mid-infrared (coral), Gaia optical G (gold), eROSITA X-ray
+     (ice). Keep in sync with SEARCH_CATALOG_COLORS in constants/catalogs. */
+  --color-cat-allwise: #e8684a;
+  --color-cat-gaia: #e0b84c;
+  --color-cat-erosita: #5cc3e8;
 }
 
 @theme inline {

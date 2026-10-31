@@ -34,9 +34,9 @@ interface XWaveSpinnerProps {
   className?: string;
 }
 
-const GAIA = "#4096ff";
-const ALLWISE = "#9254de";
-const EROSITA = "#eb2f96";
+const GAIA = "#e0b84c";
+const ALLWISE = "#e8684a";
+const EROSITA = "#5cc3e8";
 const FAINT = "#3a3d47";
 
 const f = (n: number) => n.toFixed(2);

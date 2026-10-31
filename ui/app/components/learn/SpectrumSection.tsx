@@ -294,7 +294,7 @@ export function SpectrumSection() {
             aria-label="Wavelength"
             onKeyDown={onRulerKey}
           >
-            <div className="absolute inset-x-0 top-[22px] h-2.5 rounded-full bg-[linear-gradient(90deg,#ff7a45_0%,#c2410c_18%,#7c3aed_36%,#9254de_46%,#4096ff_62%,#a5d8ff_70%,#eb2f96_90%,#f9a8d4_100%)] opacity-85" />
+            <div className="absolute inset-x-0 top-[22px] h-2.5 rounded-full bg-[linear-gradient(90deg,#6b4a3e_0%,#8a4b3a_18%,#e8684a_36%,#ee8a5c_46%,#e0b84c_62%,#f0d78a_70%,#5cc3e8_90%,#a8e1f4_100%)] opacity-85" />
             {BANDS.map((b, i) => (
               <button
                 key={b.file}

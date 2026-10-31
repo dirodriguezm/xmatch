@@ -136,14 +136,14 @@ export function maxRadius(
 
 // Tailwind needs full literal class names, so these live as lookup tables.
 export const CATALOG_STROKE_CLASSES: Record<string, string> = {
-  allwise: "stroke-purple-500",
-  gaia: "stroke-blue-500",
-  erosita: "stroke-pink-500",
+  allwise: "stroke-cat-allwise",
+  gaia: "stroke-cat-gaia",
+  erosita: "stroke-cat-erosita",
 };
 export const CATALOG_FILL: Record<string, string> = {
-  allwise: "fill-purple-500",
-  gaia: "fill-blue-500",
-  erosita: "fill-pink-500",
+  allwise: "fill-cat-allwise",
+  gaia: "fill-cat-gaia",
+  erosita: "fill-cat-erosita",
 };
 
 export const strokeClass = (slug: string) =>
