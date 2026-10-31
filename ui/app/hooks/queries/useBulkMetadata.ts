@@ -1,19 +1,12 @@
 import { useQueries } from "@tanstack/react-query";
 
+import type { MetadataRecord } from "@/app/lib/api/schemas";
+
 /**
- * Metadata as an open bag.
- *
- * The generated `repository.Allwise` is the only metadata schema the service
- * publishes, yet every catalog answers with a different field set (gaia →
- * `phot_*_mean_mag`, erosita → unverified). Rather than cast that type onto
- * payloads it does not describe, model what is actually guaranteed — an id and
- * a position — and funnel every other field access through `pickMag`.
+ * Metadata is an open bag: only the id and position are guaranteed (see
+ * `metadataRecordSchema`); every other field access goes through `pickMag`.
  */
-export interface MetadataRecord extends Record<string, unknown> {
-  id?: string;
-  ra?: number;
-  dec?: number;
-}
+export type { MetadataRecord };
 
 export interface BulkMetadataRequest {
   catalog: string;

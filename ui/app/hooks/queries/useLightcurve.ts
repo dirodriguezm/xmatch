@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import type { components } from "@/types/xwave-api";
-
-type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
+import type { Lightcurve } from "@/app/lib/api/schemas";
 
 export interface LightcurveParams {
   ra: number;

@@ -39,7 +39,8 @@
     "nuqs": "^2.8.8",
     "prism-react-renderer": "^2.4.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "zod": "^4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

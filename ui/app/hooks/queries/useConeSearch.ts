@@ -1,5 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 
+import type { ConeGroup } from "@/app/lib/api/schemas";
 import {
   type CatalogRadiusConfig,
   CONE_SEARCH_MAX_NEIGHBORS,
@@ -7,19 +8,7 @@ import {
   MAX_RADIUS_ARCSEC,
 } from "@/app/lib/constants/search";
 
-export interface CatalogGroupItem {
-  id?: string;
-  ipix?: number;
-  ra?: number;
-  dec?: number;
-  cat?: string;
-  distance?: number;
-}
-
-export interface CatalogGroup {
-  catalog: string;
-  data: CatalogGroupItem[];
-}
+export type { ConeGroup as CatalogGroup };
 
 export interface ConeSearchParams {
   ra: number;
@@ -42,7 +31,7 @@ export class ConeSearchError extends Error {
 
 export async function fetchConeSearch(
   params: ConeSearchParams
-): Promise<CatalogGroup[]> {
+): Promise<ConeGroup[]> {
   // Refuse radii the backend will not answer rather than leaving the user on a
   // spinner until the browser gives up. See MAX_RADIUS_ARCSEC for the measurements.
   if (params.radius > MAX_RADIUS_ARCSEC) {

@@ -7,6 +7,8 @@
  * with an optional name column before or after the coordinates.
  */
 
+import type { BulkConeGroup as BulkApiMatch } from "@/app/lib/api/schemas";
+
 import { toCsv } from "./csv";
 
 /** Rows per bulk request. The backend has no list cap; this keeps the UI snappy. */
@@ -343,18 +345,7 @@ Crab Pulsar,83.633083,22.014500`;
 // ── Results ────────────────────────────────────────────────────────────────
 
 /** One element of the `/bulk-conesearch` response. */
-export interface BulkApiMatch {
-  catalog: string;
-  data: {
-    id?: string;
-    ra?: number;
-    dec?: number;
-    cat?: string;
-    distance?: number;
-    ipix?: number;
-  }[];
-  index: number;
-}
+export type { BulkApiMatch };
 
 export interface BulkMatch {
   catalog: string;

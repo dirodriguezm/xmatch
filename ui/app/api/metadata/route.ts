@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { ApiError, apiFetch } from "@/app/lib/api/client";
-import type { components } from "@/types/xwave-api";
-
-type Allwise = components["schemas"]["repository.Allwise"];
+import { metadataRecordSchema } from "@/app/lib/api/schemas";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -25,7 +23,10 @@ export async function GET(request: NextRequest) {
   });
 
   try {
-    const result = await apiFetch<Allwise>(`/metadata?${externalParams}`);
+    const result = await apiFetch(
+      `/metadata?${externalParams}`,
+      metadataRecordSchema
+    );
     return NextResponse.json(result ?? null);
   } catch (error) {
     console.error("Metadata proxy error:", error);

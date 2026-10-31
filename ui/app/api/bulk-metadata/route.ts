@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import type { MetadataRecord } from "@/app/hooks/queries/useBulkMetadata";
 import { ApiError, apiFetch } from "@/app/lib/api/client";
+import { bulkMetadataResponseSchema } from "@/app/lib/api/schemas";
 
 /**
  * Proxy for `POST /bulk-metadata`.
@@ -48,10 +48,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await apiFetch<MetadataRecord[]>("/bulk-metadata", {
-      method: "POST",
-      body: JSON.stringify({ catalog, ids }),
-    });
+    const result = await apiFetch(
+      "/bulk-metadata",
+      bulkMetadataResponseSchema,
+      {
+        method: "POST",
+        body: JSON.stringify({ catalog, ids }),
+      }
+    );
     // A 204 makes apiFetch return null. Normalize to [] so the client never has
     // to tell "no metadata for these ids" apart from "the request failed".
     return NextResponse.json(Array.isArray(result) ? result : []);

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { ApiError, apiFetch } from "@/app/lib/api/client";
+import { bulkConeSearchResponseSchema } from "@/app/lib/api/schemas";
 import { MAX_RADIUS_ARCSEC } from "@/app/lib/constants/search";
-import { type BulkApiMatch, MAX_BULK_ROWS } from "@/app/lib/utils/bulkInput";
+import { MAX_BULK_ROWS } from "@/app/lib/utils/bulkInput";
 
 /**
  * Proxy for `POST /bulk-conesearch`.
@@ -90,10 +91,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await apiFetch<BulkApiMatch[]>("/bulk-conesearch", {
-      method: "POST",
-      body: JSON.stringify({ ra, dec, radius, catalog: cat, nneighbor: n }),
-    });
+    const result = await apiFetch(
+      "/bulk-conesearch",
+      bulkConeSearchResponseSchema,
+      {
+        method: "POST",
+        body: JSON.stringify({ ra, dec, radius, catalog: cat, nneighbor: n }),
+      }
+    );
     // 204 (no matches anywhere) → apiFetch returns null.
     return NextResponse.json(Array.isArray(result) ? result : []);
   } catch (error) {

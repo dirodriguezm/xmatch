@@ -1,15 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 
-import type { components } from "@/types/xwave-api";
-
-type Allwise = components["schemas"]["repository.Allwise"];
+import type { MetadataRecord } from "@/app/lib/api/schemas";
 
 export interface MetadataParams {
   id: string;
   catalog: string;
 }
 
-async function fetchMetadata(params: MetadataParams): Promise<Allwise | null> {
+async function fetchMetadata(
+  params: MetadataParams
+): Promise<MetadataRecord | null> {
   const searchParams = new URLSearchParams({
     id: params.id,
     catalog: params.catalog,

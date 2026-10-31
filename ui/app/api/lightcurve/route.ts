@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { ApiError, apiFetch } from "@/app/lib/api/client";
-import type { components } from "@/types/xwave-api";
-
-type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
+import { lightcurveResponseSchema } from "@/app/lib/api/schemas";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -30,7 +28,10 @@ export async function GET(request: NextRequest) {
   if (nneighbor) externalParams.set("nneighbor", nneighbor);
 
   try {
-    const result = await apiFetch<Lightcurve>(`/lightcurve?${externalParams}`);
+    const result = await apiFetch(
+      `/lightcurve?${externalParams}`,
+      lightcurveResponseSchema
+    );
     return NextResponse.json(result ?? null);
   } catch (error) {
     console.error("Lightcurve proxy error:", error);

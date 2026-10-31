@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { ApiError, apiFetch } from "@/app/lib/api/client";
-import type { components } from "@/types/xwave-api";
-
-type Mastercat = components["schemas"]["repository.Mastercat"];
+import { coneSearchResponseSchema } from "@/app/lib/api/schemas";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -36,7 +34,10 @@ export async function GET(request: NextRequest) {
   if (getMetadata) externalParams.set("getMetadata", getMetadata);
 
   try {
-    const result = await apiFetch<Mastercat[]>(`/conesearch?${externalParams}`);
+    const result = await apiFetch(
+      `/conesearch?${externalParams}`,
+      coneSearchResponseSchema
+    );
     return NextResponse.json(result ?? []);
   } catch (error) {
     console.error("Conesearch proxy error:", error);
