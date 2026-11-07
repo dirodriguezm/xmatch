@@ -9,7 +9,7 @@ import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { getBandColor } from "@/app/lib/constants/bands";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
 import { formatMjdDateTime } from "@/app/lib/utils/format";
-import type { components } from "@/types/xwave-api";
+import type { DetectionPoint } from "@/app/lib/utils/lightcurve";
 
 import { TIME_AXIS_LABEL, TIME_AXIS_NAME_GAP, TIME_GRID } from "./timeAxis";
 
@@ -17,10 +17,9 @@ const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
 const { Text } = Typography;
 
-type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
-
 interface LightCurveChartProps {
-  data: Lightcurve | null | undefined;
+  /** Points already expanded per survey; see `expandDetection`. */
+  data: { detections?: DetectionPoint[] | null } | null | undefined;
   loading?: boolean;
   error?: Error | null;
   mjdRange?: { min: number; max: number };
@@ -28,32 +27,8 @@ interface LightCurveChartProps {
   magSystem?: string;
 }
 
-// Detection point structure (assumed based on common light curve formats)
-interface DetectionPoint {
-  mjd?: number;
-  mag?: number;
-  magerr?: number;
-  fid?: number;
-  band?: string;
-  [key: string]: unknown;
-}
-
-function parseDetections(detections: unknown[]): DetectionPoint[] {
-  return detections.map((d) => {
-    if (typeof d === "object" && d !== null) {
-      return d as DetectionPoint;
-    }
-    return {};
-  });
-}
-
 function getBandName(point: DetectionPoint): string {
-  if (point.band) return point.band;
-  if (point.fid !== undefined) {
-    const fidMap: Record<number, string> = { 1: "g", 2: "r", 3: "i" };
-    return fidMap[point.fid] || `fid${point.fid}`;
-  }
-  return "unknown";
+  return point.band ?? "unknown";
 }
 
 export function LightCurveChart({
@@ -98,7 +73,7 @@ export function LightCurveChart({
     );
   }
 
-  const detections = parseDetections(data.detections);
+  const detections = data.detections;
 
   // Group by band
   const bandData: Record<string, [number, number, number][]> = {};
@@ -130,11 +105,11 @@ export function LightCurveChart({
 
   // Calculate axis bounds
   const allMjd = detections
-    .filter((d) => d.mjd !== undefined)
-    .map((d) => d.mjd!);
+    .map((d) => d.mjd)
+    .filter((m): m is number => m !== undefined);
   const allMag = detections
-    .filter((d) => d.mag !== undefined)
-    .map((d) => d.mag!);
+    .map((d) => d.mag)
+    .filter((m): m is number => m !== undefined);
 
   const mjdBounds = mjdRange ?? calculateAxisBounds(allMjd, 0.05, 1);
   const magBounds = calculateAxisBounds(allMag, 0.1, 0.1);

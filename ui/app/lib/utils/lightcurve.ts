@@ -1,8 +1,6 @@
-import type { components } from "@/types/xwave-api";
+import type { Lightcurve } from "@/app/lib/api/schemas";
 
 import { csvCell } from "./csv";
-
-type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
 
 const SENTINEL = -999;
 
@@ -169,6 +167,9 @@ export function groupDetectionsByCatalog(
   const out: Record<string, DetectionPoint[]> = {};
   for (const raw of lc.detections as unknown[]) {
     if (typeof raw !== "object" || raw === null) continue;
+    // The proxy schema only checks the fields every catalog shares (catalog,
+    // mjd, mag, magerr); per-survey columns arrive under the untouched `data`
+    // bag, which `expandDetection` reads.
     const det = raw as LightcurveDetection;
     const catalog = (det.catalog || "").toLowerCase();
     if (!catalog || skip.has(catalog)) continue;

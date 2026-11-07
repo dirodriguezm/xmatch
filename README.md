@@ -73,7 +73,6 @@ yarn dev           # http://localhost:3000
 | `yarn test`           | Unit tests (Vitest)                                   |
 | `yarn lint`           | ESLint                                                |
 | `yarn knip`           | Unused files, exports and dependencies                |
-| `yarn generate:types` | Regenerate API types from `service/docs/swagger.json` |
 
 The package manager is Yarn 1; `yarn.lock` is the only lockfile.
 
