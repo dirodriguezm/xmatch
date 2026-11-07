@@ -62,6 +62,7 @@ import {
   useXmmSource,
   useZtfLightcurve,
 } from "@/app/hooks/queries";
+import type { MetadataRecord } from "@/app/lib/api/schemas";
 import { PHOTOMETRY_BANDS } from "@/app/lib/constants/bands";
 import { describeCatalogField } from "@/app/lib/constants/catalogFields";
 import {
@@ -97,7 +98,6 @@ import {
 } from "@/app/lib/utils/sed";
 import { buildNedUrl, buildObjectUrl } from "@/app/lib/utils/urls";
 import type { AladinViewerRef } from "@/types/aladin";
-import type { components } from "@/types/xwave-api";
 
 import { AladinViewer } from "./AladinViewer";
 import { ChandraSourcePanel } from "./ChandraSourcePanel";
@@ -231,8 +231,6 @@ const surveySelectOptions = Object.entries(
 
 const { Text, Title } = Typography;
 
-type Allwise = components["schemas"]["repository.Allwise"];
-
 /** Tabs below the header, by what someone came to look up. */
 const OBJECT_TABS = [
   "overview",
@@ -273,7 +271,7 @@ function tabLabel(title: string, count?: ReactNode) {
 
 interface ObjectDetailProps {
   object: CrossmatchResult;
-  metadata?: Allwise | null;
+  metadata?: MetadataRecord | null;
 }
 
 function formatSigned(value: number, decimals: number): string {
@@ -359,7 +357,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     message.success(`${label} copied to clipboard`);
   };
 
-  const meta = metadata as Record<string, unknown> | undefined;
+  const meta = metadata;
   const galactic = equatorialToGalactic(object.ra, object.dec);
   const ecliptic = equatorialToEcliptic(object.ra, object.dec);
 
@@ -592,11 +590,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       ),
       children: (
         <LightCurveChart
-          data={{
-            detections: points,
-            non_detections: [],
-            forced_photometry: [],
-          }}
+          data={{ detections: points }}
           mjdRange={sharedMjdRange}
           magSystem={getMagSystem(catalog)}
         />

@@ -1,9 +1,14 @@
 /**
- * Runtime shapes of the XWave API responses, checked in the proxy routes
- * before anything reaches the browser. The generated `types/xwave-api.d.ts`
- * comes from the Swagger spec, which lags the service (it types /conesearch
- * as `Mastercat[]`, and every catalog's metadata as `Allwise`); these schemas
- * follow what the API actually returns.
+ * The XWave API contract: request/response shapes of the endpoints the
+ * interface uses. Each proxy route under `app/api/` checks its upstream
+ * response against one of these schemas before returning it, and every type
+ * the UI works with is inferred from them, so there is no separate generated
+ * type set to keep in sync.
+ *
+ * They follow what the service returns, not what the Swagger spec says: the
+ * spec declares `/conesearch` and `/bulk-conesearch` as `MastercatResult[]`,
+ * although the handlers return results grouped per catalog, and it types every
+ * catalog's metadata as `Allwise` when each has its own columns.
  *
  * Objects are loose: unknown fields pass through untouched, so a new column
  * in the service never breaks the UI. Only the fields the UI reads are
