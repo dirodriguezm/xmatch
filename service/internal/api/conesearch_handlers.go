@@ -25,57 +25,71 @@ import (
 // Search for objects in a given region using multiple coordinates
 //
 //	@Summary		Search for objects in a given region using multiple coordinates
-//	@Description	Search for objects in a given region using lists of ra, dec and a single radius. Radius is in arcseconds. Results are grouped by catalog.
+//	@Description	Search for objects in a given region using lists of ra, dec and a single radius. Radius, catalog and nneighbor are query parameters; the body only carries coordinates, as a JSON object with ra/dec arrays, a raw CSV body with ra and dec columns, or a multipart/form-data upload in the file field. Radius is in arcseconds. Results are grouped by catalog.
 //	@Tags			conesearch
-//	@Accept			json
+//	@Accept			json,text/csv,multipart/form-data
 //	@Produce		json
 //
-//	@Param			request	body		BulkConesearchRequest	true	"Bulk conesearch request"
+//	@Param			radius		query		string					true	"Radius in arcseconds"
+//	@Param			catalog		query		string					false	"Catalog to search in (default: all)"
+//	@Param			nneighbor	query		string					false	"Number of neighbors to return (default: 1)"
+//	@Param			request		body		BulkConesearchRequest	false	"Bulk conesearch request with ra and dec arrays"
 //
-//	@Success		200		{array}		conesearch.MastercatResult
-//	@Success		204		"No Content"
-//	@Failure		400		{object}	conesearch.ValidationError
-//	@Failure		500		{string}	string
+//	@Success		200			{array}		conesearch.MastercatResult
+//	@Success		204			"No Content"
+//	@Failure		400			{object}	conesearch.ValidationError
+//	@Failure		500			{string}	string
 //	@Router			/bulk-conesearch [post]
 func (api *API) conesearchBulk(c *gin.Context) {
-	var bulkRequest BulkConesearchRequest
-	if err := c.ShouldBindJSON(&bulkRequest); err != nil {
-		c.Error(err)
-		c.JSON(http.StatusBadRequest, NewParseError("", "body", err.Error()))
+	parsedRadius, err := parseRadius(c.Query("radius"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+	parsedNneighbor, err := parseNneighbor(c.DefaultQuery("nneighbor", "1"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+	catalog := c.DefaultQuery("catalog", "all")
+
+	ra, dec, err := api.parseBulkConesearchInput(c)
+	if err != nil {
+		_ = c.Error(err)
+		c.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	if bulkRequest.Nneighbor == 0 {
-		bulkRequest.Nneighbor = 1
-	}
-	if bulkRequest.Catalog == "" {
-		bulkRequest.Catalog = "all"
-	}
-
 	result, err := api.conesearchService.BulkConesearch(
-		bulkRequest.Ra,
-		bulkRequest.Dec,
-		bulkRequest.Radius,
-		bulkRequest.Nneighbor,
-		bulkRequest.Catalog,
+		ra,
+		dec,
+		parsedRadius,
+		parsedNneighbor,
+		catalog,
 		api.config.BulkChunkSize,
 		api.config.MaxBulkConcurrency,
 	)
 	if err != nil {
-		if errors.As(err, &conesearch.ValidationError{}) {
-			c.JSON(http.StatusBadRequest, err)
-		} else {
-			c.Error(err)
-			c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
-		}
+		handleServiceError(err, c)
 		return
 	}
-	if len(result) == 0 {
-		c.Writer.WriteHeader(http.StatusNoContent)
-		return
-	}
+	handleServiceSuccess(result, c)
+}
 
-	c.JSON(http.StatusOK, result)
+func (api *API) parseBulkConesearchInput(c *gin.Context) ([]float64, []float64, error) {
+	contentType := c.ContentType()
+	switch {
+	case isBulkConesearchMultipartContentType(contentType):
+		return api.parseBulkConesearchCSVFile(c)
+	case isBulkConesearchCSVContentType(contentType):
+		return parseBulkConesearchCSV(c.Request.Body, api.config.BulkConesearchMaxRows)
+	default:
+		var bulkRequest BulkConesearchRequest
+		if err := c.ShouldBindJSON(&bulkRequest); err != nil {
+			return nil, nil, NewParseError("", "body", err.Error())
+		}
+		return bulkRequest.Ra, bulkRequest.Dec, nil
+	}
 }
 
 // Search for objects in a given region
@@ -146,7 +160,7 @@ func handleServiceError(serviceErr error, c *gin.Context) {
 	if errors.As(serviceErr, &conesearch.ValidationError{}) {
 		c.JSON(http.StatusBadRequest, serviceErr)
 	} else {
-		c.Error(serviceErr)
+		_ = c.Error(serviceErr)
 		c.JSON(http.StatusInternalServerError, "Could not execute conesearch")
 	}
 }

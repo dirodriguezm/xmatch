@@ -9,7 +9,6 @@ import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import { getBandColor } from "@/app/lib/constants/bands";
 import { calculateAxisBounds } from "@/app/lib/utils/data";
 import { formatMjdDateTime } from "@/app/lib/utils/format";
-import type { components } from "@/types/xwave-api";
 
 import { TIME_AXIS_LABEL, TIME_AXIS_NAME_GAP, TIME_GRID } from "./timeAxis";
 
@@ -17,10 +16,14 @@ const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
 const { Text } = Typography;
 
-type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
+interface LightcurveChartData {
+  detections?: unknown[] | null;
+  non_detections?: unknown[] | null;
+  forced_photometry?: unknown[] | null;
+}
 
 interface LightCurveChartProps {
-  data: Lightcurve | null | undefined;
+  data: LightcurveChartData | null | undefined;
   loading?: boolean;
   error?: Error | null;
   mjdRange?: { min: number; max: number };

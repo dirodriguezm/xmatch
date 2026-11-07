@@ -27,7 +27,8 @@ export const LLMS_EXAMPLES = {
   lightcurve: `${API_BASE_URL}/lightcurve?ra=${EX.ra}&dec=${EX.dec}&radius=5`,
 };
 
-const BULK_BODY = `{"ra": [10.6847, 83.6331], "dec": [41.269, 22.0145], "radius": 5, "catalog": "all", "nneighbor": 1}`;
+const BULK_QUERY = "radius=5&catalog=all&nneighbor=1";
+const BULK_BODY = `{"ra": [10.6847, 83.6331], "dec": [41.269, 22.0145]}`;
 
 function catalogTitle(m: CatalogMeta): string {
   return m.release.startsWith(m.name) ? m.release : `${m.name} ${m.release}`;
@@ -57,7 +58,7 @@ All radii are in arcseconds. Keep radius ≤ ${MAX_RADIUS_ARCSEC}″; larger con
 - [Cone search](${LLMS_EXAMPLES.conesearch}): \`GET /conesearch\`, params \`ra\`, \`dec\` (deg, required), \`radius\` (arcsec, required), \`catalog\` (all|gaia|allwise|erosita, default all), \`nneighbor\` (max sources per catalog, default 1), \`getMetadata\` (bool). Returns \`[{catalog, data: [{id, ra, dec, cat, ipix, distance}]}]\`, distance in arcsec.
 - [Metadata](${LLMS_EXAMPLES.metadata}): \`GET /metadata\`, params \`id\` (source id from a cone search), \`catalog\` (gaia|allwise|erosita). Returns the catalog row (photometry, astrometry, flags).
 - [Light curve](${LLMS_EXAMPLES.lightcurve}): \`GET /lightcurve\`, params \`ra\`, \`dec\`, \`radius\` (arcsec), \`catalog\` (all|ztf|neowise|allwise), \`nneighbor\`. Returns \`{detections, non_detections, forced_photometry}\`, each entry \`{catalog, id, object_id, mjd, mag, magerr, data}\`.
-- [Bulk cone search](${SITE_URL}/developers): \`POST /bulk-conesearch\`, JSON body \`${BULK_BODY}\`. Same response as cone search plus \`index\` (position in the input arrays).
+- [Bulk cone search](${SITE_URL}/developers): \`POST /bulk-conesearch?${BULK_QUERY}\`, JSON body \`${BULK_BODY}\`. Same response as cone search plus \`index\` (position in the input arrays).
 - [Bulk metadata](${SWAGGER_URL}): \`POST /bulk-metadata\`, JSON body \`{"ids": ["…"], "catalog": "allwise"}\`.
 
 ## Catalogs
@@ -143,18 +144,22 @@ Response 400 (conesearch.ValidationError): \`{"field": "radius", "reason": "..."
 
 ## POST /bulk-conesearch
 
-Cone search many positions in one request with a shared radius. Positions are searched in parallel.
+Cone search many positions in one request with a shared radius, catalog and neighbor limit. Positions are searched in parallel.
 
-JSON body (BulkConesearchRequest):
-- \`ra\` (number[], required): RA values in degrees.
-- \`dec\` (number[], required): Dec values in degrees; same length as \`ra\`.
+Query parameters:
 - \`radius\` (number, required): radius in arcseconds.
 - \`catalog\` (string, optional, default \`all\`).
 - \`nneighbor\` (integer, optional, default 1): max sources per catalog per position.
 
+JSON body (BulkConesearchRequest):
+- \`ra\` (number[], required): RA values in degrees.
+- \`dec\` (number[], required): Dec values in degrees; same length as \`ra\`.
+
+Alternatively, send a CSV with a header containing \`ra\` and \`dec\` columns in degrees, either as a raw \`text/csv\` body or as a \`multipart/form-data\` file in the \`file\` field. Extra columns are allowed up to 10 total columns; up to 50,000 rows are processed.
+
 Example:
 \`\`\`
-curl -X POST "${API_BASE_URL}/bulk-conesearch" -H "Content-Type: application/json" -d '${BULK_BODY}'
+curl -X POST "${API_BASE_URL}/bulk-conesearch?${BULK_QUERY}" -H "Content-Type: application/json" -d '${BULK_BODY}'
 \`\`\`
 
 Response 200: same shape as /conesearch, one group per (position, catalog) with an extra \`index\` field giving the 0-based position in the input arrays. Positions with no match are omitted. 204 if nothing matched at all.

@@ -93,9 +93,10 @@ class XWave:
     @classmethod
     def query_bulk(cls, coords, radius=2 * u.arcsec, catalog="all"):
         c = coords.icrs
-        r = requests.post(f"{cls.URL}/bulk-conesearch", timeout=300, json={
-            "ra": list(c.ra.deg), "dec": list(c.dec.deg),
+        r = requests.post(f"{cls.URL}/bulk-conesearch", timeout=300, params={
             "radius": radius.to_value(u.arcsec), "catalog": catalog,
+        }, json={
+            "ra": list(c.ra.deg), "dec": list(c.dec.deg),
         })
         r.raise_for_status()
         rows = [{**row, "input_index": g["index"]}

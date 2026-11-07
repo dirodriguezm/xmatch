@@ -42,12 +42,15 @@ describe("buildPlaygroundRequest", () => {
     expect(requestUrl(ztf)).toContain("catalog=ztf");
   });
 
-  it("builds a bulk POST body from the positions textarea", () => {
+  it("builds a bulk POST with query params from the positions textarea", () => {
     const req = buildPlaygroundRequest("bulk", DEFAULT_STATE);
     expect(req.method).toBe("POST");
     if (req.method !== "POST") return;
     expect((req.body.ra as number[]).length).toBe(3);
-    expect(req.body.radius).toBe(5);
+    expect(req.params?.radius).toBe(5);
+    expect(req.params?.catalog).toBe("all");
+    expect(req.params?.nneighbor).toBe(5);
+    expect(req.body.radius).toBeUndefined();
   });
 });
 
@@ -57,7 +60,7 @@ describe("proxyUrl", () => {
       "/api/metadata?id=0098p408_ac51-043708&catalog=allwise"
     );
     expect(proxyUrl(buildPlaygroundRequest("bulk", DEFAULT_STATE))).toBe(
-      "/api/bulk-conesearch"
+      "/api/bulk-conesearch?radius=5&catalog=all&nneighbor=5"
     );
   });
 });

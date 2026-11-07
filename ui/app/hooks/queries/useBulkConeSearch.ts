@@ -30,15 +30,17 @@ async function postChunk(
   targets: BulkTarget[],
   params: BulkConeSearchParams
 ): Promise<BulkApiMatch[]> {
-  const response = await fetch("/api/bulk-conesearch", {
+  const query = new URLSearchParams({
+    radius: String(params.radius),
+    catalog: params.catalog,
+    nneighbor: String(params.nneighbor),
+  });
+  const response = await fetch(`/api/bulk-conesearch?${query.toString()}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ra: targets.map((t) => t.ra),
       dec: targets.map((t) => t.dec),
-      radius: params.radius,
-      catalog: params.catalog,
-      nneighbor: params.nneighbor,
     }),
   });
   if (!response.ok) {

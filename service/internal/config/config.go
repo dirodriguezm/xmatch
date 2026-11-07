@@ -16,10 +16,10 @@
 package config
 
 import (
-	"maps"
 	"embed"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"strings"
 
@@ -91,6 +91,7 @@ type ServiceConfig struct {
 	Database                DatabaseConfig          `yaml:"database"`
 	BulkChunkSize           int                     `yaml:"bulk_chunk_size"`
 	MaxBulkConcurrency      int                     `yaml:"max_bulk_concurrency"`
+	BulkConesearchMaxRows   int                     `yaml:"bulk_conesearch_max_rows"`
 	LightcurveServiceConfig LightcurveServiceConfig `yaml:"lightcurve_service"`
 }
 
