@@ -191,6 +191,7 @@ in {
     sqlc
     air
     jq
+    yarn
   ];
 
   env = {
