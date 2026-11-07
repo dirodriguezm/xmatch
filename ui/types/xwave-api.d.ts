@@ -14,67 +14,11 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Search for objects in a given region using multiple coordinates
-     * @description Search for objects in a given region using lists of ra, dec and a single radius. Radius is in arcseconds. Accepts either a JSON body with ra/dec arrays or a CSV body with ra and dec columns. Multipart file uploads are also supported. Results are grouped by catalog.
+     * Bulk cone search for objects
+     * @description Search for objects in a given region using multiple RA/Dec coordinates and a single radius.
+     *     All coordinate pairs are searched in parallel for optimal performance.
      */
-    post: {
-      parameters: {
-        query: {
-          /** @description Radius in arcseconds */
-          radius: string;
-          /** @description Catalog to search in (default: all) */
-          catalog?: string;
-          /** @description Number of neighbors to return (default: 1) */
-          nneighbor?: string;
-        };
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      /** @description Bulk conesearch request with ra and dec arrays */
-      requestBody?: {
-        content: {
-          "application/json": components["schemas"]["api.BulkConesearchRequest"];
-          "text/csv": components["schemas"]["api.BulkConesearchRequest"];
-        };
-      };
-      responses: {
-        /** @description OK */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["conesearch.MastercatResult"][];
-          };
-        };
-        /** @description No Content */
-        204: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content?: never;
-        };
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["conesearch.ValidationError"];
-          };
-        };
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": string;
-          };
-        };
-      };
-    };
+    post: operations["bulk-conesearch"];
     delete?: never;
     options?: never;
     head?: never;
@@ -91,61 +35,11 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Search for metadata by multiple ids
-     * @description Search for metadata by multiple ids in bulk. The response fields depend on the requested catalog (allwise, gaia or erosita) and include the catalog-specific columns plus ra and dec.
+     * Bulk get metadata by object IDs
+     * @description Retrieve detailed catalog metadata for multiple astronomical objects by their identifiers.
+     *     All IDs are queried in parallel for optimal performance.
      */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      /** @description Bulk metadata request */
-      requestBody: {
-        content: {
-          "application/json": components["schemas"]["api.BulkMetadataRequest"];
-        };
-      };
-      responses: {
-        /** @description Catalog-specific metadata records */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              [key: string]: unknown;
-            }[];
-          };
-        };
-        /** @description No Content */
-        204: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content?: never;
-        };
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["metadata.ValidationError"];
-          };
-        };
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": string;
-          };
-        };
-      };
-    };
+    post: operations["bulk-metadata"];
     delete?: never;
     options?: never;
     head?: never;
@@ -160,67 +54,11 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Search for objects in a given region
-     * @description Search for objects in a given region using ra, dec and radius. Radius is in arcseconds. Returns mastercat results grouped by catalog, or metadata results grouped by catalog when getMetadata is true.
+     * Cone search for objects
+     * @description Search for astronomical objects within a specified radius of given celestial coordinates (RA/Dec).
+     *     Returns matching objects from the specified catalog.
      */
-    get: {
-      parameters: {
-        query: {
-          /** @description Right ascension in degrees */
-          ra: string;
-          /** @description Declination in degrees */
-          dec: string;
-          /** @description Radius in arcseconds */
-          radius: string;
-          /** @description Catalog to search in (default: all) */
-          catalog?: string;
-          /** @description Number of neighbors to return (default: 1) */
-          nneighbor?: string;
-          /** @description Return metadata results instead of mastercat results (default: false) */
-          getMetadata?: string;
-        };
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description OK */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["conesearch.MastercatResult"][];
-          };
-        };
-        /** @description No Content */
-        204: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content?: never;
-        };
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["conesearch.ValidationError"];
-          };
-        };
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": string;
-          };
-        };
-      };
-    };
+    get: operations["conesearch"];
     put?: never;
     post?: never;
     delete?: never;
@@ -237,58 +75,11 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get lightcurve data for coordinates
-     * @description Get lightcurve data for specified coordinates with search radius and neighbor count
+     * Get lightcurve data
+     * @description Retrieve time-series photometry data (lightcurve) for astronomical objects at the specified coordinates.
+     *     Returns detections, non-detections, and forced photometry measurements.
      */
-    get: {
-      parameters: {
-        query: {
-          /** @description Right Ascension coordinate */
-          ra: string;
-          /** @description Declination coordinate */
-          dec: string;
-          /** @description Search radius in arcseconds */
-          radius: string;
-          /** @description Catalog to query: all, ztf, neowise or allwise (default: all) */
-          catalog?: string;
-          /** @description Number of neighbors to return (default: 1) */
-          nneighbor?: string;
-        };
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description OK */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["api.LightcurveResponse"];
-          };
-        };
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["api.ParseError"];
-          };
-        };
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": string;
-          };
-        };
-      };
-    };
+    get: operations["lightcurve"];
     put?: never;
     post?: never;
     delete?: never;
@@ -305,61 +96,10 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Search for metadata by id
-     * @description Search for metadata by id. The response fields depend on the requested catalog (allwise, gaia or erosita) and include the catalog-specific columns plus ra and dec.
+     * Get metadata by object ID
+     * @description Retrieve detailed catalog metadata for a specific astronomical object by its identifier.
      */
-    get: {
-      parameters: {
-        query: {
-          /** @description ID to search for */
-          id: string;
-          /** @description Catalog to search in (allwise, gaia or erosita) */
-          catalog: string;
-        };
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Catalog-specific metadata record */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              [key: string]: unknown;
-            };
-          };
-        };
-        /** @description No Content */
-        204: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content?: never;
-        };
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["metadata.ValidationError"];
-          };
-        };
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": string;
-          };
-        };
-      };
-    };
+    get: operations["metadata"];
     put?: never;
     post?: never;
     delete?: never;
@@ -373,56 +113,92 @@ export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     "api.BulkConesearchRequest": {
+      /**
+       * @description Catalog name to search in (default: all)
+       * @example allwise
+       */
+      catalog?: string;
+      /**
+       * @description Declination values in degrees (-90 to 90)
+       * @example [
+       *       -45,
+       *       -45.5
+       *     ]
+       */
       dec?: number[];
+      /**
+       * @description Number of neighbors to return per coordinate (default: 1)
+       * @example 1
+       */
+      nneighbor?: number;
+      /**
+       * @description Right ascension values in degrees (0-360)
+       * @example [
+       *       180.5,
+       *       181.2
+       *     ]
+       */
       ra?: number[];
+      /**
+       * @description Search radius in degrees
+       * @example 0.01
+       */
+      radius?: number;
     };
     "api.BulkMetadataRequest": {
+      /**
+       * @description Catalog to search in
+       * @example allwise
+       */
       catalog?: string;
+      /**
+       * @description List of object identifiers to search for
+       * @example [
+       *       "id1",
+       *       "id2"
+       *     ]
+       */
       ids?: string[];
     };
-    "api.LightcurveEntry": {
-      catalog?: string;
-      data?: Record<string, never>;
+    "conesearch.ValidationError": {
+      errValue?: string;
+      field?: string;
+      reason?: string;
+    };
+    "lightcurve.Lightcurve": {
+      detections?: unknown[];
+      forced_photometry?: unknown[];
+      non_detections?: unknown[];
+    };
+    "metadata.ValidationError": {
+      field?: string;
+      reason?: string;
+      value?: string;
+    };
+    "repository.Allwise": {
+      cntr?: number;
+      h_m_2mass?: number;
+      h_msig_2mass?: number;
       id?: string;
-      mag?: number;
-      magerr?: number;
-      mjd?: number;
-      object_id?: string;
+      j_m_2mass?: number;
+      j_msig_2mass?: number;
+      k_m_2mass?: number;
+      k_msig_2mass?: number;
+      w1mpro?: number;
+      w1sigmpro?: number;
+      w2mpro?: number;
+      w2sigmpro?: number;
+      w3mpro?: number;
+      w3sigmpro?: number;
+      w4mpro?: number;
+      w4sigmpro?: number;
     };
-    "api.LightcurveResponse": {
-      detections?: components["schemas"]["api.LightcurveEntry"][];
-      forced_photometry?: components["schemas"]["api.LightcurveEntry"][];
-      non_detections?: components["schemas"]["api.LightcurveEntry"][];
-    };
-    "api.ParseError": {
-      ErrValue?: string;
-      Field?: string;
-      Reason?: string;
-    };
-    "conesearch.MastercatExtended": {
+    "repository.Mastercat": {
       cat?: string;
       dec?: number;
-      distance?: number;
       id?: string;
       ipix?: number;
       ra?: number;
-    };
-    "conesearch.MastercatResult": {
-      catalog?: string;
-      data?: components["schemas"]["conesearch.MastercatExtended"][];
-      index?: number;
-      total?: number;
-      total_in_catalog?: number;
-    };
-    "conesearch.ValidationError": {
-      ErrValue?: string;
-      Field?: string;
-      Reason?: string;
-    };
-    "metadata.ValidationError": {
-      Field?: string;
-      Reason?: string;
-      Value?: string;
     };
   };
   responses: never;
@@ -432,4 +208,292 @@ export interface components {
   pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+  "bulk-conesearch": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Bulk conesearch request with arrays of coordinates */
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["api.BulkConesearchRequest"];
+      };
+    };
+    responses: {
+      /** @description Found objects */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["repository.Mastercat"][];
+        };
+      };
+      /** @description No objects found */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+      /** @description Invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["conesearch.ValidationError"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+    };
+  };
+  "bulk-metadata": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Bulk metadata request with list of object IDs */
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["api.BulkMetadataRequest"];
+      };
+    };
+    responses: {
+      /** @description Objects metadata */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["repository.Allwise"][];
+        };
+      };
+      /** @description No objects found */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+      /** @description Invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["metadata.ValidationError"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+    };
+  };
+  conesearch: {
+    parameters: {
+      query: {
+        /**
+         * @description Right Ascension (J2000) in degrees
+         * @example 180.5
+         */
+        ra: number;
+        /**
+         * @description Declination (J2000) in degrees
+         * @example -45
+         */
+        dec: number;
+        /**
+         * @description Search radius in degrees
+         * @example 0.01
+         */
+        radius: number;
+        /** @description Catalog to search in */
+        catalog?: string;
+        /** @description Maximum number of neighbors to return */
+        nneighbor?: number;
+        /** @description Include full metadata in response */
+        getMetadata?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Found objects */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["repository.Mastercat"][];
+        };
+      };
+      /** @description No objects found */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+      /** @description Invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["conesearch.ValidationError"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+    };
+  };
+  lightcurve: {
+    parameters: {
+      query: {
+        /**
+         * @description Right Ascension (J2000) in degrees
+         * @example 180.5
+         */
+        ra: number;
+        /**
+         * @description Declination (J2000) in degrees
+         * @example -45
+         */
+        dec: number;
+        /**
+         * @description Search radius in arcseconds
+         * @example 5
+         */
+        radius: number;
+        /** @description Number of neighbors to return */
+        nneighbor?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Lightcurve data */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["lightcurve.Lightcurve"];
+        };
+      };
+      /** @description Invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+    };
+  };
+  metadata: {
+    parameters: {
+      query: {
+        /**
+         * @description Object identifier
+         * @example J120000.00-450000.0
+         */
+        id: string;
+        /**
+         * @description Catalog to search in
+         * @example allwise
+         */
+        catalog: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Object metadata */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["repository.Allwise"];
+        };
+      };
+      /** @description Object not found */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+      /** @description Invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["metadata.ValidationError"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
+      };
+    };
+  };
+}

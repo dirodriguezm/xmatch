@@ -97,6 +97,7 @@ import {
 } from "@/app/lib/utils/sed";
 import { buildNedUrl, buildObjectUrl } from "@/app/lib/utils/urls";
 import type { AladinViewerRef } from "@/types/aladin";
+import type { components } from "@/types/xwave-api";
 
 import { AladinViewer } from "./AladinViewer";
 import { ChandraSourcePanel } from "./ChandraSourcePanel";
@@ -230,7 +231,7 @@ const surveySelectOptions = Object.entries(
 
 const { Text, Title } = Typography;
 
-type Allwise = Record<string, unknown>;
+type Allwise = components["schemas"]["repository.Allwise"];
 
 /** Tabs below the header, by what someone came to look up. */
 const OBJECT_TABS = [

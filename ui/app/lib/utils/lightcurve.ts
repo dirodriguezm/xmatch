@@ -1,6 +1,8 @@
-import type { Lightcurve } from "@/app/lib/api/schemas";
+import type { components } from "@/types/xwave-api";
 
 import { csvCell } from "./csv";
+
+type Lightcurve = components["schemas"]["lightcurve.Lightcurve"];
 
 const SENTINEL = -999;
 
