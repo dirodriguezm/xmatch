@@ -181,6 +181,7 @@ func TestLoadDefaultConfigFallsBackToEmbeddedConfig(t *testing.T) {
 	require.Equal(t, "localhost:8080", cfg.Service.Host)
 	require.Equal(t, "file:dev.db", cfg.Service.Database.Url)
 	require.Equal(t, "file:dev.db", cfg.CatalogIndexer.Database.Url)
+	require.Equal(t, 50000, cfg.Service.BulkConesearchMaxRows)
 }
 
 func TestLoadConfigPathCanDisableMetadata(t *testing.T) {

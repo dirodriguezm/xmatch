@@ -272,11 +272,8 @@ func TestBulkConesearch(t *testing.T) {
 		}
 
 		jsonBody := map[string]any{
-			"ra":        ra,
-			"dec":       dec,
-			"radius":    1,
-			"catalog":   "allwise",
-			"nneighbor": 100,
+			"ra":  ra,
+			"dec": dec,
 		}
 
 		bbody, err := json.Marshal(jsonBody)
@@ -285,7 +282,11 @@ func TestBulkConesearch(t *testing.T) {
 		body := bytes.NewReader(bbody)
 
 		// create the request using the body
-		req, err := http.NewRequest("POST", "/v1/bulk-conesearch", body)
+		req, err := http.NewRequest(
+			"POST",
+			"/v1/bulk-conesearch?radius=1&catalog=allwise&nneighbor=100",
+			body,
+		)
 		require.NoError(t, err)
 
 		router.ServeHTTP(w, req)
@@ -372,16 +373,17 @@ func TestBulkConesearch_MatchCounts(t *testing.T) {
 	// allwise objects (the fully cut vlass catalog still counts in total).
 	// Position 1 has no matches, so it contributes no rows.
 	bbody, err := json.Marshal(map[string]any{
-		"ra":        []float64{0, 50},
-		"dec":       []float64{0, 50},
-		"radius":    3600,
-		"catalog":   "all",
-		"nneighbor": 2,
+		"ra":  []float64{0, 50},
+		"dec": []float64{0, 50},
 	})
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	req, err := http.NewRequest("POST", "/v1/bulk-conesearch", bytes.NewReader(bbody))
+	req, err := http.NewRequest(
+		"POST",
+		"/v1/bulk-conesearch?radius=3600&catalog=all&nneighbor=2",
+		bytes.NewReader(bbody),
+	)
 	require.NoError(t, err)
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
@@ -403,7 +405,11 @@ func TestBulkConesearch_MatchCounts(t *testing.T) {
 }
 
 func TestBulkConesearch_InvalidBody(t *testing.T) {
-	req, err := http.NewRequest("POST", "/v1/bulk-conesearch", strings.NewReader(`{"ra": "not-an-array"}`))
+	req, err := http.NewRequest(
+		"POST",
+		"/v1/bulk-conesearch?radius=1",
+		strings.NewReader(`{"ra": "not-an-array"}`),
+	)
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()

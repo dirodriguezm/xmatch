@@ -23,6 +23,7 @@ export type ApiRequest =
   | {
       method: "POST";
       path: string;
+      params?: Record<string, string | number>;
       body: Record<string, unknown>;
     };
 
@@ -70,12 +71,14 @@ export function bulkConeSearchRequest(opts: {
   return {
     method: "POST",
     path: "/bulk-conesearch",
-    body: {
-      ra: opts.ra,
-      dec: opts.dec,
+    params: {
       radius: opts.radius,
       catalog: opts.catalog ?? "all",
       nneighbor: opts.nneighbor ?? 1,
+    },
+    body: {
+      ra: opts.ra,
+      dec: opts.dec,
     },
   };
 }
@@ -88,7 +91,9 @@ function queryString(params: Record<string, string | number>): string {
 
 export function requestUrl(req: ApiRequest): string {
   const base = `${API_BASE_URL}${req.path}`;
-  return req.method === "GET" ? `${base}?${queryString(req.params)}` : base;
+  return req.params && Object.keys(req.params).length > 0
+    ? `${base}?${queryString(req.params)}`
+    : base;
 }
 
 function pyLiteral(value: unknown): string {
@@ -115,13 +120,19 @@ function jsObject(obj: Record<string, unknown>): string {
 
 export function buildSnippet(req: ApiRequest, lang: SnippetLanguage): string {
   const base = `${API_BASE_URL}${req.path}`;
+  const url = requestUrl(req);
+  const hasParams = req.params != null && Object.keys(req.params).length > 0;
+  const pythonParams = hasParams
+    ? `\nparams = ${pyDict(req.params ?? {})}`
+    : "";
+  const pythonParamsArg = hasParams ? ", params=params" : "";
   switch (lang) {
     case "curl":
       return req.method === "GET"
         ? `curl -G "${base}" \\\n${Object.entries(req.params)
             .map(([k, v]) => `  --data-urlencode "${k}=${v}"`)
             .join(" \\\n")}`
-        : `curl -X POST "${base}" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(req.body)}'`;
+        : `curl -X POST "${url}" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(req.body)}'`;
     case "python":
       return req.method === "GET"
         ? `import requests
@@ -132,9 +143,10 @@ resp.raise_for_status()
 data = resp.json() if resp.status_code != 204 else []
 print(data)`
         : `import requests
+${pythonParams}
 
 payload = ${pyDict(req.body)}
-resp = requests.post("${base}", json=payload, timeout=120)
+resp = requests.post("${base}"${pythonParamsArg}, json=payload, timeout=120)
 resp.raise_for_status()
 data = resp.json() if resp.status_code != 204 else []
 print(data)`;
@@ -148,7 +160,7 @@ print(data)`;
 const resp = await fetch(\`${base}?\${params}\`);
 const data = resp.status === 204 ? [] : await resp.json();
 console.log(data);`
-        : `const resp = await fetch("${base}", {
+        : `const resp = await fetch("${url}", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(${jsObject(req.body)}),
