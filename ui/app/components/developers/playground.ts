@@ -165,11 +165,12 @@ export function buildPlaygroundRequest(
 
 /** Same request routed through this app's Next.js proxy (fallback for CORS). */
 export function proxyUrl(req: ApiRequest): string {
-  if (req.method === "POST") return `/api${req.path}`;
-  const qs = new URLSearchParams(
-    Object.entries(req.params).map(([k, v]) => [k, String(v)])
-  );
-  return `/api${req.path}?${qs}`;
+  const qs = req.params
+    ? new URLSearchParams(
+        Object.entries(req.params).map(([k, v]) => [k, String(v)])
+      ).toString()
+    : "";
+  return `/api${req.path}${qs ? `?${qs}` : ""}`;
 }
 
 /** Human-readable byte size. */

@@ -8,6 +8,9 @@ import { MAX_BULK_ROWS } from "@/app/lib/utils/bulkInput";
 /**
  * Proxy for `POST /bulk-conesearch`.
  *
+ * Query params: `radius` (arcsec, required), `catalog`, `nneighbor`.
+ * JSON body: `ra` and `dec` arrays only.
+ *
  * `radius` is in ARCSECONDS. The Go request struct documents it as degrees, but
  * the service converts with `arcsecToRadians` and returns `distance` in arcsec
  * (verified: radius 5 against Betelgeuse returns a match at 1.17″).
@@ -30,10 +33,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { ra, dec, radius, catalog, nneighbor } = (body ?? {}) as Record<
-    string,
-    unknown
-  >;
+  const { ra, dec } = (body ?? {}) as Record<string, unknown>;
+  const searchParams = request.nextUrl.searchParams;
+  const radiusParam = searchParams.get("radius");
+  const catalogParam = searchParams.get("catalog");
+  const nneighborParam = searchParams.get("nneighbor");
+  const radius = radiusParam === null ? undefined : Number(radiusParam);
 
   if (!isNumberArray(ra) || !isNumberArray(dec)) {
     return NextResponse.json(
@@ -68,14 +73,15 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const cat = typeof catalog === "string" && catalog ? catalog : "all";
+  const cat =
+    typeof catalogParam === "string" && catalogParam ? catalogParam : "all";
   if (!CATALOGS.has(cat)) {
     return NextResponse.json(
       { error: `Unknown catalog: ${cat}` },
       { status: 400 }
     );
   }
-  const n = nneighbor === undefined ? 1 : nneighbor;
+  const n = nneighborParam === null ? 1 : Number(nneighborParam);
   if (
     typeof n !== "number" ||
     !Number.isInteger(n) ||
@@ -91,12 +97,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const params = new URLSearchParams({
+      radius: String(radius),
+      catalog: cat,
+      nneighbor: String(n),
+    });
     const result = await apiFetch(
-      "/bulk-conesearch",
+      `/bulk-conesearch?${params.toString()}`,
       bulkConeSearchResponseSchema,
       {
         method: "POST",
-        body: JSON.stringify({ ra, dec, radius, catalog: cat, nneighbor: n }),
+        body: JSON.stringify({ ra, dec }),
       }
     );
     // 204 (no matches anywhere) → apiFetch returns null.

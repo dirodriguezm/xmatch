@@ -33,6 +33,8 @@ service:
   base_path: "/v1"
   bulk_chunk_size: 500
   max_bulk_concurrency: 4
+  # maximum number of coordinate rows read from a bulk conesearch CSV file
+  bulk_conesearch_max_rows: 50000
   lightcurve_service:
     neowise:
       use_id_filter: false

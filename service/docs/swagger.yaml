@@ -2,20 +2,14 @@ basePath: /v1
 definitions:
   api.BulkConesearchRequest:
     properties:
-      catalog:
-        type: string
       dec:
         items:
           type: number
         type: array
-      nneighbor:
-        type: integer
       ra:
         items:
           type: number
         type: array
-      radius:
-        type: number
     type: object
   api.BulkMetadataRequest:
     properties:
@@ -129,13 +123,30 @@ paths:
     post:
       consumes:
       - application/json
+      - text/csv
+      - multipart/form-data
       description: Search for objects in a given region using lists of ra, dec and
-        a single radius. Radius is in arcseconds. Results are grouped by catalog.
+        a single radius. Radius, catalog and nneighbor are query parameters; the body
+        only carries coordinates, as a JSON object with ra/dec arrays, a raw CSV body
+        with ra and dec columns, or a multipart/form-data upload in the file field.
+        Radius is in arcseconds. Results are grouped by catalog.
       parameters:
-      - description: Bulk conesearch request
+      - description: Radius in arcseconds
+        in: query
+        name: radius
+        required: true
+        type: string
+      - description: 'Catalog to search in (default: all)'
+        in: query
+        name: catalog
+        type: string
+      - description: 'Number of neighbors to return (default: 1)'
+        in: query
+        name: nneighbor
+        type: string
+      - description: Bulk conesearch request with ra and dec arrays
         in: body
         name: request
-        required: true
         schema:
           $ref: '#/definitions/api.BulkConesearchRequest'
       produces:
