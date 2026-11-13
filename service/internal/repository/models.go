@@ -211,3 +211,7 @@ type Mastercat struct {
 	Dec  float64 `json:"dec"`
 	Cat  string  `json:"cat"`
 }
+
+type Swift struct {
+	ID string `json:"id"`
+}
