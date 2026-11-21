@@ -39,6 +39,7 @@ import { type ReactNode, useMemo, useRef, useState } from "react";
 
 import { ObjectActions } from "@/app/components/actions/ObjectActions";
 import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
+import { ServiceStatusLink } from "@/app/components/layout/ServiceStatus";
 import type { CrossmatchResult } from "@/app/components/results/types";
 import {
   type Counterpart,
@@ -630,7 +631,8 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
       ),
       children: (
         <Text type="danger">
-          {lightcurveError.message || "Failed to load light curves"}
+          {lightcurveError.message || "Failed to load light curves"} ·{" "}
+          <ServiceStatusLink />
         </Text>
       ),
     };

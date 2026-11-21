@@ -21,9 +21,15 @@ describe("fetchFromMirrors", () => {
   it("returns the first mirror when it answers OK", async () => {
     fetchMock.mockResolvedValueOnce(new Response("ok"));
 
-    const resp = await fetchFromMirrors(BASES, "/q?x=1", {}, 1000);
+    const { response, host } = await fetchFromMirrors(
+      BASES,
+      "/q?x=1",
+      {},
+      1000
+    );
 
-    expect(await resp.text()).toBe("ok");
+    expect(await response.text()).toBe("ok");
+    expect(host).toBe("a.test");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://a.test/q?x=1");
   });
@@ -34,9 +40,10 @@ describe("fetchFromMirrors", () => {
       .mockRejectedValueOnce(new TypeError("fetch failed"))
       .mockResolvedValueOnce(new Response("mirror"));
 
-    const resp = await fetchFromMirrors(BASES, "/q", {}, 1000);
+    const { response, host } = await fetchFromMirrors(BASES, "/q", {}, 1000);
 
-    expect(await resp.text()).toBe("mirror");
+    expect(await response.text()).toBe("mirror");
+    expect(host).toBe("c.test");
     expect(fetchMock.mock.calls.map((c) => c[0])).toEqual([
       "https://a.test/q",
       "https://b.test/q",
@@ -50,9 +57,10 @@ describe("fetchFromMirrors", () => {
       .mockResolvedValueOnce(new Response("", { status: 503 }))
       .mockRejectedValueOnce(new TypeError("fetch failed"));
 
-    const resp = await fetchFromMirrors(BASES, "/q", {}, 1000);
+    const { response, host } = await fetchFromMirrors(BASES, "/q", {}, 1000);
 
-    expect(resp.status).toBe(503);
+    expect(response.status).toBe(503);
+    expect(host).toBe("b.test");
   });
 
   it("throws when every mirror fails without answering", async () => {
@@ -61,6 +69,18 @@ describe("fetchFromMirrors", () => {
     await expect(fetchFromMirrors(BASES, "/q", {}, 1000)).rejects.toThrow(
       "fetch failed"
     );
+  });
+
+  it("reports the host the request was redirected to", async () => {
+    const redirected = new Response("ok");
+    Object.defineProperty(redirected, "url", {
+      value: "https://mirror.test/q",
+    });
+    fetchMock.mockResolvedValueOnce(redirected);
+
+    const { host } = await fetchFromMirrors(BASES, "/q", {}, 1000);
+
+    expect(host).toBe("mirror.test");
   });
 
   it("gives each mirror its own timeout signal", async () => {

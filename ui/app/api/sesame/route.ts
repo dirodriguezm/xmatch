@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchFromMirrors, SESAME_MIRRORS } from "@/app/lib/utils/mirrors";
+import {
+  fetchFromMirrors,
+  SESAME_MIRRORS,
+  UPSTREAM_HOST_HEADER,
+} from "@/app/lib/utils/mirrors";
 
 /** Per mirror; Sesame answers in 1–3 s when it is up. */
 const TIMEOUT_MS = 8_000;
@@ -22,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   const encodedName = encodeURIComponent(name.trim());
   try {
-    const response = await fetchFromMirrors(
+    const { response, host } = await fetchFromMirrors(
       SESAME_MIRRORS,
       `/-oI/SNV?${encodedName}`,
       {},
@@ -39,14 +43,15 @@ export async function GET(request: NextRequest) {
     const text = await response.text();
     const result = parseSesameResponse(text, name);
 
+    const headers = { [UPSTREAM_HOST_HEADER]: host };
     if (!result) {
       return NextResponse.json(
         { error: `Could not resolve "${name}"` },
-        { status: 404 }
+        { status: 404, headers }
       );
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers });
   } catch (error) {
     console.error("Sesame proxy error:", error);
     return NextResponse.json(

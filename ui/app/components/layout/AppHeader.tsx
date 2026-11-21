@@ -9,6 +9,7 @@ import { type ReactNode, useState } from "react";
 import { HeaderBasket } from "@/app/components/basket/HeaderBasket";
 import { CommandPaletteTrigger } from "@/app/components/command/CommandPalette";
 import { Logo } from "@/app/components/common";
+import { ServiceStatusIndicator } from "@/app/components/layout/ServiceStatus";
 import {
   FOOTER_GROUPS,
   isExternalHref,
@@ -82,6 +83,7 @@ export function AppHeader({
         })}
       </nav>
       <div className="ml-auto flex items-center gap-2 shrink-0">
+        <ServiceStatusIndicator />
         <CommandPaletteTrigger />
         <HeaderBasket />
         <Button

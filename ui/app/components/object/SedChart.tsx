@@ -9,9 +9,10 @@ import type {
   ScatterSeriesOption,
 } from "echarts";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
+import { ServiceStatusLink } from "@/app/components/layout/ServiceStatus";
 import {
   getSearchCatalogColor,
   getSearchCatalogLabel,
@@ -435,9 +436,14 @@ function SedSources({
     .join(", ");
   const tableCount = new Set(vizier.points.flatMap((p) => p.tables)).size;
 
-  let vizierText: string;
+  let vizierText: ReactNode;
   if (vizier.loading) vizierText = "loading…";
-  else if (vizier.error) vizierText = "unavailable right now";
+  else if (vizier.error)
+    vizierText = (
+      <>
+        unavailable right now (<ServiceStatusLink />)
+      </>
+    );
   else if (vizier.points.length === 0)
     vizierText = "no published photometry within 2″";
   else

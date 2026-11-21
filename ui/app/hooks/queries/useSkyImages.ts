@@ -47,30 +47,36 @@ function mirrorUrls(record: HipsRecord): string[] {
   return urls.filter((u): u is string => !!u);
 }
 
-/** Resolves when a mirror serves real `properties` (not an error page). */
-async function probeMirror(url: string, signal: AbortSignal): Promise<void> {
+/** The mirror's host once it serves real `properties` (not an error page). */
+async function probeMirror(url: string, signal: AbortSignal): Promise<string> {
   const res = await fetch(`${url.replace(/\/$/, "")}/properties`, { signal });
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  return new URL(url).host;
 }
 
-/** False when no mirror serves `id` within the timeout (or CDS's registry is down). */
-async function isHipsAvailable(
+/**
+ * Host of the fastest mirror serving HiPS `id` (roughly the one Aladin will
+ * pick), or null when none does within the timeout or CDS's registry is
+ * down. Throws only when `querySignal` aborts.
+ */
+export async function findHipsHost(
   id: string,
   querySignal: AbortSignal
-): Promise<boolean> {
+): Promise<string | null> {
   const signal = AbortSignal.any([
     querySignal,
     AbortSignal.timeout(PROBE_TIMEOUT_MS),
   ]);
   try {
     const record = await fetchHipsRecord(id, signal);
-    if (!record) return false;
-    await Promise.any(mirrorUrls(record).map((u) => probeMirror(u, signal)));
-    return true;
+    if (!record) return null;
+    return await Promise.any(
+      mirrorUrls(record).map((u) => probeMirror(u, signal))
+    );
   } catch (error) {
-    // Unmounted: let React Query drop it. Anything else: try the next survey.
+    // Unmounted: let React Query drop it. Anything else: unavailable.
     if (querySignal.aborted) throw error;
-    return false;
+    return null;
   }
 }
 
@@ -85,7 +91,7 @@ export function useAvailableHips(ids: readonly string[]) {
     queryKey: ["available-hips", ...ids],
     queryFn: async ({ signal }) => {
       for (const id of ids) {
-        if (await isHipsAvailable(id, signal)) return id;
+        if (await findHipsHost(id, signal)) return id;
       }
       throw new Error("No HiPS mirror available");
     },

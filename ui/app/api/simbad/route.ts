@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchFromMirrors, SIMBAD_TAP_MIRRORS } from "@/app/lib/utils/mirrors";
+import {
+  fetchFromMirrors,
+  SIMBAD_TAP_MIRRORS,
+  UPSTREAM_HOST_HEADER,
+} from "@/app/lib/utils/mirrors";
 
 /**
  * Server-side proxy to the SIMBAD TAP service (CDS, Strasbourg, or its
@@ -77,7 +81,7 @@ export async function GET(request: NextRequest) {
   });
 
   try {
-    const resp = await fetchFromMirrors(
+    const { response: resp, host } = await fetchFromMirrors(
       SIMBAD_TAP_MIRRORS,
       `?${body}`,
       { next: { revalidate: REVALIDATE_S } },
@@ -90,7 +94,9 @@ export async function GET(request: NextRequest) {
       );
     }
     const json = (await resp.json()) as { data?: unknown[][] };
-    return NextResponse.json(parseSimbadRow(json.data?.[0]));
+    return NextResponse.json(parseSimbadRow(json.data?.[0]), {
+      headers: { [UPSTREAM_HOST_HEADER]: host },
+    });
   } catch (error) {
     console.error("SIMBAD proxy error:", error);
     return NextResponse.json(

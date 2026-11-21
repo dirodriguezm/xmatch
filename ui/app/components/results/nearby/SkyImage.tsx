@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
+import { ServiceStatusLink } from "@/app/components/layout/ServiceStatus";
 import { AladinViewer } from "@/app/components/object/AladinViewer";
 import type { NearbySource } from "@/app/components/results/nearby/shared";
 import { useAvailableHips } from "@/app/hooks/queries";
@@ -85,7 +86,7 @@ export function SkyImage({ target, sources, radii }: SkyImageProps) {
             <p className="m-0 text-sm">Sky images unavailable</p>
             <p className="m-0 text-xs text-neutral-500">
               CDS isn&apos;t responding. The Offsets view shows the same
-              matches.
+              matches. <ServiceStatusLink />
             </p>
           </>
         )}

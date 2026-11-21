@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchFromMirrors, SIMBAD_TAP_MIRRORS } from "@/app/lib/utils/mirrors";
+import {
+  fetchFromMirrors,
+  SIMBAD_TAP_MIRRORS,
+  UPSTREAM_HOST_HEADER,
+} from "@/app/lib/utils/mirrors";
 import {
   parseSimbadRefs,
   SIMBAD_REFS_MAX,
@@ -22,21 +26,25 @@ export interface SimbadRefsResponse {
   references: SimbadReference[];
 }
 
-async function tap(query: string): Promise<unknown[][] | undefined> {
+/** Rows of a TAP query, and the SIMBAD host that answered it. */
+async function tap(
+  query: string
+): Promise<{ rows: unknown[][] | undefined; host: string }> {
   const qs = new URLSearchParams({
     request: "doQuery",
     lang: "adql",
     format: "json",
     query,
   });
-  const resp = await fetchFromMirrors(
+  const { response: resp, host } = await fetchFromMirrors(
     SIMBAD_TAP_MIRRORS,
     `?${qs}`,
     { next: { revalidate: REVALIDATE_S } },
     TIMEOUT_MS
   );
   if (!resp.ok) throw new Error(`SIMBAD returned ${resp.status}`);
-  return ((await resp.json()) as { data?: unknown[][] }).data;
+  const rows = ((await resp.json()) as { data?: unknown[][] }).data;
+  return { rows, host };
 }
 
 export async function GET(request: NextRequest) {
@@ -77,7 +85,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Every inlined value is a validated integer or one of two sort names.
-    const [rows, count] = await Promise.all([
+    const [{ rows, host }, { rows: count }] = await Promise.all([
       tap(simbadRefsQuery(oid, limit, options)),
       tap(simbadRefsCountQuery(oid, options)),
     ]);
@@ -89,6 +97,7 @@ export async function GET(request: NextRequest) {
     };
     return NextResponse.json(result, {
       headers: {
+        [UPSTREAM_HOST_HEADER]: host,
         "Cache-Control": `public, s-maxage=${REVALIDATE_S}, stale-while-revalidate=${REVALIDATE_S}`,
       },
     });
