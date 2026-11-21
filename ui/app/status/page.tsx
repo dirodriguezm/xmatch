@@ -69,7 +69,10 @@ async function probe(
   try {
     const resp = await fetch(check.path, {
       cache: "no-store",
-      signal: AbortSignal.any([signal, AbortSignal.timeout(PROBE_TIMEOUT_MS)]),
+      signal: AbortSignal.any([
+        signal,
+        AbortSignal.timeout(check.timeoutMs ?? PROBE_TIMEOUT_MS),
+      ]),
     });
     await resp.arrayBuffer();
     const latencyMs = elapsed();

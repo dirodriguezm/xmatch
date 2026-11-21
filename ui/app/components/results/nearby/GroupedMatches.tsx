@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Grid } from "antd";
 import Link from "next/link";
 import {
@@ -11,6 +12,7 @@ import {
 } from "react";
 
 import { BasketButton } from "@/app/components/basket/BasketButton";
+import { vizierSedQuery } from "@/app/hooks/queries";
 import { getSearchCatalogLabel } from "@/app/lib/constants/catalogs";
 
 import { CatalogMark } from "./CatalogMark";
@@ -31,6 +33,13 @@ export const TOP_N = 3;
  * for them without squeezing the IDs (e.g. with the map panel hidden).
  */
 const COORDS_MIN_WIDTH_PX = 720;
+
+/**
+ * Hover time on an object link that counts as intent to open it. The object
+ * page's VizieR SED can take 1–2 minutes on a mirror, so it starts then; a
+ * shorter delay would fire one slow lookup per row the mouse merely crosses.
+ */
+const PREFETCH_INTENT_MS = 400;
 
 const formatDec = (dec: number) => `${dec >= 0 ? "+" : ""}${dec.toFixed(5)}`;
 
@@ -88,6 +97,18 @@ export function GroupedMatches({
   const cols = (compact ? 4 : 6) + (showCoords ? 2 : 0);
   const { hoveredKey, selectedKey, setHoveredKey, toggleSelected } = highlight;
 
+  // Start the object page's slowest lookup while the user is still deciding.
+  const queryClient = useQueryClient();
+  const intent = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const prefetchSed = (s: NearbySource) =>
+    void queryClient.prefetchQuery(vizierSedQuery({ ra: s.ra, dec: s.dec }));
+  const startIntent = (s: NearbySource) => {
+    clearTimeout(intent.current);
+    intent.current = setTimeout(() => prefetchSed(s), PREFETCH_INTENT_MS);
+  };
+  const cancelIntent = () => clearTimeout(intent.current);
+  useEffect(() => cancelIntent, []);
+
   // The width depends on the sidebar and the map panel, not the window.
   useEffect(() => {
     const el = scroller.current;
@@ -122,7 +143,10 @@ export function GroupedMatches({
       onMouseLeave={() => setHoveredKey(null)}
       onFocus={() => setHoveredKey(s.key)}
       onBlur={() => setHoveredKey(null)}
-      onClick={() => toggleSelected(s.key)}
+      onClick={() => {
+        toggleSelected(s.key);
+        prefetchSed(s);
+      }}
       onKeyDown={(e) => onRowKey(e, s.key)}
       className={[
         "cursor-pointer border-t border-border/60 outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset",
@@ -141,6 +165,10 @@ export function GroupedMatches({
           href={s.href}
           className="block truncate font-mono text-xs"
           onClick={(e) => e.stopPropagation()}
+          onMouseEnter={() => startIntent(s)}
+          onMouseLeave={cancelIntent}
+          onFocus={() => startIntent(s)}
+          onBlur={cancelIntent}
           title={s.objectId}
         >
           {s.objectId}

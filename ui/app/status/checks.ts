@@ -19,6 +19,8 @@ interface CheckBase {
   primaryHost?: string;
   /** Some proxies cache upstream answers server-side; latency may reflect that. */
   cached?: boolean;
+  /** Longer than the default probe timeout, for services slow by nature. */
+  timeoutMs?: number;
 }
 
 export type UpstreamCheck = CheckBase &
@@ -86,7 +88,10 @@ export const UPSTREAM_CHECKS: UpstreamCheck[] = [
     provider: "CDS",
     usedFor: "Published photometry in the SED",
     path: `/api/vizier-sed?${at}&radius=1`,
+    primaryHost: "vizier.cds.unistra.fr",
     cached: true,
+    // The CfA mirror takes 1–2 min for a position it hasn't cached.
+    timeoutMs: 200_000,
   },
   {
     id: "galactic-dust",

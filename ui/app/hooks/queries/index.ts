@@ -28,7 +28,11 @@ export {
   useGaiaEpochPhotometry,
   usePs1Lightcurve,
 } from "./useSurveyLightcurves";
-export { useVizierSed, type VizierSedParams } from "./useVizierSed";
+export {
+  useVizierSed,
+  type VizierSedParams,
+  vizierSedQuery,
+} from "./useVizierSed";
 export {
   HILIGT_MISSION_IDS,
   useBatLightcurve,
