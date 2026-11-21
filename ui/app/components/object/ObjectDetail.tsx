@@ -45,6 +45,7 @@ import {
   COUNTERPART_RADIUS_ARCSEC,
   type GaiaEpochParams,
   NEIGHBOR_RADIUS_ARCSEC,
+  useAvailableHips,
   useChandraSource,
   useCounterparts,
   useCrtsLightcurve,
@@ -57,7 +58,6 @@ import {
   usePs1Lightcurve,
   useSimbad,
   useSimbadRefs,
-  useSkyImagesReachable,
   useVizierSed,
   useXmmSource,
   useZtfLightcurve,
@@ -121,7 +121,9 @@ const ObservabilityPanel = dynamic(
   { ssr: false }
 );
 
-const DSS_SURVEY = "https://alasky.cds.unistra.fr/DSS/DSSColor/";
+/** A HiPS ID, not a URL, so Aladin can pick a mirror when CDS is down. */
+const DSS_SURVEY = "CDS/P/DSS2/color";
+const SKY_DEFAULT_SURVEYS = [DSS_SURVEY];
 
 /** Sky view field: wide for context, or zoomed to show the nearby sources. */
 const SKY_FOV_WIDE_DEG = 0.9;
@@ -140,19 +142,14 @@ const SURVEY_OPTIONS = [
     label: "DSS Optical",
     value: DSS_SURVEY,
     category: "Optical",
-    description: "Digitized photographic plates (POSS/UKST), whole sky",
+    description:
+      "Digitized POSS/UKST plates, red/blue colour composite, whole sky",
   },
   {
     label: "DESI DR10",
     value: "CDS/P/DESI-Legacy-Surveys/DR10/color",
     category: "Optical",
     description: "Deep Legacy Surveys g/r/z imaging, partial sky",
-  },
-  {
-    label: "DSS2 Color",
-    value: "CDS/P/DSS2/color",
-    category: "Optical",
-    description: "Second-epoch DSS plates, red/blue color composite",
   },
   {
     label: "2MASS",
@@ -881,7 +878,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
     ...(spectrumItem ? [spectrumItem] : []),
   ];
 
-  const skyImages = useSkyImagesReachable(DSS_SURVEY);
+  const skyImages = useAvailableHips(SKY_DEFAULT_SURVEYS);
   const [tab, setTab] = useQueryState(
     "tab",
     parseAsStringLiteral(OBJECT_TABS).withDefault("overview")
@@ -1347,6 +1344,7 @@ export function ObjectDetail({ object, metadata }: ObjectDetailProps) {
                 center={{ ra: object.ra, dec: object.dec }}
                 // Initial field only; the Nearby switch zooms afterwards.
                 fov={SKY_FOV_NEARBY_DEG}
+                survey={DSS_SURVEY}
                 catalogLayers={skyLayers}
                 ringArcsec={
                   showNearbyOnSky ? NEIGHBOR_RADIUS_ARCSEC : undefined

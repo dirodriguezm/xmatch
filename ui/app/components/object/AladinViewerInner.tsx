@@ -22,8 +22,8 @@ import type {
 } from "@/types/aladin";
 
 const DEFAULT_OPTIONS = {
-  // Use direct CDS URL to avoid CORS issues with mirror servers
-  survey: "https://alasky.cds.unistra.fr/DSS/DSSColor/",
+  // A HiPS ID rather than a URL, so Aladin can fall back to a mirror.
+  survey: "CDS/P/DSS2/color",
   fov: 0.5,
   projection: "SIN" as const,
   showCooGrid: false,
