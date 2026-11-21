@@ -6,7 +6,8 @@ import {
   SettingOutlined,
 } from "@ant-design/icons";
 import { Button, Collapse, Grid, Layout, Tooltip } from "antd";
-import { useEffect, useState } from "react";
+
+import { usePersistedFlag } from "@/app/hooks/usePersistedFlag";
 
 const { Sider } = Layout;
 
@@ -32,26 +33,7 @@ export function AppSidebar({
   const screens = Grid.useBreakpoint();
   // Unknown before hydration: render the desktop layout, as the server does.
   const isSmall = screens.lg === false;
-  const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    try {
-      // Restoring a saved UI preference after hydration.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
-    } catch {
-      // Storage unavailable: keep the default.
-    }
-  }, []);
-
-  const toggle = (next: boolean) => {
-    setCollapsed(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-    } catch {
-      // Not persisted; fine.
-    }
-  };
+  const [collapsed, toggle] = usePersistedFlag(STORAGE_KEY);
 
   if (isSmall) {
     return (

@@ -2,7 +2,13 @@
 
 import { Grid } from "antd";
 import Link from "next/link";
-import { Fragment, type KeyboardEvent, useEffect, useRef } from "react";
+import {
+  Fragment,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { BasketButton } from "@/app/components/basket/BasketButton";
 import { getSearchCatalogLabel } from "@/app/lib/constants/catalogs";
@@ -19,6 +25,14 @@ import type { LinkedHighlight } from "./useLinkedHighlight";
 
 /** Rows shown per catalog before "Show all". */
 export const TOP_N = 3;
+
+/**
+ * Table width from which each source's RA/Dec get their own columns: room
+ * for them without squeezing the IDs (e.g. with the map panel hidden).
+ */
+const COORDS_MIN_WIDTH_PX = 720;
+
+const formatDec = (dec: number) => `${dec >= 0 ? "+" : ""}${dec.toFixed(5)}`;
 
 interface GroupedMatchesProps {
   groups: CatalogSummary[];
@@ -69,9 +83,21 @@ export function GroupedMatches({
   const scroller = useRef<HTMLDivElement>(null);
   // Phones drop the PA and basket columns (both are on the object page).
   const compact = Grid.useBreakpoint().sm === false;
-  const cols = compact ? 4 : 6;
+  const [wide, setWide] = useState(false);
+  const showCoords = wide && !compact;
+  const cols = (compact ? 4 : 6) + (showCoords ? 2 : 0);
   const { hoveredKey, selectedKey, setHoveredKey, toggleSelected } = highlight;
 
+  // The width depends on the sidebar and the map panel, not the window.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setWide(entry.contentRect.width >= COORDS_MIN_WIDTH_PX);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     if (selectedKey) scrollIntoScroller(scroller.current, selectedKey);
   }, [selectedKey, expanded]);
@@ -120,6 +146,16 @@ export function GroupedMatches({
           {s.objectId}
         </Link>
       </td>
+      {showCoords && (
+        <>
+          <td className="py-1.5 pr-3 text-right font-mono text-xs whitespace-nowrap text-neutral-300">
+            {s.ra.toFixed(5)}
+          </td>
+          <td className="py-1.5 pr-3 text-right font-mono text-xs whitespace-nowrap text-neutral-300">
+            {formatDec(s.dec)}
+          </td>
+        </>
+      )}
       {/* Phones keep the numbers and drop the bar. */}
       <td className="py-1.5 pr-2 sm:pr-3 [&_svg]:hidden sm:[&_svg]:block">
         <SeparationBar
@@ -185,6 +221,22 @@ export function GroupedMatches({
             <th scope="col" className="py-2 pl-2 text-left font-normal">
               Object ID
             </th>
+            {showCoords && (
+              <>
+                <th
+                  scope="col"
+                  className="w-[92px] py-2 pr-3 text-right font-normal"
+                >
+                  RA (°)
+                </th>
+                <th
+                  scope="col"
+                  className="w-[92px] py-2 pr-3 text-right font-normal"
+                >
+                  Dec (°)
+                </th>
+              </>
+            )}
             <th
               scope="col"
               className="w-[92px] py-2 text-left font-normal sm:w-[150px]"

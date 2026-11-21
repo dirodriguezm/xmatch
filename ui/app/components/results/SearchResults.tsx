@@ -1,12 +1,18 @@
 "use client";
 
-import { InfoCircleOutlined } from "@ant-design/icons";
-import { Layout, Segmented, Tooltip } from "antd";
+import {
+  AimOutlined,
+  DoubleLeftOutlined,
+  InfoCircleOutlined,
+} from "@ant-design/icons";
+import { Button, Layout, Segmented, Tooltip } from "antd";
 import { type ReactNode, useMemo, useState } from "react";
 
 import { AppSidebar } from "@/app/components/layout";
 import { MapPanel } from "@/app/components/results/nearby/MapPanel";
 import { TonightSummary } from "@/app/components/results/TonightSummary";
+import { useMediaQuery } from "@/app/hooks/useMediaQuery";
+import { usePersistedFlag } from "@/app/hooks/usePersistedFlag";
 import { getSearchCatalogLabel } from "@/app/lib/constants/catalogs";
 
 import { CatalogMark } from "./nearby/CatalogMark";
@@ -34,6 +40,7 @@ export interface SearchResultsProps {
 }
 
 const ALL = "__all__";
+const MAP_COLLAPSED_KEY = "xwave:results-map-collapsed";
 
 const { Content } = Layout;
 
@@ -55,6 +62,11 @@ export function SearchResults({
   const [active, setActive] = useState<string>(ALL);
   const [opened, setOpened] = useState<Set<string>>(() => new Set());
   const [mapView, setMapView] = useState<"offsets" | "sky">("offsets");
+  // The map can fold to a rail beside the list, like the sidebar. Only on
+  // Tailwind's lg, where the two panes sit side by side; stacked, it stays.
+  const [mapHidden, setMapHidden] = usePersistedFlag(MAP_COLLAPSED_KEY);
+  const sideBySide = useMediaQuery("(min-width: 64rem)");
+  const mapCollapsed = mapHidden && sideBySide;
 
   // Catalogs that returned nothing are left out entirely — no empty group,
   // tab or search circle.
@@ -130,42 +142,79 @@ export function SearchResults({
           {/* The window sets this row's height (64px header + toolbar +
             padding), clamped so huge screens don't get a giant map. Both
             panes take that height; the square map is centred in its pane. */}
-          <div className="grid grid-cols-1 gap-4 p-4 lg:h-[clamp(380px,calc(100dvh-96px),860px)] lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-6 lg:px-6">
-            <section
-              aria-label="Sky map of the matches"
-              className="mx-auto flex aspect-square w-full max-w-[min(100%,45svh)] flex-col rounded-lg border border-border bg-surface p-3 lg:aspect-auto lg:h-full lg:max-w-none"
-            >
-              <Segmented
-                size="small"
-                block
-                className="mb-2"
-                value={mapView}
-                onChange={(v) => setMapView(v as "offsets" | "sky")}
-                aria-label="Map view"
-                options={[
-                  { value: "offsets", label: "Offsets" },
-                  { value: "sky", label: "Sky image" },
-                ]}
-              />
-              {mapView === "sky" && target ? (
-                <SkyImage
-                  key={active}
-                  target={target}
-                  sources={mapSources}
-                  radii={mapRadii}
-                />
-              ) : (
-                <MapPanel
-                  key={active}
-                  sources={mapSources}
-                  radii={mapRadii}
-                  highlight={highlight}
-                  size={600}
-                  className="h-full min-h-0"
-                  mapClassName="min-h-0 w-full flex-1 h-full"
-                />
-              )}
-            </section>
+          <div
+            className={`grid grid-cols-1 gap-4 p-4 lg:h-[clamp(380px,calc(100dvh-96px),860px)] lg:gap-6 lg:px-6 ${
+              mapCollapsed
+                ? "lg:grid-cols-[48px_minmax(0,1fr)]"
+                : "lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)]"
+            }`}
+          >
+            {mapCollapsed ? (
+              <section
+                aria-label="Sky map of the matches (hidden)"
+                className="flex flex-col items-center rounded-lg border border-border bg-surface pt-3"
+              >
+                <Tooltip title="Show map" placement="right">
+                  <Button
+                    type="text"
+                    icon={<AimOutlined />}
+                    aria-label="Show map"
+                    aria-expanded={false}
+                    onClick={() => setMapHidden(false)}
+                  />
+                </Tooltip>
+              </section>
+            ) : (
+              <section
+                aria-label="Sky map of the matches"
+                className="mx-auto flex aspect-square w-full max-w-[min(100%,45svh)] flex-col rounded-lg border border-border bg-surface p-3 lg:aspect-auto lg:h-full lg:max-w-none"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <Segmented
+                    size="small"
+                    block
+                    className="flex-1"
+                    value={mapView}
+                    onChange={(v) => setMapView(v as "offsets" | "sky")}
+                    aria-label="Map view"
+                    options={[
+                      { value: "offsets", label: "Offsets" },
+                      { value: "sky", label: "Sky image" },
+                    ]}
+                  />
+                  {sideBySide && (
+                    <Tooltip title="Hide map, widen the list">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<DoubleLeftOutlined />}
+                        aria-label="Hide map"
+                        aria-expanded
+                        onClick={() => setMapHidden(true)}
+                      />
+                    </Tooltip>
+                  )}
+                </div>
+                {mapView === "sky" && target ? (
+                  <SkyImage
+                    key={active}
+                    target={target}
+                    sources={mapSources}
+                    radii={mapRadii}
+                  />
+                ) : (
+                  <MapPanel
+                    key={active}
+                    sources={mapSources}
+                    radii={mapRadii}
+                    highlight={highlight}
+                    size={600}
+                    className="h-full min-h-0"
+                    mapClassName="min-h-0 w-full flex-1 h-full"
+                  />
+                )}
+              </section>
+            )}
 
             <section
               aria-label="Matches by catalog"
