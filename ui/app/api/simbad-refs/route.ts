@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { fetchFromMirrors, SIMBAD_TAP_MIRRORS } from "@/app/lib/utils/mirrors";
 import {
   parseSimbadRefs,
   SIMBAD_REFS_MAX,
@@ -11,8 +12,8 @@ import {
 
 /** Papers about a SIMBAD object, plus how many match the year filter. */
 
-const TAP_URL = "https://simbad.cds.unistra.fr/simbad/sim-tap/sync";
-const TIMEOUT_MS = 15_000;
+/** Per mirror. */
+const TIMEOUT_MS = 8_000;
 /** New papers are attached daily; a day of caching is fine. */
 const REVALIDATE_S = 86_400;
 
@@ -28,10 +29,12 @@ async function tap(query: string): Promise<unknown[][] | undefined> {
     format: "json",
     query,
   });
-  const resp = await fetch(`${TAP_URL}?${qs}`, {
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-    next: { revalidate: REVALIDATE_S },
-  });
+  const resp = await fetchFromMirrors(
+    SIMBAD_TAP_MIRRORS,
+    `?${qs}`,
+    { next: { revalidate: REVALIDATE_S } },
+    TIMEOUT_MS
+  );
   if (!resp.ok) throw new Error(`SIMBAD returned ${resp.status}`);
   return ((await resp.json()) as { data?: unknown[][] }).data;
 }
