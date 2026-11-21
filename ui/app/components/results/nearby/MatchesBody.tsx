@@ -20,6 +20,16 @@ interface MatchesBodyProps {
   children: ReactNode;
 }
 
+/** Centres a state message in the results area, where LoadingState's
+ * spinner sits, so every state appears in the same place. */
+function Centered({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-[calc(100dvh-64px)] items-center justify-center p-8">
+      {children}
+    </div>
+  );
+}
+
 /** The page's loading / error / empty / no-match states around the results. */
 export function MatchesBody({
   target,
@@ -35,22 +45,34 @@ export function MatchesBody({
     case "loading":
       return <LoadingState />;
     case "error":
-      return <ErrorState message={errorMessage} onRetry={onRetry} />;
+      return (
+        <Centered>
+          <ErrorState message={errorMessage} onRetry={onRetry} />
+        </Centered>
+      );
     case "success":
       if (target && matchCount > 0) return <>{children}</>;
       return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
-          <Text strong className="text-base">
-            No sources within the searched radii
-          </Text>
-          <Text type="secondary">
-            Widen a catalog&apos;s radius with Edit, or try another position.
-          </Text>
-        </div>
+        <Centered>
+          <div className="flex max-w-sm flex-col items-center gap-1 text-center">
+            <Text strong className="text-base">
+              No sources within the searched radii
+            </Text>
+            <Text type="secondary">
+              Widen a catalog&apos;s radius under Catalogs &amp; Radii, or try
+              another position.
+            </Text>
+          </div>
+        </Centered>
       );
     case "empty":
     default:
-      if (searchForm === null) return <EmptyState />;
+      if (searchForm === null)
+        return (
+          <Centered>
+            <EmptyState />
+          </Centered>
+        );
       return (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6 lg:flex-row lg:items-start lg:pt-16">
           <div className="w-full max-w-sm overflow-hidden rounded-lg border border-border bg-surface">
