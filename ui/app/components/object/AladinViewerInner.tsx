@@ -22,8 +22,8 @@ import type {
 } from "@/types/aladin";
 
 const DEFAULT_OPTIONS = {
-  // Use direct CDS URL to avoid CORS issues with mirror servers
-  survey: "https://alasky.cds.unistra.fr/DSS/DSSColor/",
+  // A HiPS ID rather than a URL, so Aladin can fall back to a mirror.
+  survey: "CDS/P/DSS2/color",
   fov: 0.5,
   projection: "SIN" as const,
   showCooGrid: false,
@@ -262,6 +262,9 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
         aladin.addOverlay(catalog);
         layerRefs.current.push(catalog);
       }
+      // Aladin repaints overlays only when the view moves or a tile lands;
+      // once the tiles are in, new circles would stay invisible until a zoom.
+      aladin.view?.requestRedraw?.();
     }, [catalogLayers, isInitialized]);
 
     // Dashed ring around the centre (e.g. the nearby-sources search radius)
@@ -289,6 +292,7 @@ export const AladinViewerInner = forwardRef<AladinViewerRef, AladinViewerProps>(
       aladin.addOverlay(overlay);
       overlay.add(A.circle(centerRa, centerDec, ringArcsec / 3600));
       ringRef.current = overlay;
+      aladin.view?.requestRedraw?.();
     }, [ringArcsec, centerRa, centerDec, isInitialized]);
 
     // Handle catalog sources updates

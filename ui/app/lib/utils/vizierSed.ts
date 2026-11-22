@@ -88,6 +88,12 @@ export function parseVizierSedVotable(xml: string): VizierSedRow[] {
   if (!xml.includes("<VOTABLE")) {
     throw new Error("VizieR SED: response is not a VOTable");
   }
+  // A mirror still computing the answer (CfA) serves the file as written so
+  // far: valid-looking rows, but only some of them. Only a closed document
+  // is complete.
+  if (!/<\/VOTABLE>\s*$/.test(xml)) {
+    throw new Error("VizieR SED: truncated VOTable (still being computed?)");
+  }
 
   const tableStart = xml.indexOf("<TABLE");
   if (tableStart === -1) return [];

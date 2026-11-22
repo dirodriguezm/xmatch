@@ -10,6 +10,7 @@ import {
 } from "@/app/lib/constants/search";
 import type { NavItem } from "@/app/lib/constants/site";
 import { isExternalHref } from "@/app/lib/constants/site";
+import { formatDegreesParam } from "@/app/lib/utils/coordinates";
 
 export type CommandGroup = "Search" | "Navigate" | "Actions";
 
@@ -162,9 +163,10 @@ export function buildSearchHref(
   dec: number,
   configs: CatalogRadiusConfig[] = buildDefaultCatalogConfigs()
 ): string {
+  // Never ra.toString(): a tiny value would read 5e-7, which /search rejects.
   const params = new URLSearchParams({
-    ra: ra.toString(),
-    dec: dec.toString(),
+    ra: formatDegreesParam(ra),
+    dec: formatDegreesParam(dec),
     catalogRadii: encodeCatalogRadii(configs),
   });
   return `/search?${params.toString()}`;

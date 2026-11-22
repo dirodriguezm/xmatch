@@ -13,13 +13,16 @@ import Link from "next/link";
 import { useApiHealth } from "@/app/components/feedback/useApiHealth";
 import { PageShell } from "@/app/components/layout";
 import { Section } from "@/app/components/learn/Section";
+import { findHipsHost } from "@/app/hooks/queries/useSkyImages";
 import { CATALOG_META } from "@/app/lib/constants/catalogMeta";
 import { API_ORIGIN } from "@/app/lib/constants/site";
+import { UPSTREAM_HOST_HEADER } from "@/app/lib/utils/mirrors";
 
 import {
   type CheckState,
   classifyCheck,
   DEGRADED_LATENCY_MS,
+  mirrorInUse,
   overallState,
   UPSTREAM_CHECKS,
   type UpstreamCheck,
@@ -33,33 +36,54 @@ const PROBE_TIMEOUT_MS = 20_000;
 
 interface ProbeResult {
   state: CheckState;
-  httpStatus: number | null;
   latencyMs: number | null;
+  /** Host that answered, when the check can tell (mirrored services). */
+  host: string | null;
   checkedAt: string;
 }
 
-async function probe(check: UpstreamCheck): Promise<ProbeResult> {
+const DOWN = (): ProbeResult => ({
+  state: "down",
+  latencyMs: null,
+  host: null,
+  checkedAt: new Date().toISOString(),
+});
+
+async function probe(
+  check: UpstreamCheck,
+  signal: AbortSignal
+): Promise<ProbeResult> {
   const started = performance.now();
+  const elapsed = () => Math.round(performance.now() - started);
+  if (check.kind === "hips") {
+    const host = await findHipsHost(check.hipsId, signal);
+    if (!host) return DOWN();
+    const latencyMs = elapsed();
+    return {
+      state: classifyCheck(200, latencyMs),
+      latencyMs,
+      host,
+      checkedAt: new Date().toISOString(),
+    };
+  }
   try {
     const resp = await fetch(check.path, {
       cache: "no-store",
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      signal: AbortSignal.any([
+        signal,
+        AbortSignal.timeout(check.timeoutMs ?? PROBE_TIMEOUT_MS),
+      ]),
     });
     await resp.arrayBuffer();
-    const latencyMs = Math.round(performance.now() - started);
+    const latencyMs = elapsed();
     return {
       state: classifyCheck(resp.status, latencyMs),
-      httpStatus: resp.status,
       latencyMs,
+      host: resp.headers.get(UPSTREAM_HOST_HEADER),
       checkedAt: new Date().toISOString(),
     };
   } catch {
-    return {
-      state: "down",
-      httpStatus: null,
-      latencyMs: null,
-      checkedAt: new Date().toISOString(),
-    };
+    return DOWN();
   }
 }
 
@@ -105,7 +129,7 @@ export default function StatusPage() {
   const upstream = useQueries({
     queries: UPSTREAM_CHECKS.map((check) => ({
       queryKey: ["status-probe", check.id],
-      queryFn: () => probe(check),
+      queryFn: ({ signal }: { signal: AbortSignal }) => probe(check, signal),
       refetchInterval: UPSTREAM_POLL_MS,
       staleTime: 0,
       retry: false,
@@ -124,6 +148,9 @@ export default function StatusPage() {
   const allChecked =
     apiState !== "checking" && upstream.every((q) => q.data !== undefined);
   const overall = overallState(settled);
+  const mirrored = UPSTREAM_CHECKS.filter((check, i) =>
+    mirrorInUse(check, upstream[i]?.data?.host)
+  ).length;
   const anyFetching = health.isFetching || upstream.some((q) => q.isFetching);
 
   const rerun = () => {
@@ -141,7 +168,9 @@ export default function StatusPage() {
   const bannerText = !allChecked
     ? "Running checks…"
     : overall === "up"
-      ? "All systems operational"
+      ? mirrored > 0
+        ? `All systems operational · ${mirrored} served by mirrors`
+        : "All systems operational"
       : apiState === "down"
         ? "The XWave API is not responding"
         : overall === "down"
@@ -222,14 +251,26 @@ export default function StatusPage() {
             {
               title: "Service",
               dataIndex: "name",
-              render: (_: unknown, row) => (
-                <div>
-                  <Text className="text-foreground">{row.name}</Text>
-                  <Text className="text-neutral-500 text-xs block">
-                    {row.provider} · {row.usedFor}
-                  </Text>
-                </div>
-              ),
+              render: (_: unknown, row) => {
+                const mirror = mirrorInUse(row, row.result?.host);
+                return (
+                  <div>
+                    <Text className="text-foreground">{row.name}</Text>
+                    {mirror && (
+                      <Tooltip
+                        title={`${row.primaryHost} isn't answering; requests are served by this mirror.`}
+                      >
+                        <Tag color="gold" className="!ml-2 !text-xs">
+                          via {mirror}
+                        </Tag>
+                      </Tooltip>
+                    )}
+                    <Text className="text-neutral-500 text-xs block">
+                      {row.provider} · {row.usedFor}
+                    </Text>
+                  </div>
+                );
+              },
             },
             {
               title: "State",
@@ -269,9 +310,12 @@ export default function StatusPage() {
           ]}
         />
         <Paragraph className="!text-neutral-500 text-xs !mt-2">
-          Each service is probed with a query for M31 every 5 minutes. Answers
-          slower than {DEGRADED_LATENCY_MS / 1000} s count as degraded. * Cached
-          server-side, so latency may not reflect the upstream service.
+          Each service is probed with a query for M31 every 5 minutes; sky image
+          surveys by asking their servers for the survey description. Answers
+          slower than {DEGRADED_LATENCY_MS / 1000} s count as degraded.
+          &ldquo;via&rdquo; names the mirror answering while the primary server
+          is down. * Cached server-side, so latency may not reflect the upstream
+          service.
         </Paragraph>
       </Section>
 

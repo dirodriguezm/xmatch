@@ -1,5 +1,6 @@
 "use client";
 
+import { AimOutlined } from "@ant-design/icons";
 import { Typography } from "antd";
 import Link from "next/link";
 
@@ -12,12 +13,15 @@ const EXAMPLE = { name: "M31", ra: 10.6847, dec: 41.269 };
 
 export function EmptyState() {
   return (
-    <div className="flex h-full max-w-sm flex-col justify-center gap-1">
+    <div className="flex max-w-sm flex-col items-center gap-1 text-center">
+      <span className="mb-3 flex size-11 items-center justify-center rounded-full border border-border bg-surface text-lg text-primary">
+        <AimOutlined />
+      </span>
       <Text strong className="text-base">
         No search yet
       </Text>
       <Text type="secondary">
-        Enter a position and radius in the search form, or{" "}
+        Enter a position in the search form, or{" "}
         <Link href={buildSearchHref(EXAMPLE.ra, EXAMPLE.dec)}>
           try {EXAMPLE.name}
         </Link>

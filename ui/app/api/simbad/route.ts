@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  fetchFromMirrors,
+  SIMBAD_TAP_MIRRORS,
+  UPSTREAM_HOST_HEADER,
+} from "@/app/lib/utils/mirrors";
+
 /**
- * Server-side proxy to the SIMBAD TAP service (CDS, Strasbourg): the nearest
- * SIMBAD object to a position, with its main identifier and, when SIMBAD has
- * one, its redshift or radial velocity.
+ * Server-side proxy to the SIMBAD TAP service (CDS, Strasbourg, or its
+ * mirrors): the nearest SIMBAD object to a position, with its main identifier
+ * and, when SIMBAD has one, its redshift or radial velocity.
  */
 
-const TAP_URL = "https://simbad.cds.unistra.fr/simbad/sim-tap/sync";
 const DEFAULT_RADIUS_ARCSEC = 2;
 const MAX_RADIUS_ARCSEC = 10;
-const TIMEOUT_MS = 15_000;
+/** Per mirror. */
+const TIMEOUT_MS = 8_000;
 /** SIMBAD entries change rarely; cache for a day. */
 const REVALIDATE_S = 86_400;
 
@@ -75,10 +81,12 @@ export async function GET(request: NextRequest) {
   });
 
   try {
-    const resp = await fetch(`${TAP_URL}?${body}`, {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      next: { revalidate: REVALIDATE_S },
-    });
+    const { response: resp, host } = await fetchFromMirrors(
+      SIMBAD_TAP_MIRRORS,
+      `?${body}`,
+      { next: { revalidate: REVALIDATE_S } },
+      TIMEOUT_MS
+    );
     if (!resp.ok) {
       return NextResponse.json(
         { error: `SIMBAD returned ${resp.status}` },
@@ -86,7 +94,9 @@ export async function GET(request: NextRequest) {
       );
     }
     const json = (await resp.json()) as { data?: unknown[][] };
-    return NextResponse.json(parseSimbadRow(json.data?.[0]));
+    return NextResponse.json(parseSimbadRow(json.data?.[0]), {
+      headers: { [UPSTREAM_HOST_HEADER]: host },
+    });
   } catch (error) {
     console.error("SIMBAD proxy error:", error);
     return NextResponse.json(

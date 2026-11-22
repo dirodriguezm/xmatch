@@ -21,14 +21,18 @@ export {
   useNeighbors,
 } from "./useNeighbors";
 export { type SimbadParams, useSimbad, useSimbadRefs } from "./useSimbad";
-export { useSkyImagesReachable } from "./useSkyImages";
+export { useAvailableHips, useHipsAt } from "./useSkyImages";
 export {
   type GaiaEpochParams,
   useCrtsLightcurve,
   useGaiaEpochPhotometry,
   usePs1Lightcurve,
 } from "./useSurveyLightcurves";
-export { useVizierSed, type VizierSedParams } from "./useVizierSed";
+export {
+  useVizierSed,
+  type VizierSedParams,
+  vizierSedQuery,
+} from "./useVizierSed";
 export {
   HILIGT_MISSION_IDS,
   useBatLightcurve,

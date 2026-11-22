@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  fetchFromMirrors,
+  SESAME_MIRRORS,
+  UPSTREAM_HOST_HEADER,
+} from "@/app/lib/utils/mirrors";
+
+/** Per mirror; Sesame answers in 1–3 s when it is up. */
+const TIMEOUT_MS = 8_000;
+
 /**
- * API route to proxy Sesame name resolution requests
- * This avoids CORS issues when calling the CDS Sesame service from the browser
+ * API route to proxy Sesame name resolution requests, trying the CDS mirrors
+ * in turn. This avoids CORS issues when calling Sesame from the browser.
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -16,10 +25,13 @@ export async function GET(request: NextRequest) {
   }
 
   const encodedName = encodeURIComponent(name.trim());
-  const sesameUrl = `https://cds.unistra.fr/cgi-bin/nph-sesame/-oI/SNV?${encodedName}`;
-
   try {
-    const response = await fetch(sesameUrl);
+    const { response, host } = await fetchFromMirrors(
+      SESAME_MIRRORS,
+      `/-oI/SNV?${encodedName}`,
+      {},
+      TIMEOUT_MS
+    );
 
     if (!response.ok) {
       return NextResponse.json(
@@ -31,14 +43,15 @@ export async function GET(request: NextRequest) {
     const text = await response.text();
     const result = parseSesameResponse(text, name);
 
+    const headers = { [UPSTREAM_HOST_HEADER]: host };
     if (!result) {
       return NextResponse.json(
         { error: `Could not resolve "${name}"` },
-        { status: 404 }
+        { status: 404, headers }
       );
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers });
   } catch (error) {
     console.error("Sesame proxy error:", error);
     return NextResponse.json(

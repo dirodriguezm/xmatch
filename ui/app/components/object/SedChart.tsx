@@ -9,9 +9,11 @@ import type {
   ScatterSeriesOption,
 } from "echarts";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
+import { ServiceStatusLink } from "@/app/components/layout/ServiceStatus";
+import { useIsSlow } from "@/app/hooks/useIsSlow";
 import {
   getSearchCatalogColor,
   getSearchCatalogLabel,
@@ -41,6 +43,11 @@ const OWN_SOURCE_LABELS: Record<string, string> = {
   gaia: "Gaia DR3",
   allwise: "AllWISE (with its 2MASS associations)",
 };
+
+/** When the VizieR wait gets an explanation. */
+const VIZIER_SLOW_AFTER_MS = 6_000;
+const VIZIER_SLOW_NOTE =
+  "A position VizieR hasn't looked up recently can take 1–2 minutes.";
 
 export interface VizierSedState {
   points: VizierSedPoint[];
@@ -148,6 +155,7 @@ export function SedChart({
   const [showVizier, setShowVizier] = useState(true);
   const [showInconsistent, setShowInconsistent] = useState(false);
   const [deredden, setDeredden] = useState(false);
+  const vizierSlow = useIsSlow(vizier.loading, VIZIER_SLOW_AFTER_MS);
 
   const galacticLatitude = equatorialToGalactic(ra, dec).b;
   const blocker = reddeningBlocker(reddening, galacticLatitude);
@@ -184,6 +192,7 @@ export function SedChart({
       vizier={vizier}
       reddening={reddening}
       filenameStem={filenameStem}
+      vizierSlow={vizierSlow}
       inconsistentCount={showVizier ? inconsistentCount : 0}
       showInconsistent={showInconsistent}
       onToggleInconsistent={() => setShowInconsistent((v) => !v)}
@@ -199,7 +208,11 @@ export function SedChart({
               variant="sed"
               size={48}
               label={
-                <span className="text-xs">Loading VizieR photometry…</span>
+                <span className="text-xs">
+                  {vizierSlow
+                    ? `Still loading VizieR photometry. ${VIZIER_SLOW_NOTE}`
+                    : "Loading VizieR photometry…"}
+                </span>
               }
             />
           </div>
@@ -422,10 +435,12 @@ function SedSources({
   points,
   vizier,
   reddening,
+  vizierSlow,
   inconsistentCount,
   showInconsistent,
   onToggleInconsistent,
 }: SedChartProps & {
+  vizierSlow: boolean;
   inconsistentCount: number;
   showInconsistent: boolean;
   onToggleInconsistent: () => void;
@@ -435,9 +450,15 @@ function SedSources({
     .join(", ");
   const tableCount = new Set(vizier.points.flatMap((p) => p.tables)).size;
 
-  let vizierText: string;
-  if (vizier.loading) vizierText = "loading…";
-  else if (vizier.error) vizierText = "unavailable right now";
+  let vizierText: ReactNode;
+  if (vizier.loading)
+    vizierText = vizierSlow ? `loading… ${VIZIER_SLOW_NOTE}` : "loading…";
+  else if (vizier.error)
+    vizierText = (
+      <>
+        unavailable right now (<ServiceStatusLink />)
+      </>
+    );
   else if (vizier.points.length === 0)
     vizierText = "no published photometry within 2″";
   else

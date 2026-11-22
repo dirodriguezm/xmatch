@@ -2,6 +2,7 @@
 
 import { Flex, Skeleton, Typography } from "antd";
 
+import { ServiceStatusLink } from "@/app/components/layout/ServiceStatus";
 import { useSimbad } from "@/app/hooks/queries";
 
 const { Text } = Typography;
@@ -33,7 +34,7 @@ export function SimbadIdentity({ ra, dec, radiusArcsec }: SimbadIdentityProps) {
   if (isError) {
     return (
       <Text type="secondary" className="text-sm">
-        SIMBAD lookup failed
+        SIMBAD lookup failed · <ServiceStatusLink />
       </Text>
     );
   }

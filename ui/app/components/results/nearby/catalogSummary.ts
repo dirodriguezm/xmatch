@@ -1,5 +1,6 @@
 import { CONE_SEARCH_MAX_NEIGHBORS } from "@/app/lib/constants/search";
 
+import { MIN_FIELD_SOURCES } from "./separationStats";
 import { catalogsOf, type NearbySource, sigmaRatio } from "./shared";
 
 /**
@@ -24,11 +25,23 @@ export interface CatalogSummary {
   verdict: MatchVerdict;
   /** The cone search stopped at its neighbour limit. */
   capped: boolean;
+  /** Why this catalog's search failed, when it did. */
+  error?: string;
+  /** Still waiting for an answer (e.g. retrying after a failure). */
+  pending?: boolean;
 }
 
+/**
+ * One summary per searched catalog, including those that returned nothing or
+ * failed, so the list can account for every catalog in the search.
+ */
 export function summarizeCatalogs(
   sources: NearbySource[],
-  radii: Record<string, number>
+  radii: Record<string, number>,
+  /** Failure message per catalog slug, for searches that errored. */
+  errors: Record<string, string> = {},
+  /** Catalog slugs whose search has not answered yet. */
+  pending: readonly string[] = []
 ): CatalogSummary[] {
   return catalogsOf(radii, sources).map((slug) => {
     const own = sources
@@ -51,8 +64,21 @@ export function summarizeCatalogs(
       within2Sigma,
       verdict,
       capped: own.length >= CONE_SEARCH_MAX_NEIGHBORS,
+      ...(slug in errors ? { error: errors[slug] } : {}),
+      ...(pending.includes(slug) && own.length === 0 ? { pending: true } : {}),
     };
   });
+}
+
+/**
+ * Catalogs with matches first, then failed or still-searching ones, then
+ * empty ones, each keeping the searched order: the quiet one-line groups sink
+ * to the bottom.
+ */
+export function listOrder(groups: CatalogSummary[]): CatalogSummary[] {
+  const rank = (g: CatalogSummary) =>
+    g.sources.length > 0 ? 0 : g.error !== undefined || g.pending ? 1 : 2;
+  return [...groups].sort((a, b) => rank(a) - rank(b));
 }
 
 export const VERDICT_TEXT: Record<MatchVerdict, string> = {
@@ -72,3 +98,6 @@ export const VERDICT_CLASSES: Record<MatchVerdict, string> = {
 /** Caveat shown next to every σ verdict. */
 export const SIGMA_CAVEAT =
   "σ uses each survey's typical positional error combined with 0.3″ for the searched position, not per-source errors, so treat the verdicts as a guide.";
+
+/** Why a catalog header may have no chance figure. */
+export const CHANCE_CAVEAT = `Chance is estimated from the density of sources in the outer half of a catalog's cone, so it only appears when at least ${MIN_FIELD_SOURCES} sources sit there.`;

@@ -51,6 +51,11 @@ describe("parseVizierSedVotable", () => {
     );
   });
 
+  it("rejects a VOTable cut off mid-table (a mirror still computing it)", () => {
+    const partial = VOTABLE.slice(0, VOTABLE.indexOf("<TR>", 2000));
+    expect(() => parseVizierSedVotable(partial)).toThrow(/truncated/);
+  });
+
   it("returns no rows for an empty table", () => {
     const empty = VOTABLE.replace(/<TR>[\s\S]*<\/TR>\n/, "");
     expect(parseVizierSedVotable(empty)).toEqual([]);

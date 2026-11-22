@@ -22,11 +22,29 @@ export interface ConeSearchParams {
 export class ConeSearchError extends Error {
   constructor(
     message: string,
-    public readonly status: number
+    public readonly status: number,
+    /**
+     * Refused here before any request went out. Says nothing about the
+     * service's health, so the status indicator ignores it.
+     */
+    public readonly local = false
   ) {
     super(message);
     this.name = "ConeSearchError";
   }
+}
+
+/**
+ * Whether trying again could succeed: a network error or a 5xx might, but a
+ * request the service rejected (4xx: bad position, radius over the limit)
+ * fails the same way every time.
+ */
+export function isRetryableConeError(error: unknown): boolean {
+  return !(
+    error instanceof ConeSearchError &&
+    error.status >= 400 &&
+    error.status < 500
+  );
 }
 
 export async function fetchConeSearch(
@@ -37,7 +55,8 @@ export async function fetchConeSearch(
   if (params.radius > MAX_RADIUS_ARCSEC) {
     throw new ConeSearchError(
       `Radius too large: ${params.radius.toFixed(1)}" exceeds the ${MAX_RADIUS_ARCSEC}" limit. Try a smaller radius.`,
-      400
+      400,
+      true
     );
   }
 
@@ -97,15 +116,8 @@ export function useParallelConeSearch(
             nneighbor: CONE_SEARCH_MAX_NEIGHBORS,
           }),
         enabled: base !== null,
-        retry: (failureCount: number, error: unknown) => {
-          if (
-            error instanceof ConeSearchError &&
-            error.status >= 400 &&
-            error.status < 500
-          )
-            return false;
-          return failureCount < 2;
-        },
+        retry: (failureCount: number, error: unknown) =>
+          isRetryableConeError(error) && failureCount < 2,
       })),
   });
 }

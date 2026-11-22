@@ -3,7 +3,7 @@ import { CONE_SEARCH_MAX_NEIGHBORS } from "@/app/lib/constants/search";
 import type { NearbySource } from "./shared";
 
 /** Annulus sources needed before a field density is worth quoting. */
-const MIN_FIELD_SOURCES = 5;
+export const MIN_FIELD_SOURCES = 5;
 
 /**
  * Approximate surface density of unrelated sources around the target, from

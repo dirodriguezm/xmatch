@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 
 import type { VizierSedResponse } from "@/app/api/vizier-sed/route";
 
@@ -19,13 +19,20 @@ async function fetchVizierSed(p: VizierSedParams): Promise<VizierSedResponse> {
   return r.json();
 }
 
-export function useVizierSed(params: VizierSedParams | null) {
-  return useQuery({
+/** Shared by the hook and by prefetching, so both hit the same cache entry. */
+export function vizierSedQuery(params: VizierSedParams) {
+  return queryOptions({
     queryKey: ["vizier-sed", params],
-    queryFn: () => fetchVizierSed(params!),
-    enabled: params !== null,
+    queryFn: () => fetchVizierSed(params),
     // Published photometry does not change within a session.
     staleTime: Infinity,
     retry: 1,
+  });
+}
+
+export function useVizierSed(params: VizierSedParams | null) {
+  return useQuery({
+    ...vizierSedQuery(params ?? { ra: 0, dec: 0 }),
+    enabled: params !== null,
   });
 }

@@ -4,6 +4,7 @@ import { ReloadOutlined } from "@ant-design/icons";
 import { Button, Flex, Typography } from "antd";
 import { useState } from "react";
 
+import { ServiceStatusLink } from "@/app/components/layout/ServiceStatus";
 import type { Neighbor } from "@/app/hooks/queries";
 
 import { NeighborMap } from "./NeighborMap";
@@ -49,7 +50,7 @@ export function SkyViewFallback({
         </Text>
         <Text type="secondary" className="text-xs">
           CDS isn&apos;t responding. Showing XWave sources within {radiusArcsec}
-          ″ instead.
+          ″ instead. <ServiceStatusLink />
         </Text>
         <Button
           size="small"

@@ -1,16 +1,27 @@
 "use client";
 
-import { InfoCircleOutlined } from "@ant-design/icons";
-import { Layout, Segmented, Tooltip } from "antd";
+import {
+  AimOutlined,
+  DoubleLeftOutlined,
+  InfoCircleOutlined,
+} from "@ant-design/icons";
+import { Button, Layout, Segmented, Tooltip } from "antd";
 import { type ReactNode, useMemo, useState } from "react";
 
 import { AppSidebar } from "@/app/components/layout";
 import { MapPanel } from "@/app/components/results/nearby/MapPanel";
 import { TonightSummary } from "@/app/components/results/TonightSummary";
+import { useMediaQuery } from "@/app/hooks/useMediaQuery";
+import { usePersistedFlag } from "@/app/hooks/usePersistedFlag";
 import { getSearchCatalogLabel } from "@/app/lib/constants/catalogs";
 
 import { CatalogMark } from "./nearby/CatalogMark";
-import { SIGMA_CAVEAT, summarizeCatalogs } from "./nearby/catalogSummary";
+import {
+  CHANCE_CAVEAT,
+  listOrder,
+  SIGMA_CAVEAT,
+  summarizeCatalogs,
+} from "./nearby/catalogSummary";
 import { GroupedMatches, TOP_N } from "./nearby/GroupedMatches";
 import { MatchesBody } from "./nearby/MatchesBody";
 import { ResultsToolbar } from "./nearby/ResultsToolbar";
@@ -31,9 +42,16 @@ export interface SearchResultsProps {
   target: { ra: number; dec: number } | null;
   /** The search form, kept in the sidebar for further searches. */
   searchForm: ReactNode;
+  /** Magnitudes are still being fetched for the Mag column. */
+  photometryPending?: boolean;
+  /** Failure message per searched catalog slug whose cone search errored. */
+  catalogErrors?: Record<string, string>;
+  /** Searched catalog slugs still waiting for their first answer. */
+  catalogPending?: string[];
 }
 
 const ALL = "__all__";
+const MAP_COLLAPSED_KEY = "xwave:results-map-collapsed";
 
 const { Content } = Layout;
 
@@ -50,28 +68,54 @@ export function SearchResults({
   onRetry,
   target,
   searchForm,
+  photometryPending = false,
+  catalogErrors,
+  catalogPending,
 }: SearchResultsProps) {
   const { radii, sources, highlight } = useNearbyResults(data, target);
   const [active, setActive] = useState<string>(ALL);
   const [opened, setOpened] = useState<Set<string>>(() => new Set());
   const [mapView, setMapView] = useState<"offsets" | "sky">("offsets");
+  // The map can fold to a rail beside the list, like the sidebar. Only on
+  // Tailwind's lg, where the two panes sit side by side; stacked, it stays.
+  const [mapHidden, setMapHidden] = usePersistedFlag(MAP_COLLAPSED_KEY);
+  const sideBySide = useMediaQuery("(min-width: 64rem)");
+  const mapCollapsed = mapHidden && sideBySide;
 
-  // Catalogs that returned nothing are left out entirely — no empty group,
-  // tab or search circle.
+  // The page builds this map on every render; keying on its content keeps
+  // `groups` (and the scroll-to-selection effect downstream) stable.
+  const errorsKey = JSON.stringify(catalogErrors ?? {});
+  const pendingKey = (catalogPending ?? []).join(",");
+  // Every searched catalog gets a group, so one that returned nothing or
+  // failed is visibly accounted for (as a single quiet line, listed last).
   const groups = useMemo(
-    () => summarizeCatalogs(sources, radii).filter((g) => g.sources.length > 0),
-    [sources, radii]
+    () =>
+      listOrder(
+        summarizeCatalogs(
+          sources,
+          radii,
+          JSON.parse(errorsKey) as Record<string, string>,
+          pendingKey ? pendingKey.split(",") : []
+        )
+      ),
+    [sources, radii, errorsKey, pendingKey]
+  );
+  // Only catalogs with matches get a filter chip and a search circle:
+  // filtering to an empty catalog would show nothing.
+  const matchedGroups = useMemo(
+    () => groups.filter((g) => g.sources.length > 0),
+    [groups]
   );
   const matchedRadii = useMemo(
     () =>
       Object.fromEntries(
-        groups
+        matchedGroups
           .filter((g) => g.radius !== undefined)
           .map((g) => [g.slug, g.radius as number])
       ),
-    [groups]
+    [matchedGroups]
   );
-  const activeGroup = groups.find((g) => g.slug === active);
+  const activeGroup = matchedGroups.find((g) => g.slug === active);
   const visibleGroups = activeGroup ? [activeGroup] : groups;
   const mapSources = activeGroup ? activeGroup.sources : sources;
   const mapRadii = useMemo(
@@ -93,6 +137,8 @@ export function SearchResults({
     }
     return out;
   }, [groups]);
+  // The footnote only explains "chance" when a header actually shows one.
+  const showsChance = visibleGroups.some((g) => chanceBySlug[g.slug]);
 
   const expanded = useMemo(() => {
     const set = new Set(opened);
@@ -122,6 +168,7 @@ export function SearchResults({
         <MatchesBody
           target={target}
           matchCount={sources.length}
+          searchedCatalogs={groups}
           errorMessage={errorMessage}
           onRetry={onRetry}
           // The form is already in the sidebar.
@@ -130,42 +177,79 @@ export function SearchResults({
           {/* The window sets this row's height (64px header + toolbar +
             padding), clamped so huge screens don't get a giant map. Both
             panes take that height; the square map is centred in its pane. */}
-          <div className="grid grid-cols-1 gap-4 p-4 lg:h-[clamp(380px,calc(100dvh-96px),860px)] lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-6 lg:px-6">
-            <section
-              aria-label="Sky map of the matches"
-              className="mx-auto flex aspect-square w-full max-w-[min(100%,45svh)] flex-col rounded-lg border border-border bg-surface p-3 lg:aspect-auto lg:h-full lg:max-w-none"
-            >
-              <Segmented
-                size="small"
-                block
-                className="mb-2"
-                value={mapView}
-                onChange={(v) => setMapView(v as "offsets" | "sky")}
-                aria-label="Map view"
-                options={[
-                  { value: "offsets", label: "Offsets" },
-                  { value: "sky", label: "Sky image" },
-                ]}
-              />
-              {mapView === "sky" && target ? (
-                <SkyImage
-                  key={active}
-                  target={target}
-                  sources={mapSources}
-                  radii={mapRadii}
-                />
-              ) : (
-                <MapPanel
-                  key={active}
-                  sources={mapSources}
-                  radii={mapRadii}
-                  highlight={highlight}
-                  size={600}
-                  className="h-full min-h-0"
-                  mapClassName="min-h-0 w-full flex-1 h-full"
-                />
-              )}
-            </section>
+          <div
+            className={`grid grid-cols-1 gap-4 p-4 lg:h-[clamp(380px,calc(100dvh-96px),860px)] lg:gap-6 lg:px-6 ${
+              mapCollapsed
+                ? "lg:grid-cols-[48px_minmax(0,1fr)]"
+                : "lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)]"
+            }`}
+          >
+            {mapCollapsed ? (
+              <section
+                aria-label="Sky map of the matches (hidden)"
+                className="flex flex-col items-center rounded-lg border border-border bg-surface pt-3"
+              >
+                <Tooltip title="Show map" placement="right">
+                  <Button
+                    type="text"
+                    icon={<AimOutlined />}
+                    aria-label="Show map"
+                    aria-expanded={false}
+                    onClick={() => setMapHidden(false)}
+                  />
+                </Tooltip>
+              </section>
+            ) : (
+              <section
+                aria-label="Sky map of the matches"
+                className="mx-auto flex aspect-square w-full max-w-[min(100%,45svh)] flex-col rounded-lg border border-border bg-surface p-3 lg:aspect-auto lg:h-full lg:max-w-none"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <Segmented
+                    size="small"
+                    block
+                    className="flex-1"
+                    value={mapView}
+                    onChange={(v) => setMapView(v as "offsets" | "sky")}
+                    aria-label="Map view"
+                    options={[
+                      { value: "offsets", label: "Offsets" },
+                      { value: "sky", label: "Sky image" },
+                    ]}
+                  />
+                  {sideBySide && (
+                    <Tooltip title="Hide map, widen the list">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<DoubleLeftOutlined />}
+                        aria-label="Hide map"
+                        aria-expanded
+                        onClick={() => setMapHidden(true)}
+                      />
+                    </Tooltip>
+                  )}
+                </div>
+                {mapView === "sky" && target ? (
+                  <SkyImage
+                    key={active}
+                    target={target}
+                    sources={mapSources}
+                    radii={mapRadii}
+                  />
+                ) : (
+                  <MapPanel
+                    key={active}
+                    sources={mapSources}
+                    radii={mapRadii}
+                    highlight={highlight}
+                    size={600}
+                    className="h-full min-h-0"
+                    mapClassName="min-h-0 w-full flex-1 h-full"
+                  />
+                )}
+              </section>
+            )}
 
             <section
               aria-label="Matches by catalog"
@@ -183,7 +267,7 @@ export function SearchResults({
                     aria-label="Catalog shown on the map and in the list"
                     options={[
                       { value: ALL, label: "All" },
-                      ...groups.map((g) => ({
+                      ...matchedGroups.map((g) => ({
                         value: g.slug,
                         label: (
                           <span className="inline-flex items-center gap-1.5">
@@ -213,16 +297,20 @@ export function SearchResults({
                 expanded={expanded}
                 onToggleExpanded={activeGroup ? undefined : toggleExpanded}
                 chanceBySlug={chanceBySlug}
+                photometryPending={photometryPending}
+                onRetry={onRetry}
                 className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto border-none"
               />
 
               {/* Pinned footer: context that used to float elsewhere. */}
               <div className="mt-auto flex flex-col gap-1 border-t border-border pt-2">
                 {target && <TonightSummary ra={target.ra} dec={target.dec} />}
-                <Tooltip title={SIGMA_CAVEAT}>
+                <Tooltip title={`${SIGMA_CAVEAT} ${CHANCE_CAVEAT}`}>
                   <span className="inline-flex w-fit cursor-help items-center gap-1 text-xs text-neutral-500">
-                    <InfoCircleOutlined />σ from typical survey errors; chance ≈
-                    how likely an unrelated source sits this close (approximate)
+                    <InfoCircleOutlined />
+                    {showsChance
+                      ? "σ from typical survey errors; chance ≈ how likely an unrelated source sits this close (approximate)"
+                      : "σ from typical survey errors (approximate)"}
                   </span>
                 </Tooltip>
               </div>

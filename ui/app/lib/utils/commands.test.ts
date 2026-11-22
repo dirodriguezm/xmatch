@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { FOOTER_GROUPS, NAV_ITEMS } from "@/app/lib/constants/site";
+import { parseDecInput } from "@/app/lib/utils/coordinates";
 
 import {
   buildNavCommands,
@@ -89,6 +90,12 @@ describe("buildSearchHref", () => {
     expect(href).toBe(
       "/search?ra=10.5&dec=-3.25&catalogRadii=gaia%3A3%3Aarcsec%3A1"
     );
+  });
+
+  it("never writes exponents, which /search would reject", () => {
+    const params = new URL(buildSearchHref(10, -5e-7), "http://x").searchParams;
+    expect(params.get("dec")).toBe("-0.0000005");
+    expect(parseDecInput(params.get("dec") ?? "").value).toBeCloseTo(-5e-7, 9);
   });
 
   it("defaults to every catalog", () => {

@@ -12,6 +12,7 @@ import {
 } from "antd";
 import { useState } from "react";
 
+import { ServiceStatusLink } from "@/app/components/layout/ServiceStatus";
 import { useSimbadRefs } from "@/app/hooks/queries";
 import {
   adsAbstractUrl,
@@ -107,7 +108,7 @@ export function LiteraturePanel({ oid, mainId }: LiteraturePanelProps) {
   if (isError) {
     return (
       <Text type="secondary" className="text-sm">
-        Could not load references from SIMBAD.
+        Could not load references from SIMBAD. <ServiceStatusLink />
       </Text>
     );
   }
