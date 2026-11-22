@@ -1,4 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+
+import { hipsTilePath } from "@/app/lib/utils/healpix";
 
 /**
  * How long each survey gets to answer before the next one is tried. Per
@@ -23,7 +26,7 @@ async function fetchHipsRecord(
     ID: id,
     get: "record",
     fmt: "json",
-    fields: "ID,hips_service_url*",
+    fields: "ID,hips_service_url*,hips_order,hips_tile_format",
   });
   for (const server of MOC_SERVERS) {
     try {
@@ -98,4 +101,143 @@ export function useAvailableHips(ids: readonly string[]) {
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
+}
+
+/** File extension of a HiPS `hips_tile_format` (first listed wins). */
+const TILE_EXTENSIONS: Record<string, string> = {
+  jpeg: "jpg",
+  png: "png",
+  webp: "webp",
+};
+
+/** A survey and the mirror that serves it at a given position. */
+export interface HipsAtPosition {
+  id: string;
+  /** Mirror base URL, to hand Aladin instead of the ID. */
+  url: string;
+  /** The tile under the position on that mirror, which loaded. */
+  tileUrl: string;
+}
+
+/**
+ * The first HiPS in `ids` with a mirror that serves the deepest tile under
+ * (ra, dec), and that mirror's URL. A mirror can answer `properties` and
+ * still lack part of the sky: MAST's Pan-STARRS copy has no tiles deeper
+ * than order 7 around Orion, which left Aladin black there. Aladin gets the
+ * URL rather than the ID, since given an ID it picks a mirror itself and can
+ * land on one that 404s (alasky during the CDS outage).
+ *
+ * Null when the position isn't covered: some server said so (a mirror's 4xx
+ * for the tile, or no usable registry record). Throws only when nothing gave
+ * an answer, every registry and mirror request failing or timing out, so a
+ * gap in the sky doesn't read as an outage in the header.
+ */
+export async function findHipsAt(
+  ids: readonly string[],
+  ra: number,
+  dec: number,
+  querySignal: AbortSignal
+): Promise<HipsAtPosition | null> {
+  let answered = false;
+  for (const id of ids) {
+    const signal = AbortSignal.any([
+      querySignal,
+      AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    ]);
+    try {
+      const record = await fetchHipsRecord(id, signal);
+      const order = Number(record?.hips_order);
+      const format = record?.hips_tile_format?.split(" ")[0] ?? "jpeg";
+      const ext = TILE_EXTENSIONS[format];
+      if (!record || !order || !ext) {
+        answered = true;
+        continue;
+      }
+      const path = hipsTilePath(order, ra, dec, ext);
+      // First mirror to serve the tile wins; the others are cut off.
+      const race = new AbortController();
+      const url = await Promise.any(
+        mirrorUrls(record).map(async (u) => {
+          const base = u.replace(/\/$/, "");
+          const res = await fetch(`${base}/${path}`, {
+            signal: AbortSignal.any([signal, race.signal]),
+          });
+          if (!res.ok) {
+            // A 4xx is the mirror up and lacking this patch of sky.
+            if (res.status < 500) answered = true;
+            throw new Error(`${base}: ${res.status}`);
+          }
+          return base;
+        })
+      );
+      race.abort();
+      return { id, url, tileUrl: `${url}/${path}` };
+    } catch (error) {
+      // Unmounted: let React Query drop it. Anything else: next survey.
+      if (querySignal.aborted) throw error;
+    }
+  }
+  if (answered) return null;
+  throw new Error("No sky image server answered");
+}
+
+/** `findHipsAt` as a query; `data` is null where no survey covers the sky. */
+export function useHipsAt(ids: readonly string[], ra: number, dec: number) {
+  return useQuery({
+    queryKey: ["hips-at", ...ids, ra, dec],
+    queryFn: ({ signal }) => findHipsAt(ids, ra, dec, signal),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+}
+
+/** After this long without the tile, say so rather than spin silently. */
+const TILE_SLOW_MS = 12_000;
+/** After this long, stop covering the view: the image may be fine. */
+const TILE_GIVE_UP_MS = 30_000;
+
+/** Where a probe of one tile stands. */
+export type TileProbe = "pending" | "loaded" | "failed";
+
+/**
+ * What the view should say about its tiles: still `loading`, `slow`,
+ * `loaded`, `failed`, or `unknown` once the probe has hung so long that
+ * covering the view would hide an image that may well be there.
+ */
+export type TileState = "loading" | "slow" | "loaded" | "failed" | "unknown";
+
+export function tileState(probe: TileProbe, elapsedMs: number): TileState {
+  if (probe !== "pending") return probe;
+  if (elapsedMs >= TILE_GIVE_UP_MS) return "unknown";
+  return elapsedMs >= TILE_SLOW_MS ? "slow" : "loading";
+}
+
+/**
+ * Whether the survey's tile at the target loads, from an image probe of it.
+ * Aladin reports no tile progress, and resource timing can't stand in: a
+ * tile served from the image cache (a remount over the same view) records
+ * no entry, nor does any once the buffer is full, and outside Chromium a
+ * 404 looks like a success. An image's load or error event fires in every
+ * browser, from cache too. Aladin requests tiles with the same CORS mode,
+ * so the probe and its tiles share the HTTP cache.
+ */
+export function useTileState(tileUrl: string): TileState {
+  const [probe, setProbe] = useState<TileProbe>("pending");
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => setProbe("loaded");
+    img.onerror = () => setProbe("failed");
+    img.src = tileUrl;
+    const timers = [TILE_SLOW_MS, TILE_GIVE_UP_MS].map((ms) =>
+      setTimeout(() => setElapsed(ms), ms)
+    );
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+      timers.forEach(clearTimeout);
+    };
+  }, [tileUrl]);
+  return tileState(probe, elapsed);
 }

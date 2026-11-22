@@ -24,12 +24,10 @@ import {
   buildDefaultCatalogConfigs,
   CATALOG_SELECT_OPTIONS,
 } from "@/app/lib/constants/catalogs";
-import {
-  type CatalogRadiusConfig,
-  encodeCatalogRadii,
-} from "@/app/lib/constants/search";
+import { type CatalogRadiusConfig } from "@/app/lib/constants/search";
 import { BULK_INPUT_STORAGE_KEY } from "@/app/lib/utils/basket";
 import { MAX_BULK_FILE_BYTES } from "@/app/lib/utils/bulkInput";
+import { buildSearchHref } from "@/app/lib/utils/commands";
 
 const { Title, Text } = Typography;
 
@@ -164,13 +162,7 @@ export function LandingSearch() {
         dec = resolved.dec;
       }
 
-      const params = new URLSearchParams({
-        ra: ra.toString(),
-        dec: dec.toString(),
-        catalogRadii: encodeCatalogRadii(configs),
-      });
-
-      router.push(`/search?${params.toString()}`);
+      router.push(buildSearchHref(ra, dec, configs));
     } catch {
       message.error("Failed to resolve coordinates");
       setIsLoading(false);

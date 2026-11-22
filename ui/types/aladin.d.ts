@@ -129,8 +129,10 @@ export interface AladinInstance {
   world2pix: (ra: number, dec: number) => [number, number] | null;
   /** Pixel to world coordinates */
   pix2world: (x: number, y: number) => [number, number] | null;
-  /** Get view HTML element */
-  getViewDiv: () => HTMLElement;
+  /** The element Aladin renders into (3.9 has no `getViewDiv`). */
+  aladinDiv?: HTMLElement;
+  /** Internal view; `requestRedraw` repaints overlays on the next frame. */
+  view?: { requestRedraw?: () => void };
 }
 
 export type AladinEvent =

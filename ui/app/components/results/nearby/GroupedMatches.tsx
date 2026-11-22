@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Grid } from "antd";
+import { Grid, Tooltip } from "antd";
 import Link from "next/link";
 import {
   Fragment,
@@ -14,6 +14,7 @@ import {
 import { BasketButton } from "@/app/components/basket/BasketButton";
 import { vizierSedQuery } from "@/app/hooks/queries";
 import { getSearchCatalogLabel } from "@/app/lib/constants/catalogs";
+import { CATALOG_MAG_SPECS } from "@/app/lib/constants/photometry";
 
 import { CatalogMark } from "./CatalogMark";
 import {
@@ -55,6 +56,13 @@ interface GroupedMatchesProps {
    * nearest match, as a formatted string; shown in the group header.
    */
   chanceBySlug?: Record<string, string>;
+  /**
+   * Photometry for the Mag column is still loading (it arrives after the
+   * matches), so an empty cell means "not yet" rather than "none".
+   */
+  photometryPending?: boolean;
+  /** Re-runs the search; offered next to a catalog whose search failed. */
+  onRetry?: () => void;
   /** Classes for the scrolling container (defaults fit layout C). */
   className?: string;
 }
@@ -77,9 +85,40 @@ function scrollIntoScroller(scroller: HTMLElement | null, key: string) {
     });
 }
 
+/** Mag cell content: the value, a placeholder while it loads, or a dash. */
+function MagCell({
+  source,
+  pending,
+}: {
+  source: NearbySource;
+  pending: boolean;
+}) {
+  if (source.photometry)
+    return (
+      <>
+        {source.photometry.mag.toFixed(2)}
+        <span className="ml-1 text-neutral-400">{source.photometry.band}</span>
+      </>
+    );
+  // Only catalogs with a magnitude spec are ever fetched (eROSITA is not),
+  // so the others go straight to the dash.
+  if (pending && CATALOG_MAG_SPECS[source.slug]?.length)
+    return (
+      <span className="inline-block h-2.5 w-10 animate-pulse rounded-sm bg-foreground/10 align-middle motion-reduce:animate-none">
+        <span className="sr-only">Loading magnitude</span>
+      </span>
+    );
+  return (
+    <span className="text-neutral-600" title="No magnitude for this source">
+      –
+    </span>
+  );
+}
+
 /**
  * One table, one row group per catalog: each sorted by separation and cut to
- * its nearest few, with an explicit line when a catalog has nothing.
+ * its nearest few. Catalogs that returned nothing, or whose search failed,
+ * keep a single quiet line so every searched catalog is accounted for.
  */
 export function GroupedMatches({
   groups,
@@ -87,6 +126,8 @@ export function GroupedMatches({
   expanded,
   onToggleExpanded,
   chanceBySlug,
+  photometryPending = false,
+  onRetry,
   className = "self-start lg:max-h-[calc(100dvh-230px)] lg:overflow-y-auto",
 }: GroupedMatchesProps) {
   const scroller = useRef<HTMLDivElement>(null);
@@ -189,6 +230,7 @@ export function GroupedMatches({
         <SeparationBar
           source={s}
           scaleArcsec={radius ?? s.sepArcsec * 1.2}
+          scaleIsRadius={radius !== undefined}
           width={56}
         />
       </td>
@@ -201,14 +243,7 @@ export function GroupedMatches({
         </td>
       )}
       <td className="py-1.5 pr-2 text-right font-mono text-xs whitespace-nowrap">
-        {s.photometry ? (
-          <>
-            {s.photometry.mag.toFixed(2)}
-            <span className="ml-1 text-neutral-400">{s.photometry.band}</span>
-          </>
-        ) : (
-          <span className="text-neutral-600">—</span>
-        )}
+        <MagCell source={s} pending={photometryPending} />
       </td>
       {!compact && (
         <td className="w-9 py-1 pr-1 text-center">
@@ -298,6 +333,58 @@ export function GroupedMatches({
           const shown = isOpen ? g.sources : g.sources.slice(0, TOP_N);
           const hidden = g.sources.length - shown.length;
           const r = g.radius !== undefined ? formatArcsec(g.radius) : "";
+          if (g.sources.length === 0)
+            return (
+              <tbody key={g.slug} className="border-t border-border">
+                <tr>
+                  <th
+                    scope="rowgroup"
+                    colSpan={cols}
+                    className="px-2 py-1.5 text-left text-xs font-normal text-neutral-400"
+                  >
+                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="inline-flex items-center gap-2 text-neutral-300">
+                        <span className="inline-flex opacity-60">
+                          <CatalogMark slug={g.slug} size={9} />
+                        </span>
+                        {label}
+                      </span>
+                      {g.pending ? (
+                        // No answer yet, so no count: "0 within" would be a
+                        // result the search has not given.
+                        <span className="animate-pulse motion-reduce:animate-none">
+                          Searching…
+                        </span>
+                      ) : g.error !== undefined ? (
+                        <>
+                          <Tooltip
+                            title={
+                              g.error ||
+                              "The catalog service returned an error."
+                            }
+                          >
+                            <span className="cursor-help text-amber-400">
+                              Search failed
+                            </span>
+                          </Tooltip>
+                          {onRetry && (
+                            <button
+                              type="button"
+                              onClick={onRetry}
+                              className="cursor-pointer rounded px-1 py-0.5 text-xs text-primary hover:underline focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
+                            >
+                              Retry
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <span>0 within {r}</span>
+                      )}
+                    </span>
+                  </th>
+                </tr>
+              </tbody>
+            );
           return (
             <tbody key={g.slug} className="border-t-2 border-border">
               <tr>
@@ -321,12 +408,13 @@ export function GroupedMatches({
                       )}
                     </span>
                     {chanceBySlug?.[g.slug] && (
-                      <span
-                        className="text-xs text-neutral-400"
-                        title="Approximate chance that an unrelated source lies this close, from the density of sources in the outer half of the cone"
+                      <Tooltip
+                        title={`Approximate chance that an unrelated ${label} source lies as close as the nearest match (${g.best ? formatArcsec(g.best.sepArcsec) : r}), from the density of sources in the outer half of the cone.`}
                       >
-                        chance ≈ {chanceBySlug[g.slug]}
-                      </span>
+                        <span className="cursor-help text-xs text-neutral-400">
+                          chance ≈ {chanceBySlug[g.slug]}
+                        </span>
+                      </Tooltip>
                     )}
                     {g.verdict !== "none" && (
                       <span
@@ -340,38 +428,26 @@ export function GroupedMatches({
                   </span>
                 </th>
               </tr>
-              {g.sources.length === 0 ? (
-                <tr className="border-t border-border/60">
-                  <td />
-                  <td
-                    colSpan={cols - 1}
-                    className="py-2 pl-2 text-xs text-neutral-400"
-                  >
-                    None within {r} of the searched position
-                  </td>
-                </tr>
-              ) : (
-                <Fragment>
-                  {shown.map((s, i) => row(s, g.radius, i + 1))}
-                  {g.sources.length > TOP_N && onToggleExpanded && (
-                    <tr className="border-t border-border/60">
-                      <td />
-                      <td colSpan={cols - 1} className="py-1 pl-1">
-                        <button
-                          type="button"
-                          aria-expanded={isOpen}
-                          onClick={() => onToggleExpanded(g.slug)}
-                          className="cursor-pointer rounded px-1 py-0.5 text-xs text-primary hover:underline focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
-                        >
-                          {isOpen
-                            ? `Show nearest ${TOP_N} only`
-                            : `Show all ${g.sources.length} ${label} (+${hidden})`}
-                        </button>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              )}
+              <Fragment>
+                {shown.map((s, i) => row(s, g.radius, i + 1))}
+                {g.sources.length > TOP_N && onToggleExpanded && (
+                  <tr className="border-t border-border/60">
+                    <td />
+                    <td colSpan={cols - 1} className="py-1 pl-1">
+                      <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        onClick={() => onToggleExpanded(g.slug)}
+                        className="cursor-pointer rounded px-1 py-0.5 text-xs text-primary hover:underline focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
+                      >
+                        {isOpen
+                          ? `Show nearest ${TOP_N} only`
+                          : `Show all ${g.sources.length} ${label} (+${hidden})`}
+                      </button>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             </tbody>
           );
         })}

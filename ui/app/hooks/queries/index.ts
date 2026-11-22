@@ -21,7 +21,7 @@ export {
   useNeighbors,
 } from "./useNeighbors";
 export { type SimbadParams, useSimbad, useSimbadRefs } from "./useSimbad";
-export { useAvailableHips } from "./useSkyImages";
+export { useAvailableHips, useHipsAt } from "./useSkyImages";
 export {
   type GaiaEpochParams,
   useCrtsLightcurve,

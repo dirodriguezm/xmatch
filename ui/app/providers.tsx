@@ -13,6 +13,7 @@ import { useState } from "react";
 import { CommandPalette } from "@/app/components/command/CommandPalette";
 import { XWaveSpinner } from "@/app/components/common/XWaveSpinner";
 import {
+  reportQueryError,
   reportServiceResult,
   serviceForQueryKey,
 } from "@/app/lib/serviceHealth";
@@ -24,8 +25,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         // Feed the header's status indicator from queries already running.
         queryCache: new QueryCache({
-          onError: (_error, query) =>
-            reportServiceResult(serviceForQueryKey(query.queryKey), false),
+          onError: (error, query) => reportQueryError(query.queryKey, error),
           onSuccess: (_data, query) =>
             reportServiceResult(serviceForQueryKey(query.queryKey), true),
         }),
